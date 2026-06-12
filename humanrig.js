@@ -706,21 +706,39 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
   }
 
   // GK dive toward local ±X. Roots via the internal tilt node (NOT group).
-  function poseDive(side, k) {
+  // Optional targetY = impact height in metres (the predicted glove-contact
+  // point): low balls keep the dive flat along the turf, top-corner balls
+  // launch the whole body airborne. Legacy 2-arg calls (and replayed clips
+  // with b=0) get the original mid-height arc.
+  function poseDive(side, k, targetY) {
     markOverlay(true);
     k = clamp(k, 0, 1);
     const s = side >= 0 ? 1 : -1;
+    const hN = (targetY !== undefined && targetY !== null && targetY > 0)
+      ? clamp((targetY - 0.3) / 2.4, 0, 1) : 0.42;
     const u = smooth(k);
-    setTilt(0, -s * u * (Math.PI / 2 - 0.2), bell(k) * 0.35 - u * 0.2);
-    // both arms reach overhead along the dive axis
-    const raise = lerp(ARM_DOWN * 0.6, -1.45, u);
-    setArm('Left', 0, raise); setArm('Right', 0, raise);
-    setElbow('Left', lerp(0.8, 0.05, u)); setElbow('Right', lerp(0.8, 0.05, u));
-    // legs: near leg pushes off then extends, far leg trails bent
+    const launch = bell(clamp(k / 0.85, 0, 1));          // airborne arc — lands by k=0.85
+    const ground = smooth(clamp((k - 0.55) / 0.45, 0, 1)); // settling onto the turf
+    const y = launch * (0.10 + 0.85 * hN) - ground * 0.24;
+    // roll to horizontal; a slight back-arch on the launch makes top-corner
+    // saves read as a LEAP, while ground saves collapse sideways fast
+    setTilt(-0.18 * hN * launch, -s * u * (Math.PI / 2 - 0.10 - 0.12 * hN), y);
+    // lead arm (dive side) spears at the impact point, trail arm follows across
+    const L = s > 0 ? 'Left' : 'Right', T = s > 0 ? 'Right' : 'Left';
+    const fwdBias = lerp(0.35, 0.05, hN); // low balls sit in FRONT of the falling body
+    setArm(L, fwdBias, lerp(ARM_DOWN * 0.55, lerp(-1.05, -1.5, hN), u));
+    setArm(T, fwdBias * 0.6, lerp(ARM_DOWN * 0.55, lerp(-0.8, -1.35, hN), u));
+    // arms straighten into the stretch, then fold under the chest to push up
+    const land = k > 0.84 ? smooth((k - 0.84) / 0.16) : 0;
+    setElbow(L, lerp(0.85, 0.04, u) + land * 0.9);
+    setElbow(T, lerp(0.85, 0.14, u) + land * 0.9);
+    // legs: near leg drives off then extends with pointed toes; far leg
+    // scissors up on high dives, trails bent for the ground slide
     const N = s > 0 ? 'Left' : 'Right', F = s > 0 ? 'Right' : 'Left';
-    setLeg(N, lerp(0.5, 0.15, u), lerp(1.2, 0.2, u), 0);
-    setLeg(F, lerp(-0.2, -0.35, u), lerp(0.4, 0.9, u), 0);
-    setSpine(lerp(0.3, 0.05, u), 0, s * 0.15 * u); // arch into the stretch
+    setLeg(N, lerp(0.5, 0.1, u), lerp(1.25, 0.15, u), 0);
+    setLeg(F, lerp(-0.2, -0.3 - 0.25 * hN, u), lerp(0.45, 1.0 - 0.45 * hN, u), 0.08);
+    set(N + 'Foot', 0.35 * u, 0, 0); // toes pointed through the stretch
+    setSpine(lerp(0.32, 0.02, u), 0, s * (0.12 + 0.08 * hN) * u);
   }
 
   // poseFall pitches the tilt node face-down about the feet origin.
@@ -960,36 +978,43 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
     set('Neck', 0.1, -s * 0.2, 0);                // eyes locked on the ball
   }
 
-  // Keeper set/ready stance with a live micro-bounce. t in seconds.
+  // Keeper set/ready stance: wide coiled base, hands live in front of the
+  // knees, weight bobbing on the balls of the feet with a slow L/R shift —
+  // a keeper who looks loaded to spring, never a statue. t in seconds.
   function poseGKSet(t) {
     markOverlay(true);
-    const b = Math.abs(Math.sin(t * 3.2));        // weight bounces on the toes
-    setSpine(0.32 + b * 0.02, 0, 0);
-    setArm('Left', 0.55, ARM_DOWN - 0.55);        // hands forward at hip height
-    setArm('Right', 0.55, ARM_DOWN - 0.55);
-    setElbow('Left', 0.85); setElbow('Right', 0.85);
-    setLeg('Left', 0.12, 0.6 + b * 0.05, 0.22);
-    setLeg('Right', 0.12, 0.6 + b * 0.05, 0.22);
-    setTilt(0, 0, -0.14 - b * 0.015);
-    set('Neck', 0.12, 0, 0);                      // chin down, eyes up the pitch
+    const b = Math.abs(Math.sin(t * 3.4));        // quick weight bounce on the toes
+    const sway = Math.sin(t * 1.5);               // slow side-to-side weight shift
+    setSpine(0.40 + b * 0.03, sway * 0.03, sway * 0.05);
+    // arms ready: hands forward of the knees, palms facing the shot
+    setArm('Left', 0.62, ARM_DOWN - 0.70 + b * 0.03 - sway * 0.03, 0.12);
+    setArm('Right', 0.62, ARM_DOWN - 0.70 + b * 0.03 + sway * 0.03, -0.12);
+    setElbow('Left', 0.95); setElbow('Right', 0.95);
+    // wide low base, knees soft, one leg loading a touch more as the weight shifts
+    setLeg('Left', 0.15, 0.74 + b * 0.06 + sway * 0.05, 0.32);
+    setLeg('Right', 0.15, 0.74 + b * 0.06 - sway * 0.05, 0.32);
+    setTilt(0, sway * 0.015, -0.19 - b * 0.02);
+    set('Neck', 0.15, 0, 0);                      // chin tucked, eyes up the pitch
   }
 
-  // Keeper catch: hands rise to the face, gather and hug, crouch to absorb.
+  // Keeper catch: W-shaped hands snap into the ball line, then it's gathered
+  // and CLUTCHED to the chest — elbows squeezed in, shoulders curled around
+  // it, chin clamped down. k=1 (the host's hold phase) is the full clutch.
   function poseGKCatch(k) {
     markOverlay(true);
     k = clamp(k, 0, 1);
-    const rise = smooth(Math.min(1, k / 0.45));   // hands up to chest/face
-    const hug = k > 0.55 ? smooth((k - 0.55) / 0.3) : 0; // gather it in
-    setArm('Left', 0.75 * rise + hug * 0.15, ARM_DOWN - 0.9 * rise - hug * 0.1);
-    setArm('Right', 0.75 * rise + hug * 0.15, ARM_DOWN - 0.9 * rise - hug * 0.1);
-    setElbow('Left', 0.5 + rise * 0.7 + hug * 0.8);
-    setElbow('Right', 0.5 + rise * 0.7 + hug * 0.8);
-    setSpine(0.15 * rise + hug * 0.22, 0, 0);     // curl around the ball
-    set('Spine1', hug * 0.12, 0, 0);
-    set('Neck', 0.12 * rise + hug * 0.2, 0, 0);   // chin tucks over it
-    setLeg('Left', 0.08, 0.3 + hug * 0.35, 0.1);  // crouch absorbs the catch
-    setLeg('Right', 0.08, 0.3 + hug * 0.35, 0.1);
-    setTilt(0, 0, -hug * 0.1);
+    const rise = smooth(Math.min(1, k / 0.4));    // hands attack the ball line
+    const hug = k > 0.5 ? smooth((k - 0.5) / 0.35) : 0; // gather + clutch
+    setArm('Left', 0.85 * rise - hug * 0.05, ARM_DOWN - 1.05 * rise + hug * 0.28, 0.25 * hug);
+    setArm('Right', 0.85 * rise - hug * 0.05, ARM_DOWN - 1.05 * rise + hug * 0.28, -0.25 * hug);
+    setElbow('Left', 0.55 + rise * 0.7 + hug * 0.95);
+    setElbow('Right', 0.55 + rise * 0.7 + hug * 0.95);
+    setSpine(0.12 * rise + hug * 0.3, 0, 0);      // shoulders curl around the ball
+    set('Spine1', hug * 0.16, 0, 0);
+    set('Neck', 0.1 * rise + hug * 0.26, 0, 0);   // chin clamps down over it
+    setLeg('Left', 0.1, 0.32 + hug * 0.42, 0.14); // crouch absorbs the catch
+    setLeg('Right', 0.1, 0.32 + hug * 0.42, 0.14);
+    setTilt(0, 0, -0.04 * rise - hug * 0.1);
   }
 
   // Keeper punch: two-fist clearance, up and forward.
@@ -1003,26 +1028,72 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
       raise = lerp(ARM_DOWN - 0.4, ARM_DOWN - 0.7, u);
       elbow = lerp(0.6, 2.0, u);
       arch = lerp(0, 0.18, u);
-    } else if (k < 0.6) {     // explode: both fists drive up-forward
+    } else if (k < 0.6) {     // explode: both fists drive up-forward THROUGH the ball
       const u = smooth((k - 0.4) / 0.2);
-      fwd = lerp(0.45, 1.1, u);
-      raise = lerp(ARM_DOWN - 0.7, -1.05, u);
-      elbow = lerp(2.0, 0.15, u);
-      arch = lerp(0.18, -0.2, u);
+      fwd = lerp(0.45, 1.2, u);
+      raise = lerp(ARM_DOWN - 0.7, -1.2, u);
+      elbow = lerp(2.0, 0.1, u);
+      arch = lerp(0.18, -0.24, u);
     } else {                  // follow through, settle
       const u = smooth((k - 0.6) / 0.4);
-      fwd = lerp(1.1, 0.6, u);
-      raise = lerp(-1.05, ARM_DOWN - 0.8, u);
-      elbow = lerp(0.15, 0.6, u);
-      arch = lerp(-0.2, 0, u);
+      fwd = lerp(1.2, 0.6, u);
+      raise = lerp(-1.2, ARM_DOWN - 0.8, u);
+      elbow = lerp(0.1, 0.6, u);
+      arch = lerp(-0.24, 0, u);
     }
-    setArm('Left', fwd, raise); setArm('Right', fwd, raise);
+    // fists knit together (slight inward swivel) — a proper two-fist clearance
+    const knit = k >= 0.4 ? 0.3 : 0;
+    setArm('Left', fwd, raise, knit); setArm('Right', fwd, raise, -knit);
     setElbow('Left', elbow); setElbow('Right', elbow);
     setSpine(arch, 0, 0);
-    const jump = k >= 0.4 && k < 0.8 ? bell((k - 0.4) / 0.4) : 0;
-    setTilt(0, 0, jump * 0.3 - (k < 0.4 ? smooth(k / 0.4) * 0.1 : 0));
-    setLeg('Left', 0.1, 0.5 - jump * 0.2, 0);
-    setLeg('Right', 0.1, 0.5 + jump * 0.2, 0);
+    const jump = k >= 0.4 && k < 0.85 ? bell((k - 0.4) / 0.45) : 0;
+    setTilt(0, 0, jump * 0.42 - (k < 0.4 ? smooth(k / 0.4) * 0.12 : 0));
+    // legs tuck under the leap, split slightly for balance
+    setLeg('Left', 0.12, 0.5 + jump * 0.45, 0);
+    setLeg('Right', 0.08, 0.5 + jump * 0.15, 0);
+    set('Neck', 0.1 - 0.15 * jump, 0, 0); // eyes track the ball overhead
+  }
+
+  // NEW (optional, host wires via integrator): lateral set-shuffle toward
+  // dir (±1 = group ±X). Quick side-steps, body kept square to the shooter —
+  // for the keeper tracking a threat across his goal. t in seconds, looped.
+  function poseGKShuffle(t, dir) {
+    markOverlay(true);
+    const s = dir >= 0 ? 1 : -1;
+    const step = Math.sin(t * 9);                 // fast little side-steps
+    const hop = Math.abs(step);
+    setSpine(0.34, 0, s * 0.10);
+    setArm('Left', 0.5, ARM_DOWN - 0.62 + step * 0.04);
+    setArm('Right', 0.5, ARM_DOWN - 0.62 - step * 0.04);
+    setElbow('Left', 0.85); setElbow('Right', 0.85);
+    // legs scissor sideways: lead leg reaches, trail leg pushes off
+    setLeg('Left', 0.1, 0.55 + Math.max(0, step) * 0.25, 0.28 + s * step * 0.16);
+    setLeg('Right', 0.1, 0.55 + Math.max(0, -step) * 0.25, 0.28 - s * step * 0.16);
+    setTilt(0, -s * 0.06, -0.15 + hop * 0.05);
+    set('Neck', 0.14, 0, -s * 0.06);              // eyes stay on the ball
+  }
+
+  // NEW (optional, host wires via integrator): ground-ball gather. Folds down
+  // over the ball (long-barrier: one knee dropping in behind the hands), scoops
+  // at k≈0.5, rises with it clutched to the chest. k scrubbed 0→1.
+  function poseGKScoop(k) {
+    markOverlay(true);
+    k = clamp(k, 0, 1);
+    const down = smooth(Math.min(1, k / 0.45));   // fold down over the ball
+    const up = k > 0.6 ? smooth((k - 0.6) / 0.4) : 0; // rise with it clutched
+    const bend = down * (1 - up * 0.75);
+    setSpine(0.6 * bend + 0.22 * up, 0, 0);
+    set('Spine1', 0.32 * bend, 0, 0);
+    const fwd = 0.75 * bend - 0.05 * up;
+    const raise = ARM_DOWN - 0.2 * bend - 0.8 * up; // hands hang to the turf, then lift in
+    const elbow = 0.25 + 0.3 * bend + 1.4 * up;
+    setArm('Left', fwd, raise, 0.2 * up); setArm('Right', fwd, raise, -0.2 * up);
+    setElbow('Left', elbow); setElbow('Right', elbow);
+    // long-barrier: trailing knee folds deep behind the gather
+    setLeg('Left', 0.35 * bend - 0.1 * up, 0.3 + 0.9 * bend * (1 - up), 0.1);
+    setLeg('Right', -0.25 * bend, 0.3 + 1.5 * bend * (1 - up), 0.12);
+    setTilt(0, 0, -0.06 - 0.28 * bend * (1 - up));
+    set('Neck', 0.35 * bend - 0.05 * up, 0, 0);   // eyes on the ball all the way in
   }
 
   // Walking wounded: one stiff leg, dipped shoulder. Use with very low speedNorm.
@@ -1333,7 +1404,7 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
     poseKick, poseThrowIn, poseDive, poseFall, poseGetUp,
     poseCelebrate, poseSkill, poseArgue, poseShield,
     poseSlideTackle, poseHeader, poseJockey,
-    poseGKSet, poseGKCatch, poseGKPunch,
+    poseGKSet, poseGKCatch, poseGKPunch, poseGKShuffle, poseGKScoop,
     poseLimp, poseTrudge, poseExhausted, poseKneeSlide,
     posePointToSpot, poseWhistle, poseShowCard,
     clearOverlay, dispose,

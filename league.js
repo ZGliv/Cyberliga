@@ -307,11 +307,17 @@
       'linear-gradient(180deg,#11151d 0%,#0a0d13 100%)';
 
     bb.innerHTML =
-      '<div class="bb-kicker"><span>NEXT &mdash; FOOTBALL &middot; MATCHDAY ' + next.matchday + '</span><span>GRAND ARENA</span></div>' +
+      '<div class="bb-kicker"><span class="bb-kick-l"><span class="live-dot" hidden></span>' +
+        '<span class="bb-kick-text">NEXT &mdash; FOOTBALL &middot; MATCHDAY ' + next.matchday + '</span></span>' +
+        '<span>GRAND ARENA</span></div>' +
       '<div class="bb-poster" style="' + field + '">' +
         starCardHTML(next.a) +
         '<div class="bb-vs">VS</div>' +
         starCardHTML(next.b) +
+        // live strip: overlaid (absolute) so showing/hiding it never shifts layout.
+        // Only ever filled with canonical team names + coerced ints.
+        '<a class="bb-livestrip" href="index.html"><span class="live-dot"></span>' +
+          '<span class="ls-text"></span><span class="ls-watch">WATCH</span></a>' +
       '</div>' +
       '<div class="bb-meta">' + meta + '</div>';
   }
@@ -640,7 +646,7 @@
         (c.pending ? ' data-pending="true" aria-disabled="true" tabindex="-1"' : '') + '>' +
         '<span class="sname">' + c.name + '</span>' +
         '<span class="sport-status">' +
-          (c.live ? '<span class="live-dot"></span>LIVE NOW' : 'IN DEVELOPMENT') +
+          (c.live ? '<span class="live-dot"></span><span class="st-text">LIVE NOW</span>' : 'IN DEVELOPMENT') +
         '</span>' +
         (c.sub ? '<span class="sport-sub">' + c.sub + '</span>' : '') +
         '</a>';
@@ -670,6 +676,139 @@
     }
   }
 
+  // ============================ LIVE SCORE ============================
+  // Consumer of the 'cyberliga_live' contract written by the match page:
+  //   {v:1, ts:<epoch ms>, teamA, teamB, scoreA, scoreB, clock, half, mode}
+  // Same whitelist discipline as the rest of this file: team strings must
+  // resolve (=== true) to the canonical TEAM_SET or the whole payload is
+  // ignored, and every string we render is rebuilt from the TEAMS constants
+  // plus int()-coerced numbers — raw storage strings never reach the DOM.
+  var LIVE_KEY = 'cyberliga_live';
+  var LIVE_FRESH_MS = 15000;
+  var liveUI = { sig: null };
+
+  function readLive() {
+    var raw = loadJSON(LIVE_KEY);
+    if (!isObj(raw) || raw.v !== 1) return null;
+    if (raw.mode !== 'live' && raw.mode !== 'ht') return null; // 'ft'/garbage = no broadcast
+    if (TEAM_SET[raw.teamA] !== true || TEAM_SET[raw.teamB] !== true) return null;
+    if (raw.teamA === raw.teamB) return null;
+    var ts = +raw.ts;
+    if (!isFinite(ts) || Math.abs(Date.now() - ts) > LIVE_FRESH_MS) return null; // stale
+    var clock = +raw.clock;
+    clock = isFinite(clock) ? Math.min(7200, Math.max(0, clock)) : 0;
+    return {
+      a: teamByName(raw.teamA), b: teamByName(raw.teamB), // canonical constants from here on
+      scoreA: int(raw.scoreA), scoreB: int(raw.scoreB),
+      clock: clock,
+      half: raw.half === 2 ? 2 : 1,
+      mode: raw.mode,
+    };
+  }
+
+  // Broadcast minute. index.html's scoreboard clock is CONTINUOUS across both
+  // halves (state.clock runs 0..HALF_LEN*2 and is never reset at the break;
+  // fmtClock displays it directly), so the minute is derived from the clock
+  // alone — a (half-1)*halfMinutes offset would double-count the first half.
+  // Football-style 1-based in-progress minute, clamped to the 0..7200s contract.
+  function liveMinute(clock) {
+    return Math.min(120, Math.max(1, Math.ceil(clock / 60)));
+  }
+
+  function applyLive() {
+    try {
+      var live = readLive();
+      var sig = live
+        ? [live.mode, live.a.name, live.scoreA, live.scoreB, live.b.name,
+           live.mode === 'live' ? liveMinute(live.clock) : 0].join('|')
+        : 'off';
+      if (sig === liveUI.sig) return; // in-place + idempotent: untouched DOM never flickers
+      liveUI.sig = sig;
+
+      // --- football arena tile status line ---
+      if (liveUI.rail) liveUI.rail.classList.toggle('has-livescore', !!live);
+      if (liveUI.tileStatus && liveUI.tileText) {
+        var st = liveUI.tileStatus;
+        if (!live) {
+          st.classList.remove('is-score', 'is-ht');
+          liveUI.tileText.textContent = 'LIVE NOW';
+        } else if (live.mode === 'ht') {
+          st.classList.add('is-score', 'is-ht');
+          liveUI.tileText.textContent = 'HALF-TIME — ' + live.scoreA + '-' + live.scoreB;
+        } else {
+          st.classList.add('is-score');
+          st.classList.remove('is-ht');
+          liveUI.tileText.textContent = 'LIVE — ' + live.a.name + ' ' + live.scoreA + '-' +
+            live.scoreB + ' ' + live.b.name + ' · ' + liveMinute(live.clock) + "'";
+        }
+      }
+
+      // --- hero billboard ---
+      if (liveUI.kickText && liveUI.vs && liveUI.strip) {
+        var same = live &&
+          ((live.a.name === liveUI.pairA && live.b.name === liveUI.pairB) ||
+           (live.a.name === liveUI.pairB && live.b.name === liveUI.pairA));
+        if (same) {
+          // billboard pairing IS the live match: kicker + big score replace VS
+          var sl = live.a.name === liveUI.pairA ? live.scoreA : live.scoreB;
+          var sr = live.a.name === liveUI.pairA ? live.scoreB : live.scoreA;
+          liveUI.kickDot.hidden = live.mode !== 'live';
+          liveUI.kickL.classList.add('is-live');
+          liveUI.kickText.textContent = live.mode === 'ht'
+            ? 'HALF-TIME'
+            : 'LIVE NOW · ' + liveMinute(live.clock) + "'";
+          liveUI.vs.classList.add('is-score');
+          liveUI.vs.textContent = sl + '-' + sr;
+          liveUI.strip.classList.remove('on');
+        } else {
+          // not the billboard's fixture (or nothing live): restore the poster…
+          liveUI.kickDot.hidden = true;
+          liveUI.kickL.classList.remove('is-live');
+          liveUI.kickText.textContent = liveUI.kickDefault;
+          liveUI.vs.classList.remove('is-score');
+          liveUI.vs.textContent = 'VS';
+          // …and surface a different live pairing on the overlay strip
+          if (live) {
+            liveUI.stripDot.hidden = live.mode !== 'live';
+            liveUI.stripText.textContent = (live.mode === 'ht' ? 'HALF-TIME — ' : 'LIVE — ') +
+              live.a.name + ' ' + live.scoreA + '-' + live.scoreB + ' ' + live.b.name;
+            liveUI.strip.classList.add('on');
+          } else {
+            liveUI.strip.classList.remove('on');
+          }
+        }
+      }
+    } catch (e) {
+      console.error('CYBERLIGA live update error', e);
+    }
+  }
+
+  function initLive() {
+    var bb = el('billboard');
+    liveUI.kickL = bb ? bb.querySelector('.bb-kick-l') : null;
+    liveUI.kickDot = liveUI.kickL ? liveUI.kickL.querySelector('.live-dot') : null;
+    liveUI.kickText = liveUI.kickL ? liveUI.kickL.querySelector('.bb-kick-text') : null;
+    liveUI.kickDefault = liveUI.kickText ? liveUI.kickText.textContent : '';
+    liveUI.vs = bb ? bb.querySelector('.bb-vs') : null;
+    liveUI.strip = bb ? bb.querySelector('.bb-livestrip') : null;
+    liveUI.stripDot = liveUI.strip ? liveUI.strip.querySelector('.live-dot') : null;
+    liveUI.stripText = liveUI.strip ? liveUI.strip.querySelector('.ls-text') : null;
+    liveUI.rail = el('sportsrail');
+    liveUI.tileStatus = document.querySelector('#sportsrail .sport-cell.live .sport-status');
+    liveUI.tileText = liveUI.tileStatus ? liveUI.tileStatus.querySelector('.st-text') : null;
+    var nf = fixtureAt(league.fixture); // the pairing the billboard rendered
+    liveUI.pairA = nf.a.name;
+    liveUI.pairB = nf.b.name;
+
+    // instant cross-tab push (key === null means storage.clear()) + 3s poll
+    // fallback for same-tab writes and freshness expiry.
+    window.addEventListener('storage', function (ev) {
+      if (!ev || ev.key === null || ev.key === LIVE_KEY) applyLive();
+    });
+    setInterval(applyLive, 3000);
+    applyLive();
+  }
+
   // ============================ BOOT ============================
   try {
     renderBillboard();
@@ -682,6 +821,7 @@
     renderTicker(lines);
     renderSports();
     initCountUp();
+    initLive();
   } catch (e) {
     // Never a broken broadcast: log it, keep whatever rendered.
     console.error('CYBERLIGA hub render error', e);

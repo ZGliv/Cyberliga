@@ -3,6 +3,21 @@
 // The IP layer. Zero dependencies on match internals: the host pushes events
 // through the API and pulls HTML/ticker lines back out.
 // Storage: localStorage 'cyberliga_story' (versioned, defensively parsed).
+//
+// LINE TIERS (see presentation.js): everything this module emits is text the
+// host routes through the presentation queue —
+//   prematchLines() / endMatch().recapLines — TIER 3 ticker flavor (full
+//     sentences). Both are generated at moments that are already visually
+//     resolved (pre-kickoff / after the full-time whistle), so they carry no
+//     early-call risk and can be posted with simTime = now.
+//   feedNote() — TIER 2 feed captions (short, ~40 chars), milestone/context
+//     color for an event the host JUST pushed via event(). Returns null for
+//     routine events so the feed stays lean. Call it AFTER event() so the
+//     career/match counters include the event being captioned, and post it
+//     with the SAME simTime as the parent feed item (plus a beat, ~1.2s, so
+//     the two cascade instead of landing on one frame).
+// PHRASING RULE: story lines only ever describe counters that have already
+// incremented — they never predict or pre-announce an on-pitch outcome.
 // ============================================================================
 
 const STORE_KEY = 'cyberliga_story';
@@ -206,6 +221,44 @@ export function createStoryEngine() {
         }
       }
       touch();
+    },
+
+    /** TIER 2 feed caption for a just-recorded event, or null when there's no
+     *  story. Call AFTER event(type, payload) with the same type/payload. The
+     *  returned text is past-tense/stat-based by construction — safe to show
+     *  the moment the parent event is visually resolved. */
+    feedNote(type, p) {
+      if (!p) return null;
+      switch (type) {
+        case 'goal': {
+          if (!p.scorer) return null;
+          const m = match && match.players[p.scorer];
+          if (m && m.goals === 3) return `${p.scorer} — HAT-TRICK!`;
+          if (m && m.goals > 3) return `${p.scorer} — GOAL No.${m.goals} TONIGHT`;
+          if (m && m.goals === 2) return `${p.scorer} — BRACE`;
+          const c = S.players[p.scorer];
+          if (c && c.goals > 0 && c.goals % 10 === 0) return `CAREER GOAL No.${c.goals} — ${p.scorer}`;
+          return null;
+        }
+        case 'save': {
+          const c = p.keeper ? S.players[p.keeper] : null;
+          if (c && c.saves > 0 && c.saves % 5 === 0) return `${p.keeper} — CAREER SAVE No.${c.saves}`;
+          return null;
+        }
+        case 'juke': {
+          if (!p.player || !p.victim) return null;
+          const n = S.rivalries[pairKey(p.player, p.victim)] || 0;
+          if (n >= 3) return `${p.player} v ${p.victim} — CLASH No.${n}`;
+          return null;
+        }
+        case 'card': {
+          if (p.color === 'red' || !p.player) return null;
+          const c = S.players[p.player];
+          if (c && c.yellows >= 3) return `${c.yellows} CAREER YELLOWS FOR ${p.player}`;
+          return null;
+        }
+      }
+      return null;
     },
 
     endMatch(scoreA, scoreB) {

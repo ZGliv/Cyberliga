@@ -500,6 +500,63 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 32px); }
 .stext { font-size: 15px; line-height: 1.55; color: var(--muted); }
 .stext b { color: var(--text); font-weight: 600; }
 
+/* ---------- live score (consumer of 'cyberliga_live') ---------- */
+/* cells may never expand past their track (would clip the last channel);
+   while a match is live the rail gives FOOTBALL a wider fr-share instead —
+   one transition at kickoff, then score/minute updates never move a divider */
+.sport-cell { min-width: 0; }
+.sportsrail { transition: grid-template-columns .3s ease-out; }
+.sportsrail.has-livescore { grid-template-columns: 1.45fr repeat(4, 1fr); }
+/* status line is height-locked so the live scoreline (condensed numerals)
+   swaps in without moving the rail; the dot stays the page's one glow */
+.sport-cell .sport-status { height: 17px; }
+.sport-cell .sport-status .st-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sport-cell .sport-status.is-score .st-text {
+  font-family: var(--font-c); font-weight: 600; font-size: 13px;
+  letter-spacing: .01em; color: var(--text); font-variant-numeric: tabular-nums;
+}
+.sport-cell .sport-status.is-ht .live-dot { visibility: hidden; } /* keeps spacing, kills the glow at the break */
+@media (max-width: 1040px) and (min-width: 721px) {
+  /* tighter grid band: widen FOOTBALL further and condense the numerals */
+  .sportsrail.has-livescore { grid-template-columns: 2fr repeat(4, 1fr); }
+  .sport-cell .sport-status.is-score .st-text { font-size: 11.5px; }
+}
+
+/* billboard kicker: live swap-in */
+.bb-kicker .bb-kick-l { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+.bb-kicker .live-dot[hidden] { display: none; }
+.bb-kicker .bb-kick-l.is-live .bb-kick-text { color: var(--text); }
+
+/* the VS slot doubles as the live score — same Barlow Condensed 700 block.
+   min-width reserves room so VS -> "2-1" never nudges the star portraits. */
+.billboard .bb-vs { min-width: 1.5em; font-variant-numeric: tabular-nums; }
+.billboard .bb-vs.is-score { color: var(--text); }
+
+/* slim live strip for a non-billboard fixture: absolutely overlaid on the
+   poster, so toggling it can never shift layout */
+.bb-poster { position: relative; }
+.bb-livestrip {
+  position: absolute; top: 8px; left: 8px; right: 8px; z-index: 3;
+  display: flex; align-items: center; gap: 8px;
+  height: 30px; padding: 0 11px;
+  background: rgba(8, 9, 12, .85);
+  border: 1px solid var(--line-strong); border-radius: 8px;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  font-family: var(--font-c); font-weight: 600; font-size: 13.5px;
+  letter-spacing: .04em; color: var(--text);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .18s ease-out, visibility .18s, border-color .15s ease-out;
+}
+.bb-livestrip.on { opacity: 1; visibility: visible; pointer-events: auto; }
+.bb-livestrip:hover { border-color: rgba(31, 210, 255, .4); }
+.bb-livestrip .live-dot[hidden] { display: none; }
+.bb-livestrip .ls-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.bb-livestrip .ls-watch {
+  margin-left: auto; flex: 0 0 auto;
+  font-weight: 700; font-size: 12px; letter-spacing: .08em; color: var(--accent);
+}
+
 /* ---------- footer ---------- */
 footer {
   margin-top: clamp(72px, 10vw, 120px);

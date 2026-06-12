@@ -14,7 +14,8 @@
 //   1  kick        k = anim phase, a = leg (0/1), b = amp
 //   2  header      k = anim phase
 //   3  throwin     k = anim phase
-//   4  dive        k = dive phase, a = side (-1/1)
+//   4  dive        k = dive phase, a = side (-1/1), b = targetY (glove-contact
+//                  height, metres; 0 = legacy clips → mid-height arc)
 //   5  fall        k = fall phase
 //   6  getup       k = get-up phase
 //   7  skill       k = move phase, a = move index (SKILL_MOVES), b = side
@@ -25,6 +26,8 @@
 //   12 jockey      k = continuous time t, a = side
 //   13 gkset       k = continuous time t
 //   14 argue       k = continuous time t
+//   15 gkshuffle   k = continuous time t, a = lateral dir (-1/1)
+//   16 gkscoop     k = scoop phase
 //
 // Phase-style ks (kick/dive/fall/...) interpolate between captured frames when
 // the kind matches on both sides of the playback cursor; continuous-time ks
@@ -105,7 +108,7 @@ export function createReplaySystem(opts = {}) {
       case 1:  rig.poseKick(k, a | 0, b || 1); break;
       case 2:  if (rig.poseHeader) rig.poseHeader(k); break;
       case 3:  if (rig.poseThrowIn) rig.poseThrowIn(k); break;
-      case 4:  rig.poseDive(a >= 0 ? 1 : -1, k); break;
+      case 4:  rig.poseDive(a >= 0 ? 1 : -1, k, b); break; // b=targetY; 0/old clips = legacy arc
       case 5:  rig.poseFall(k); break;
       case 6:  rig.poseGetUp(k); break;
       case 7:  rig.poseSkill(SKILL_MOVES[(a | 0) % SKILL_MOVES.length] || 'stepover', k, b || 1); break;
@@ -116,6 +119,8 @@ export function createReplaySystem(opts = {}) {
       case 12: if (rig.poseJockey) rig.poseJockey(k, a || 1); break;
       case 13: if (rig.poseGKSet) rig.poseGKSet(k); break;
       case 14: if (rig.poseArgue) rig.poseArgue(k); break;
+      case 15: if (rig.poseGKShuffle) rig.poseGKShuffle(k, a >= 0 ? 1 : -1); break;
+      case 16: if (rig.poseGKScoop) rig.poseGKScoop(k); break;
       // default: pure locomotion, no overlay pose
     }
   }

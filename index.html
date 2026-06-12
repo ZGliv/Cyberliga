@@ -54,6 +54,33 @@
   @keyframes slam { 0%{ transform:scale(2.4); opacity:0; } 100%{ transform:scale(1); opacity:1; } }
   #goalsub { font-family:'Rajdhani'; font-weight:700; font-size:20px; letter-spacing:6px; color:rgba(255,255,255,.85); margin-top:6px; }
 
+  /* Penalty stinger — GOAL-tier full-screen call that collapses into a compact corner
+     tag for the rest of the sequence. Host-owned (showPenaltyStinger/hidePenaltyTag);
+     deliberately NOT a lower-third — this is the broadcast drama tier. */
+  #penstinger { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; opacity:0; transition:opacity .25s; }
+  #penstinger.show { opacity:1; }
+  #penstinger .pflash { position:absolute; inset:0; background:radial-gradient(ellipse at center, var(--pencolor,#ffe14d) 0%, transparent 62%); opacity:0; }
+  #penstinger.show .pflash { animation: penflash 1.2s ease-out; }
+  @keyframes penflash { 0%{opacity:.45;} 100%{opacity:0;} }
+  #penstinger .ptext {
+    font-family:'Orbitron'; font-weight:900; font-size:clamp(54px,10vw,120px); letter-spacing:14px;
+    color:#fff; transform:skewX(-8deg);
+    text-shadow: 0 0 26px var(--pencolor,#ffe14d), 0 0 80px var(--pencolor,#ffe14d);
+  }
+  #penstinger.show .ptext { animation: penslam .45s cubic-bezier(.2,1.6,.3,1); }
+  @keyframes penslam { 0%{ transform:scale(2.6) skewX(-8deg); opacity:0; } 100%{ transform:scale(1) skewX(-8deg); opacity:1; } }
+  #penstinger .psub { font-family:'Rajdhani'; font-weight:700; font-size:20px; letter-spacing:7px; color:rgba(255,255,255,.9); margin-top:8px; }
+  #pentag {
+    position:absolute; top:64px; right:22px; font-family:'Orbitron'; font-weight:900; font-size:14px; letter-spacing:3px;
+    color:#fff; padding:7px 16px; border-radius:6px; text-shadow:0 0 10px var(--pencolor,#ffe14d);
+    border:1px solid var(--pencolor,#ffe14d); background:rgba(4,6,16,.85); box-shadow:0 0 16px rgba(0,0,0,.4);
+    opacity:0; transform:translateY(-8px); transition:opacity .3s, transform .3s;
+  }
+  #pentag.show { opacity:1; transform:translateY(0); }
+  /* in-game event feed (items/chips rendered by presentation.js) — top-right is the
+     only HUD corner free of scoreboard/momentum, pills, replay tag and ticker */
+  #feed { position:absolute; top:64px; right:18px; z-index:5; pointer-events:none; }
+
   /* Ticker */
   #ticker {
     position:absolute; bottom:0; left:0; right:0; height:34px; display:flex; align-items:center; overflow:hidden;
@@ -85,6 +112,18 @@
   #bigcard th, #bigcard td { padding:5px 10px; text-align:center; border-bottom:1px solid rgba(255,255,255,.08); }
   #bigcard th { color:#6fe3ff; font-size:11px; letter-spacing:2px; }
   #bigcard td.tname { text-align:left; font-weight:700; }
+  /* FT share-poster button (appended to the FT card by attachPosterButton).
+     pointer-events:auto re-arms clicks under #hud's pointer-events:none — same
+     pattern as #leaguepill. */
+  #posterbtn {
+    pointer-events:auto; cursor:pointer; margin-top:18px;
+    font-family:'Rajdhani', sans-serif; font-weight:700; font-size:13px; letter-spacing:3px;
+    color:#7ef0ff; background:rgba(0,229,255,.06);
+    border:1px solid rgba(0,229,255,.35); border-radius:6px; padding:10px 24px;
+    transition:color .15s, border-color .15s, background .15s, box-shadow .15s;
+  }
+  #posterbtn:hover { color:#fff; background:rgba(0,229,255,.16); border-color:rgba(0,229,255,.8); box-shadow:0 0 18px rgba(0,229,255,.4); }
+  #posterbtn:disabled { opacity:.55; cursor:default; box-shadow:none; }
 
   /* Sound pill */
   #soundpill { position:absolute; bottom:46px; left:18px; font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px; color:#7ef0ff; border:1px solid rgba(0,229,255,.35); padding:4px 12px; border-radius:99px; background:rgba(4,8,20,.7); }
@@ -136,9 +175,12 @@
     <div class="team" id="teamB">VOLT UTD<span class="dot"></span></div>
   </div>
   <div id="momentum"></div>
+  <div id="feed"></div>
   <div id="clockwrap"><span class="live"></span><span id="clock">00:00</span><span id="half">1ST HALF</span></div>
   <div id="badge"><a id="leaguepill" href="league.html">⬡ LEAGUE HUB</a><span id="wordmark">CYBERLIGA <em>PITCH</em></span></div>
   <div id="goalflash"><div id="goaltext">GOAL</div><div id="goalsub"></div></div>
+  <div id="penstinger"><div class="pflash"></div><div class="ptext">PENALTY!</div><div class="psub" id="pensub"></div></div>
+  <div id="pentag">⬤ PENALTY · <span id="pentagteam"></span></div>
   <div id="ticker"><div id="tickerlabel">CYBERLIGA</div><div id="tickertext">WELCOME TO THE CYBERLIGA PITCH — THE FOOTBALL ARENA OF THE CYBERLIGA — FOUR CLUBS · EVERY SPORT · ONE LEAGUE — NO HUMANS WERE CONSULTED IN THE MAKING OF THESE TACTICS — SEASON 2077 —</div></div>
   <div id="replaytag">◉ REPLAY</div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
@@ -397,8 +439,9 @@ const crowd = createCrowd(scene, { teamA: TEAM_A, teamB: TEAM_B });
 const ref = createReferee(scene);
 // dribbling brain (dribbling.js — touches, shields, knock-ons, skill moves)
 const drib = createDribbling();
-// broadcast lower-thirds + commentary line banks (presentation.js)
+// broadcast tiers + sim-synced event queue + in-game feed (presentation.js)
 const present = createPresentation();
+present.attach(document.getElementById('feed')); // adopt the host feed container (top-right)
 // aerodynamic ball model (ballflight.js — Magnus, drag, knuckle, spin-coupled bounces)
 const flight = createBallFlight({ gravity: 22, groundY: 0.24 });
 // team strategy brain (tactics.js — phases, pass evaluation, off-ball runs, pressing shape)
@@ -695,6 +738,7 @@ const state = {
   carrier: null, carrierHold: 0, // sticky carrier + time since last identity change
   celebT: 0,                     // continuous celebration clock (goal + aftermath)
   lineupIntro: false,            // match-start lineup cards play through an extended kickoff hold
+  goalLog: [],                   // per-goal record {name, team, minute} — feeds the FT share poster
 };
 const HALF_LEN = 120; // seconds of sim per half
 
@@ -712,7 +756,7 @@ function resetPositions(kickoffFor) {
     p.fallT = 0; p.slideT = 0; p.stagger = 0; p._fallAnimT = 0; p._slideDone = false;
     p.kickAnim = null; p.skillAnim = null; p.pendingSkillExit = null;
     p._stallT = 0; p._kiPlan = null; p._carryPlan = null;
-    p._gkPull = 0; p._gkHold = false; p._possScale = 1; p._faceBall = false;
+    p._gkPull = 0; p._gkHold = false; p._gkScoop = null; p._possScale = 1; p._faceBall = false;
     p.yaw = p.dir > 0 ? -Math.PI/2 : Math.PI/2;
     p.mesh.position.set(p.pos.x, 0, p.pos.z);
     p.mesh.rotation.set(0, p.yaw, 0); // includes the stagger-wobble z
@@ -749,16 +793,20 @@ function applyDribbleAction(p, act) {
     p.pendingSkillExit = { dir: act.exitDir.clone().setY(0).normalize(), beat: act.beat, t: act.duration };
     ball.vel.multiplyScalar(0.25);
     if (act.beat && act.victim && act.victim.fallT > 0) {
-      const line = present.lines.juked(act.victim.name, p.name);
-      commentate(line, true);
-      present.showEvent({ kind: 'skill', title: line, subtitle: p.team.name, color: hex6(p.team.glow) });
+      // caption trails the takedown by a beat — the victim must be SEEN on the turf
+      // before the feed calls it (sim-synced queue, drained on rendered frames)
+      const css = hex6(p.team.glow), clk = fmtClock(state.clock);
+      present.post({ kind: 'juke', simTime: simT + 0.4, title: present.feedLines.juked(act.victim.name, p.name),
+        team: p.team.name, color: css, clock: clk });
+      present.post({ kind: 'info', simTime: simT + 0.4, title: present.lines.juked(act.victim.name, p.name), force: true });
       crowdExcitement = Math.max(crowdExcitement, 0.55);
       crowd.onBigKick();
       story.event('juke', { player: p.name, team: p.team.name, victim: act.victim.name });
+      const note = story.feedNote('juke', { player: p.name, team: p.team.name, victim: act.victim.name });
+      if (note) present.post({ kind: 'context', simTime: simT + 1.6, title: note, color: css });
     } else if (act.beat && Math.random() < 0.35) {
-      const line = present.lines.skill(p.name, act.move);
-      commentate(line);
-      present.showEvent({ kind: 'skill', title: line, subtitle: p.team.name, color: hex6(p.team.glow) });
+      present.post({ kind: 'skill', simTime: simT + 0.25, title: present.feedLines.skill(p.name, act.move),
+        team: p.team.name, color: hex6(p.team.glow), clock: fmtClock(state.clock) });
     }
   }
 }
@@ -794,6 +842,41 @@ function scheduleKick(p, plan, dirV) {
       commentate(`${p.name} TRIES THE AUDACIOUS CHIP`);
     }
   }
+}
+
+// ===== PENALTY CHOREOGRAPHY =====
+// During the call (foul mode): the fouled team gathers loosely around the spot, the
+// offending team backs off toward the D. For the kick itself (setpiece mode): everyone
+// lines the edge of the box / the D arc. Slots are recomputed every frame from the live
+// roster (cheap at 14 players, and send-offs can never strand a stale assignment), and
+// assigned in z-order so nobody crosses anybody's walk. Targets feed the normal steering
+// (tgtSm smoothing + capped accel) — these are walks, never teleports.
+const penStageMap = new Map();
+function computePenaltyStage(gx, foul) {
+  penStageMap.clear();
+  const kicker = (!foul && state.setpiece) ? state.setpiece.kicker : null;
+  const atkTeam = foul ? foul.victim.team : null;
+  const arc = [], gather = [];
+  for (const p of players) {
+    if (p.role === 'GK' || p === kicker) continue;             // keepers walk their own lines
+    if (foul && (p === foul.victim || foul.arguers.includes(p))) continue;
+    if (foul && p.team === atkTeam) gather.push(p); else arc.push(p);
+  }
+  // D-arc slots: a 7.4m circle around the spot, clamped to just outside the box edge
+  arc.sort((a, b) => a.pos.z - b.pos.z);
+  for (let i = 0; i < arc.length; i++) {
+    const z = arc.length === 1 ? 0 : -7 + (14 * i) / (arc.length - 1);
+    const xa = 24 - Math.sqrt(Math.max(7.4 * 7.4 - z * z, 0));
+    penStageMap.set(arc[i], { x: gx * Math.min(xa, 19.4), z, urg: foul ? 0.3 : 0.45 });
+  }
+  // theater-only: the fouled team fans out around the spot itself, midfield side
+  gather.sort((a, b) => a.pos.z - b.pos.z);
+  for (let i = 0; i < gather.length; i++) {
+    const ang = gather.length === 1 ? 0 : -0.95 + (1.9 * i) / (gather.length - 1);
+    penStageMap.set(gather[i],
+      { x: gx * (24 - Math.cos(ang) * 3.2), z: Math.sin(ang) * 3.2, urg: 0.35 });
+  }
+  return penStageMap;
 }
 
 // ===== SITUATIONAL AWARENESS =====
@@ -950,6 +1033,29 @@ function aiStep(dt) {
         });
       } else carrier._kiPlan = null;
     }
+    // EARLY-SHOT / LONG-RANGE DAMPER: no 30-metre pot shots seconds after kickoff.
+    // Deterministic (tactics replans every 0.3-0.5s — a per-frame dice gate would
+    // flicker the decision): right after any kickoff only genuine chances go in, and
+    // from 25m+ a shot needs a completely clean sight of goal. Demoted plans fall
+    // through to the no-idle carry below, so the carrier keeps playing.
+    if (plan && plan.type === 'shoot' && carrier) {
+      const gX2 = -carrier.dir * HALF_W;
+      const dG = Math.hypot(gX2 - carrier.pos.x, carrier.pos.z);
+      const sinceKO = state.clock - (state.koClock || 0);
+      let damp = sinceKO < 8 && dG > 16; // settle the game before bombing away
+      if (!damp && dG > 25) {
+        let blockers = 0;
+        const segX = gX2 - ball.pos.x, segZ = -ball.pos.z;
+        const segLen2 = segX*segX + segZ*segZ || 1;
+        for (const q of players) {
+          if (q.team === carrier.team || q.role === 'GK') continue;
+          const tSeg = THREE.MathUtils.clamp(((q.pos.x - ball.pos.x)*segX + (q.pos.z - ball.pos.z)*segZ) / segLen2, 0, 1);
+          if (Math.hypot(q.pos.x - (ball.pos.x + segX*tSeg), q.pos.z - (ball.pos.z + segZ*tSeg)) < 1.1) blockers++;
+        }
+        damp = blockers > 0;
+      }
+      if (damp) { plan = null; carrier._kiPlan = null; }
+    }
     // NO-IDLE RULE: a carrier with no plan from tactics still PLAYS — carry forward.
     // The wander heading is cached and re-rolled on a beat, not every frame (zigzag jitter)
     if (carrier && !plan) {
@@ -1080,6 +1186,13 @@ function aiStep(dt) {
   aiStep._rescue = state.mode === 'play' ? boundary.rescueCandidate(ball, players) : null;
   // situational awareness layer: defend the box, crash the box, attack aerial balls
   const sit = computeSituations(state.lastTouchPlayer && state.lastTouchPlayer.pos.distanceTo(ball.pos) < 1.6 ? state.lastTouchPlayer : null);
+  // penalty theater/staging choreography: who stands where while the call plays out
+  aiStep._penStage = null;
+  if (state.mode === 'foul' && state.foul && state.foul.ruling.penalty) {
+    aiStep._penStage = computePenaltyStage(state.foul.offender.dir, state.foul);
+  } else if (state.mode === 'setpiece' && state.setpiece && state.setpiece.kind === 'penalty') {
+    aiStep._penStage = computePenaltyStage(state.setpiece.gx, null);
+  }
 
   for (const p of players) {
     p.kickCooldown = Math.max(0, p.kickCooldown - dt);
@@ -1193,19 +1306,28 @@ function aiStep(dt) {
         if (gkAct.save) {
           const inSpeed = ball.vel.length();
           state.lastTouchTeam = p.team; state.lastTouchPlayer = p;
+          // the GK module defers the outcome to GLOVE CONTACT (this frame), so the
+          // caption is stamped at simT — feed and ticker surface exactly at the save
+          const css = hex6(p.team.glow), clk = fmtClock(state.clock);
           if (gkAct.save.mode === 'catch') {
             ball.vel.set(0, 0, 0); ball.spin.set(0, 0, 0);
             p._gkPull = 0.9; // ball is DRAWN into the chest through the dive window — the pose masks the blend
-            commentate(`${p.name} CLAIMS IT! WHAT HANDS`);
+            present.post({ kind: 'save', simTime: simT, title: present.feedLines.save(p.name, 'catch'),
+              team: p.team.name, color: css, clock: clk });
+            present.post({ kind: 'info', simTime: simT, title: present.lines.saveCatch(p.name) });
             story.event('save', { keeper: p.name, team: p.team.name });
           } else {
             ball.vel.copy(gkAct.save.deflect).multiplyScalar(0.45 * inSpeed + 6);
             ball.spin.multiplyScalar(0.2);
             crowd.onNearMiss();
             crowdExcitement = Math.max(crowdExcitement, 0.7);
-            commentate(`${p.name} FINGERTIPS IT AWAY! WHAT A SAVE`);
+            present.post({ kind: 'save', simTime: simT, title: present.feedLines.save(p.name, 'parry'),
+              team: p.team.name, color: css, clock: clk });
+            present.post({ kind: 'info', simTime: simT, title: present.lines.saveParry(p.name) });
             story.event('save', { keeper: p.name, team: p.team.name });
           }
+          const note = story.feedNote('save', { keeper: p.name, team: p.team.name });
+          if (note) present.post({ kind: 'context', simTime: simT + 1.2, title: note, color: css });
           thump(8);
         }
         target.copy(p.pos);
@@ -1240,6 +1362,51 @@ function aiStep(dt) {
           ball.pinned = true;
         }
       }
+      // GROUND-BALL SCOOP: a slow loose ball at the keeper's feet is gathered with a
+      // long-barrier scoop (rig poseGKScoop), clutched for a beat, then bowled out —
+      // instead of the ball ricocheting off his shins while he stands over it.
+      if (p._gkScoop && (state.mode !== 'play' || p.fallT > 0)) p._gkScoop = null;
+      if (!p._gkScoop && state.mode === 'play' && !keeperAI.isDiving(p) && !p._gkHold
+          && !p.kickAnim && p.kickCooldown <= 0 && p.fallT <= 0 && !state.carrier
+          && (!gkAct || gkAct.type === 'position')) {
+        const bd = Math.hypot(ball.pos.x - p.pos.x, ball.pos.z - p.pos.z);
+        const bsp = Math.hypot(ball.vel.x, ball.vel.z);
+        const recede = (ball.pos.x - p.pos.x) * ball.vel.x + (ball.pos.z - p.pos.z) * ball.vel.z;
+        const inBox = Math.abs(ball.pos.x - p.dir * HALF_W) < 13 && Math.abs(ball.pos.z) < 12;
+        let oppNear = false;
+        for (const q of players) {
+          if (q.team === p.team) continue;
+          if (Math.hypot(q.pos.x - ball.pos.x, q.pos.z - ball.pos.z) < 1.4) { oppNear = true; break; }
+        }
+        if (inBox && bd < 1.1 && bsp < 6 && recede < 0.5 && ball.pos.y < 0.5
+            && Math.hypot(p.vel.x, p.vel.z) < 3 && !oppNear) {
+          p._gkScoop = { t: 0 };
+        }
+      }
+      if (p._gkScoop) {
+        const sc = p._gkScoop;
+        sc.t += dt;
+        const ks = Math.min(sc.t / 0.7, 1);
+        target.copy(p.pos); p._urg = 0;             // planted through the gather
+        p.vel.multiplyScalar(Math.pow(0.001, dt));  // hard brake (frame-rate independent)
+        if (ks > 0.45) {
+          // hands reach the ball: draw it into the chest and keep it there as he rises
+          state.lastTouchTeam = p.team; state.lastTouchPlayer = p;
+          const pa = 1 - Math.exp(-14 * dt);
+          const hy = 0.35 + Math.min((ks - 0.45) / 0.55, 1) * 0.55;
+          ball.pos.x += (p.pos.x + Math.sin(p.yaw) * 0.3 - ball.pos.x) * pa;
+          ball.pos.y += (hy - ball.pos.y) * pa;
+          ball.pos.z += (p.pos.z + Math.cos(p.yaw) * 0.3 - ball.pos.z) * pa;
+          ball.vel.set(0, 0, 0); ball.spin.set(0, 0, 0);
+          ball.pinned = true;
+        }
+        if (sc.t >= 1.15) { // gathered + a clutched beat — bowl it out upfield
+          p._gkScoop = null;
+          p.kickCooldown = 0.5;
+          ball.vel.set(-p.dir, 0, (Math.random() - 0.5) * 0.6).normalize().multiplyScalar(5.5);
+          ball.vel.y = 0;
+        }
+      }
       if (keeperAI.isDiving(p)) { p.vel.set(0, 0, 0); target.copy(p.pos); }
     } else {
       // tactics intents drive every outfielder: press, cover, shape, runs, support —
@@ -1262,9 +1429,16 @@ function aiStep(dt) {
         target.set(ball.pos.x - ax / al * 0.9, 0, ball.pos.z - az / al * 0.9);
         p._urg = 0.9;
       } else if (state.mode === 'foul' && state.foul && state.foul.arguers && state.foul.arguers.includes(p)) {
-        // surround the referee and make your case
-        target.set(ref.pos.x + Math.sin(p.phase) * 1.6, 0, ref.pos.z + Math.cos(p.phase) * 1.6);
-        p._urg = 0.8;
+        // surround the referee and make your case — index-spread ring so two arguers
+        // never stack on one shoulder, speed capped (it's a protest, not a counter)
+        const ang = state.foul.arguers.indexOf(p) * 2.1 + 0.6;
+        target.set(ref.pos.x + Math.sin(ang) * 1.7, 0, ref.pos.z + Math.cos(ang) * 1.7);
+        p._urg = 0.4;
+      } else if (aiStep._penStage && aiStep._penStage.has(p)) {
+        // penalty choreography: walk to your mark (gather at the spot / line the D)
+        const s = aiStep._penStage.get(p);
+        target.set(s.x, 0, s.z);
+        p._urg = s.urg;
       } else if (!ballClaimed && (p === chaserA || p === chaserB) && state.mode === 'play') {
         target.copy(ball.pos).addScaledVector(ball.vel, 0.45); // run the intercept line
         p._urg = 1;
@@ -1832,6 +2006,7 @@ function goalNetStep(prev) {
 
 // ============ BALL PHYSICS ============
 let ballTrap = 0; // interception trap window — pace bleeds off over ~0.12s, not in one frame
+let lastNearMissPost = -9; // debounce for the near-miss feed caption
 function ballStep(dt) {
   netPrev.copy(ball.pos); // motion-segment start for the swept net/woodwork pass
   if (ballTrap > 0) {
@@ -1860,7 +2035,7 @@ function ballStep(dt) {
       if (p._settleGrace > 0) continue; // receiver mid-cushion — don't mug his first touch
       // a diving/holding keeper's ball is owned by the save logic — re-deflecting a
       // parry off the body ring the same frame batted saves straight back into the net
-      if (p.role === 'GK' && (keeperAI.isDiving(p) || p._gkHold)) continue;
+      if (p.role === 'GK' && (keeperAI.isDiving(p) || p._gkHold || p._gkScoop)) continue;
       const d = Math.hypot(ball.pos.x - p.pos.x, ball.pos.z - p.pos.z);
       if (d < nd2 && d > 0.0001) { nd2 = d; np = p; }
     }
@@ -1902,7 +2077,16 @@ function ballStep(dt) {
         && Math.abs(ball.pos.z) > GOAL_WIDTH/2 && Math.abs(ball.pos.z) < GOAL_WIDTH/2 + 4) {
       crowd.onNearMiss();
       crowdExcitement = Math.max(crowdExcitement, 0.45);
-      if (state.lastTouchPlayer) commentate(`${state.lastTouchPlayer.name} INCHES WIDE! SO CLOSE`);
+      // feed caption, host-debounced — the detector can re-fire on consecutive frames
+      // and the random line bank would defeat presentation's exact-title dupe collapse
+      if (state.lastTouchPlayer && simT - lastNearMissPost > 2) {
+        lastNearMissPost = simT;
+        present.post({ kind: 'nearmiss', simTime: simT,
+          title: present.feedLines.nearmiss(state.lastTouchPlayer.name),
+          team: state.lastTouchTeam ? state.lastTouchTeam.name : '',
+          color: state.lastTouchTeam ? hex6(state.lastTouchTeam.glow) : '',
+          clock: fmtClock(state.clock) });
+      }
     }
     const oob = boundary.checkOut(ball, state.lastTouchTeam ? state.lastTouchTeam.name : null);
     if (oob) { beginOutOfPlay(oob); return; }
@@ -1975,6 +2159,9 @@ function goalScored(side) {
   state.celebSpot = (state.scorer ? state.scorer.pos : ball.pos).clone();
   state.celebSpot.x = THREE.MathUtils.clamp(state.celebSpot.x, -HALF_W+4, HALF_W-4);
   state.celebSpot.z = THREE.MathUtils.clamp(state.celebSpot.z, -HALF_H+4, HALF_H-4);
+  // per-goal log for the FT share poster (additive — nothing else reads it)
+  state.goalLog.push({ name: state.scorer ? state.scorer.name : 'OWN GOAL',
+    team: scoringTeam.name, minute: fmtClock(state.clock) });
   document.documentElement.style.setProperty('--goalcolor', '#' + scoringTeam.glow.toString(16).padStart(6,'0'));
   elGoalText.style.color = '#fff';
   elGoalSub.textContent = (state.scorer ? `#${state.scorer.number} ${state.scorer.name}  ·  ` : 'OWN GOAL  ·  ')
@@ -1990,6 +2177,10 @@ function goalScored(side) {
     ? `GOOOAL! #${state.scorer.number} ${state.scorer.name} SCORES FOR ${scoringTeam.name}! ${state.scoreA}-${state.scoreB}`
     : `OWN GOAL! IT FALLS TO ${scoringTeam.name}! ${state.scoreA}-${state.scoreB}`, true);
   story.event('goal', { scorer: state.scorer ? state.scorer.name : null, team: scoringTeam.name, clock: state.clock });
+  // milestone caption (brace / hat-trick / career No.N) trails the goal flash by a beat
+  const note = story.feedNote('goal', { scorer: state.scorer ? state.scorer.name : null, team: scoringTeam.name, clock: state.clock });
+  if (note) present.post({ kind: 'context', simTime: simT + 1.2, title: note,
+    color: hex6(scoringTeam.glow), clock: fmtClock(state.clock) });
 }
 
 function fmtClock(t) {
@@ -1997,27 +2188,111 @@ function fmtClock(t) {
   return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
 }
 
+// ============ TIER-1 STINGER (host-side broadcast graphic) ============
+// Self-contained DOM/CSS in this file — deliberately NOT a presentation.js feed item.
+// PENALTY and RED CARD calls arrive through present.post() → drain().overlays (the
+// sim-synced tier-1 path) and are dispatched here by presentOverlay() in tick().
+// Public seam: showPenaltyStinger(teamName, cssColor) / showStinger / hidePenaltyTag.
+const elPenStinger = document.getElementById('penstinger');
+const elPenText = elPenStinger.querySelector('.ptext');
+const elPenSub = document.getElementById('pensub');
+const elPenTag = document.getElementById('pentag');
+const elPenTagTeam = document.getElementById('pentagteam');
+let penStingerTimer = 0;
+function showStinger(text, sub, cssColor, withTag) {
+  document.documentElement.style.setProperty('--pencolor', cssColor || '#ffe14d');
+  elPenText.textContent = text;
+  elPenSub.textContent = sub || '';
+  elPenStinger.classList.remove('show');
+  void elPenStinger.offsetWidth; // restart the slam animation if a call ever re-fires
+  elPenStinger.classList.add('show');
+  clearTimeout(penStingerTimer);
+  penStingerTimer = setTimeout(() => { // 1.2s of full-screen drama, then the corner tag
+    elPenStinger.classList.remove('show');
+    if (withTag) elPenTag.classList.add('show');
+  }, 1200);
+}
+function showPenaltyStinger(teamName, cssColor) {
+  elPenTagTeam.textContent = teamName;
+  showStinger('PENALTY!', teamName, cssColor, true); // tag persists until the kick
+}
+function hidePenaltyTag() {
+  clearTimeout(penStingerTimer);
+  elPenStinger.classList.remove('show');
+  elPenTag.classList.remove('show');
+}
+
+// TIER-1 OVERLAY DISPATCH: full-screen moments sequenced through the present queue.
+// GOAL flash + FULL TIME card stay host-direct (already visually synced at source);
+// penalty and red land here from drain().overlays on the rendered frame they're due.
+function presentOverlay(ev) {
+  if (ev.kind === 'penalty') {
+    // only flash the graphic while the call is still on screen — an item surfacing
+    // after a long hidden-tab catch-up must not slam a stale stinger over live play
+    if (state.mode === 'foul' || state.mode === 'setpiece') showPenaltyStinger(ev.team, ev.color);
+    present.showEvent(ev); // and the call enters the running feed log
+  } else if (ev.kind === 'red') {
+    showStinger('RED CARD!', ev.title, '#ff3b30', false);
+    present.showEvent(ev);
+  } else {
+    present.showEvent(ev); // unknown tier-1 kind: prominent feed item fallback
+  }
+}
+
 // ============ FOULS / CARDS / SET PIECES ============
 function beginFoul(ruling, offender, victim) {
-  // foul theater: victim stays down clutching, offender + an appealing teammate crowd the ref
+  // WATCHDOG: rulings only land in live play — a leftover slide connecting during
+  // goal/foul/setpiece/outofplay theater must never stack a second ruling on top
+  // (double theater, reset timers, derailed goal/restart flows)
+  if (state.mode !== 'play') return;
+  // foul theater: victim down (then sits up clutching), offender + teammates crowd the
+  // ref, everyone else gets ambient choreography in aiStep — NOBODY freezes
   victim.fallT = Math.max(victim.fallT, 2.4);
+  // arguers: the offender always protests his own call; the victim's nearest teammate
+  // appeals for the card. A penalty is worth a second protester from the offending side.
+  const arguers = [offender];
   let appealer = null, ad = 1e9;
   for (const q of players) {
     if (q.team !== victim.team || q === victim || q.role === 'GK') continue;
     const d = q.pos.distanceTo(victim.pos);
     if (d < ad) { ad = d; appealer = q; }
   }
-  state.foul = { ruling, offender, victim, cardShown: false, done: false,
-    arguers: appealer ? [offender, appealer] : [offender] };
+  if (appealer) arguers.push(appealer);
+  if (ruling.penalty) {
+    let prot = null, pd = 1e9;
+    for (const q of players) {
+      if (q.team !== offender.team || q === offender || q.role === 'GK') continue;
+      const d = q.pos.distanceTo(offender.pos);
+      if (d < pd) { pd = d; prot = q; }
+    }
+    if (prot) arguers.push(prot);
+  }
+  state.foul = { ruling, offender, victim, cardShown: false, done: false, arguers };
   state.mode = 'foul'; state.modeT = 0;
-  whistle(1);
+  if (ruling.penalty) {
+    // THE CALL: sharp triple-blast, hard cut to the official, full-screen stinger.
+    // The damped ref-cam in cameraStep takes over from this cut for the whole window.
+    // The stinger rides the tier-1 queue (simTime = now → fires on THIS rendered frame,
+    // in lockstep with the cut; held automatically through any replay).
+    whistlePenalty();
+    cutToRefCam();
+    present.post({ kind: 'penalty', simTime: simT, title: present.feedLines.penalty(victim.team.name),
+      team: victim.team.name, color: hex6(victim.team.glow), clock: fmtClock(state.clock) });
+  } else {
+    whistle(1);
+  }
+  // a keeper frozen mid-dive when the whistle goes would hold the dive pose through the
+  // whole theater (keeperAI only ticks in 'play') — clear all keeper micro-state
+  keeperAI.reset();
+  for (const q of players) if (q.role === 'GK') q._gkScoop = null;
   // don't freeze the ball dead mid-air at the whistle — damp it and let the foul-mode
   // settle physics (ballSettleStep) bring it to rest naturally
   ball.vel.multiplyScalar(0.4); ball.spin.set(0, 0, 0); ball.knuckle = 0;
   resetTrail(); // trail is only maintained in ballStep — hide it through the foul theater
   for (const q of players) { q.kickAnim = null; q.pendingSkillExit = null; }
   commentate(present.lines.foul(victim.name, offender.name), true);
-  crowdExcitement = Math.max(crowdExcitement, ruling.verdict === 'foul' ? 0.35 : 0.85);
+  crowdExcitement = Math.max(crowdExcitement,
+    ruling.penalty ? 1.0 : ruling.verdict === 'foul' ? 0.35 : 0.85);
 }
 
 function sendOff(p) {
@@ -2039,11 +2314,18 @@ function beginSetPiece(f) {
     ball.pos.set(gx * 24, 0.24, 0); ball.vel.set(0,0,0); ball.spin.set(0,0,0);
     const kicker = players.filter(q => q.team === atkTeam && q.role !== 'GK')
       .sort((a, b) => b.flair - a.flair)[0] || f.victim;
+    // if the chosen taker is the victim still mid-get-up, finish the rise now — a fallen
+    // kicker can never walk to the spot and only the 6s teleport failsafe would save us
+    if (kicker.fallT > 0.45) kicker.fallT = 0.45;
     // taker walks to the spot (setpiece mode steers him); keeper settles on his line via his own AI
     state.setpiece = { kind: 'penalty', kicker, gx };
     const line = present.lines.penalty(atkTeam.name);
     commentate(line, true);
-    present.showEvent({ kind: 'penalty', title: line, subtitle: `${kicker.name} STEPS UP`, color: hex6(atkTeam.glow) });
+    // taker announcement: compact tier-2 feed item — the full-screen drama already
+    // played at the call (beginFoul stinger); duplicating it here was popup spam
+    present.post({ kind: 'penalty', tier: present.TIERS.FEED, simTime: simT,
+      title: `${kicker.name} STEPS UP`, subtitle: atkTeam.name,
+      color: hex6(atkTeam.glow), clock: fmtClock(state.clock) });
     crowdExcitement = Math.max(crowdExcitement, 0.9);
   } else {
     ball.pos.set(
@@ -2059,9 +2341,8 @@ function beginSetPiece(f) {
     }
     // taker jogs over via the setpiece steering; opponents drift back to shape naturally
     state.setpiece = { kind: 'freekick', kicker, gx };
-    const line = present.lines.freekick(atkTeam.name);
-    commentate(line, true);
-    present.showEvent({ kind: 'freekick', title: line, subtitle: 'SET PIECE', color: hex6(atkTeam.glow) });
+    // tier 3: the ticker line is the whole broadcast for a routine free kick
+    commentate(present.lines.freekick(atkTeam.name), true);
   }
   state.mode = 'setpiece'; state.modeT = 0;
   resetTrail(); // the ball just teleported — a trail from the old spot would streak across
@@ -2106,6 +2387,7 @@ function beginOutOfPlay(oob) {
 }
 
 function takeSetPiece() {
+  hidePenaltyTag(); // the strike (or any bail-out) ends the penalty graphic sequence
   const s = state.setpiece, k = s.kicker;
   if (!k || !players.includes(k)) { state.mode = 'play'; return; }
   state.lastTouchTeam = k.team; state.lastTouchPlayer = k;
@@ -2203,7 +2485,15 @@ function liveFrame(k, outPos, outTgt, t) {
 }
 // composed set-piece frame: lower and closer, looking down the delivery line at the box
 function setPieceFrame(outPos, outTgt) {
-  const gx = state.setpiece.gx * HALF_W;
+  const sp = state.setpiece;
+  const gx = sp.gx * HALF_W;
+  if (sp.kind === 'penalty') {
+    // TV penalty composition: low, behind and just off the taker's shoulder, looking
+    // down the run-up line — taker foreground, keeper bouncing on his line, goal framed
+    outPos.set(ball.pos.x - sp.gx * 8.5, 2.6, ball.pos.z + 5.4);
+    outTgt.set(gx * 0.97, 1.25, 0);
+    return;
+  }
   outPos.set(
     THREE.MathUtils.clamp(ball.pos.x * 0.9, -HALF_W * 0.9, HALF_W * 0.9),
     9.5,
@@ -2235,13 +2525,14 @@ function cameraStep(dt, t) {
     setPieceFrame(camPosD, camTgtD);
     camera.position.lerp(camPosD, 1 - Math.exp(-2.6 * dt));
     camTarget.lerp(camTgtD, 1 - Math.exp(-2.6 * dt));
-    easeFov(CAM_FOV + 1.5, 2.5, dt); // a hair wider so wall and box both read
+    // pens punch in a touch (taker/keeper duel); other set pieces go a hair wider
+    easeFov(state.setpiece.kind === 'penalty' ? CAM_FOV - 2 : CAM_FOV + 1.5, 2.5, dt);
   } else if (state.mode === 'foul' && state.foul && state.foul.ruling.penalty
-      && state.foul.cardShown && !state.foul.done) {
-    // PENALTY BROADCAST MOMENT: damped pan onto the referee while he points to the
-    // spot — refRigStep holds posePointToSpot for exactly this cardShown→done window,
-    // so the camera and the signal are in sync by construction. Released by the
-    // beginSetPiece cameraCut when the spot-kick theater takes over.
+      && !state.foul.done) {
+    // PENALTY BROADCAST MOMENT: opened by the hard cutToRefCam in beginFoul, then this
+    // damped follow tracks the official for the WHOLE call — whistle to mouth, striding
+    // to the spot, posePointToSpot, the card. Released by the beginSetPiece cameraCut
+    // when the spot-kick theater takes over.
     camPosD.set(ref.pos.x * 0.92, 2.6, ref.pos.z + 6.5); // ~7m, chest height, broadcast side
     camTgtD.set(ref.pos.x, 1.4, ref.pos.z);
     camera.position.lerp(camPosD, 1 - Math.exp(-2.8 * dt));
@@ -2285,6 +2576,14 @@ function cameraCut() {
     camTension = liveTension(); // land the cut on the correct zone framing, no post-cut drift
     liveFrame(camTension, camera.position, camTarget);
   }
+  camera.lookAt(camTarget);
+}
+// hard cut framing the OFFICIAL — the penalty call opens on the man making it, then the
+// damped foul-mode branch in cameraStep takes over from exactly this framing
+function cutToRefCam() {
+  camShakeOff.set(0, 0, 0);
+  camera.position.set(ref.pos.x * 0.92, 2.6, ref.pos.z + 6.5);
+  camTarget.set(ref.pos.x, 1.4, ref.pos.z);
   camera.lookAt(camTarget);
 }
 
@@ -2398,14 +2697,30 @@ function animatePlayers(dt, t) {
     // theater extends it mid-fall — deriving the anim phase from it resurrected victims
     if (p.fallT > 0) p._fallAnimT = (p._fallAnimT || 0) + dt; else p._fallAnimT = 0;
 
+    // keeper velocity in his own frame (fwd = facing, lat = group-local X) — feeds the
+    // lateral set-shuffle gate below; cheap, so computed only for the two keepers
+    let gkFwdV = 0, gkLatV = 0;
+    if (p.role === 'GK') {
+      gkFwdV = p.vel.x * Math.sin(p.yaw) + p.vel.z * Math.cos(p.yaw);
+      gkLatV = p.vel.x * Math.cos(p.yaw) - p.vel.z * Math.sin(p.yaw);
+    }
+
     // ONE pose per frame — the rig fully re-poses every joint each call
     if (p.role === 'GK' && keeperAI.isDiving(p)) {
       const ds = keeperAI.diveState(p) || { side: 1, k: 0 };
-      rig.poseDive(ds.side, ds.k);
-      p._poseDesc = { kind: 4, k: ds.k, a: ds.side, b: 0 };
+      // targetY (predicted glove-contact height) keeps low dives flat along the turf
+      // and launches top-corner dives airborne; rigs without the 3rd arg ignore it.
+      // b slot carries it into recordings (b=0 in old clips = legacy mid-height arc).
+      rig.poseDive(ds.side, ds.k, ds.targetY);
+      p._poseDesc = { kind: 4, k: ds.k, a: ds.side, b: ds.targetY || 0 };
     } else if (p.role === 'GK' && p._gkHold) {
       if (rig.poseGKCatch) rig.poseGKCatch(1); else rig.poseCelebrate(0.5, 1);
       p._poseDesc = { kind: 10, k: 1, a: 0, b: 0 };
+    } else if (p.role === 'GK' && p._gkScoop && p.fallT <= 0 && rig.poseGKScoop) {
+      // long-barrier ground-ball gather (host scrubs 0→0.7s, then holds the clutch)
+      const ks = Math.min(p._gkScoop.t / 0.7, 1);
+      rig.poseGKScoop(ks);
+      p._poseDesc = { kind: 16, k: ks, a: 0, b: 0 };
     } else if (p.slideT > 0) {
       // sliding tackle along the turf
       if (rig.poseSlideTackle) rig.poseSlideTackle(1 - p.slideT / 0.7);
@@ -2461,8 +2776,31 @@ function animatePlayers(dt, t) {
       p._poseDesc = { kind: 9, k: t + p.phase, a: p.number % 4, b: 0 };
     } else if ((state.mode === 'halftime' || state.mode === 'fulltime') && rig.poseExhausted) {
       rig.poseExhausted(t * 0.8 + p.phase); // hands on knees at the whistle
-    } else if (p.role === 'GK' && rig.poseGKSet && state.mode === 'play'
+    } else if ((state.mode === 'foul'
+                || (state.mode === 'setpiece' && state.setpiece && state.setpiece.kind === 'penalty'))
+               && rig.poseExhausted && p.role !== 'GK' && (p.number % 5) < 3
+               && !(state.setpiece && p === state.setpiece.kicker) // the taker stays switched on
+               && gateOn(p, '_ambG', sp < 0.5, sp > 1.1)) {
+      // foul/penalty theater ambience: ~half the settled players go hands-on-hips while
+      // the call plays out (slowed loop = low intensity); the rest hold plain idle —
+      // variety, not a chorus line. Not stamped into _poseDesc (matches the halftime
+      // pattern: poseExhausted has no replay pose kind and these modes are not recorded).
+      rig.poseExhausted(t * 0.6 + p.phase);
+    } else if (p.role === 'GK' && rig.poseGKShuffle && state.mode === 'play'
+               && gateOn(p, '_gkShufG',
+                    run > 0.10 && run < 0.45 && Math.abs(gkLatV) > Math.abs(gkFwdV) * 1.4 && Math.abs(gkLatV) > 0.5,
+                    run < 0.07 || run > 0.55 || Math.abs(gkLatV) < Math.abs(gkFwdV))) {
+      // lateral set-shuffle: keeper tracking the threat across his goal — scissoring
+      // side-steps instead of a jogging crab-walk. dir = ±1 in group-local X.
+      rig.poseGKShuffle(t + p.phase, gkLatV >= 0 ? 1 : -1);
+      p._poseDesc = { kind: 15, k: t + p.phase, a: gkLatV >= 0 ? 1 : -1, b: 0 };
+    } else if (p.role === 'GK' && rig.poseGKSet
+               && (state.mode === 'play'
+                   || (state.mode === 'setpiece' && state.setpiece
+                       && state.setpiece.kind === 'penalty' && p.dir === state.setpiece.gx))
                && gateOn(p, '_gkSetG', run < 0.10, run > 0.22)) {
+      // in play: normal set stance. Penalty staging: the DEFENDING keeper walks to his
+      // line (his idle-mode steering target) and holds the set-stance bounce until the run-up
       rig.poseGKSet(t + p.phase); // keeper set stance while play is live
       p._poseDesc = { kind: 13, k: t + p.phase, a: 0, b: 0 };
     } else if (rig.poseJockey && state.mode === 'play' && p.role !== 'GK'
@@ -2546,6 +2884,23 @@ function whistle(blasts) { // 1 = kickoff/goal, 2 = halftime, 3 = full time (lon
     g.gain.exponentialRampToValueAtTime(0.001, t0 + (long ? 0.9 : 0.34));
     o.connect(g); g.connect(masterGain);
     o.start(t0); o.stop(t0 + 1); trill.start(t0); trill.stop(t0 + 1);
+  }
+}
+function whistlePenalty() { // THE BIG CALL: three sharp urgent blasts — tighter and
+  if (!AC) return;          // brighter than the long full-time cadence of whistle(3)
+  for (let i = 0; i < 3; i++) {
+    const t0 = AC.currentTime + i * 0.21;
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = 'square'; o.frequency.value = 2520;
+    const trill = AC.createOscillator(); trill.frequency.value = 38;
+    const tg = AC.createGain(); tg.gain.value = 240;
+    trill.connect(tg); tg.connect(o.frequency);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(0.13, t0 + 0.012);
+    g.gain.setValueAtTime(0.13, t0 + 0.13);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+    o.connect(g); g.connect(masterGain);
+    o.start(t0); o.stop(t0 + 0.3); trill.start(t0); trill.stop(t0 + 0.3);
   }
 }
 function roar() { // goal eruption swells over the crowd bed, decays for ~5s
@@ -2650,6 +3005,242 @@ function stopForBreak() {
   }
 }
 
+// ============ FULL-TIME SHARE POSTER ============
+// The shareable artifact: a 1080×1350 (4:5) PNG match poster rendered on an offscreen
+// 2D canvas, built LAZILY when the FT-card button is clicked — full time itself stays
+// cheap. Palette mirrors the hub's broadcast-editorial system (league.css tokens: ink
+// #08090c, text #e9edf4, muted #98a1b3, hairlines at .09–.18 white) but uses the font
+// families THIS document loads (Orbitron/Rajdhani) — canvas can only draw document
+// fonts, so the hub's Archivo/Barlow stay in the hub. Output is a data URL (no object
+// URLs are ever created, so there is nothing to revoke).
+const POSTER_STARS = { 'NEON FC': 'RAZOR', 'VOLT UTD': 'NOVA', 'GRID ROYALS': 'CIRCUIT', 'ASTRA NOVA': 'STARFALL' };
+const POSTER_ORDINAL = ['1ST', '2ND', '3RD', '4TH'];
+const posterRGBA = (css, a) =>
+  `rgba(${parseInt(css.slice(1, 3), 16)},${parseInt(css.slice(3, 5), 16)},${parseInt(css.slice(5, 7), 16)},${a})`;
+
+// frozen at the whistle: the FT card holds ~11s and then the NEXT fixture goes live,
+// so a render that's still in flight must keep describing the match that just ended
+function posterSnapshot() {
+  const order = LEAGUE_TEAMS.map(t => ({ t, r: league.table[t.name] }))     // tableHTML's comparator
+    .sort((x, y) => y.r.pts - x.r.pts || (y.r.gf - y.r.ga) - (x.r.gf - x.r.ga) || y.r.gf - x.r.gf);
+  const club = team => {
+    const i = order.findIndex(o => o.t.name === team.name);
+    return { name: team.name, css: hex6(team.glow), pos: POSTER_ORDINAL[i] || `${i + 1}TH`, pts: order[i].r.pts };
+  };
+  return {
+    teamA: club(TEAM_A), teamB: club(TEAM_B),
+    scoreA: state.scoreA, scoreB: state.scoreB,
+    goals: state.goalLog.slice(),
+    matchday: league.fixture, // finishMatch already advanced it — this IS the played matchday
+  };
+}
+
+// resolves null on error OR timeout — the poster always renders (monogram fallback)
+function loadPosterImage(src, ms = 3000) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const to = setTimeout(() => resolve(null), ms);
+    img.onload = () => { clearTimeout(to); resolve(img); };
+    img.onerror = () => { clearTimeout(to); resolve(null); };
+    img.src = src;
+  });
+}
+
+// rounded-square star card. The portrait PNGs ship with baked team-color grounds —
+// they ARE the card art; the fallback is a team-color tile with the club monogram.
+function drawPosterPortrait(g, img, x, y, s, club) {
+  g.save();
+  g.beginPath(); g.roundRect(x, y, s, s, 26); g.clip();
+  if (img) {
+    g.drawImage(img, x, y, s, s);
+  } else {
+    g.fillStyle = '#0e1117'; g.fillRect(x, y, s, s);
+    const gr = g.createLinearGradient(0, y, 0, y + s);
+    gr.addColorStop(0, posterRGBA(club.css, .85)); gr.addColorStop(1, posterRGBA(club.css, .3));
+    g.fillStyle = gr; g.fillRect(x, y, s, s);
+    g.font = `900 ${Math.round(s * .5)}px Orbitron, sans-serif`;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = 'rgba(8,9,12,.85)';
+    g.fillText(club.name[0], x + s / 2, y + s / 2 + s * .04);
+  }
+  g.restore();
+  g.strokeStyle = 'rgba(233,238,248,.18)'; g.lineWidth = 2;
+  g.beginPath(); g.roundRect(x + 1, y + 1, s - 2, s - 2, 25); g.stroke();
+  g.fillStyle = club.css;
+  g.fillRect(x + 24, y + s + 10, s - 48, 4); // team-color base accent
+}
+
+async function buildMatchPoster(snap) {
+  // document fonts are loaded minutes before any FT — the race is a cap so a stuck
+  // FontFaceSet can never hang the button (worst case: fallback sans renders)
+  try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]); } catch (e) { /* draw anyway */ }
+  const [imgA, imgB] = await Promise.all([
+    loadPosterImage(`portraits/${snap.teamA.name}_${POSTER_STARS[snap.teamA.name]}.png`),
+    loadPosterImage(`portraits/${snap.teamB.name}_${POSTER_STARS[snap.teamB.name]}.png`),
+  ]);
+  const W = 1080, H = 1350;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  // ctx.letterSpacing is Chromium-only; elsewhere the assignment is an inert expando.
+  // Spacing trails the last glyph, so centered runs add spacing/2 to x to re-balance.
+  const spacing = px => { g.letterSpacing = px + 'px'; };
+
+  // ---- ground: ink + the two clubs' radial washes on a diagonal split
+  g.fillStyle = '#08090c'; g.fillRect(0, 0, W, H);
+  let gr = g.createRadialGradient(150, 230, 0, 150, 230, 1010);
+  gr.addColorStop(0, posterRGBA(snap.teamA.css, .2)); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  gr = g.createRadialGradient(930, 1120, 0, 930, 1120, 1010);
+  gr.addColorStop(0, posterRGBA(snap.teamB.css, .2)); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(233,238,248,.05)'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(W * .8, -40); g.lineTo(W * .2, H + 40); g.stroke(); // the split seam
+  g.fillStyle = 'rgba(255,255,255,.012)';
+  for (let y = 0; y < H; y += 4) g.fillRect(0, y, W, 1);                      // broadcast scanlines
+  g.strokeStyle = 'rgba(233,238,248,.14)'; g.lineWidth = 1;
+  g.strokeRect(26.5, 26.5, W - 53, H - 53);                                   // editorial hairline frame
+
+  // ---- masthead
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  spacing(12);
+  g.font = '900 42px Orbitron, sans-serif';
+  g.fillStyle = '#e9edf4';
+  g.shadowColor = 'rgba(31,210,255,.45)'; g.shadowBlur = 24;
+  g.fillText('CYBERLIGA', W / 2 + 6, 116);
+  g.shadowBlur = 0;
+  spacing(5);
+  g.font = '600 27px Rajdhani, sans-serif';
+  g.fillStyle = '#98a1b3';
+  g.fillText(`FOOTBALL DIVISION · MATCHDAY ${snap.matchday} · SEASON 2077`, W / 2 + 2, 164);
+  spacing(10);
+  g.font = '700 23px Rajdhani, sans-serif';
+  g.fillStyle = 'rgba(233,238,248,.5)';
+  g.fillText('FULL-TIME', W / 2 + 5, 212);
+
+  // ---- scoreline block: club names above/below, star portraits flanking the score
+  const PS = 280, PY = 430, PXA = 56, PXB = W - 56 - PS;
+  spacing(6);
+  g.font = '700 54px Orbitron, sans-serif';
+  g.fillStyle = snap.teamA.css;
+  g.shadowColor = posterRGBA(snap.teamA.css, .55); g.shadowBlur = 18;
+  g.fillText(snap.teamA.name, W / 2 + 3, 352);
+  g.fillStyle = snap.teamB.css;
+  g.shadowColor = posterRGBA(snap.teamB.css, .55);
+  g.fillText(snap.teamB.name, W / 2 + 3, 872);
+  g.shadowBlur = 0;
+  spacing(0);
+  drawPosterPortrait(g, imgA, PXA, PY, PS, snap.teamA);
+  drawPosterPortrait(g, imgB, PXB, PY, PS, snap.teamB);
+
+  // score digits flank a short team-gradient bar — composing the pieces keeps the
+  // digits huge where Orbitron's spaced em-dash would blow the column between cards
+  let fs = 170;
+  g.font = `900 ${fs}px Orbitron, sans-serif`;
+  const maxDigit = Math.max(g.measureText(String(snap.scoreA)).width, g.measureText(String(snap.scoreB)).width);
+  if (maxDigit > 150) { fs = Math.max(64, Math.floor(fs * 150 / maxDigit)); g.font = `900 ${fs}px Orbitron, sans-serif`; }
+  g.textBaseline = 'middle';
+  g.fillStyle = '#ffffff';
+  g.shadowColor = 'rgba(233,238,248,.35)'; g.shadowBlur = 26;
+  g.textAlign = 'right'; g.fillText(String(snap.scoreA), W / 2 - 64, 574);
+  g.textAlign = 'left'; g.fillText(String(snap.scoreB), W / 2 + 64, 574);
+  g.shadowBlur = 0;
+  const barGr = g.createLinearGradient(W / 2 - 26, 0, W / 2 + 26, 0);
+  barGr.addColorStop(0, posterRGBA(snap.teamA.css, .9)); barGr.addColorStop(1, posterRGBA(snap.teamB.css, .9));
+  g.fillStyle = barGr; g.fillRect(W / 2 - 26, 566, 52, 8);
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+
+  // star captions + winner tag (no tag on draws)
+  spacing(4);
+  g.font = '700 27px Rajdhani, sans-serif';
+  g.fillStyle = snap.teamA.css;
+  g.fillText(`★ ${POSTER_STARS[snap.teamA.name] || snap.teamA.name}`, PXA + PS / 2 + 2, 756);
+  g.fillStyle = snap.teamB.css;
+  g.fillText(`★ ${POSTER_STARS[snap.teamB.name] || snap.teamB.name}`, PXB + PS / 2 + 2, 756);
+  if (snap.scoreA !== snap.scoreB) {
+    spacing(6);
+    g.font = '700 23px Rajdhani, sans-serif';
+    g.fillStyle = 'rgba(233,238,248,.75)';
+    g.fillText('▲ WINNER', (snap.scoreA > snap.scoreB ? PXA : PXB) + PS / 2 + 3, 796);
+  }
+
+  // ---- scorers: two columns under the cards, team diamond per line
+  const drawCol = (list, cx, css) => {
+    spacing(1);
+    g.font = '600 30px Rajdhani, sans-serif';
+    list.slice(0, 5).forEach((gl, i) => {
+      const y = 944 + i * 40, line = `${gl.name}   ${gl.minute}`;
+      g.fillStyle = 'rgba(233,238,248,.85)';
+      g.fillText(line, cx + 10, y);
+      const w = g.measureText(line).width;
+      g.fillStyle = css;
+      g.save(); g.translate(cx + 10 - w / 2 - 22, y - 10); g.rotate(Math.PI / 4); g.fillRect(-5, -5, 10, 10); g.restore();
+    });
+    if (list.length > 5) {
+      g.fillStyle = '#5c6575';
+      g.fillText(`+${list.length - 5} MORE`, cx + 10, 944 + 5 * 40);
+    }
+  };
+  drawCol(snap.goals.filter(gl => gl.team === snap.teamA.name), PXA + PS / 2, snap.teamA.css);
+  drawCol(snap.goals.filter(gl => gl.team === snap.teamB.name), PXB + PS / 2, snap.teamB.css);
+  if (!snap.goals.length) {
+    spacing(6);
+    g.font = '600 28px Rajdhani, sans-serif';
+    g.fillStyle = '#5c6575';
+    g.fillText('NO GOALS — THE DEFENCES HELD', W / 2 + 3, 958);
+  }
+
+  // ---- bottom strip: tagline + where the result left both clubs in the table
+  g.strokeStyle = 'rgba(233,238,248,.14)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(70, 1212.5); g.lineTo(W - 70, 1212.5); g.stroke();
+  spacing(5);
+  let tf = 28;
+  g.font = `700 ${tf}px Orbitron, sans-serif`;
+  const TAG = 'THE LEAGUE THAT NEVER SLEEPS — CYBERLIGA';
+  while (g.measureText(TAG).width > 900 && tf > 16) { tf--; g.font = `700 ${tf}px Orbitron, sans-serif`; }
+  g.fillStyle = '#1fd2ff';
+  g.shadowColor = 'rgba(31,210,255,.4)'; g.shadowBlur = 16;
+  g.fillText(TAG, W / 2 + 3, 1268);
+  g.shadowBlur = 0;
+  spacing(2);
+  g.font = '600 27px Rajdhani, sans-serif';
+  g.fillStyle = '#98a1b3';
+  g.fillText(`LEAGUE TABLE: ${snap.teamA.name} ${snap.teamA.pos} · ${snap.teamA.pts} PTS  —  ${snap.teamB.name} ${snap.teamB.pos} · ${snap.teamB.pts} PTS`,
+    W / 2 + 1, 1312);
+
+  return c.toDataURL('image/png');
+}
+
+// the button lives on the FT card; the next showCard() overwrite removes it naturally.
+// Snapshot is bound at the whistle, so a click that races the 11s card timeout still
+// renders the finished match. href is a data URL — nothing to revoke afterwards.
+function attachPosterButton(snap) {
+  const btn = document.createElement('button');
+  btn.id = 'posterbtn';
+  btn.type = 'button';
+  btn.textContent = '⤓ SAVE MATCH POSTER';
+  btn.addEventListener('click', async () => {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = 'RENDERING…';
+    try {
+      const url = await buildMatchPoster(snap);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CYBERLIGA_${snap.teamA.name.replace(/\s+/g, '-')}_${snap.scoreA}-${snap.scoreB}_${snap.teamB.name.replace(/\s+/g, '-')}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      btn.textContent = '✓ POSTER SAVED';
+      setTimeout(() => { btn.textContent = '⤓ SAVE MATCH POSTER'; btn.disabled = false; }, 1600);
+    } catch (e) {
+      console.warn('match poster failed', e);
+      btn.textContent = '⤓ SAVE MATCH POSTER';
+      btn.disabled = false;
+    }
+  });
+  elPanel.appendChild(btn);
+}
+
 function finishMatch() {
   whistle(3);
   stopForBreak();
@@ -2667,11 +3258,13 @@ function finishMatch() {
     (wrap.recapLines || []).forEach(l => commentate(l, true));
     if (wrap.motm) {
       const mt = LEAGUE_TEAMS.find(t => t.name === wrap.motm.team);
-      present.showEvent({ kind: 'penalty', title: 'MAN OF THE MATCH: ' + wrap.motm.name,
+      // tier-2 feed item beside the FT card (drain keeps running in 'fulltime')
+      present.post({ kind: 'motm', simTime: simT, title: present.feedLines.motm(wrap.motm.name),
         subtitle: wrap.motm.line, color: mt ? hex6(mt.glow) : '#7ef0ff' });
     }
   }
   showCard('FULL TIME', `${TEAM_A.name} ${state.scoreA} — ${state.scoreB} ${TEAM_B.name}`, true);
+  attachPosterButton(posterSnapshot()); // ⤓ SAVE MATCH POSTER — the share artifact (lazy render on click)
   commentate(`FULL TIME: ${TEAM_A.name} ${state.scoreA}-${state.scoreB} ${TEAM_B.name}`, true);
   state.mode = 'fulltime'; state.modeT = 0;
 }
@@ -2696,6 +3289,7 @@ function startMatch() {
   makeTeam(TEAM_A, -1); makeTeam(TEAM_B, 1);
   state.scoreA = 0; state.scoreB = 0; state.clock = 0; state.half = 1;
   state.lastTouchTeam = null; state.lastTouchPlayer = null; state.goalTeam = null; state.scorer = null;
+  state.goalLog = []; // fresh scorer ledger for the FT share poster
   stats.reset(); replaySys.reset();
   elSA.textContent = '0'; elSB.textContent = '0'; elHalf.textContent = '1ST HALF';
   const cA = hex6(TEAM_A.glow), cB = hex6(TEAM_B.glow);
@@ -2777,7 +3371,7 @@ function tick(forcedDt, skipRender) {
     if (state.lineupIntro) lineupIntroStep(state.modeT); // match-start lineup cards
     if (state.modeT > (state.lineupIntro ? LINEUP_HOLD : 1.4)) {
       if (state.lineupIntro) { state.lineupIntro = false; hideLineup(); }
-      state.mode = 'play'; whistle(1);
+      state.mode = 'play'; state.koClock = state.clock; whistle(1); // koClock feeds the early-shot damper
     }
   } else if (state.mode === 'play') {
     state.clock += dt;
@@ -2839,6 +3433,28 @@ function tick(forcedDt, skipRender) {
   } else if (state.mode === 'foul') {
     state.modeT += dt;
     const f = state.foul;
+    if (!f) {
+      state.mode = 'play'; // WATCHDOG: foul mode without a foul record can never progress
+    } else {
+    const fdur = f.ruling.penalty ? 5.2 : 4.2;
+    // victim theater: pinned flat, then sits up (a held partial get-up, gently rocking —
+    // reads as clutching the leg), then completes the rise just before the restart.
+    // All clamps are driven off modeT, so the profile is frame-rate independent.
+    if (f.victim && players.includes(f.victim) && f.victim.slideT <= 0) {
+      if (state.modeT < fdur - 1.55) f.victim.fallT = Math.max(f.victim.fallT, 0.7);
+      else if (state.modeT < fdur - 0.75)
+        f.victim.fallT = Math.max(f.victim.fallT, 0.3 + Math.sin(state.modeT * 3) * 0.045);
+    }
+    // penalty call: the official strides the last meters toward the spot while pointing —
+    // his target moves (capped walk speed), he never teleports, and he stops short of it
+    if (f.ruling.penalty && !f.done) {
+      const sx = f.offender.dir * 24, dx = sx - ref.pos.x, dz = -ref.pos.z;
+      const d = Math.hypot(dx, dz);
+      if (d > 3.2) {
+        const step = Math.min(2.6 * dt, d - 3.2);
+        ref.pos.x += (dx / d) * step; ref.pos.z += (dz / d) * step;
+      }
+    }
     if (state.modeT > 1.1 && !f.cardShown) {
       f.cardShown = true;
       const v = f.ruling.verdict, css = hex6(f.offender.team.glow);
@@ -2847,20 +3463,30 @@ function tick(forcedDt, skipRender) {
         const line = v === 'red'
           ? (f.ruling.reason === 'SECOND YELLOW' ? present.lines.secondYellow(f.offender.name) : present.lines.red(f.offender.name, f.ruling.reason))
           : present.lines.yellow(f.offender.name, f.ruling.reason);
-        commentate(line, true);
-        present.showEvent({ kind: v, title: line, subtitle: f.offender.team.name, color: css });
+        const clk = fmtClock(state.clock);
+        if (v === 'red') {
+          // tier 1: full-screen RED CARD stinger via drain().overlays, synced to raiseCard
+          present.post({ kind: 'red', simTime: simT, title: present.feedLines.red(f.offender.name),
+            subtitle: f.ruling.reason, team: f.offender.team.name, color: css, clock: clk });
+        } else {
+          present.post({ kind: 'yellow', simTime: simT, title: present.feedLines.yellow(f.offender.name, f.ruling.reason),
+            team: f.offender.team.name, color: css, clock: clk });
+        }
+        present.post({ kind: 'info', simTime: simT, title: line, force: true }); // ticker drama
         story.event('card', { player: f.offender.name, team: f.offender.team.name, color: v });
-      } else {
-        present.showEvent({ kind: 'foul', title: present.lines.foul(f.victim.name, f.offender.name), subtitle: f.offender.team.name, color: css });
+        const note = story.feedNote('card', { player: f.offender.name, team: f.offender.team.name, color: v });
+        if (note) present.post({ kind: 'context', simTime: simT + 1.2, title: note, color: css });
       }
+      // plain foul: tier 3 — beginFoul already tickered the call; no popup, no feed item
     }
     // penalties hold ~1s longer — the pan to the ref + point-to-the-spot needs room to read
-    if (state.modeT > (f.ruling.penalty ? 5.2 : 4.2) && !f.done) {
+    if (state.modeT > fdur && !f.done) {
       f.done = true;
       if (f.ruling.sendOff) sendOff(f.offender);
       beginSetPiece(f);
     }
-    aiStep(dt); // keep everyone moving — arguers crowd the ref, others walk their shape
+    aiStep(dt); // keep everyone moving — arguers crowd the ref, others walk their marks
+    }
   } else if (state.mode === 'outofplay') {
     state.modeT += dt;
     aiStep(dt); // everyone repositions while the ball kid works
@@ -2897,7 +3523,11 @@ function tick(forcedDt, skipRender) {
       const aimYaw = Math.atan2(sp.gx * HALF_W - ball.pos.x, -ball.pos.z * 0.5);
       const facing = sp.kind === 'throwin' || dk < 0.5
         || Math.abs(shortestAngle(aimYaw - sp.kicker.yaw)) < 0.6;
-      if ((state.modeT > 0.8 && arrived && facing) || state.modeT > 6) {
+      // a fallen taker (late argy-bargy) recovers fast — he can't approach from the turf
+      if (sp.kicker.fallT > 0.45) sp.kicker.fallT = 0.45;
+      // pens hold a longer beat: ball placed, keeper bouncing on his line, arc settled —
+      // THEN the run-up. Ordinary restarts keep the quick 0.8s. The 6s failsafe rules all.
+      if ((state.modeT > (sp.kind === 'penalty' ? 2.3 : 0.8) && arrived && facing) || state.modeT > 6) {
         if (!arrived) { // last-resort fallback so play can never stall forever
           sp.kicker.pos.set(ball.pos.x - Math.sign(ball.pos.x || 1), 0, ball.pos.z);
           sp.kicker.tgtSm.copy(sp.kicker.pos);
@@ -2908,6 +3538,12 @@ function tick(forcedDt, skipRender) {
     } else if (state.modeT > 1.7) {
       takeSetPiece();
     }
+  }
+
+  // WATCHDOG: the penalty graphic must never outlive the sequence that raised it —
+  // any exit that skipped takeSetPiece (resets, watchdog bails) lands here
+  if (state.mode !== 'foul' && state.mode !== 'setpiece' && elPenTag.classList.contains('show')) {
+    hidePenaltyTag();
   }
 
   // kick impulses land BEFORE integration so a struck ball moves the same frame
@@ -2957,7 +3593,38 @@ function tick(forcedDt, skipRender) {
     if (!headshotQueue.length && story.setHeadshots) story.setHeadshots(headshots);
   }
 
-  if (!skipRender) composer.render();
+  if (!skipRender) {
+    // broadcast queue: release everything due at the rendered sim time. ONLY on rendered
+    // frames — hidden-tab catch-up bursts then cascade one feed item per real render.
+    // drain() itself holds everything through 'replay' and credits the held time back.
+    const fx = present.drain(simT, state.mode);
+    for (const ev of fx.ticker) commentate(ev.title, ev.force); // tier 3 → bottom marquee
+    for (const ev of fx.overlays) presentOverlay(ev);           // tier 1 → stingers
+    // fx.feed (tier 2) is already rendered into #feed by drain — nothing to do here
+    syncLiveScore();
+    composer.render();
+  }
+}
+
+// ---- live-score beacon for the league hub (localStorage 'cyberliga_live') ----
+// The hub shows "● LIVE — A 2-1 B · 34'" on its football tile + billboard via the
+// cross-tab 'storage' event. Contract: continuous state.clock (NO per-half reset),
+// canonical team names, mode live|ht|ft. Throttled to ~3s except on score changes.
+let _liveLast = 0, _liveSig = '';
+function syncLiveScore() {
+  const m = state.mode;
+  const liveMode = (m === 'halftime') ? 'ht' : (m === 'fulltime') ? 'ft' : 'live';
+  const sig = state.scoreA + '-' + state.scoreB + '|' + liveMode;
+  const now = Date.now();
+  if (sig === _liveSig && now - _liveLast < 3000) return;
+  _liveLast = now; _liveSig = sig;
+  try {
+    localStorage.setItem('cyberliga_live', JSON.stringify({
+      v: 1, ts: now, teamA: TEAM_A.name, teamB: TEAM_B.name,
+      scoreA: state.scoreA, scoreB: state.scoreB,
+      clock: state.clock, half: state.half, mode: liveMode,
+    }));
+  } catch (e) { /* storage full/blocked — beacon is best-effort */ }
 }
 // W5: each style preloads ONLY its own models — kaykit GLBs never delay the pro boot
 if (VIS_STYLE === 'kaykit') await preloadKayModels();
@@ -3033,7 +3700,7 @@ document.addEventListener('visibilitychange', startDriver);
 startDriver();
 
 // debug hook (harmless in prod, lets devtools poke the sim)
-window.CL = { state, ball, players, goalScored, ref, beginFoul, flight, present, tactics, keeperAI, stats, replaySys };
+window.CL = { state, ball, players, goalScored, ref, beginFoul, flight, present, tactics, keeperAI, stats, replaySys, buildMatchPoster, posterSnapshot };
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth/innerHeight;
