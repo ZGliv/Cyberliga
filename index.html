@@ -526,42 +526,76 @@ buildGoal(-1); buildGoal(1);
 //           (CIPHER/ONYX/VANTA/QUASAR) are Skeletons, and the two teenage phenoms
 //           (PULSE/LUMEN) are Skeleton Minions for comedy.
 //   hb    — persona-locked headband (AXIOM's headband, DYNAMO's sweatband).
+//   dna   — W12 LOOK DNA, hand-authored to PORTRAITS.md personas (kayrig consumes;
+//           other rigs ignore unknown opts): { skinTone, hairTint, trimColor,
+//           scale 0.93-1.08, props (GLB toggles helmet/hat/hood/cape + flair
+//           vocab), eyeTint (skeleton LED eyes) }. props is AUTHORITATIVE for
+//           headgear/capes — KayKit GLBs keep a full head under every helmet,
+//           so bare-headed looks (silver hair, buzzcuts, dreads) are safe.
 const ROSTERS = {
   'NEON FC': [
-    { n:'OKAFOR-9', num:1,  flair:['scar'],           ch:'Knight' },          // scarred chrome jaw, captain's aura
-    { n:'VEKTOR',   num:4,  flair:[],                 ch:'Knight' },          // analytical silver-haired veteran
-    { n:'HALCYON',  num:5,  flair:[],                 ch:'Barbarian' },       // stocky tank build
-    { n:'SYNTH',    num:8,  flair:[],                 ch:'Mage' },            // slim graceful playmaker
-    { n:'AXIOM',    num:6,  flair:[], hb:true,        ch:'Barbarian' },       // headbanded engine room
-    { n:'RAZOR',    num:9,  flair:['mohawk','scar'],  ch:'Rogue' },           // cocky striker, lightning scar
-    { n:'PRISM',    num:11, flair:['braids'],         ch:'Mage' },            // serene finisher, fiber-optic braids
+    { n:'OKAFOR-9', num:1,  flair:['scar'],           ch:'Knight',           // towering keeper, scarred chrome jaw plate (mask), captain's aura
+      dna:{ skinTone:0x8d5524, scale:1.07, props:['helmet','cape','mask'], trimColor:0xbfd4e2 } },
+    { n:'VEKTOR',   num:4,  flair:[],                 ch:'Knight',           // lean veteran — bare head, short silver hair
+      dna:{ skinTone:0xf1c27d, hairTint:0xd9dee8, scale:0.97, props:['spikes'] } },
+    { n:'HALCYON',  num:5,  flair:[],                 ch:'Barbarian',        // stocky tank, friendly buzzcut — no hat
+      dna:{ skinTone:0xc68642, scale:1.06, props:['cape'] } },
+    { n:'SYNTH',    num:8,  flair:[],                 ch:'Mage',             // slim playmaker, sleek dark undercut strip
+      dna:{ skinTone:0xe0ac69, hairTint:0x191322, scale:0.95, props:['mohawk'] } },
+    { n:'AXIOM',    num:6,  flair:[], hb:true,        ch:'Barbarian',        // compact engine — headband only, stripped down
+      dna:{ skinTone:0xf1c27d, scale:0.98, props:[] } },
+    { n:'RAZOR',    num:9,  flair:['mohawk','scar'],  ch:'Rogue',            // cocky striker — cyan-glow mohawk (team tips), no cape
+      dna:{ skinTone:0xe0ac69, scale:1.0, props:['mohawk','scar'] } },
+    { n:'PRISM',    num:11, flair:['braids'],         ch:'Mage',             // tall elegant finisher, long dark braids
+      dna:{ skinTone:0x6b4226, hairTint:0x2a1b10, scale:1.05, props:['braids','cape'] } },
   ],
   'VOLT UTD': [
-    { n:'TESLA JR', num:1,  flair:['spikes'],         ch:'Knight' },          // static-charged spiky hair
-    { n:'CIPHER',   num:2,  flair:['mask'],           ch:'Skeleton_Rogue' },  // masked mystery defender
-    { n:'ONYX',     num:5,  flair:[],                 ch:'Skeleton_Warrior' },// massive immovable wall
-    { n:'GLITCH',   num:7,  flair:['spikes'],         ch:'Rogue' },           // twitchy trickster
-    { n:'BLITZ',    num:8,  flair:['scar'],           ch:'Barbarian' },       // taped boxer's nose
-    { n:'NOVA',     num:10, flair:['braids'],         ch:'Mage' },            // flowing magenta-streaked hair
-    { n:'PULSE',    num:14, flair:[],                 ch:'Skeleton_Minion' }, // baby-faced phenom
+    { n:'TESLA JR', num:1,  flair:['spikes'],         ch:'Knight',           // wiry acrobat — static white spikes, no helmet
+      dna:{ skinTone:0xffdbac, hairTint:0xf2f5ff, scale:0.94, props:['spikes'] } },
+    { n:'CIPHER',   num:2,  flair:['mask'],           ch:'Skeleton_Rogue',   // masked mystery — hood up, respirator, pale-pink LEDs
+      dna:{ scale:1.0, props:['hood','cape','mask'], eyeTint:0xff7ab0 } },
+    { n:'ONYX',     num:5,  flair:[],                 ch:'Skeleton_Warrior', // MASSIVE immovable wall, dark stone trim, ember eyes
+      dna:{ scale:1.08, props:['helmet','cape'], eyeTint:0xd11960, trimColor:0x232028 } },
+    { n:'GLITCH',   num:7,  flair:['spikes'],         ch:'Rogue',            // twitchy trickster — holographic pink spikes
+      dna:{ skinTone:0xf1c27d, hairTint:0xff4fd8, scale:0.95, props:['spikes'] } },
+    { n:'BLITZ',    num:8,  flair:['scar'],           ch:'Barbarian',        // square-jawed crew cut, taped nose (scar)
+      dna:{ skinTone:0xc68642, scale:1.03, props:[] } },
+    { n:'NOVA',     num:10, flair:['braids'],         ch:'Mage',             // radiant star — flowing magenta-streaked braids
+      dna:{ skinTone:0xe0ac69, hairTint:0xff2d78, scale:1.0, props:['braids','cape'] } },
+    { n:'PULSE',    num:14, flair:[],                 ch:'Skeleton_Minion',  // tiny baby-faced phenom, bright LED-brace eyes
+      dna:{ scale:0.93, props:['cape'], eyeTint:0xff9ccd } },
   ],
   'GRID ROYALS': [
-    { n:'KILOWATT',  num:1,  flair:['beard'],         ch:'Knight' },          // grizzled stubble, gold eye
-    { n:'MAINFRAME', num:3,  flair:['glasses'],       ch:'Mage' },            // AR-glasses professor
-    { n:'TURBINE',   num:4,  flair:['dreads'],        ch:'Barbarian' },       // gold-ringed dreads, powerhouse
-    { n:'DYNAMO',    num:7,  flair:[], hb:true,       ch:'Barbarian' },       // sweatband, relentless runner
-    { n:'CIRCUIT',   num:10, flair:[],                ch:'Mage' },            // regal playmaker
-    { n:'VANTA',     num:9,  flair:['mask'],          ch:'Skeleton_Mage' },   // only the amber eyes visible
-    { n:'HELIX',     num:11, flair:['mohawk'],        ch:'Rogue' },           // helix-shaved agile winger
+    { n:'KILOWATT',  num:1,  flair:['beard'],         ch:'Knight',           // grizzled keeper — gray stubble, gold prosthetic-eye visor
+      dna:{ skinTone:0xf1c27d, hairTint:0x8d8d92, scale:1.05, props:['beard','glasses','cape'] } },
+    { n:'MAINFRAME', num:3,  flair:['glasses'],       ch:'Mage',             // AR-glasses professor, neat fade — no hat
+      dna:{ skinTone:0x8d5524, hairTint:0x14100c, scale:0.99, props:['glasses'] } },
+    { n:'TURBINE',   num:4,  flair:['dreads'],        ch:'Barbarian',        // barrel-chested powerhouse, tied-back dreads
+      dna:{ skinTone:0x6b4226, hairTint:0x1c1410, scale:1.07, props:['dreads','cape'] } },
+    { n:'DYNAMO',    num:7,  flair:[], hb:true,       ch:'Barbarian',        // lean sinewy runner — sweatband, nothing else
+      dna:{ skinTone:0xc68642, scale:0.94, props:[] } },
+    { n:'CIRCUIT',   num:10, flair:[],                ch:'Mage',             // regal playmaker — full regalia, gold-leaf trim
+      dna:{ skinTone:0x8d5524, hairTint:0x14100c, scale:1.01, props:['hat','cape'], trimColor:0xffe9b0 } },
+    { n:'VANTA',     num:9,  flair:['mask'],          ch:'Skeleton_Mage',    // matte-black menace — only amber eyes visible
+      dna:{ scale:1.03, props:['hat','mask'], eyeTint:0xffb52e, trimColor:0x17130c } },
+    { n:'HELIX',     num:11, flair:['mohawk'],        ch:'Rogue',            // corkscrew winger — gold-glow helix mohawk
+      dna:{ skinTone:0xe0ac69, scale:0.96, props:['mohawk'] } },
   ],
   'ASTRA NOVA': [
-    { n:'ORBIT',    num:1,  flair:[],                 ch:'Knight' },          // serene spacey keeper
-    { n:'QUASAR',   num:2,  flair:['scar'],           ch:'Skeleton_Warrior' },// cracked visor, volatile enforcer
-    { n:'ZENITH',   num:6,  flair:[],                 ch:'Knight' },          // noble silver-white stopper
-    { n:'NEBULA',   num:8,  flair:['fro'],            ch:'Mage' },            // galaxy-cloud hair, dreamer
-    { n:'COMET',    num:10, flair:[],                 ch:'Rogue' },           // blazing-fast veteran
-    { n:'STARFALL', num:9,  flair:[],                 ch:'Rogue' },           // theatrical showman striker
-    { n:'LUMEN',    num:7,  flair:[],                 ch:'Skeleton_Minion' }, // bioluminescent kid
+    { n:'ORBIT',    num:1,  flair:[],                 ch:'Knight',           // serene spacey keeper — shaved head, no helmet
+      dna:{ skinTone:0xc68642, scale:1.02, props:['cape'] } },
+    { n:'QUASAR',   num:2,  flair:['scar'],           ch:'Skeleton_Warrior', // volatile enforcer — cracked visor, RED-card eyes
+      dna:{ scale:1.06, props:['helmet'], eyeTint:0xff3b30 } },
+    { n:'ZENITH',   num:6,  flair:[],                 ch:'Knight',           // tall noble stopper — silver-white swept-back hair
+      dna:{ skinTone:0xffdbac, hairTint:0xe8ecf5, scale:1.06, props:['cape','braids'] } },
+    { n:'NEBULA',   num:8,  flair:['fro'],            ch:'Mage',             // dreamy creative — purple galaxy-cloud fro
+      dna:{ skinTone:0x8d5524, hairTint:0x8a5cff, scale:0.98, props:['fro'] } },
+    { n:'COMET',    num:10, flair:[],                 ch:'Rogue',            // blazing-fast veteran — icy motion-streak spikes
+      dna:{ skinTone:0xf1c27d, hairTint:0xb9c6ff, scale:0.97, props:['spikes'] } },
+    { n:'STARFALL', num:9,  flair:[],                 ch:'Rogue',            // dramatic showman — THE cape-like collar
+      dna:{ skinTone:0x6b4226, scale:1.03, props:['cape'], trimColor:0xc9b3ff } },
+    { n:'LUMEN',    num:7,  flair:[],                 ch:'Skeleton_Minion',  // bioluminescent kid — bare bones, violet glow freckles
+      dna:{ scale:0.94, props:[], eyeTint:0xcdb5ff } },
   ],
 };
 function makeNameTagTexture(name, number, colorCss) {
@@ -621,6 +655,7 @@ function buildPlayer(team, isGK, r, captain) {
     jerseyName: name, jerseyNumber: number,
     flair: r.flair || [],
     character: KAY_CHARACTERS.includes(r.ch) ? r.ch : 'Knight',
+    dna: r.dna,  // W12 LOOK DNA — kayrig consumes; humanrig/blobrig ignore unknown opts
   });
   const g = rig.group;
 

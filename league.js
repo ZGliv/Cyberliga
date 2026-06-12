@@ -22,13 +22,6 @@
     'GRID ROYALS': [{ n: 'KILOWATT', num: 1 }, { n: 'MAINFRAME', num: 3 }, { n: 'TURBINE', num: 4 }, { n: 'DYNAMO', num: 7 }, { n: 'CIRCUIT', num: 10 }, { n: 'VANTA', num: 9 }, { n: 'HELIX', num: 11 }],
     'ASTRA NOVA':  [{ n: 'ORBIT', num: 1 }, { n: 'QUASAR', num: 2 }, { n: 'ZENITH', num: 6 }, { n: 'NEBULA', num: 8 }, { n: 'COMET', num: 10 }, { n: 'STARFALL', num: 9 }, { n: 'LUMEN', num: 7 }],
   };
-  // Each club's poster star — featured large on the hero matchup card.
-  var STARS = {
-    'NEON FC': 'RAZOR',
-    'VOLT UTD': 'NOVA',
-    'GRID ROYALS': 'CIRCUIT',
-    'ASTRA NOVA': 'STARFALL',
-  };
   // Persona blurbs from PORTRAITS.md — fixed IP, not stats.
   var PERSONAS = {
     'OKAFOR-9': 'Towering calm keeper. Scarred chrome jaw plate, captain’s aura.',
@@ -259,21 +252,25 @@
 
   // ---------- tiny html helpers ----------
   function el(id) { return document.getElementById(id); }
+  // Fixture-row club: crest chip + name. Dim applies to the whole unit so a
+  // beaten side fades crest and all.
   function teamSpan(team, dim) {
-    return '<span class="tm' + (dim ? ' dim' : '') + '" style="color:' + team.color + '">' + team.name + '</span>';
+    return '<span class="tm' + (dim ? ' dim' : '') + '" style="color:' + team.color + '">' +
+      crestHTML(team) + '<span class="tm-name">' + team.name + '</span></span>';
+  }
+  // Inline club mention for editorial prose (storylines): small crest riding
+  // the text baseline ahead of the bolded name.
+  function teamRef(team) {
+    return '<span class="tref">' + crestHTML(team) + '<b>' + team.name + '</b></span>';
   }
 
   // ============================ HERO BILLBOARD ============================
-  // Matchup poster: each club's star portrait, eager-loaded (above the fold).
-  function starCardHTML(team) {
-    var star = STARS[team.name];
-    return '<div class="bb-star" style="--c:' + team.color + '">' +
-      '<div class="bb-photo">' +
-        '<span class="silhouette">' + silhouetteSVG(team.color) + '</span>' +
-        '<img src="' + portraitSrc(team.name, star) + '" alt="' + star + ' — ' + team.name + '"' +
-          ' width="512" height="512" decoding="async" fetchpriority="high" onerror="this.remove()">' +
-      '</div>' +
-      '<div class="bb-club">' + crestHTML(team) +
+  // Matchup poster: each club's CREST large on a subtle team-color field —
+  // unmistakable club identity (portraits read as clones at this size).
+  function crestCardHTML(team) {
+    return '<div class="bb-side" style="--c:' + team.color + '">' +
+      '<div class="bb-crestfield">' + crestSVG(team) + '</div>' +
+      '<div class="bb-club">' +
         '<span class="bb-name" style="color:' + team.color + '">' + team.name + '</span></div>' +
       '</div>';
   }
@@ -311,9 +308,9 @@
         '<span class="bb-kick-text">NEXT &mdash; FOOTBALL &middot; MATCHDAY ' + next.matchday + '</span></span>' +
         '<span>GRAND ARENA</span></div>' +
       '<div class="bb-poster" style="' + field + '">' +
-        starCardHTML(next.a) +
+        crestCardHTML(next.a) +
         '<div class="bb-vs">VS</div>' +
-        starCardHTML(next.b) +
+        crestCardHTML(next.b) +
         // live strip: overlaid (absolute) so showing/hiding it never shifts layout.
         // Only ever filled with canonical team names + coerced ints.
         '<a class="bb-livestrip" href="index.html"><span class="live-dot"></span>' +
@@ -366,7 +363,7 @@
         if (r.outcome === 'draw') chip = '<span class="res draw">DRAW</span>';
         else if (r.outcome) {
           var w = teamByName(r.outcome);
-          chip = '<span class="res" style="color:' + w.color + '">' + w.name + ' WIN</span>';
+          chip = '<span class="res" style="color:' + w.color + '">' + crestHTML(w) + w.name + ' WIN</span>';
         } else chip = '<span class="res arch">FT &middot; ARCHIVED</span>';
         rHTML += '<div class="fixrow"><span class="md">MD ' + r.matchday + '</span>' +
           '<span class="pair">' + teamSpan(r.a, r.outcome && r.outcome !== 'draw' && r.outcome !== r.a.name) +
@@ -462,7 +459,7 @@
 
     if (!anyPlayed) {
       lines.push({ tag: 'SEASON ZERO', color: '#7ef0ff',
-        text: 'The football division boots up. <b>MATCHDAY 1: ' + next.a.name + ' vs ' + next.b.name + '</b> opens Season 2077 — every stat this division will ever have starts at zero tonight.' });
+        text: 'The football division boots up. <b>MATCHDAY 1:</b> ' + teamRef(next.a) + ' vs ' + teamRef(next.b) + ' opens Season 2077 — every stat this division will ever have starts at zero tonight.' });
       lines.push({ tag: 'THE FORMAT', color: '#8fa3c8',
         text: 'Four clubs. Twenty-eight footballers. An endless round-robin where the table never sleeps and <b>nobody gets relegated — only humiliated</b>.' });
       return lines;
@@ -472,8 +469,8 @@
     var lead = rows[0], second = rows[1];
     var gap = lead.r.pts - second.r.pts;
     lines.push({ tag: 'TITLE RACE', color: lead.t.color,
-      text: '<b>' + lead.t.name + '</b> sit top on <b>' + lead.r.pts + ' pts</b>' +
-        (gap > 0 ? ', ' + gap + ' clear of ' + second.t.name + '.' : ' — level on points with ' + second.t.name + ', separated only by goals.') });
+      text: teamRef(lead.t) + ' sit top on <b>' + lead.r.pts + ' pts</b>' +
+        (gap > 0 ? ', ' + gap + ' clear of ' + teamRef(second.t) + '.' : ' — level on points with ' + teamRef(second.t) + ', separated only by goals.') });
 
     // 2) next-fixture angle: revenge or series dominance
     var h = story.h2h[pairKey(next.a.name, next.b.name)];
@@ -483,14 +480,14 @@
         var loser = lastRes === next.a.name ? next.b : next.a;
         var winner = teamByName(lastRes);
         lines.push({ tag: 'REVENGE NIGHT', color: loser.color,
-          text: 'Matchday ' + next.matchday + ': <b>' + loser.name + '</b> seek revenge — <b>' + winner.name + '</b> took the last meeting.' });
+          text: 'Matchday ' + next.matchday + ': ' + teamRef(loser) + ' seek revenge — ' + teamRef(winner) + ' took the last meeting.' });
       } else {
         lines.push({ tag: 'UNFINISHED BUSINESS', color: '#7ef0ff',
-          text: 'Matchday ' + next.matchday + ': ' + next.a.name + ' and ' + next.b.name + ' meet again after their last clash ended <b>all square</b>.' });
+          text: 'Matchday ' + next.matchday + ': ' + teamRef(next.a) + ' and ' + teamRef(next.b) + ' meet again after their last clash ended <b>all square</b>.' });
       }
     } else {
       lines.push({ tag: 'NEW BLOOD', color: '#7ef0ff',
-        text: 'Matchday ' + next.matchday + ': <b>' + next.a.name + '</b> and <b>' + next.b.name + '</b> cross paths for the first time. No history. No mercy.' });
+        text: 'Matchday ' + next.matchday + ': ' + teamRef(next.a) + ' and ' + teamRef(next.b) + ' cross paths for the first time. No history. No mercy.' });
     }
 
     // 3) team streaks
@@ -499,10 +496,10 @@
       if (!tr || !tr.streakN) return;
       if (tr.streakType === 'W' && tr.streakN >= 2) {
         lines.push({ tag: 'STREAK WATCH', color: t.color,
-          text: '<b>' + t.name + '</b> have won <b>' + tr.streakN + ' straight</b>. Who pulls the plug?' });
+          text: teamRef(t) + ' have won <b>' + tr.streakN + ' straight</b>. Who pulls the plug?' });
       } else if (tr.streakType === 'L' && tr.streakN >= 2) {
         lines.push({ tag: 'CRISIS MODE', color: t.color,
-          text: '<b>' + t.name + '</b> have lost <b>' + tr.streakN + ' in a row</b>. The dressing-room servers are overheating.' });
+          text: teamRef(t) + ' have lost <b>' + tr.streakN + ' in a row</b>. The dressing-room servers are overheating.' });
       }
     });
 
@@ -578,6 +575,9 @@
     var plain = lines.map(function (s) {
       var d = document.createElement('div');
       d.innerHTML = s.text;
+      // crest SVGs carry the club's mono letter in a <text> node — drop them
+      // so the wire stays pure text ("NEON FC", never "N NEON FC")
+      d.querySelectorAll('.crest').forEach(function (n) { n.remove(); });
       return s.tag + ': ' + (d.textContent || '').toUpperCase();
     });
     var next = fixtureAt(league.fixture);
@@ -638,8 +638,8 @@
       { name: 'FOOTBALL', href: 'index.html', live: true },
       { name: 'HOCKEY', href: 'hockey.html', pending: true, sub: 'EXHIBITION ERA' },
       { name: 'BASKETBALL', href: 'hoops.html', pending: true, sub: 'EXHIBITION ERA' },
-      { name: 'BASEBALL', href: 'baseball.html', pending: true },
-      { name: 'FIGHTING', href: 'fight.html', pending: true },
+      { name: 'BASEBALL', href: 'baseball.html', pending: true, sub: 'EXHIBITION ERA' },
+      { name: 'FIGHTING', href: 'fight.html', pending: true, sub: 'EXHIBITION ERA' },
     ];
     host.innerHTML = cards.map(function (c) {
       return '<a class="sport-cell' + (c.live ? ' live' : '') + '" href="' + c.href + '"' +
@@ -658,11 +658,18 @@
       if (a) e.preventDefault();
     });
 
-    // arenas come online tonight: probe for the files and unlock the doors
-    if (location.protocol !== 'file:' && typeof fetch === 'function') {
-      host.querySelectorAll('a[data-pending]').forEach(function (a) {
+    // arenas come online tonight: probe for the files and unlock the doors.
+    // Re-probed every 20s (no-store, so a cached 404 can't keep a finished
+    // arena locked) — pages being built mid-session unlock without a refresh.
+    function probePending() {
+      var pending = host.querySelectorAll('a[data-pending]');
+      if (!pending.length) {
+        if (probeTimer) { clearInterval(probeTimer); probeTimer = null; }
+        return;
+      }
+      pending.forEach(function (a) {
         try {
-          fetch(a.getAttribute('href'), { method: 'HEAD' }).then(function (r) {
+          fetch(a.getAttribute('href'), { method: 'HEAD', cache: 'no-store' }).then(function (r) {
             if (r && r.ok) {
               a.removeAttribute('data-pending');
               a.removeAttribute('aria-disabled');
@@ -673,6 +680,11 @@
           }).catch(function () { /* stays in development */ });
         } catch (e) { /* stays in development */ }
       });
+    }
+    var probeTimer = null;
+    if (location.protocol !== 'file:' && typeof fetch === 'function') {
+      probePending();
+      probeTimer = setInterval(probePending, 20000);
     }
   }
 

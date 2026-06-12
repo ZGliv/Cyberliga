@@ -53,8 +53,23 @@
 //     stance, for host-parented planes. Legacy static rig.anchors remain.
 //   - opts.flair: string[] from [mohawk, braids, mask, beard, dreads,
 //     glasses, scar, fro, spikes]; rendered as simple glow/dark primitives on
-//     the head where it translates; skipped gracefully on skeletons (they
-//     have personality already) and for 'scar' (texture-level).
+//     the head where it translates; skeletons accept a safe subset
+//     (mask/glasses/spikes/mohawk — sized up a touch for skulls) and 'scar'
+//     skips gracefully (texture-level).
+//   - W12 opts.dna (LOOK DNA, additive): { skinTone, hairTint, trimColor,
+//     scale (0.93-1.08 body scale, nameplate/anchor compensated), props,
+//     eyeTint (skeleton eye glow) }. props mixes two vocabularies:
+//       * GLB attachment toggles ('helmet'|'hat'|'hood' = headgear category,
+//         'cape'|'cloak' = back category): when props is an ARRAY the rig
+//         takes authority over those nodes — listed categories show,
+//         unlisted hide (KayKit ships a full head mesh under every helmet/
+//         hat/hood, so bare heads are always safe);
+//       * procedural accessories (the humanrig flair vocabulary) — merged
+//         with opts.flair, hair-like ones tinted by dna.hairTint.
+//     Deterministic fallback: when opts.dna is absent but jerseyName exists,
+//     a full DNA derives from hash32(jerseyName) — every named player is
+//     unique with zero roster data, and the SAME look bakes in portraits.
+//     No jerseyName and no dna (the referee) = no DNA, legacy look.
 //   - rig.poseShowCard(t, isRed): additive ref-only pose (W7) — arm aloft
 //     brandishing a glowing yellow/red card mesh; feature-detected by
 //     refRigStep, never recorded in _poseDesc.
@@ -76,6 +91,42 @@ function bell(k) { return Math.sin(clamp(k, 0, 1) * Math.PI); }
 
 // weapons/props baked into the GLBs that a footballer must not carry
 const PROP_RE = /sword|shield|axe|crossbow|knife|wand|staff|spellbook|mug|throwable|offhand/i;
+
+// ---- W12: LOOK DNA ----------------------------------------------------------
+// GLB-verified toggleable attachments (every one has a full head/skull mesh
+// underneath): Knight_Helmet, Barbarian_Hat, Mage_Hat, Skeleton_Warrior_Helmet,
+// Skeleton_Mage_Hat, Skeleton_Rogue_Hood + per-character Cape/Cloak nodes.
+const TOGGLE_RE = /helmet|hat|hood|cape|cloak/i;
+const HEADGEAR_RE = /helmet|hat|hood/;
+const BACKWEAR_RE = /cape|cloak/;
+const DNA_SKINS = [0xffdbac, 0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524, 0x6b4226];
+const DNA_HAIRS = [0x14100c, 0x2a1b10, 0x5a3a1a, 0x8d8d92, 0xd8c08a, 0xe8ecf5];
+const FLAIR_VOCAB = ['mohawk', 'spikes', 'fro', 'beard', 'glasses', 'mask', 'braids', 'dreads', 'scar'];
+const SKELETON_FLAIR_OK = new Set(['mask', 'glasses', 'spikes', 'mohawk']);
+function hash32(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function deriveDna(name, isSkeleton) {
+  const h = hash32(String(name));
+  const props = [];
+  if (h & 1024) props.push('helmet');                  // headgear category token
+  if (h & 2048) props.push('cape');                    // backwear category token
+  if ((h >>> 12) % 3 === 0) {
+    const pool = isSkeleton ? ['mask', 'glasses', 'spikes', 'mohawk']
+      : ['mohawk', 'spikes', 'beard', 'fro', 'braids', 'dreads', 'glasses'];
+    props.push(pool[(h >>> 14) % pool.length]);
+  }
+  return {
+    skinTone: DNA_SKINS[h % DNA_SKINS.length],
+    hairTint: DNA_HAIRS[(h >>> 3) % DNA_HAIRS.length],
+    scale: 0.93 + ((h >>> 7) % 16) / 15 * 0.15,
+    props,
+    eyeTint: null,                                     // resolved vs team glow below
+    _eyeShift: (((h >>> 17) % 100) / 100 - 0.5) * 0.12, // ±0.06 hue nudge on the glow
+  };
+}
 
 // gait calibration: ground meters covered per full walk/run cycle at the
 // 1.9-unit scale. KayKit bodies are stubby-legged chibi builds, so cycles are
@@ -145,6 +196,19 @@ function acesGlow(hex) {
   return c;
 }
 
+// W12 eye-glow variant of the W11 compensation: only the PINK band rotates.
+// acesGlow also drags near-red hues (h<0.03) toward magenta, which would
+// pinkify an authored RED eye glow (QUASAR's red-card eyes must stay red —
+// ACES renders saturated red fine on its own).
+function eyeGlowColor(hex) {
+  const c = new THREE.Color(hex);
+  c.getHSL(_hsl);
+  if (_hsl.h > 0.88 && _hsl.h < 0.97 && _hsl.s > 0.3) {
+    c.setHSL((_hsl.h + 1 - 0.05) % 1, _hsl.s, Math.min(_hsl.l, 0.58));
+  }
+  return c;
+}
+
 // bones we add procedural rotation to (GLTFLoader-sanitized KayKit names:
 // 'upperarm.l' in Blender becomes 'upperarml' in three.js)
 const PROC_BONES = [
@@ -182,6 +246,19 @@ function glowMat(glow) {
   if (!m) { m = new THREE.MeshBasicMaterial({ color: glow.clone() }); _glowMats.set(key, m); }
   return m;
 }
+// W12: dna.hairTint materials — matte for fro/braids/dreads/beard, softly
+// emissive for mohawk/spikes (silver/pink hair still pops under bloom)
+const _hairMats = new Map();
+function hairMat(hex, glowy) {
+  const key = hex + '|' + (glowy ? 1 : 0);
+  let m = _hairMats.get(key);
+  if (!m) {
+    m = new THREE.MeshStandardMaterial({ color: hex, roughness: 0.7, metalness: 0.05 });
+    if (glowy) { m.emissive.set(hex); m.emissiveIntensity = 0.3; }
+    _hairMats.set(key, m);
+  }
+  return m;
+}
 
 // ---- team kit zones: which mesh gets which treatment -----------------------
 // KayKit mesh nodes are cleanly named (Knight_Body, Rogue_Cape,
@@ -199,21 +276,29 @@ function zoneOf(name) {
   if (/leg/.test(n)) return 'legs';
   return 'torso';
 }
-function tintedMaterial(src, zone, character, kit, trim, glow, accent) {
-  const key = character + '|' + src.uuid + '|' + zone + '|' + kit.getHexString() + '|' + glow.getHexString() + '|' + (accent ? 1 : 0);
+// W12: skinC tints human face/head zones (complexion — KayKit bakes hair into
+// the head atlas, so the tint reads as overall complexion, which is the goal);
+// eyeC overrides the skeleton eye-LED color. Both are in the cache key, as is
+// trim (dna.trimColor can now decouple it from the kit hue).
+function tintedMaterial(src, zone, character, kit, trim, glow, accent, skinC, eyeC) {
+  const key = character + '|' + src.uuid + '|' + zone + '|' + kit.getHexString() + '|' + glow.getHexString() + '|' + (accent ? 1 : 0)
+    + '|' + trim.getHexString() + '|' + (skinC ? skinC.getHexString() : '') + '|' + (eyeC ? eyeC.getHexString() : '');
   let m = _matCache.get(key);
   if (m) return m;
   m = src.clone();
   if (m.color) {
-    if (zone === 'eyes') m.color.copy(glow);
+    if (zone === 'eyes') m.color.copy(eyeC || glow);
     else if (zone === 'cape') { m.color.lerp(kit, 0.7); saturate(m.color, 0.8); }
     else if (zone === 'gear') { m.color.lerp(glow, 0.45); saturate(m.color, 0.4); }
-    else if (zone === 'skin') m.color.lerp(kit, 0.12);
+    else if (zone === 'skin') {
+      if (skinC) { m.color.lerp(skinC, 0.55); m.color.lerp(kit, 0.06); }
+      else m.color.lerp(kit, 0.12);
+    }
     else if (zone === 'legs') { m.color.lerp(trim, 0.65); saturate(m.color, 0.45); }
     else { m.color.lerp(kit, 0.58); saturate(m.color, accent ? 0.85 : 0.6); }
   }
   if (m.emissive) {
-    m.emissive.copy(glow);
+    m.emissive.copy(zone === 'eyes' && eyeC ? eyeC : glow);
     m.emissiveIntensity =
       zone === 'eyes' ? 1.6
       : zone === 'cape' ? (accent ? 0.3 : 0.16)
@@ -283,7 +368,7 @@ function applyClipFrame0(model, clip) {
 export function buildPlayerRig({
   kitColor, glowColor, skinTone, hairColor, isGK = false, headband = false,
   captain = false, pattern = 'solid', character = 'Knight',
-  jerseyName = null, jerseyNumber = null, flair = null,
+  jerseyName = null, jerseyNumber = null, flair = null, dna = null,
 }) {
   const data = _cache[CHARACTERS.includes(character) ? character : 'Knight'] || _cache.Knight;
   if (!data) throw new Error('kayrig: call preloadHumanModel() and await it before buildPlayerRig()');
@@ -291,33 +376,71 @@ export function buildPlayerRig({
   const charName = CHARACTERS.includes(character) ? character : 'Knight';
   const isSkeleton = charName.startsWith('Skeleton');
 
+  // ---- W12: resolve LOOK DNA. Explicit opts.dna fields win; anything the
+  // author omits falls back to the name-hash derivation (deterministic, so
+  // in-game bodies and baked portraits agree). No name + no dna (the ref):
+  // DNA stays off and the legacy look is byte-identical.
+  let d = null;
+  if (dna || jerseyName != null) {
+    const derived = deriveDna(jerseyName != null ? jerseyName : charName, isSkeleton);
+    derived.trimColor = null;            // never derive trim — team shorts stay on-brand
+    d = dna ? { ...derived, ...dna } : derived;
+  }
+  const dnaScale = d && d.scale != null ? clamp(d.scale, 0.85, 1.15) : 1;
+  const baseScale = data.scale * dnaScale;
+
   // group (host-owned) > tilt (pose-owned pitch/roll/y) > inner (scale + squash) > model
   const group = new THREE.Group();
   const tilt = new THREE.Group();
   const inner = new THREE.Group();
-  inner.scale.setScalar(data.scale);   // KayKit faces +Z already; origin at feet
+  inner.scale.setScalar(baseScale);    // KayKit faces +Z already; origin at feet
   group.add(tilt);
   tilt.add(inner);
 
   const model = SkeletonUtils.clone(data.scene);
   inner.add(model);
 
-  // ---- team kit: per-ZONE tinted materials, cached per (character, kit) ----
+  // ---- team kit: per-ZONE tinted materials, cached per (character, kit, dna) ----
   const kit = new THREE.Color(kitColor);
   if (isGK) kit.lerp(_gkColor, 0.8);                 // keepers read lime — GK distinct
   const glow = acesGlow(glowColor);                  // W11 pre-compensated emissive hue
-  const trim = new THREE.Color(kitColor);            // darker hue-shifted cousin = "shorts"
-  trim.getHSL(_hsl);
-  trim.setHSL((_hsl.h + 0.06) % 1, clamp(_hsl.s * 1.2, 0, 1), _hsl.l * 0.55);
+  const dnaTrim = d && d.trimColor != null;
+  const trim = new THREE.Color(dnaTrim ? d.trimColor : kitColor);
+  if (!dnaTrim) {                                    // darker hue-shifted cousin = "shorts"
+    trim.getHSL(_hsl);
+    trim.setHSL((_hsl.h + 0.06) % 1, clamp(_hsl.s * 1.2, 0, 1), _hsl.l * 0.55);
+  }
   if (isGK) trim.lerp(_gkColor, 0.4);
+  // W12 complexion + eye-LED colors (skin: humans only — bone stays bone)
+  const skinC = d && !isSkeleton && d.skinTone != null ? new THREE.Color(d.skinTone) : null;
+  let eyeC = null;
+  if (isSkeleton && d) {
+    if (d.eyeTint != null) eyeC = eyeGlowColor(d.eyeTint);
+    else if (d._eyeShift) {              // derived: hue-nudge the team glow
+      eyeC = glow.clone();
+      eyeC.getHSL(_hsl);
+      eyeC.setHSL((_hsl.h + d._eyeShift + 1) % 1, _hsl.s, clamp(_hsl.l * 1.08, 0, 0.75));
+    }
+  }
   const accent = pattern === 'accent';
+  // W12: GLB attachment authority — when dna.props is an array, headgear and
+  // cape/cloak nodes show only if their category token is listed
+  const dnaProps = d && Array.isArray(d.props) ? d.props.map((t) => String(t).toLowerCase()) : null;
   const ownedMaterials = [];                         // rig-unique only (bands/card) — cached mats are shared
   model.traverse((o) => {
     if (!o.isMesh) return;
     if (PROP_RE.test(o.name)) { o.visible = false; return; } // no swords on the pitch
+    if (dnaProps && TOGGLE_RE.test(o.name)) {
+      const n = o.name.toLowerCase();
+      const on = dnaProps.some((t) =>
+        (t === 'cape' || t === 'cloak') ? BACKWEAR_RE.test(n)
+        : (t === 'helmet' || t === 'hat' || t === 'hood') ? HEADGEAR_RE.test(n)
+        : n.includes(t));
+      if (!on) { o.visible = false; return; }
+    }
     o.castShadow = true;
     o.frustumCulled = false;                         // skinned bounds lag the pose
-    o.material = tintedMaterial(o.material, zoneOf(o.name), charName, kit, trim, glow, accent);
+    o.material = tintedMaterial(o.material, zoneOf(o.name), charName, kit, trim, glow, accent, skinC, eyeC);
   });
   void skinTone; void hairColor; // baked textures; accepted for API parity
 
@@ -356,11 +479,12 @@ export function buildPlayerRig({
   }
 
   // ---- W3: bone anchors + self-rendered jersey decals -----------------------
-  const cw = new THREE.Vector3(0, 1.18, 0);
+  const cw = new THREE.Vector3(0, 1.18 * dnaScale, 0);
   if (bones.chest) bones.chest.getWorldPosition(cw);
-  const decalY = clamp(cw.y + 0.12, 1.0, 1.42);
-  const chestAnchor = holderOn('chest', 0, decalY - 0.04, 0.27);
-  const backAnchor = holderOn('chest', 0, decalY, -0.31);  // clears capes/cloaks — number prints ON the banner
+  // W12: offsets/clamps ride dnaScale so decals sit on the (re)sized chest
+  const decalY = clamp(cw.y + 0.12 * dnaScale, 1.0 * dnaScale, 1.42 * dnaScale);
+  const chestAnchor = holderOn('chest', 0, decalY - 0.04 * dnaScale, 0.27 * dnaScale);
+  const backAnchor = holderOn('chest', 0, decalY, -0.31 * dnaScale);  // clears capes/cloaks — number prints ON the banner
   const glowCss = '#' + glow.getHexString();
   const rendersJersey = jerseyName != null || jerseyNumber != null;
   if (rendersJersey && backAnchor && chestAnchor) {
@@ -378,30 +502,43 @@ export function buildPlayerRig({
     ownedMaterials.push(backM.material, chestM.material);
   }
 
-  // ---- W2: flair (simple primitives in a head-tracking world frame) --------
-  // Skeletons skip flair entirely — they ship with personality. 'scar' and
-  // unknown tags skip gracefully (texture-level work, not geometry).
+  // ---- W2+W12: flair / procedural DNA props (head-tracking world frame) ----
+  // Accessory list = opts.flair ∪ flair-vocabulary entries of dna.props
+  // (deduped). Skeletons take only the subset that reads on a skull
+  // (mask/glasses/spikes/mohawk), sized up ~18% — KayKit skulls are bigger
+  // than the human heads. 'scar' and unknown tags skip gracefully.
+  const accessories = [];
+  {
+    const seen = new Set();
+    for (const f of (flair || [])) if (!seen.has(f)) { seen.add(f); accessories.push(f); }
+    if (dnaProps) for (const t of dnaProps)
+      if (FLAIR_VOCAB.includes(t) && !seen.has(t)) { seen.add(t); accessories.push(t); }
+  }
   const hw = new THREE.Vector3(0, 1.45, 0);
   if (bones.head) bones.head.getWorldPosition(hw);
   const headHolder = holderOn('head', hw.x, hw.y, hw.z);
-  if (flair && flair.length && headHolder && !isSkeleton) {
-    const H = 0.21 * data.scale;               // head radius in world meters
-    const gm = glowMat(glow), dm = darkMat();
+  if (accessories.length && headHolder) {
+    const H = 0.21 * baseScale * (isSkeleton ? 1.18 : 1); // head radius, world meters
+    const hairHex = d && d.hairTint != null ? d.hairTint : null;
+    const gm = glowMat(glow);                              // visor LEDs stay team glow
+    const gmHair = hairHex != null ? hairMat(hairHex, true) : gm;  // mohawk/spikes
+    const dm = hairHex != null ? hairMat(hairHex, false) : darkMat(); // matte hair
     const addBox = (mat, sx, sy, sz, x, y, z, rx = 0, rz = 0) => {
       const m = new THREE.Mesh(geos().box, mat);
       m.scale.set(sx, sy, sz); m.position.set(x, y, z);
       m.rotation.x = rx; m.rotation.z = rz;
       headHolder.add(m);
     };
-    for (const f of flair) {
+    for (const f of accessories) {
+      if (isSkeleton && !SKELETON_FLAIR_OK.has(f)) continue;
       if (f === 'mohawk') {
         for (let i = 0; i < 5; i++)
-          addBox(gm, 0.2 * H, (0.9 - Math.abs(i - 2) * 0.14) * H, 0.42 * H,
+          addBox(gmHair, 0.2 * H, (0.9 - Math.abs(i - 2) * 0.14) * H, 0.42 * H,
             0, 2.15 * H, (0.72 - i * 0.37) * H);
       } else if (f === 'spikes') {
         for (let i = 0; i < 6; i++) {
           const a = (i / 6) * Math.PI * 2;
-          const m = new THREE.Mesh(geos().cone, gm);
+          const m = new THREE.Mesh(geos().cone, gmHair);
           m.scale.set(0.22 * H, 0.55 * H, 0.22 * H);
           m.position.set(Math.sin(a) * 0.72 * H, 1.95 * H, Math.cos(a) * 0.72 * H);
           m.rotation.z = -Math.sin(a) * 0.55;
@@ -823,7 +960,7 @@ export function buildPlayerRig({
     if (impactT < 0.3) sqT = Math.min(sqT, 1 - 0.18 * bell(impactT / 0.3));
     sqS += (sqT - sqS) * (1 - Math.exp(-14 * dt));
     const wide = 1 + (1 - sqS) * 0.55;
-    inner.scale.set(data.scale * wide, data.scale * sqS, data.scale * wide);
+    inner.scale.set(baseScale * wide, baseScale * sqS, baseScale * wide); // W12: dna body scale rides along
 
     // procedural additive channels AFTER the mixer (eased in/out per channel)
     for (const name in channels) {
@@ -898,9 +1035,12 @@ export function buildPlayerRig({
     group,
     headPivot,
     anchors: {
-      back: { x: 0, y: 1.25, z: -0.25 },  // legacy static fallback (host rotates back plane PI)
-      chest: { x: 0, y: 1.3, z: 0.25 },
-      tagY: 2.4,                          // floating nameplate sprite height
+      // legacy static fallback (host rotates back plane PI) — W12: offsets
+      // ride dnaScale; tagY floors at 2.15 so small players' plates never
+      // shave the hair/headgear of the 1.9u silhouette
+      back: { x: 0, y: 1.25 * dnaScale, z: -0.25 * dnaScale },
+      chest: { x: 0, y: 1.3 * dnaScale, z: 0.25 * dnaScale },
+      tagY: Math.max(2.15, 2.4 * dnaScale), // floating nameplate sprite height
     },
     // W3: rig renders its own jersey when the host passed jerseyName/Number —
     // host then SKIPS its legacy number planes; boneAnchors are chest-bone-
