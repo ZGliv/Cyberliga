@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CYBERLIGA PORTRAIT GENERATOR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #02030a; color: #dff3ff; font-family: 'Rajdhani', sans-serif; min-height: 100%; }
+  #bar { display: flex; align-items: center; gap: 16px; padding: 16px 22px; border-bottom: 1px solid rgba(0,229,255,.2); position: sticky; top: 0; background: rgba(2,3,10,.92); backdrop-filter: blur(6px); z-index: 5; }
+  #bar h1 { font-family: 'Orbitron'; font-weight: 900; font-size: 17px; letter-spacing: 4px; color: #7ef0ff; text-shadow: 0 0 14px rgba(0,229,255,.5); }
+  #bar h1 em { font-style: normal; color: #fff; }
+  #status { font-size: 14px; font-weight: 600; letter-spacing: 1px; color: #8fa3c8; }
+  .btn { margin-left: auto; font-family: 'Orbitron'; font-weight: 700; font-size: 11px; letter-spacing: 2px; color: #7ef0ff; background: rgba(0,229,255,.08); border: 1px solid rgba(0,229,255,.4); border-radius: 99px; padding: 8px 16px; cursor: pointer; }
+  .btn + .btn { margin-left: 0; }
+  .btn:hover { color: #fff; background: rgba(0,229,255,.18); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 14px; padding: 18px 22px 60px; }
+  .cell { background: #060a16; border: 1px solid rgba(120,160,210,.16); border-top: 2px solid var(--c, #00e5ff); border-radius: 10px; overflow: hidden; cursor: pointer; }
+  .cell:hover { box-shadow: 0 0 16px color-mix(in srgb, var(--c) 35%, transparent); }
+  .cell img { display: block; width: 100%; aspect-ratio: 1; background: #03040c; }
+  .cell .ph { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; color: #2c3a55; font-family: 'Orbitron'; font-size: 11px; letter-spacing: 2px; }
+  .cell .meta { padding: 8px 10px 10px; }
+  .cell .nm { font-family: 'Orbitron'; font-weight: 700; font-size: 12px; letter-spacing: 1px; color: #fff; }
+  .cell .tm { font-size: 11px; font-weight: 600; letter-spacing: 2px; color: var(--c, #00e5ff); }
+  .cell .fn { font-size: 10px; color: #5d6f92; word-break: break-all; }
+  #hint { padding: 0 22px 26px; font-size: 13px; color: #5d6f92; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <h1>CYBER<em>LIGA</em> // PORTRAIT GENERATOR</h1>
+  <span id="status">BOOTING…</span>
+  <button class="btn" id="recapture">CAPTURE ALL</button>
+  <button class="btn" id="downloadall">DOWNLOAD ALL</button>
+</div>
+<div id="grid"></div>
+<div id="hint">Click any card to re-capture it. Files save as portraits/&lt;TEAM&gt;_&lt;NAME&gt;.png — exactly what league.js requests.</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { preloadHumanModel, buildPlayerRig, CHARACTERS } from './kayrig.js';
+
+// ============ TEAM + ROSTER DATA — mirrored EXACTLY from index.html ============
+// kit/glow are LEAGUE_TEAMS color/glow (buildPlayer passes glowColor: team.glow —
+// kayrig ACES-compensates internally). glow3 is the W11 pre-compensated hex used
+// for anything that feeds the 3D pipeline directly (rim lights, backdrop canvas):
+// VOLT's #ff2d78 reads RED under ACES filmic unless shifted toward magenta.
+const TEAMS = [
+  { name: 'NEON FC',     kit: 0x00e5ff, glow: 0x00e5ff, glow3: 0x00e5ff },
+  { name: 'VOLT UTD',    kit: 0xff2d78, glow: 0xff2d78, glow3: 0xff3fc8 },
+  { name: 'GRID ROYALS', kit: 0xffc24d, glow: 0xffc24d, glow3: 0xffc24d },
+  { name: 'ASTRA NOVA',  kit: 0x8a5cff, glow: 0x8a5cff, glow3: 0x8a5cff },
+];
+// Per-player data copied verbatim from index.html ROSTERS (n/num/flair/ch/hb).
+// Slot 0 is the GK (FORMATION[0].role === 'GK'); slot 1 wears the captain's
+// armband (index.html: buildPlayer(team, slot.role==='GK', r, i === 1)).
+const ROSTERS = {
+  'NEON FC': [
+    { n: 'OKAFOR-9', num: 1,  flair: ['scar'],            ch: 'Knight' },
+    { n: 'VEKTOR',   num: 4,  flair: [],                  ch: 'Knight' },
+    { n: 'HALCYON',  num: 5,  flair: [],                  ch: 'Barbarian' },
+    { n: 'SYNTH',    num: 8,  flair: [],                  ch: 'Mage' },
+    { n: 'AXIOM',    num: 6,  flair: [], hb: true,        ch: 'Barbarian' },
+    { n: 'RAZOR',    num: 9,  flair: ['mohawk', 'scar'],  ch: 'Rogue' },
+    { n: 'PRISM',    num: 11, flair: ['braids'],          ch: 'Mage' },
+  ],
+  'VOLT UTD': [
+    { n: 'TESLA JR', num: 1,  flair: ['spikes'],          ch: 'Knight' },
+    { n: 'CIPHER',   num: 2,  flair: ['mask'],            ch: 'Skeleton_Rogue' },
+    { n: 'ONYX',     num: 5,  flair: [],                  ch: 'Skeleton_Warrior' },
+    { n: 'GLITCH',   num: 7,  flair: ['spikes'],          ch: 'Rogue' },
+    { n: 'BLITZ',    num: 8,  flair: ['scar'],            ch: 'Barbarian' },
+    { n: 'NOVA',     num: 10, flair: ['braids'],          ch: 'Mage' },
+    { n: 'PULSE',    num: 14, flair: [],                  ch: 'Skeleton_Minion' },
+  ],
+  'GRID ROYALS': [
+    { n: 'KILOWATT',  num: 1,  flair: ['beard'],          ch: 'Knight' },
+    { n: 'MAINFRAME', num: 3,  flair: ['glasses'],        ch: 'Mage' },
+    { n: 'TURBINE',   num: 4,  flair: ['dreads'],         ch: 'Barbarian' },
+    { n: 'DYNAMO',    num: 7,  flair: [], hb: true,       ch: 'Barbarian' },
+    { n: 'CIRCUIT',   num: 10, flair: [],                 ch: 'Mage' },
+    { n: 'VANTA',     num: 9,  flair: ['mask'],           ch: 'Skeleton_Mage' },
+    { n: 'HELIX',     num: 11, flair: ['mohawk'],         ch: 'Rogue' },
+  ],
+  'ASTRA NOVA': [
+    { n: 'ORBIT',    num: 1,  flair: [],                  ch: 'Knight' },
+    { n: 'QUASAR',   num: 2,  flair: ['scar'],            ch: 'Skeleton_Warrior' },
+    { n: 'ZENITH',   num: 6,  flair: [],                  ch: 'Knight' },
+    { n: 'NEBULA',   num: 8,  flair: ['fro'],             ch: 'Mage' },
+    { n: 'COMET',    num: 10, flair: [],                  ch: 'Rogue' },
+    { n: 'STARFALL', num: 9,  flair: [],                  ch: 'Rogue' },
+    { n: 'LUMEN',    num: 7,  flair: [],                  ch: 'Skeleton_Minion' },
+  ],
+};
+
+// flattened capture list — filenames are team.name + '_' + p.n + '.png',
+// byte-for-byte what league.js line ~393 requests (it encodeURIComponents the
+// same string for the URL; the file ON DISK keeps the raw spaces).
+const ITEMS = [];
+for (const team of TEAMS) {
+  ROSTERS[team.name].forEach((p, slot) => {
+    ITEMS.push({
+      file: team.name + '_' + p.n + '.png',
+      team: team.name, name: p.n,
+      teamDef: team, p, isGK: slot === 0, captain: slot === 1,
+    });
+  });
+}
+
+// ============ RENDERER (512×512, hidden-tab safe) ============
+// preserveDrawingBuffer AND a synchronous render right before toDataURL —
+// belt and braces; capture() never touches requestAnimationFrame.
+const SIZE = 512;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(SIZE, SIZE);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;  // match the game's look
+renderer.toneMappingExposure = 1.05;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x04050d);
+
+const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 50); // ~35mm portrait look
+
+// ============ LIGHTING — key left, STRONG team rim behind-right, low fill ====
+const key = new THREE.DirectionalLight(0xfff2e2, 2.4);
+key.position.set(-2.2, 3.2, 2.6);
+const fill = new THREE.HemisphereLight(0x93a7c8, 0x0c101c, 0.55);
+const rim = new THREE.DirectionalLight(0xffffff, 7.0);   // team glow, set per capture
+rim.position.set(2.4, 2.6, -2.6);
+const rim2 = new THREE.DirectionalLight(0xffffff, 2.2);  // soft opposite edge light
+rim2.position.set(-2.6, 1.4, -2.0);
+scene.add(key, fill, rim, rim2);
+
+// ============ TEAM BACKDROP — canvas texture plane (no post-processing) ======
+// PORTRAITS.md style: "neon stadium bokeh background in team colors, dramatic
+// rim lighting" — deep dark base, soft radial team-glow gradient, defocused
+// bokeh discs drawn as per-dot radial gradients (no ctx.filter dependency).
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const _backdrops = new Map();
+function backdropTexture(team, seed) {
+  const key = team.name + '|' + (seed >>> 0);
+  let tex = _backdrops.get(key);
+  if (tex) return tex;
+  const col = new THREE.Color(team.glow3);
+  const R = Math.round(col.r * 255), G = Math.round(col.g * 255), B = Math.round(col.b * 255);
+  const rgba = (a) => 'rgba(' + R + ',' + G + ',' + B + ',' + a + ')';
+  const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+  const g = c.getContext('2d');
+  // deep dark base with a faint team-tinted floor
+  const base = g.createLinearGradient(0, 0, 0, 512);
+  base.addColorStop(0, '#070a14');
+  base.addColorStop(1, '#03040b');
+  g.fillStyle = base; g.fillRect(0, 0, 512, 512);
+  // soft radial team glow behind the head (slightly above center)
+  let rad = g.createRadialGradient(256, 200, 30, 256, 210, 330);
+  rad.addColorStop(0, rgba(0.40));
+  rad.addColorStop(0.45, rgba(0.16));
+  rad.addColorStop(1, rgba(0));
+  g.fillStyle = rad; g.fillRect(0, 0, 512, 512);
+  // hot core
+  rad = g.createRadialGradient(256, 195, 5, 256, 195, 120);
+  rad.addColorStop(0, rgba(0.30));
+  rad.addColorStop(1, rgba(0));
+  g.fillStyle = rad; g.fillRect(0, 0, 512, 512);
+  // defocused bokeh: blurred discs at varying alpha (seeded — stable per team)
+  const rnd = mulberry32((0xC1BE * (TEAMS.indexOf(team) + 3)) ^ ((seed >>> 0) * 2654435761));
+  for (let i = 0; i < 18; i++) {
+    const x = rnd() * 512, y = rnd() * 460;
+    const r = 9 + rnd() * 42;
+    const a = 0.05 + rnd() * 0.20;
+    const whiteMix = rnd() * 0.4; // some dots drift toward stadium-light white
+    const dr = Math.round(R + (235 - R) * whiteMix);
+    const dg = Math.round(G + (240 - G) * whiteMix);
+    const db = Math.round(B + (255 - B) * whiteMix);
+    const dot = g.createRadialGradient(x, y, 0, x, y, r);
+    dot.addColorStop(0, 'rgba(' + dr + ',' + dg + ',' + db + ',' + a + ')');
+    dot.addColorStop(0.6, 'rgba(' + dr + ',' + dg + ',' + db + ',' + (a * 0.55) + ')');
+    dot.addColorStop(1, 'rgba(' + dr + ',' + dg + ',' + db + ',0)');
+    g.fillStyle = dot;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  // corner vignette keeps the eye on the face
+  rad = g.createRadialGradient(256, 230, 170, 256, 256, 380);
+  rad.addColorStop(0, 'rgba(0,0,0,0)');
+  rad.addColorStop(1, 'rgba(0,0,0,0.55)');
+  g.fillStyle = rad; g.fillRect(0, 0, 512, 512);
+  tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  _backdrops.set(key, tex);
+  return tex;
+}
+const backdrop = new THREE.Mesh(
+  new THREE.PlaneGeometry(8, 8),
+  new THREE.MeshBasicMaterial({ map: null })
+);
+scene.add(backdrop);
+
+// ============ READY: GLBs + Orbitron (jersey decals draw with it) ============
+// kayrig caches jersey canvas textures per name/number — they must be drawn
+// AFTER Orbitron is live or the cache keeps the fallback font forever.
+const fontsReady = (async () => {
+  try {
+    await Promise.all([
+      document.fonts.load('700 64px Orbitron'),
+      document.fonts.load('900 165px Orbitron'),
+      document.fonts.load('900 330px Orbitron'),
+    ]);
+  } catch (e) { /* fallback font is survivable; portraits still bake */ }
+})();
+const ready = Promise.all([preloadHumanModel(), fontsReady]).then(() => undefined);
+
+// ============ CAPTURE — fully synchronous after ready (hidden-tab safe) ======
+const POSE_YAW = 0.42;          // ~24° three-quarter body turn
+const HEAD_TURN = -0.40;        // headPivot yaw — face back toward the camera
+const _hp = new THREE.Vector3();
+const _pq = new THREE.Quaternion();
+const _XAXIS = new THREE.Vector3(1, 0, 0);
+
+// Per-character framing overrides. The rig's headPivot is yaw-only, so
+// headPitch is written straight onto the 'head' bone AFTER the settle loop —
+// nothing runs between settle and render, so the mixer can't reset it.
+// Negative X = look up (kayrig's own convention: poseExhausted gasps up with
+// negative head X). camLift replaces the default +0.10 camera height; negative
+// puts the camera below the frame center looking up — low hero angle.
+// The human Mage's witch-hat brim hides the eyes from a level camera (only
+// nose/mouth read): pitching the head up rocks the brim back, and the low
+// camera looks under what's left of it. Skeleton_Mage's brim sits higher and
+// the eyes are emissive, so it only needs a gentle nudge.
+const FRAME_TWEAK = {
+  Mage:          { camLift: -0.28, headPitch: -0.30 },
+  Skeleton_Mage: { camLift: -0.12, headPitch: -0.12 },
+};
+
+function captureSync(idx) {
+  const item = ITEMS[idx];
+  const team = item.teamDef, p = item.p;
+  const charName = CHARACTERS.includes(p.ch) ? p.ch : 'Knight';
+
+  // opts mirror index.html buildPlayer exactly, minus its per-match randomness
+  // (headband: r.hb ?? random, pattern: random — portraits stay deterministic):
+  const rig = buildPlayerRig({
+    kitColor: team.kit,
+    glowColor: team.glow,                 // raw brand hex — kayrig acesGlow()s it
+    skinTone: 0xe0ac69, hairColor: 0x14100c, // API parity; kayrig bakes textures
+    isGK: item.isGK,                      // keepers read lime, like in-game
+    headband: !!p.hb,
+    captain: item.captain,                // slot 1 wears the armband, like in-game
+    pattern: 'accent',                    // one consistent kit pattern for the set
+    jerseyName: p.n, jerseyNumber: p.num,
+    flair: p.flair || [],
+    character: charName,                  // same Knight fallback as index.html
+  });
+  const tweak = FRAME_TWEAK[charName] || {};
+  const group = rig.group;
+  // per-player "photo session" variation, seeded by name: duplicate archetypes
+  // on a club must not read as clones — each athlete gets their own angle,
+  // lead shoulder, head attitude, framing and bokeh field
+  let hsh = 0; for (let ci = 0; ci < p.n.length; ci++) hsh = (hsh * 31 + p.n.charCodeAt(ci)) >>> 0;
+  const r1 = ((hsh % 97) / 96) - 0.5, r2 = (((hsh >>> 5) % 89) / 88) - 0.5, r3 = (((hsh >>> 11) % 83) / 82) - 0.5;
+  const side = (hsh & 4) ? 1 : -1;                       // which shoulder leads
+  group.rotation.y = side * (POSE_YAW + r1 * 0.18);      // ~14°–34° turn, mirrored
+  rig.headPivot.rotation.y = -side * (-HEAD_TURN + r2 * 0.10); // face back to camera
+  scene.add(group);
+
+  // synchronous settle: out of the build stance into a lived-in idle frame.
+  // No rAF — this is the whole reason capture works in a hidden tab.
+  for (let k = 0; k < 36; k++) rig.update(1 / 30, 0);
+  group.updateMatrixWorld(true);
+
+  // ---- auto-framing off the HEAD BONE world position ----
+  // rig.headPivot sits at the group origin (it's a yaw input, not a locator),
+  // so we anchor on the actual 'head' bone: characters share a normalized 1.9u
+  // height but wildly different proportions (Skeleton_Minion is mostly skull),
+  // and the head bone is the one honest reference across all eight bodies.
+  let headBone = null;
+  group.traverse((o) => { if (!headBone && o.isBone && o.name === 'head') headBone = o; });
+  if (headBone) headBone.getWorldPosition(_hp); else _hp.set(0, 1.45, 0);
+
+  // per-character head pitch (post-settle: the last update already ran, so a
+  // direct bone write survives to the render; rotation about the head's own
+  // origin doesn't move _hp). Applied AFTER measuring the head position.
+  if (headBone && tweak.headPitch) {
+    headBone.quaternion.multiply(_pq.setFromAxisAngle(_XAXIS, tweak.headPitch));
+  }
+
+  // frame is ~12% wider than the original tuning (breathing room for the
+  // cards): extra space mostly below — more chest/shoulders, eye-line stays
+  // around the upper third.
+  const zoom = 1 + r3 * 0.07;                                     // ±3.5% framing variety
+  const top = Math.max(2.20, _hp.y + 0.80 * zoom);                // clears hats/mohawks/fros
+  const bottom = THREE.MathUtils.clamp(_hp.y - 0.72 * zoom, top - 1.68, top - 1.34); // chest-up
+  const frameH = top - bottom;
+  const cy = (top + bottom) / 2;
+  const dist = (frameH / 2) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const camLift = (tweak.camLift !== undefined ? tweak.camLift : 0.10) + r2 * 0.05;
+  camera.position.set(_hp.x + side * (0.06 + r1 * 0.05), cy + camLift, _hp.z + dist); // gentle high/low angle
+  camera.lookAt(_hp.x, cy, _hp.z);
+
+  // team-dressed set: backdrop + rim lights in the (ACES-compensated) glow
+  backdrop.material.map = backdropTexture(team, hsh);
+  backdrop.material.needsUpdate = true;
+  backdrop.position.set(_hp.x, cy + 0.3, _hp.z - 2.4);
+  rim.color.setHex(team.glow3);
+  rim2.color.setHex(team.glow3);
+
+  renderer.render(scene, camera);                  // synchronous, right before read
+  const url = renderer.domElement.toDataURL('image/png');
+
+  scene.remove(group);
+  rig.dispose();
+  return url;
+}
+
+// ============ ORCHESTRATOR API ============
+window.GEN = {
+  ready,
+  list: ITEMS.map((it) => ({ file: it.file, team: it.team, name: it.name })),
+  capture: async (index) => { await ready; return captureSync(index); },
+};
+
+// ============ ON-PAGE PREVIEW GRID (human eyeball pass) ============
+const grid = document.getElementById('grid');
+const status = document.getElementById('status');
+const urls = new Array(ITEMS.length).fill(null);
+const cells = ITEMS.map((it, i) => {
+  const cell = document.createElement('div');
+  const cssColor = '#' + new THREE.Color(it.teamDef.kit).getHexString();
+  cell.className = 'cell';
+  cell.style.setProperty('--c', cssColor);
+  cell.innerHTML =
+    '<div class="ph">…</div>' +
+    '<div class="meta"><div class="nm">#' + it.p.num + ' ' + it.name + '</div>' +
+    '<div class="tm">' + it.team + '</div>' +
+    '<div class="fn">' + it.file + '</div></div>';
+  cell.title = 'Click to re-capture';
+  cell.addEventListener('click', async () => {
+    setCell(i, await window.GEN.capture(i));
+  });
+  grid.appendChild(cell);
+  return cell;
+});
+function setCell(i, url) {
+  urls[i] = url;
+  const old = cells[i].firstElementChild;
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = ITEMS[i].file;
+  old.replaceWith(img);
+}
+
+async function captureAll() {
+  for (let i = 0; i < ITEMS.length; i++) {
+    status.textContent = 'BAKING ' + (i + 1) + ' / ' + ITEMS.length + ' — ' + ITEMS[i].name;
+    setCell(i, await window.GEN.capture(i));
+  }
+  status.textContent = 'ALL ' + ITEMS.length + ' PORTRAITS BAKED';
+}
+
+document.getElementById('recapture').addEventListener('click', captureAll);
+document.getElementById('downloadall').addEventListener('click', async () => {
+  for (let i = 0; i < ITEMS.length; i++) {
+    if (!urls[i]) setCell(i, await window.GEN.capture(i));
+    const a = document.createElement('a');
+    a.href = urls[i];
+    a.download = ITEMS[i].file;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    await new Promise((r) => setTimeout(r, 180)); // let the browser breathe
+  }
+});
+
+status.textContent = 'LOADING RIGS + FONTS…';
+ready.then(captureAll).catch((e) => {
+  status.textContent = 'BOOT FAILED: ' + (e && e.message ? e.message : e);
+});
+</script>
+</body>
+</html>

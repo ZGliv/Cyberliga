@@ -22,6 +22,13 @@
     'GRID ROYALS': [{ n: 'KILOWATT', num: 1 }, { n: 'MAINFRAME', num: 3 }, { n: 'TURBINE', num: 4 }, { n: 'DYNAMO', num: 7 }, { n: 'CIRCUIT', num: 10 }, { n: 'VANTA', num: 9 }, { n: 'HELIX', num: 11 }],
     'ASTRA NOVA':  [{ n: 'ORBIT', num: 1 }, { n: 'QUASAR', num: 2 }, { n: 'ZENITH', num: 6 }, { n: 'NEBULA', num: 8 }, { n: 'COMET', num: 10 }, { n: 'STARFALL', num: 9 }, { n: 'LUMEN', num: 7 }],
   };
+  // Each club's poster star — featured large on the hero matchup card.
+  var STARS = {
+    'NEON FC': 'RAZOR',
+    'VOLT UTD': 'NOVA',
+    'GRID ROYALS': 'CIRCUIT',
+    'ASTRA NOVA': 'STARFALL',
+  };
   // Persona blurbs from PORTRAITS.md — fixed IP, not stats.
   var PERSONAS = {
     'OKAFOR-9': 'Towering calm keeper. Scarred chrome jaw plate, captain’s aura.',
@@ -199,7 +206,12 @@
     return '<span class="crest" ' + (extra || '') + '>' + crestSVG(team) + '</span>';
   }
 
-  // ---------- player portrait silhouette (placeholder until PNGs land) ----------
+  // ---------- portraits: portraits/<TEAM>_<NAME>.png, baked team-color bg ----------
+  function portraitSrc(teamName, playerName) {
+    return 'portraits/' + encodeURIComponent(teamName + '_' + playerName + '.png');
+  }
+
+  // ---------- player portrait silhouette (fallback if a PNG is missing) ----------
   function silhouetteSVG(color) {
     return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax slice" aria-hidden="true">' +
       '<rect width="100" height="100" fill="transparent"/>' +
@@ -252,6 +264,19 @@
   }
 
   // ============================ HERO BILLBOARD ============================
+  // Matchup poster: each club's star portrait, eager-loaded (above the fold).
+  function starCardHTML(team) {
+    var star = STARS[team.name];
+    return '<div class="bb-star" style="--c:' + team.color + '">' +
+      '<div class="bb-photo">' +
+        '<span class="silhouette">' + silhouetteSVG(team.color) + '</span>' +
+        '<img src="' + portraitSrc(team.name, star) + '" alt="' + star + ' — ' + team.name + '"' +
+          ' width="512" height="512" decoding="async" fetchpriority="high" onerror="this.remove()">' +
+      '</div>' +
+      '<div class="bb-club">' + crestHTML(team) +
+        '<span class="bb-name" style="color:' + team.color + '">' + team.name + '</span></div>' +
+      '</div>';
+  }
   function renderBillboard() {
     var next = fixtureAt(league.fixture);
     var bb = el('billboard');
@@ -273,14 +298,20 @@
       meta = 'SERIES RECORD UNAVAILABLE &mdash; THE ARCHIVE STARTS TONIGHT';
     }
 
+    // layered diagonal team-color field — rich and dark, title-fight energy
+    var field = 'background:' +
+      'linear-gradient(118deg,' + next.a.color + '38 0%,transparent 52%),' +
+      'linear-gradient(298deg,' + next.b.color + '38 0%,transparent 52%),' +
+      'linear-gradient(118deg,' + next.a.color + '14 0%,transparent 78%),' +
+      'linear-gradient(298deg,' + next.b.color + '14 0%,transparent 78%),' +
+      'linear-gradient(180deg,#11151d 0%,#0a0d13 100%)';
+
     bb.innerHTML =
       '<div class="bb-kicker"><span>NEXT &mdash; FOOTBALL &middot; MATCHDAY ' + next.matchday + '</span><span>GRAND ARENA</span></div>' +
-      '<div class="bb-body">' +
-        '<div class="bb-teams">' +
-          '<div class="bb-team">' + crestHTML(next.a) + '<span class="bb-name" style="color:' + next.a.color + '">' + next.a.name + '</span></div>' +
-          '<div class="bb-team">' + crestHTML(next.b) + '<span class="bb-name" style="color:' + next.b.color + '">' + next.b.name + '</span></div>' +
-        '</div>' +
+      '<div class="bb-poster" style="' + field + '">' +
+        starCardHTML(next.a) +
         '<div class="bb-vs">VS</div>' +
+        starCardHTML(next.b) +
       '</div>' +
       '<div class="bb-meta">' + meta + '</div>';
   }
@@ -308,6 +339,7 @@
         '<td class="pos">' + (i + 1) + '</td>' +
         '<td class="club"><span class="clubcell">' + crestHTML(x.t) +
           '<span class="cname" style="color:' + x.t.color + '">' + x.t.name + '</span>' +
+          (lead ? '<span class="toptag">&#9650; TOP</span>' : '') +
         '</span></td>' +
         '<td>' + x.r.p + '</td><td>' + x.r.w + '</td><td>' + x.r.d + '</td><td>' + x.r.l + '</td>' +
         '<td>' + x.r.gf + '</td><td>' + x.r.ga + '</td><td>' + (gd > 0 ? '+' + gd : gd) + '</td>' +
@@ -352,8 +384,10 @@
   }
 
   // ============================ PLAYERS ============================
+  // Pure-numeric stat values carry data-count so they can count up on reveal.
   function statCell(value, key, blank) {
-    return '<div class="stat"><div class="v' + (blank ? ' blank' : '') + '">' + value + '</div><div class="k">' + key + '</div></div>';
+    var count = (typeof value === 'number' && isFinite(value)) ? ' data-count="' + value + '"' : '';
+    return '<div class="stat"><div class="v' + (blank ? ' blank' : '') + '"' + count + '>' + value + '</div><div class="k">' + key + '</div></div>';
   }
   function renderPlayers() {
     var host = el('rosters');
@@ -389,19 +423,21 @@
             statCell(dash, role === 'GK' ? 'SAVES' : 'GOALS', true) +
             statCell(dash, 'CARDS', true);
 
-        // portraits/<TEAM>_<NAME>.png — graceful fallback to the silhouette
-        var src = 'portraits/' + encodeURIComponent(team.name + '_' + p.n + '.png');
+        // trading card: full-bleed square portrait (baked team-color bg IS the
+        // card art), graceful silhouette fallback. Persona blurb lives on as
+        // the portrait's alt/title — the image now tells that story itself.
+        var persona = PERSONAS[p.n] || '';
         html += '<article class="pcard" style="--c:' + team.color + '">' +
           '<span class="pnum">' + p.num + '</span>' +
           '<div class="portrait">' +
             '<span class="silhouette">' + silhouetteSVG(team.color) + '</span>' +
-            '<img src="' + src + '" alt="" loading="lazy" onerror="this.remove()">' +
+            '<img src="' + portraitSrc(team.name, p.n) + '" alt="' + persona + '" title="' + persona + '"' +
+              ' width="512" height="512" loading="lazy" decoding="async" onerror="this.remove()">' +
             formChip +
           '</div>' +
           '<div class="pbody">' +
             '<div class="pname">' + p.n + '</div>' +
             '<div class="prole">' + role + '</div>' +
-            '<p class="pblurb">' + (PERSONAS[p.n] || '') + '</p>' +
             '<div class="pstats">' + stats + '</div>' +
           '</div></article>';
       });
@@ -543,6 +579,52 @@
     el('tickertext').textContent = plain.join('   —   ') + '   —   ';
   }
 
+  // ============================ CAST STRIP ============================
+  // All 28 portraits drifting as a marquee — the track is duplicated so the
+  // CSS loop is seamless; the copy is aria-hidden (decoration, not content).
+  function renderCast() {
+    var host = el('casttrack');
+    if (!host) return;
+    var chips = '';
+    TEAMS.forEach(function (team) {
+      ROSTERS[team.name].forEach(function (p) {
+        chips += '<a class="castchip" href="#players" title="' + p.n + ' &mdash; ' + team.name + '" style="--c:' + team.color + '">' +
+          '<img src="' + portraitSrc(team.name, p.n) + '" alt="' + p.n + '"' +
+            ' width="512" height="512" loading="lazy" decoding="async" onerror="this.remove()">' +
+          '</a>';
+      });
+    });
+    host.innerHTML =
+      '<div class="castgroup">' + chips + '</div>' +
+      '<div class="castgroup" aria-hidden="true">' + chips + '</div>';
+  }
+
+  // ============================ STAT COUNT-UP ============================
+  // Numerals count from 0 on first scroll-into-view. Purely cosmetic:
+  // markup already holds the real value, so no-JS/no-IO/reduced-motion
+  // all read correctly.
+  function initCountUp() {
+    if (!('IntersectionObserver' in window)) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        io.unobserve(en.target);
+        var node = en.target;
+        var end = parseInt(node.getAttribute('data-count'), 10) || 0;
+        if (end <= 0) return;
+        var t0 = performance.now();
+        (function step(t) {
+          var k = Math.min(1, (t - t0) / 600);
+          k = 1 - Math.pow(1 - k, 3); // ease-out
+          node.textContent = Math.round(end * k);
+          if (k < 1) requestAnimationFrame(step);
+        })(t0);
+      });
+    }, { threshold: 0.4 });
+    document.querySelectorAll('.stat .v[data-count]').forEach(function (n) { io.observe(n); });
+  }
+
   // ============================ ARENA STRIP ============================
   function renderSports() {
     var host = el('sportsrail');
@@ -591,6 +673,7 @@
   // ============================ BOOT ============================
   try {
     renderBillboard();
+    renderCast();
     renderStandings();
     renderFixtures();
     renderPlayers();
@@ -598,6 +681,7 @@
     renderStorylines(lines);
     renderTicker(lines);
     renderSports();
+    initCountUp();
   } catch (e) {
     // Never a broken broadcast: log it, keep whatever rendered.
     console.error('CYBERLIGA hub render error', e);
