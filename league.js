@@ -158,14 +158,14 @@
   var league = loadLeague();
   var story = loadStory();
 
-  // ---------- crests: one distinct inline-SVG monogram per club ----------
+  // ---------- crests: monochrome team-color stroke on transparent ----------
   function crestSVG(team) {
     var c = team.color;
-    var letter = '<text x="32" y="40.5" text-anchor="middle" font-family="Orbitron, sans-serif" font-weight="900" font-size="21" fill="' + c + '">' + team.mono + '</text>';
+    var letter = '<text x="32" y="40.5" text-anchor="middle" font-family="Archivo, sans-serif" font-weight="800" font-size="21" fill="' + c + '">' + team.mono + '</text>';
     if (team.name === 'NEON FC') {
       // hex shield + circuit traces
       return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-        '<polygon points="32,3 58,17 58,47 32,61 6,47 6,17" fill="rgba(0,229,255,.07)" stroke="' + c + '" stroke-width="2"/>' +
+        '<polygon points="32,3 58,17 58,47 32,61 6,47 6,17" fill="none" stroke="' + c + '" stroke-width="2"/>' +
         '<polygon points="32,10 52,21 52,43 32,54 12,43 12,21" fill="none" stroke="' + c + '" stroke-width="1" opacity=".5"/>' +
         '<path d="M12 30 H20 M44 30 H52 M32 54 V47" stroke="' + c + '" stroke-width="1.4" opacity=".7"/>' +
         '<circle cx="20" cy="30" r="1.8" fill="' + c + '"/><circle cx="44" cy="30" r="1.8" fill="' + c + '"/>' +
@@ -174,30 +174,29 @@
     if (team.name === 'VOLT UTD') {
       // angular pennant + lightning bolt
       return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-        '<polygon points="10,6 54,6 54,34 32,60 10,34" fill="rgba(255,45,120,.07)" stroke="' + c + '" stroke-width="2"/>' +
-        '<polygon points="34,10 22,32 30,32 26,48 42,26 33,26 40,10" fill="' + c + '" opacity=".28"/>' +
-        '<polygon points="34,10 22,32 30,32 26,48 42,26 33,26 40,10" fill="none" stroke="' + c + '" stroke-width="1.2"/>' +
-        '<text x="32" y="33" text-anchor="middle" font-family="Orbitron, sans-serif" font-weight="900" font-size="19" fill="' + c + '">' + team.mono + '</text>' +
+        '<polygon points="10,6 54,6 54,34 32,60 10,34" fill="none" stroke="' + c + '" stroke-width="2"/>' +
+        '<polygon points="34,10 22,32 30,32 26,48 42,26 33,26 40,10" fill="none" stroke="' + c + '" stroke-width="1.4"/>' +
+        '<text x="32" y="33" text-anchor="middle" font-family="Archivo, sans-serif" font-weight="800" font-size="19" fill="' + c + '">' + team.mono + '</text>' +
         '</svg>';
     }
     if (team.name === 'GRID ROYALS') {
       // crowned shield over a grid
       return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-        '<polygon points="14,4 20,11 26,4 32,11 38,4 44,11 50,4 50,14 14,14" fill="' + c + '" opacity=".85"/>' +
-        '<path d="M14 18 H50 V40 Q50 53 32 60 Q14 53 14 40 Z" fill="rgba(255,194,77,.07)" stroke="' + c + '" stroke-width="2"/>' +
+        '<polygon points="14,4 20,11 26,4 32,11 38,4 44,11 50,4 50,14 14,14" fill="none" stroke="' + c + '" stroke-width="1.6"/>' +
+        '<path d="M14 18 H50 V40 Q50 53 32 60 Q14 53 14 40 Z" fill="none" stroke="' + c + '" stroke-width="2"/>' +
         '<path d="M23 18 V56 M41 18 V56 M14 30 H50 M15 42 H49" stroke="' + c + '" stroke-width=".8" opacity=".4"/>' +
-        '<text x="32" y="44" text-anchor="middle" font-family="Orbitron, sans-serif" font-weight="900" font-size="20" fill="' + c + '">' + team.mono + '</text>' +
+        '<text x="32" y="44" text-anchor="middle" font-family="Archivo, sans-serif" font-weight="800" font-size="20" fill="' + c + '">' + team.mono + '</text>' +
         '</svg>';
     }
     // ASTRA NOVA: orbit ring + four-point star
     return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-      '<circle cx="32" cy="32" r="26" fill="rgba(138,92,255,.07)" stroke="' + c + '" stroke-width="2"/>' +
+      '<circle cx="32" cy="32" r="26" fill="none" stroke="' + c + '" stroke-width="2"/>' +
       '<ellipse cx="32" cy="32" rx="29" ry="10" fill="none" stroke="' + c + '" stroke-width="1.2" opacity=".65" transform="rotate(-24 32 32)"/>' +
       '<polygon points="49,13 50.6,17.4 55,19 50.6,20.6 49,25 47.4,20.6 43,19 47.4,17.4" fill="' + c + '"/>' +
       letter + '</svg>';
   }
   function crestHTML(team, extra) {
-    return '<span class="crest" style="--cc:' + team.color + '66" ' + (extra || '') + '>' + crestSVG(team) + '</span>';
+    return '<span class="crest" ' + (extra || '') + '>' + crestSVG(team) + '</span>';
   }
 
   // ---------- player portrait silhouette (placeholder until PNGs land) ----------
@@ -256,8 +255,6 @@
   function renderBillboard() {
     var next = fixtureAt(league.fixture);
     var bb = el('billboard');
-    bb.style.setProperty('--glowA', next.a.color + '29');
-    bb.style.setProperty('--glowB', next.b.color + '29');
 
     // honest series line from persisted h2h only
     var meta = '';
@@ -277,11 +274,13 @@
     }
 
     bb.innerHTML =
-      '<div class="bb-label">NEXT ON THE GRID &middot; FOOTBALL &mdash; MATCHDAY ' + next.matchday + ' &middot; GRAND ARENA</div>' +
-      '<div class="bb-row">' +
-        '<div class="bb-side">' + crestHTML(next.a) + '<div class="bb-name" style="--tc:' + next.a.color + '">' + next.a.name + '</div></div>' +
+      '<div class="bb-kicker"><span>NEXT &mdash; FOOTBALL &middot; MATCHDAY ' + next.matchday + '</span><span>GRAND ARENA</span></div>' +
+      '<div class="bb-body">' +
+        '<div class="bb-teams">' +
+          '<div class="bb-team">' + crestHTML(next.a) + '<span class="bb-name" style="color:' + next.a.color + '">' + next.a.name + '</span></div>' +
+          '<div class="bb-team">' + crestHTML(next.b) + '<span class="bb-name" style="color:' + next.b.color + '">' + next.b.name + '</span></div>' +
+        '</div>' +
         '<div class="bb-vs">VS</div>' +
-        '<div class="bb-side">' + crestHTML(next.b) + '<div class="bb-name" style="--tc:' + next.b.color + '">' + next.b.name + '</div></div>' +
       '</div>' +
       '<div class="bb-meta">' + meta + '</div>';
   }
@@ -300,16 +299,15 @@
       ? 'AFTER ' + league.fixture + ' COMPLETED FIXTURE' + (league.fixture === 1 ? '' : 'S')
       : 'SEASON 2077 · AWAITING FIRST KICKOFF';
 
-    var html = '<thead><tr><th class="pos">#</th><th class="club" style="text-align:left">CLUB</th>' +
+    var html = '<thead><tr><th class="pos">#</th><th class="club">CLUB</th>' +
       '<th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>PTS</th></tr></thead><tbody>';
     rows.forEach(function (x, i) {
       var gd = x.r.gf - x.r.ga;
       var lead = i === 0 && anyPlayed;
-      html += '<tr' + (lead ? ' class="lead" style="--lead-c:' + x.t.color + '"' : '') + '>' +
+      html += '<tr' + (lead ? ' class="lead"' : '') + '>' +
         '<td class="pos">' + (i + 1) + '</td>' +
         '<td class="club"><span class="clubcell">' + crestHTML(x.t) +
           '<span class="cname" style="color:' + x.t.color + '">' + x.t.name + '</span>' +
-          (lead ? '<span class="chip win" style="color:' + x.t.color + '">TOP</span>' : '') +
         '</span></td>' +
         '<td>' + x.r.p + '</td><td>' + x.r.w + '</td><td>' + x.r.d + '</td><td>' + x.r.l + '</td>' +
         '<td>' + x.r.gf + '</td><td>' + x.r.ga + '</td><td>' + (gd > 0 ? '+' + gd : gd) + '</td>' +
@@ -327,11 +325,11 @@
     } else {
       played.forEach(function (r) {
         var chip;
-        if (r.outcome === 'draw') chip = '<span class="chip draw">DRAW</span>';
+        if (r.outcome === 'draw') chip = '<span class="res draw">DRAW</span>';
         else if (r.outcome) {
           var w = teamByName(r.outcome);
-          chip = '<span class="chip win" style="color:' + w.color + '">' + w.name + ' WIN</span>';
-        } else chip = '<span class="chip archived">FT &middot; ARCHIVED</span>';
+          chip = '<span class="res" style="color:' + w.color + '">' + w.name + ' WIN</span>';
+        } else chip = '<span class="res arch">FT &middot; ARCHIVED</span>';
         rHTML += '<div class="fixrow"><span class="md">MD ' + r.matchday + '</span>' +
           '<span class="pair">' + teamSpan(r.a, r.outcome && r.outcome !== 'draw' && r.outcome !== r.a.name) +
           '<span class="x">vs</span>' + teamSpan(r.b, r.outcome && r.outcome !== 'draw' && r.outcome !== r.b.name) +
@@ -346,8 +344,8 @@
       uHTML += '<div class="fixrow"><span class="md">MD ' + f.matchday + '</span>' +
         '<span class="pair">' + teamSpan(f.a) + '<span class="x">vs</span>' + teamSpan(f.b) + '</span>' +
         (k === 0
-          ? '<a class="watchlink" href="index.html">&#9654; WATCH</a>'
-          : '<span class="chip queued">QUEUED</span>') +
+          ? '<a class="watchlink" href="index.html">WATCH</a>'
+          : '<span class="chip">QUEUED</span>') +
         '</div>';
     }
     el('upcoming-panel').innerHTML = uHTML;
@@ -376,8 +374,8 @@
         var hasStats = !!(c && c.apps > 0);
         var f = hasStats ? formOf(c) : 'STEADY';
         var formChip = '';
-        if (f === 'HOT') formChip = '<span class="chip formchip" style="color:#ff6b4d">HOT</span>';
-        else if (f === 'COLD') formChip = '<span class="chip formchip" style="color:#6f9aff">COLD</span>';
+        if (f === 'HOT') formChip = '<span class="chip formchip hot">HOT</span>';
+        else if (f === 'COLD') formChip = '<span class="chip formchip cold">COLD</span>';
 
         var dash = '<span>&mdash;</span>';
         var stats = hasStats
@@ -394,14 +392,15 @@
         // portraits/<TEAM>_<NAME>.png — graceful fallback to the silhouette
         var src = 'portraits/' + encodeURIComponent(team.name + '_' + p.n + '.png');
         html += '<article class="pcard" style="--c:' + team.color + '">' +
+          '<span class="pnum">' + p.num + '</span>' +
           '<div class="portrait">' +
             '<span class="silhouette">' + silhouetteSVG(team.color) + '</span>' +
             '<img src="' + src + '" alt="" loading="lazy" onerror="this.remove()">' +
             formChip +
-            '<span class="pnum">' + p.num + '</span>' +
           '</div>' +
           '<div class="pbody">' +
-            '<div class="pname"><span class="prole">' + role + '</span>' + p.n + '</div>' +
+            '<div class="pname">' + p.n + '</div>' +
+            '<div class="prole">' + role + '</div>' +
             '<p class="pblurb">' + (PERSONAS[p.n] || '') + '</p>' +
             '<div class="pstats">' + stats + '</div>' +
           '</div></article>';
@@ -529,7 +528,7 @@
   }
   function renderStorylines(lines) {
     el('storyfeed').innerHTML = lines.map(function (s) {
-      return '<article class="story-card panel" style="--sc:' + s.color + '">' +
+      return '<article class="story">' +
         '<div class="stag">' + s.tag + '</div><p class="stext">' + s.text + '</p></article>';
     }).join('');
   }
@@ -541,31 +540,22 @@
     });
     var next = fixtureAt(league.fixture);
     plain.unshift('FOOTBALL — NEXT ON THE GRID — MATCHDAY ' + next.matchday + ': ' + next.a.name + ' vs ' + next.b.name);
-    el('tickertext').textContent = plain.join('   ///   ') + '   ///   ';
+    el('tickertext').textContent = plain.join('   —   ') + '   —   ';
   }
 
-  // ============================ SPORTS RAIL ============================
-  var SPORT_ICONS = {
-    soccer: '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="26" fill="none" stroke="#00e5ff" stroke-width="2"/><polygon points="32,20 42,27.5 38,39 26,39 22,27.5" fill="#00e5ff" opacity=".75"/><path d="M32 20 V8 M42 27.5 L54 23 M38 39 L46 50 M26 39 L18 50 M22 27.5 L10 23" stroke="#00e5ff" stroke-width="1.6" opacity=".7"/></svg>',
-    hockey: '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M14 8 L34 44 Q37 50 31 52 L22 55" fill="none" stroke="#58c6ff" stroke-width="3" stroke-linecap="round"/><path d="M50 8 L30 44 Q27 50 33 52 L42 55" fill="none" stroke="#58c6ff" stroke-width="3" stroke-linecap="round" opacity=".65"/><ellipse cx="48" cy="52" rx="8" ry="4" fill="#58c6ff" opacity=".85"/></svg>',
-    hoops: '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="25" fill="none" stroke="#ff8a3d" stroke-width="2.4"/><path d="M7 32 H57 M32 7 V57 M13 14 Q32 32 13 50 M51 14 Q32 32 51 50" fill="none" stroke="#ff8a3d" stroke-width="1.8" opacity=".75"/></svg>',
-    baseball: '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="25" fill="none" stroke="#5dffb0" stroke-width="2.4"/><path d="M13 13 Q32 32 13 51 M51 13 Q32 32 51 51" fill="none" stroke="#5dffb0" stroke-width="1.8" opacity=".8"/><path d="M16 19 L20 21 M14 27 L19 28 M14 37 L19 36 M16 45 L20 43 M48 19 L44 21 M50 27 L45 28 M50 37 L45 36 M48 45 L44 43" stroke="#5dffb0" stroke-width="1.6"/></svg>',
-    fighting: '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><polygon points="22,6 42,6 56,20 56,44 42,58 22,58 8,44 8,20" fill="none" stroke="#ff4d6b" stroke-width="2.4"/><path d="M24 40 V28 Q24 22 30 22 H40 Q44 22 44 26 V36 Q44 42 38 42 H28" fill="none" stroke="#ff4d6b" stroke-width="2.4" stroke-linecap="round"/><path d="M30 22 V30 M35 22 V30 M40 22 V30" stroke="#ff4d6b" stroke-width="1.6" opacity=".7"/></svg>',
-  };
+  // ============================ ARENA STRIP ============================
   function renderSports() {
     var host = el('sportsrail');
     var cards = [
-      { key: 'soccer', name: 'FOOTBALL', color: '#00e5ff', href: 'index.html', live: true },
-      { key: 'hockey', name: 'HOCKEY', color: '#58c6ff', href: 'hockey.html', pending: true, sub: 'EXHIBITION ERA' },
-      { key: 'hoops', name: 'BASKETBALL', color: '#ff8a3d', href: 'hoops.html', pending: true, sub: 'EXHIBITION ERA' },
-      { key: 'baseball', name: 'BASEBALL', color: '#5dffb0', href: 'baseball.html', pending: true },
-      { key: 'fighting', name: 'FIGHTING', color: '#ff4d6b', href: 'fight.html', pending: true },
+      { name: 'FOOTBALL', href: 'index.html', live: true },
+      { name: 'HOCKEY', href: 'hockey.html', pending: true, sub: 'EXHIBITION ERA' },
+      { name: 'BASKETBALL', href: 'hoops.html', pending: true, sub: 'EXHIBITION ERA' },
+      { name: 'BASEBALL', href: 'baseball.html', pending: true },
+      { name: 'FIGHTING', href: 'fight.html', pending: true },
     ];
     host.innerHTML = cards.map(function (c) {
-      return '<a class="sport-card panel ' + (c.live ? 'live' : '') + '" href="' + c.href + '"' +
-        (c.pending ? ' data-pending="true" aria-disabled="true" tabindex="-1"' : '') +
-        ' style="--sc:' + c.color + '">' +
-        '<span class="sicon">' + SPORT_ICONS[c.key] + '</span>' +
+      return '<a class="sport-cell' + (c.live ? ' live' : '') + '" href="' + c.href + '"' +
+        (c.pending ? ' data-pending="true" aria-disabled="true" tabindex="-1"' : '') + '>' +
         '<span class="sname">' + c.name + '</span>' +
         '<span class="sport-status">' +
           (c.live ? '<span class="live-dot"></span>LIVE NOW' : 'IN DEVELOPMENT') +

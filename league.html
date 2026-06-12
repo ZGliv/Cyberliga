@@ -7,14 +7,13 @@
 <meta name="description" content="CYBERLIGA: the fully autonomous AI sports universe. Standings, fixtures, players and storylines from the league that never sleeps." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="league.css" />
 </head>
 <body>
-<div id="bgfx" aria-hidden="true"></div>
 
 <header id="topbar">
-  <a class="brand" href="league.html">CYBER<span>LIGA</span></a>
+  <a class="brand" href="league.html">CYBERLIGA</a>
   <nav aria-label="Sections">
     <a href="#sports">SPORTS</a>
     <a href="#standings">STANDINGS</a>
@@ -22,69 +21,65 @@
     <a href="#players">PLAYERS</a>
     <a href="#stories">STORYLINES</a>
   </nav>
-  <a class="cta-mini" href="index.html"><span class="live-dot"></span>WATCH FOOTBALL</a>
+  <a class="btn-live" href="index.html"><span class="live-dot"></span>WATCH FOOTBALL</a>
 </header>
 
 <main>
-  <!-- ============ ARENA SELECTOR ============ -->
-  <section id="sports" aria-label="Arena selector">
-    <div class="rail-label">SELECT YOUR ARENA</div>
+  <!-- ============ ARENA STRIP ============ -->
+  <section id="sports" aria-label="Arena channel guide">
     <div id="sportsrail" class="sportsrail"></div>
   </section>
 
   <!-- ============ HERO ============ -->
   <section id="hero">
-    <div class="kicker"><span class="live-dot"></span>SEASON 2077 &middot; THE AUTONOMOUS SPORTS UNIVERSE</div>
-    <h1 class="wordmark">CYBER<em>LIGA</em></h1>
-    <p class="tagline">FOUR CLUBS. EVERY ARENA. ZERO HUMANS. THE LEAGUE THAT NEVER SLEEPS.</p>
-    <div class="hero-actions">
-      <a class="cta" href="index.html">&#9654; WATCH FOOTBALL &middot; LIVE</a>
-      <a class="cta ghost" href="#standings">LEAGUE TABLE</a>
+    <div class="hero-copy">
+      <p class="kicker">SEASON 2077 — THE AUTONOMOUS SPORTS UNIVERSE</p>
+      <h1 class="masthead">CYBERLIGA</h1>
+      <p class="standfirst">Four clubs. Every arena. Zero humans. The league that never sleeps.</p>
+      <div class="hero-actions">
+        <a class="btn" href="index.html">WATCH FOOTBALL — LIVE</a>
+        <a class="textlink" href="#standings">League table &darr;</a>
+      </div>
     </div>
-    <div id="billboard" class="billboard panel"></div>
+    <div id="billboard" class="billboard"></div>
   </section>
 
-  <!-- ============ WIRE TICKER ============ -->
+  <!-- ============ WIRE ============ -->
   <div id="tickerbar"><div class="tlabel">WIRE</div><div class="ttext" id="tickertext">CYBERLIGA UNIVERSE HUB ONLINE — ALL ARENAS REPORTING —</div></div>
 
   <!-- ============ STANDINGS ============ -->
   <section id="standings" class="section">
-    <header class="sechead"><h2>STANDINGS</h2><span class="divchip">FOOTBALL DIVISION</span><div class="sub" id="standings-sub"></div></header>
-    <div class="panel table-panel">
-      <div class="table-scroll"><table id="league-table" aria-label="League standings"></table></div>
-    </div>
+    <header class="sechead"><span class="idx">01 —</span><h2>STANDINGS</h2><span class="divchip">FOOTBALL DIVISION</span><span class="rule"></span><span class="sub" id="standings-sub"></span></header>
+    <div class="table-scroll"><table id="league-table" aria-label="League standings"></table></div>
   </section>
 
   <!-- ============ FIXTURES & RESULTS ============ -->
   <section id="fixtures" class="section">
-    <header class="sechead"><h2>FIXTURES &amp; RESULTS</h2><span class="divchip">FOOTBALL DIVISION</span><div class="sub">ENDLESS ROUND-ROBIN &middot; ALL SIMULATIONS FINAL</div></header>
+    <header class="sechead"><span class="idx">02 —</span><h2>FIXTURES &amp; RESULTS</h2><span class="divchip">FOOTBALL DIVISION</span><span class="rule"></span><span class="sub">ENDLESS ROUND-ROBIN &middot; ALL SIMULATIONS FINAL</span></header>
     <div class="fixture-cols">
-      <div class="panel fixcol" id="results-panel"></div>
-      <div class="panel fixcol" id="upcoming-panel"></div>
+      <div class="fixcol" id="results-panel"></div>
+      <div class="fixcol" id="upcoming-panel"></div>
     </div>
   </section>
 
   <!-- ============ PLAYERS ============ -->
   <section id="players" class="section">
-    <header class="sechead"><h2>PLAYERS</h2><span class="divchip">FOOTBALL DIVISION</span><div class="sub">28 FOOTBALLERS &middot; CAREERS TRACKED FOR LIFE</div></header>
+    <header class="sechead"><span class="idx">03 —</span><h2>PLAYERS</h2><span class="divchip">FOOTBALL DIVISION</span><span class="rule"></span><span class="sub">28 FOOTBALLERS &middot; CAREERS TRACKED FOR LIFE</span></header>
     <div id="rosters"></div>
   </section>
 
   <!-- ============ STORYLINES ============ -->
   <section id="stories" class="section">
-    <header class="sechead"><h2>STORYLINES</h2><span class="divchip">FOOTBALL DIVISION</span><div class="sub">WRITTEN BY THE SIM &middot; EDITED BY NOBODY</div></header>
+    <header class="sechead"><span class="idx">04 —</span><h2>STORYLINES</h2><span class="divchip">FOOTBALL DIVISION</span><span class="rule"></span><span class="sub">WRITTEN BY THE SIM &middot; EDITED BY NOBODY</span></header>
     <div id="storyfeed" class="storyfeed"></div>
   </section>
 </main>
 
 <footer>
   <div class="fmark">CYBERLIGA</div>
-  <p>A FULLY AUTONOMOUS AI SPORTS UNIVERSE &mdash; NO HUMANS WERE SUBSTITUTED IN THE MAKING OF THIS BROADCAST.</p>
-  <p class="legal">SEASON 2077 &middot; ALL SIMULATIONS FINAL &middot; THE ALGORITHM IS THE ONLY REFEREE</p>
+  <p>Fully autonomous. No humans were substituted in the making of this broadcast.</p>
+  <p class="legal">Season 2077 &middot; All simulations final &middot; The algorithm is the only referee.</p>
 </footer>
-
-<div id="vignette" aria-hidden="true"></div>
-<div id="scanlines" aria-hidden="true"></div>
 
 <script src="league.js" defer></script>
 </body>
