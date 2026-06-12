@@ -98,7 +98,308 @@ function saturate(color, amount) {
   color.setHSL(_hsl.h, clamp(_hsl.s * (1 + amount) + 0.12, 0, 1), _hsl.l);
 }
 
-export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK = false, headband = false, captain = false, pattern = 'solid' }) {
+// ============================================================================
+// WAVE 2 — KIT / IDENTITY HELPERS (module-level, shared across all 15 rigs)
+// ============================================================================
+const _m = new THREE.Matrix4();
+const _v = new THREE.Vector3();
+const _v2 = new THREE.Vector3();
+
+// ---- W11: ACES pre-compensation for hot-pink emissives ---------------------
+// The host renders with ACES filmic tonemapping + UnrealBloom. Saturated
+// red-magenta emissives (VOLT UTD #ff2d78) get crushed toward pure RED: the R
+// channel hits the ACES shoulder first and the small B component is eaten by
+// the curve + bloom, so the perceived hue collapses to red. Pre-rotating the
+// hue toward magenta (h - 0.065) with a slight lightness lift (so blue survives
+// the RRT) makes the PERCEIVED post-ACES color land back on hot pink.
+// TARGET PERCEIVED COLOR for VOLT: hot pink #ff2d78. Cyan / gold / violet sit
+// outside the [0.87, 0.99) hue band and pass through untouched.
+const _emTintCache = new Map();
+function emissiveTint(colorIn) {
+  const key = colorIn instanceof THREE.Color ? colorIn.getHex() : new THREE.Color(colorIn).getHex();
+  let c = _emTintCache.get(key);
+  if (!c) {
+    c = new THREE.Color(key);
+    c.getHSL(_hsl);
+    if (_hsl.h > 0.87 && _hsl.h < 0.99) {
+      c.setHSL(Math.max(0.83, _hsl.h - 0.065), _hsl.s, Math.min(0.62, _hsl.l * 1.12));
+    }
+    _emTintCache.set(key, c);
+  }
+  return c; // shared instance — callers must clone() before mutating
+}
+
+// ---- kit palette + pattern selection ----------------------------------------
+// Explicit pattern names ('plain'|'sash'|'hoops'|'halves'|'fade') are honored;
+// the legacy host values ('solid'/'accent', randomized PER PLAYER) fall through
+// to a deterministic per-TEAM pick from the kit hue so teammates always wear
+// MATCHING kits. Unknown tags also fall through (W2: ignore unknown opts).
+const PATTERN_IDS = { plain: 0, sash: 1, hoops: 2, halves: 3, fade: 4 };
+const AUTO_PATTERN = [2, 1, 4, 1, 1, 4, 3, 3]; // hue octant → pattern: gold→hoops, cyan→sash, violet→fade, pink→halves
+
+function buildKitParams({ kitColor, glowColor, isGK, pattern }) {
+  const team = new THREE.Color(kitColor);
+  team.getHSL(_hsl);
+  const teamH = _hsl.h;
+  const base = new THREE.Color();
+  if (isGK) {
+    // keepers read LIME at a glance (broadcast convention), pulled 15% toward
+    // the team color so the two keepers in a fixture still differ
+    base.setHSL(0.225, 0.95, 0.56).lerp(team, 0.15);
+  } else {
+    // bright jersey base — the old armor lerp left every body near-black
+    base.setHSL(teamH, clamp(_hsl.s * 1.05 + 0.05, 0, 1), clamp(_hsl.l, 0.5, 0.6));
+  }
+  const second = new THREE.Color(0x0a0e1c).lerp(team, 0.16); // navy/charcoal pattern partner (per PORTRAITS.md kit briefs)
+  const dark = new THREE.Color(0x10141f).lerp(team, 0.22);   // shorts / compression under-layers
+  const sock = base.clone().multiplyScalar(0.8);
+  const glowE = emissiveTint(glowColor);
+  const glove = isGK ? glowE.clone() : dark.clone().multiplyScalar(0.8);
+  const patId = PATTERN_IDS[pattern] ?? AUTO_PATTERN[Math.floor(clamp(teamH, 0, 0.999) * 8)];
+  return { base, second, dark, sock, glove, glowE, patId, glowI: 1.55, gloveI: isGK ? 0.7 : 0 };
+}
+
+// ---- kit zone shader ---------------------------------------------------------
+// Recolors the Soldier body into a real football kit. Zones + pattern are
+// computed from the BIND-POSE vertex position (the raw `position` attribute,
+// sampled before skinning) so the print sticks to the cloth through animation,
+// independent of the GLB's UV layout. Heights are normalized by the geometry's
+// own bounding box (uniforms), x is height-normalized so T-pose arms classify
+// by lateral distance. The face/head zone keeps the original human texture.
+const KIT_FRAG_HEAD = /* glsl */ `#include <common>
+varying vec3 vClPos;
+uniform vec3 uClMin; uniform vec3 uClSize;
+uniform vec3 uClKitA; uniform vec3 uClKitB; uniform vec3 uClDark; uniform vec3 uClSock;
+uniform vec3 uClGlove; uniform vec3 uClGlow;
+uniform float uClPattern; uniform float uClGlowI; uniform float uClGloveI;
+float clBand(float v, float lo, float hi) {
+  return smoothstep(lo - 0.008, lo + 0.008, v) * (1.0 - smoothstep(hi - 0.008, hi + 0.008, v));
+}`;
+
+const KIT_FRAG_ALBEDO = /* glsl */ `{
+  float clH = (vClPos.y - uClMin.y) / uClSize.y;
+  float clX = (vClPos.x - uClMin.x - 0.5 * uClSize.x) / uClSize.y;
+  float clA = abs(clX);
+  if (!(clH > 0.847 && clA < 0.14)) {  // head/face keeps the human texture
+    float clLum = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
+    float clShade = 0.62 + clLum * 1.05; // lifted floor: kits read BRIGHT, cloth detail survives
+    vec3 clJersey;
+    if (uClPattern < 0.5)      clJersey = mix(uClKitA, uClKitB, clBand(clA, 0.125, 0.158));                   // plain + side panels
+    else if (uClPattern < 1.5) clJersey = mix(uClKitA, uClKitB, clBand(clX * 0.85 + clH - 0.55, 0.10, 0.22)); // diagonal sash
+    else if (uClPattern < 2.5) clJersey = mix(uClKitA, uClKitB, step(0.5, fract((clH - 0.545) * 6.5)));       // hoops
+    else if (uClPattern < 3.5) clJersey = mix(uClKitB, uClKitA, step(0.0, clX));                              // halves
+    else                       clJersey = mix(uClKitB, uClKitA, smoothstep(0.50, 0.85, clH));                 // gradient fade
+    vec3 clZone;
+    if (clA > 0.44)       clZone = uClGlove;                                       // hands / GK gloves
+    else if (clA > 0.295) clZone = uClDark;                                        // compression arms
+    else if (clA > 0.155) clZone = clJersey;                                       // sleeves
+    else if (clH > 0.545) clZone = clJersey;                                       // shirt
+    else if (clH > 0.40)  clZone = uClDark;                                        // shorts (dark complement)
+    else if (clH > 0.215) clZone = uClDark * 0.72;                                 // leg under-layer
+    else if (clH > 0.075) clZone = mix(uClSock * 0.95, uClKitB, step(0.165, clH)); // socks + turnover band
+    else                  clZone = uClDark * 0.5;                                  // boots
+    diffuseColor.rgb = clZone * clShade;
+  }
+}`;
+
+const KIT_FRAG_EMISSIVE = /* glsl */ `{
+  float clH = (vClPos.y - uClMin.y) / uClSize.y;
+  float clX = (vClPos.x - uClMin.x - 0.5 * uClSize.x) / uClSize.y;
+  float clA = abs(clX);
+  if (!(clH > 0.847 && clA < 0.14)) {
+    float clEm = clBand(clH, 0.818, 0.842) * (1.0 - step(0.155, clA))  // collar ring
+               + clBand(clA, 0.272, 0.296)                             // sleeve cuffs
+               + clBand(clH, 0.038, 0.058)                             // boot stripe
+               + clBand(clH, 0.398, 0.415) * 0.6;                      // shorts hem
+    totalEmissiveRadiance += uClGlow * (clEm * uClGlowI + 0.045);      // accents + faint kit lift (shadow-side readability)
+    totalEmissiveRadiance += uClGlow * step(0.44, clA) * uClGloveI;    // GK glove glow
+  }
+}`;
+
+function applyKitShader(mat, kit, bbox) {
+  const uMin = bbox.min.clone();
+  const uSize = new THREE.Vector3().subVectors(bbox.max, bbox.min);
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, {
+      uClMin: { value: uMin }, uClSize: { value: uSize },
+      uClKitA: { value: kit.base }, uClKitB: { value: kit.second },
+      uClDark: { value: kit.dark }, uClSock: { value: kit.sock },
+      uClGlove: { value: kit.glove }, uClGlow: { value: kit.glowE },
+      uClPattern: { value: kit.patId }, uClGlowI: { value: kit.glowI },
+      uClGloveI: { value: kit.gloveI },
+    });
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vClPos;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvClPos = position;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', KIT_FRAG_HEAD)
+      .replace('#include <map_fragment>', '#include <map_fragment>\n' + KIT_FRAG_ALBEDO)
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n' + KIT_FRAG_EMISSIVE);
+  };
+  mat.needsUpdate = true;
+}
+
+// ---- jersey name/number canvas decals (W2/W3) -------------------------------
+// One texture pair per (name, number, contrast) — cached so team rebuilds every
+// fixture never re-rasterize. Planes are authored in METERS (the bone anchors
+// un-scale the GLB) and glued to the spine so they ride torso leans.
+const _jerseyTexCache = new Map();
+function drawArcText(g, text, cx, cy, r, font, gap) {
+  g.font = font;
+  const chars = [...text];
+  const widths = chars.map((ch) => g.measureText(ch).width);
+  let a = -(widths.reduce((s, w) => s + w, 0) + gap * (chars.length - 1)) / 2 / r;
+  for (let i = 0; i < chars.length; i++) {
+    const half = widths[i] / 2 / r;
+    a += half;
+    g.save();
+    g.translate(cx + Math.sin(a) * r, cy - Math.cos(a) * r);
+    g.rotate(a);
+    g.strokeText(chars[i], 0, 0);
+    g.fillText(chars[i], 0, 0);
+    g.restore();
+    a += half + gap / r;
+  }
+}
+function getJerseyTextures(name, number, darkText) {
+  const key = name + '|' + number + '|' + (darkText ? 1 : 0);
+  let entry = _jerseyTexCache.get(key);
+  if (entry) return entry;
+  const fill = darkText ? '#0b1020' : '#f5f9ff';
+  const line = darkText ? 'rgba(245,250,255,0.92)' : 'rgba(8,12,24,0.92)'; // subtle outline = crisp at distance
+  const backing = darkText ? 'rgba(255,255,255,0.16)' : 'rgba(6,10,22,0.26)';
+  const hasNum = number !== null && number !== undefined;
+  // back: arced name over a big number, on a soft backing panel so the print
+  // stays readable over hoops/sash at broadcast distance
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 512;
+  const g = c.getContext('2d');
+  g.fillStyle = backing;
+  g.beginPath(); g.roundRect(100, 44, 312, 424, 30); g.fill();
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+  if (name) {
+    g.fillStyle = fill; g.strokeStyle = line; g.lineWidth = 9;
+    drawArcText(g, String(name), 256, 478, 348, '700 60px Orbitron, sans-serif', 7);
+  }
+  if (hasNum) {
+    g.font = '900 290px Orbitron, sans-serif';
+    g.fillStyle = fill; g.strokeStyle = line; g.lineWidth = 14;
+    g.strokeText(String(number), 256, 330);
+    g.fillText(String(number), 256, 330);
+  }
+  const back = new THREE.CanvasTexture(c);
+  back.colorSpace = THREE.SRGBColorSpace; back.anisotropy = 4;
+  // chest: small number
+  let chest = null;
+  if (hasNum) {
+    const c2 = document.createElement('canvas');
+    c2.width = 192; c2.height = 192;
+    const g2 = c2.getContext('2d');
+    g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.lineJoin = 'round';
+    g2.font = '900 128px Orbitron, sans-serif';
+    g2.fillStyle = fill; g2.strokeStyle = line; g2.lineWidth = 9;
+    g2.strokeText(String(number), 96, 102);
+    g2.fillText(String(number), 96, 102);
+    chest = new THREE.CanvasTexture(c2);
+    chest.colorSpace = THREE.SRGBColorSpace; chest.anisotropy = 4;
+  }
+  entry = { back, chest };
+  _jerseyTexCache.set(key, entry);
+  return entry;
+}
+let _geoBack = null, _geoChest = null, _geoCard = null;
+function geoBackDecal() { return _geoBack || (_geoBack = new THREE.PlaneGeometry(0.40, 0.46)); }
+function geoChestDecal() { return _geoChest || (_geoChest = new THREE.PlaneGeometry(0.14, 0.14)); }
+function geoCardPlane() { return _geoCard || (_geoCard = new THREE.PlaneGeometry(0.12, 0.17)); }
+
+// ---- persona flair accessories (W2) -----------------------------------------
+// Low-poly neon head attachments, ≤~50 tris each. Geometries + materials are
+// module-cached and SHARED across rigs (15 on screen); meshes are per-rig.
+// Authored in METERS in a head-glued anchor whose axes match the group
+// (+Z = character forward, origin ≈ eye level), so they ride head-look freely.
+const _flairGeos = {};
+function flairGeo(kind) {
+  if (_flairGeos[kind]) return _flairGeos[kind];
+  let g;
+  switch (kind) {
+    case 'mohawk': g = new THREE.BoxGeometry(0.026, 0.15, 0.30); break;
+    case 'braid': g = new THREE.CylinderGeometry(0.015, 0.011, 0.27, 5, 1); g.translate(0, -0.135, 0); break;
+    case 'tip': g = new THREE.OctahedronGeometry(0.024, 0); break;
+    case 'mask': g = new THREE.BoxGeometry(0.17, 0.10, 0.05); break;
+    case 'slit': g = new THREE.BoxGeometry(0.165, 0.012, 0.012); break;
+    case 'beard': g = new THREE.ConeGeometry(0.062, 0.13, 5); break;
+    case 'dread': g = new THREE.CylinderGeometry(0.024, 0.018, 0.25, 5, 1); g.translate(0, -0.125, 0); break;
+    case 'glasses': g = new THREE.BoxGeometry(0.21, 0.05, 0.035); break;
+    case 'scar': g = new THREE.BoxGeometry(0.013, 0.075, 0.013); break;
+    case 'fro': g = new THREE.OctahedronGeometry(0.135, 1); break;
+    case 'spike': g = new THREE.ConeGeometry(0.022, 0.085, 4); break;
+  }
+  _flairGeos[kind] = g;
+  return g;
+}
+let _matHair = null, _matDarkAcc = null;
+const _glowMats = new Map();
+function hairMat() { return _matHair || (_matHair = new THREE.MeshStandardMaterial({ color: 0x14100c, roughness: 0.85 })); }
+function darkAccMat() { return _matDarkAcc || (_matDarkAcc = new THREE.MeshStandardMaterial({ color: 0x10141d, roughness: 0.4, metalness: 0.5 })); }
+function glowMat(color) {
+  const k = color.getHex();
+  let m = _glowMats.get(k);
+  if (!m) { m = new THREE.MeshBasicMaterial({ color: color.clone() }); _glowMats.set(k, m); }
+  return m;
+}
+function addFlair(root, names, glowColor) {
+  const gm = glowMat(glowColor), hm = hairMat(), dm = darkAccMat();
+  const M = (kind, mat) => { const mesh = new THREE.Mesh(flairGeo(kind), mat); root.add(mesh); return mesh; };
+  for (const f of names) {
+    if (f === 'mohawk') {
+      M('mohawk', gm).position.set(0, 0.155, -0.02); // thin glowing fin
+    } else if (f === 'braids') {
+      for (const [x, rz] of [[0.062, -0.3], [-0.062, 0.3], [0, 0]]) {
+        const b = M('braid', hm);
+        b.position.set(x, -0.005, -0.085);
+        b.rotation.set(-0.3, 0, rz);
+        const tp = new THREE.Mesh(flairGeo('tip'), gm); // glow tip
+        tp.position.y = -0.27;
+        b.add(tp);
+      }
+    } else if (f === 'mask') {
+      M('mask', dm).position.set(0, -0.075, 0.092);   // face plate
+      M('slit', gm).position.set(0, -0.052, 0.118);   // glow seam
+    } else if (f === 'beard') {
+      const b = M('beard', hm);
+      b.position.set(0, -0.135, 0.058);
+      b.rotation.x = Math.PI - 0.22; // wedge under the chin
+    } else if (f === 'dreads') {
+      for (const [x, z, rx, rz] of [[0.07, -0.06, -0.25, -0.35], [-0.07, -0.06, -0.25, 0.35], [0.04, -0.10, -0.4, -0.15], [-0.04, -0.10, -0.4, 0.15]]) {
+        const d = M('dread', hm);
+        d.position.set(x, 0.02, z);
+        d.rotation.set(rx, 0, rz);
+      }
+    } else if (f === 'glasses') {
+      M('glasses', gm).position.set(0, 0.012, 0.103); // visor bar
+    } else if (f === 'scar') {
+      const s = M('scar', gm);
+      s.position.set(0.068, -0.028, 0.096);           // emissive cheek line
+      s.rotation.z = 0.35;
+    } else if (f === 'fro') {
+      M('fro', hm).position.set(0, 0.10, -0.015);
+    } else if (f === 'spikes') {
+      for (const [x, y, z, rx, rz] of [[0, 0.17, 0.045, 0.25, 0], [0, 0.185, -0.02, 0, 0], [0, 0.165, -0.085, -0.3, 0], [0.07, 0.145, -0.02, 0, 0.45], [-0.07, 0.145, -0.02, 0, -0.45]]) {
+        const s = M('spike', gm);
+        s.position.set(x, y, z);
+        s.rotation.set(rx, 0, rz);
+      }
+    }
+    // unknown flair tags are ignored (W2)
+  }
+}
+
+// W2 additive opts: jerseyName (string), jerseyNumber (number), flair (string[]
+// from: mohawk, braids, mask, beard, dreads, glasses, scar, fro, spikes).
+// pattern now also accepts 'plain'|'sash'|'hoops'|'halves'|'fade' (legacy
+// 'solid'/'accent' map to a deterministic per-team pattern). Unknown opts/tags
+// are ignored.
+export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK = false, headband = false, captain = false, pattern = 'solid', jerseyName = '', jerseyNumber = null, flair = null }) {
   if (!_gltf) throw new Error('humanrig: call preloadHumanModel() and await it before buildPlayerRig()');
 
   // group (host-owned transform) > tilt (pose-owned pitch/roll/y) > inner (axis fix + scale) > model
@@ -113,17 +414,14 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
   const model = SkeletonUtils.clone(_gltf.scene);
   inner.add(model);
 
-  // ---- tint: clone materials ONCE per rig ----
-  const kit = new THREE.Color(kitColor);
-  if (isGK) kit.lerp(_gkColor, 0.85);    // keepers read lime, with a hint of team color
-  const glow = new THREE.Color(glowColor);
-  // secondary trim tint: hue-shifted, darker cousin of the kit color
-  const trim = new THREE.Color(kitColor);
-  trim.getHSL(_hsl);
-  trim.setHSL((_hsl.h + 0.06) % 1, clamp(_hsl.s * 1.2, 0, 1), _hsl.l * 0.55);
-  const accentEmissive = pattern === 'accent' ? 0.16 : 0;
+  // ---- kit: broadcast jerseys (Wave 2) ----
+  // A body-space zone shader turns the old dark armor into a bright team kit:
+  // patterned jersey up top, dark-complement shorts, team socks, and emissive
+  // collar / cuff / boot accents at bloom-friendly intensity. The face keeps
+  // the human texture. See KIT_FRAG_* at module level.
+  const kit = buildKitParams({ kitColor, glowColor, isGK, pattern });
+  const glowE = kit.glowE; // ACES-compensated emissive accent color (W11)
   const ownedMaterials = [];
-  let meshIdx = 0;
   model.traverse((o) => {
     if (o.isMesh) {
       o.castShadow = true;
@@ -132,27 +430,18 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
       ownedMaterials.push(o.material);
       const name = (o.name + '|' + (o.material.name || '')).toLowerCase();
       const isVisor = name.includes('visor') || name.includes('glass') || name.includes('helmet');
-      if (o.material.color) {
-        if (isVisor) {
-          // visor/face area reads as the glow color
-          o.material.color.lerp(glow, 0.8);
-        } else if (meshIdx === 0) {
-          // main armor: kit color, saturation-boosted so the team reads true
-          o.material.color.lerp(kit, 0.62);
-          saturate(o.material.color, 0.7);
-        } else {
-          // sub-materials: secondary trim tint
-          o.material.color.lerp(trim, 0.6);
-          saturate(o.material.color, 0.5);
-        }
+      if (isVisor) {
+        // visor reads as the glow color, hot enough to bloom a little
+        if (o.material.color) { o.material.color.lerp(glowE, 0.8); saturate(o.material.color, 0.6); }
+        if (o.material.emissive) { o.material.emissive.copy(glowE); o.material.emissiveIntensity = 0.85; }
+      } else {
+        // white base keeps the texture's luminance (cloth detail) for the kit
+        // shader, which recolors every zone except the head/face
+        if (o.material.color) o.material.color.setRGB(1, 1, 1);
+        if (o.material.emissive) o.material.emissive.setRGB(0, 0, 0);
+        if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+        applyKitShader(o.material, kit, o.geometry.boundingBox);
       }
-      if (o.material.emissive) {
-        o.material.emissive.copy(_tmpColor.set(glow));
-        // per-part emissive variation = cheap accent pattern (panels read
-        // differently instead of one flat wash)
-        o.material.emissiveIntensity = (isVisor ? 0.45 : 0.08 + (meshIdx % 3) * 0.07) + accentEmissive;
-      }
-      meshIdx++;
     }
   });
   // skinTone/hairColor: the GLB is a single textured mesh, so per-part skin/hair
@@ -163,22 +452,87 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
   const bones = {};
   model.traverse((o) => { if (o.isBone) bones[o.name.replace(/^mixamorig/, '')] = o; });
 
+  // ---- bone-glued anchors (W3) ----
+  // Object3D nodes parented INTO the skeleton, oriented to GROUP axes
+  // (+Z = character forward) and scale-compensated so children are authored in
+  // world METERS. Built at bind pose, before the mixer ever runs, so the
+  // inverse-matrix math is exact; afterwards they ride their bone.
+  group.updateMatrixWorld(true);
+  function worldAnchor(bone, gx, gy, gz, faceBack) {
+    const a = new THREE.Object3D();
+    bone.add(a);
+    _m.copy(bone.matrixWorld).invert();
+    a.position.set(gx, gy, gz).applyMatrix4(_m);
+    bone.getWorldQuaternion(_q).invert();
+    a.quaternion.copy(_q);
+    if (faceBack) { _q2.setFromAxisAngle(_YAXIS, Math.PI); a.quaternion.multiply(_q2); }
+    bone.getWorldScale(_v);
+    a.scale.set(1 / _v.x, 1 / _v.y, 1 / _v.z);
+    return a;
+  }
+  const chestBone = bones.Spine2 || bones.Spine1 || bones.Spine;
+  const backBone = bones.Spine1 || bones.Spine2 || bones.Spine;
+  const chestAnchor = chestBone ? worldAnchor(chestBone, 0, 1.345, 0.15) : null;        // +Z faces out the chest
+  const backAnchor = backBone ? worldAnchor(backBone, 0, 1.28, -0.155, true) : null;    // +Z faces out the BACK
+
+  // ---- W2/W3: rig-rendered jersey name + number (canvas decals on the spine) ----
+  const rendersJersey = !!backAnchor && !!((jerseyName && String(jerseyName).length) || (jerseyNumber !== null && jerseyNumber !== undefined));
+  if (rendersJersey) {
+    const baseLum = kit.base.r * 0.299 + kit.base.g * 0.587 + kit.base.b * 0.114;
+    const tex = getJerseyTextures(jerseyName ? String(jerseyName) : '', jerseyNumber, baseLum > 0.5);
+    const backM = new THREE.Mesh(geoBackDecal(),
+      new THREE.MeshBasicMaterial({ map: tex.back, transparent: true, depthWrite: false }));
+    backM.position.set(0, 0.01, 0.035);
+    backM.renderOrder = 996;
+    backAnchor.add(backM);
+    ownedMaterials.push(backM.material);
+    if (chestAnchor && tex.chest) {
+      const chestM = new THREE.Mesh(geoChestDecal(),
+        new THREE.MeshBasicMaterial({ map: tex.chest, transparent: true, depthWrite: false }));
+      chestM.position.set(0.094, 0.045, 0.03); // left-breast number
+      chestM.renderOrder = 996;
+      chestAnchor.add(chestM);
+      ownedMaterials.push(chestM.material);
+    }
+  }
+
+  // ---- W2: persona flair — low-poly neon accessories glued to the head ----
+  // (children of the Head bone, so head-look and every pose carry them for free)
+  const flairRoot = bones.Head ? worldAnchor(bones.Head, 0, 1.77, 0.02) : null;
+  if (flairRoot && Array.isArray(flair) && flair.length) addFlair(flairRoot, flair, glowE);
+
+  // referee card: anchor lives just past the right hand's fingers; the glowing
+  // card plane itself is created lazily on the first poseShowCard call
+  let cardAnchor = null, cardMesh = null, cardHold = 0, cardReq = false, cardRed = false;
+  if (bones.RightHand && bones.RightForeArm) {
+    bones.RightHand.getWorldPosition(_v);
+    bones.RightForeArm.getWorldPosition(_v2);
+    _v2.subVectors(_v, _v2).normalize().multiplyScalar(0.10).add(_v);
+    cardAnchor = worldAnchor(bones.RightHand, _v2.x, _v2.y, _v2.z);
+  }
+
+  // W3 host-convention bone anchors (rig-axis-aligned, NOT pre-flipped — the
+  // host rotates its own back plane PI, matching kayrig's anchor convention).
+  // Only consulted by the host when rendersJersey is false; exposed always so
+  // the contract matches kayrig's.
+  const hostBackAnchor = backBone ? worldAnchor(backBone, 0, 1.28, -0.155) : null;
+
   // optional headband: glow torus parented to the head bone (bone space = raw model units)
   if (headband && bones.Head) {
     const band = new THREE.Mesh(
       new THREE.TorusGeometry(11, 1.2, 5, 14),
-      new THREE.MeshBasicMaterial({ color: glow }));
+      new THREE.MeshBasicMaterial({ color: glowE }));
     band.rotation.x = Math.PI / 2 - 0.25;
     band.position.y = 9;
     bones.Head.add(band);
     ownedMaterials.push(band.material);
   }
 
-  // optional captain armband: glow ring around the left upper arm
+  // captain armband: glowing ring around the left upper arm (W11-compensated)
   if (captain && bones.LeftArm) {
     const band = new THREE.Mesh(
-      new THREE.TorusGeometry(5.2, 1.1, 5, 12),
-      new THREE.MeshBasicMaterial({ color: glow }));
+      new THREE.TorusGeometry(5.4, 1.4, 5, 12),
+      new THREE.MeshBasicMaterial({ color: glowE }));
     band.rotation.x = Math.PI / 2;       // ring lies around the bone's long (y) axis
     band.position.y = 12;                // partway down the upper arm
     bones.LeftArm.add(band);
@@ -410,12 +764,14 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
       setLeg('Left', hop * 0.3, hop * 0.8, 0);
       setLeg('Right', hop * 0.3, hop * 0.8, 0);
       setSpine(-0.1, 0, 0);
-    } else if (variant === 1) { // fist pump
-      setArm('Right', 0.5 + Math.max(0, w) * 0.5, ARM_DOWN - 1.0 - Math.max(0, w) * 0.4);
+    } else if (variant === 1) { // fist pump — sharp arm yank + a hop on each pump
+      const pump = Math.max(0, w);
+      setArm('Right', 0.5 + pump * 0.5, ARM_DOWN - 1.0 - pump * 0.4);
       setElbow('Right', 1.8);
       setArm('Left', -0.2, ARM_DOWN); setElbow('Left', 0.4);
-      setSpine(0.12 + Math.max(0, w) * 0.1, Math.max(0, w) * 0.2, 0);
-      setLeg('Left', 0.15, 0.3, 0);
+      setSpine(0.12 + pump * 0.1, pump * 0.2, 0);
+      setTilt(0, 0, pump * 0.07);   // the pump lifts him onto his toes
+      setLeg('Left', 0.15, 0.3 + pump * 0.15, 0);
       setLeg('Right', -0.1, 0.2, 0);
     } else if (variant === 3) { // badge-tap + point to the crowd
       // left hand taps the chest badge, right arm sweeps a point across the stands
@@ -760,11 +1116,30 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
     setLeg('Right', -0.05, 0.12, 0);
   }
 
+  // W7 ADDITIVE: referee brandishes a card aloft — right arm rammed straight
+  // up with a glowing yellow/red card plane just past the fingers. Only
+  // refRigStep calls this (feature-detected); never stamped into _poseDesc,
+  // so replays are untouched. t is continuous seconds (matches kayrig's).
+  function poseShowCard(t, isRed) {
+    markOverlay(true);
+    const up = Math.min(1, t * 5);
+    setArm('Right', 0.12 * up, lerp(ARM_DOWN, -1.45, up)); // hanging -> overhead
+    setElbow('Right', 0.08);
+    setArm('Left', -0.1, ARM_DOWN);                        // other arm at the side
+    setElbow('Left', 0.3);
+    setSpine(-0.05 * up, 0.1 * up, 0);                     // squared, chest up
+    set('Neck', -0.1 * up, 0.12 * up, 0);                  // eyes on the offender
+    setLeg('Left', 0.06, 0.12, 0);
+    setLeg('Right', -0.06, 0.12, 0);
+    cardReq = true; cardRed = !!isRed;                     // card pops in via update()
+  }
+
   function clearOverlay() {
     for (const name in channels) channels[name].on = false;
     overlayThisFrame = false;
     overlayFull = false;
     tiltActive = false;
+    cardReq = false;
   }
 
   // ---- per-frame driver ----
@@ -907,6 +1282,22 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
       channels.Head.bone.quaternion.multiply(_q2);
     }
 
+    // referee card: pop in while poseShowCard is being called, fade out after
+    cardHold += ((cardReq ? 1 : 0) - cardHold) * (1 - Math.exp(-12 * dt));
+    if (cardReq && !cardMesh && cardAnchor) {
+      cardMesh = new THREE.Mesh(geoCardPlane(),
+        new THREE.MeshBasicMaterial({ color: 0xffe14d, side: THREE.DoubleSide }));
+      cardAnchor.add(cardMesh);
+      ownedMaterials.push(cardMesh.material);
+    }
+    if (cardMesh) {
+      cardMesh.visible = cardHold > 0.03;
+      cardMesh.material.color.set(cardRed ? 0xff3b30 : 0xffe14d);
+      const cs = 0.6 + 0.4 * smooth(cardHold);
+      cardMesh.scale.set(cs, cs, cs);
+    }
+    cardReq = false;
+
     overlayThisFrame = false;
     overlayFull = false;
     tiltActive = false;
@@ -926,6 +1317,14 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
       chest: { x: 0, y: 1.36, z: 0.16 },  // chest number plane (faces +Z)
       tagY: 2.45,                         // floating nameplate sprite height
     },
+    // W3: rig renders its own printed jersey when the host passed
+    // jerseyName/jerseyNumber — host then SKIPS its legacy number planes (the
+    // decals above ARE the kit print). boneAnchors are spine-bone-parented
+    // Object3Ds (rig-axis-aligned, unit-world-scaled at bind) for
+    // host-parented planes on rigs that don't self-render.
+    rendersJersey,
+    boneAnchors: (chestAnchor && hostBackAnchor)
+      ? { chest: chestAnchor, back: hostBackAnchor } : undefined,
     // contract C2: radians, monotonic, advanced from actual ground speed in
     // update(); a foot visually plants every PI. Host mirrors this into
     // p.stridePhase after rig.update so ballcontrol touches hit real footfalls.
@@ -936,7 +1335,7 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
     poseSlideTackle, poseHeader, poseJockey,
     poseGKSet, poseGKCatch, poseGKPunch,
     poseLimp, poseTrudge, poseExhausted, poseKneeSlide,
-    posePointToSpot, poseWhistle,
+    posePointToSpot, poseWhistle, poseShowCard,
     clearOverlay, dispose,
   };
 }

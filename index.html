@@ -30,7 +30,7 @@
     text-shadow: 0 0 12px rgba(0,229,255,.6); min-width: 86px; justify-content:center; letter-spacing:3px;
   }
   #clockwrap {
-    position:absolute; top:74px; left:50%; transform:translateX(-50%);
+    position:absolute; top:80px; left:50%; transform:translateX(-50%);
     display:flex; align-items:center; gap:8px;
     background: rgba(4,6,16,.8); border:1px solid rgba(255,255,255,.1); border-radius:6px; padding:3px 14px;
   }
@@ -87,6 +87,37 @@
 
   /* Sound pill */
   #soundpill { position:absolute; bottom:46px; left:18px; font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px; color:#7ef0ff; border:1px solid rgba(0,229,255,.35); padding:4px 12px; border-radius:99px; background:rgba(4,8,20,.7); }
+
+  /* Momentum bar — thin team-color blend under the scoreboard */
+  #momentum {
+    position:absolute; top:71px; left:50%; transform:translateX(-50%);
+    width:300px; height:3px; border-radius:2px; opacity:.85;
+    background:linear-gradient(90deg,#00e5ff 0%,#00e5ff 43%,#ff2d78 57%,#ff2d78 100%);
+    box-shadow:0 0 8px rgba(120,200,255,.25);
+  }
+
+  /* Lineup intro lower third (match start, kickoff hold) */
+  #lineup { position:absolute; left:26px; bottom:64px; transform:translateY(24px); opacity:0; transition:opacity .35s, transform .35s ease-out; }
+  #lineup.show { opacity:1; transform:translateY(0); }
+  #lineup .panel {
+    background:linear-gradient(180deg, rgba(8,12,28,.94), rgba(3,5,14,.96));
+    border:1px solid rgba(255,255,255,.12); border-left:4px solid var(--lucolor,#00e5ff);
+    border-radius:10px; padding:12px 22px 12px 18px; min-width:300px;
+    box-shadow:0 0 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  #lineup h3 { font-family:'Orbitron'; font-weight:700; font-size:14px; letter-spacing:3px; color:var(--lucolor,#00e5ff); text-shadow:0 0 12px var(--lucolor,#00e5ff); margin-bottom:8px; }
+  #lineup .lrow { display:flex; align-items:baseline; gap:12px; font-size:15px; font-weight:600; letter-spacing:1px; color:#dff3ff; padding:1.5px 0; }
+  #lineup .lrow .num { font-family:'Orbitron'; font-weight:700; font-size:13px; color:var(--lucolor,#00e5ff); width:24px; text-align:right; flex:0 0 auto; }
+  #lineup .lrow .role { margin-left:auto; font-size:11px; letter-spacing:2px; color:rgba(180,210,235,.6); }
+
+  /* League hub link — the one interactive element in the HUD */
+  #leaguebtn {
+    position:absolute; top:24px; right:26px; pointer-events:auto;
+    font-family:'Orbitron'; font-weight:700; font-size:12px; letter-spacing:3px;
+    color:#7ef0ff; text-decoration:none; border:1px solid rgba(0,229,255,.35);
+    padding:6px 14px; border-radius:8px; background:rgba(4,8,20,.75);
+  }
+  #leaguebtn:hover { color:#fff; box-shadow:0 0 16px rgba(0,229,255,.5); border-color:rgba(0,229,255,.7); }
 </style>
 </head>
 <body>
@@ -96,13 +127,16 @@
     <div id="score"><span id="sA">0</span>&nbsp;–&nbsp;<span id="sB">0</span></div>
     <div class="team" id="teamB">VOLT UTD<span class="dot"></span></div>
   </div>
+  <div id="momentum"></div>
   <div id="clockwrap"><span class="live"></span><span id="clock">00:00</span><span id="half">1ST HALF</span></div>
+  <a id="leaguebtn" href="league.html">⬡ LEAGUE</a>
   <div id="goalflash"><div id="goaltext">GOAL</div><div id="goalsub"></div></div>
   <div id="ticker"><div id="tickerlabel">CYBERLIGA</div><div id="tickertext">WELCOME TO THE CYBERLIGA GRAND ARENA — NEON FC vs VOLT UTD — FULLY AUTONOMOUS AI MATCH — NO HUMANS WERE CONSULTED IN THE MAKING OF THESE TACTICS — SEASON 2077 — MATCHDAY 1 —</div></div>
   <div id="replaytag">◉ REPLAY</div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
   <div id="soundpill">🔊 CLICK ANYWHERE FOR SOUND</div>
-  <div id="stylepill" style="position:absolute;bottom:46px;left:240px;font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;color:#7ef0ff;border:1px solid rgba(0,229,255,.35);padding:4px 12px;border-radius:99px;background:rgba(4,8,20,.7)">[ V ] SWITCH VIEW</div>
+  <div id="stylepill" style="position:absolute;bottom:46px;left:310px;font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;color:#7ef0ff;border:1px solid rgba(0,229,255,.35);padding:4px 12px;border-radius:99px;background:rgba(4,8,20,.7)">[ V ] SWITCH VIEW</div>
+  <div id="lineup"><div class="panel" id="lineuppanel"></div></div>
   <div id="vignette"></div><div id="scanlines"></div>
   <div id="watermark">CYBERLIGA</div>
 </div>
@@ -130,15 +164,27 @@ import { createBoundarySystem } from './boundary.js';
 import { createPossession } from './possession.js';
 import { createReplaySystem, SKILL_MOVES } from './replaysys.js';
 import { preloadHumanModel, buildPlayerRig } from './humanrig.js';
+// W4: kayrig's export names are frozen identical to humanrig's — aliased here
+import { preloadHumanModel as preloadKayModels, buildPlayerRig as buildKayRig, CHARACTERS as KAY_CHARACTERS } from './kayrig.js';
 import { buildBlobRig } from './blobrig.js';
 import { createStoryEngine } from './story.js';
 const story = createStoryEngine();
 
-// VISUAL STYLE TOGGLE: 'pro' = skinned humans, 'classic' = the original glowing athletes.
-// Same simulation, swappable renderer — press V to switch, or use ?style=classic
-const VIS_STYLE = new URLSearchParams(location.search).get('style')
+// VISUAL STYLE CYCLE (W5): 'pro' skinned humans → 'kaykit' KayKit fantasy bodies →
+// 'classic' glowing athletes → back to 'pro'. Same simulation, swappable renderer.
+// Press V to cycle, or ?style=kaykit / localStorage('cl_style'). Each style's models
+// load only when that style is active — the pro boot never pays for KayKit GLBs.
+const VIS_STYLES = ['pro', 'kaykit', 'classic'];
+let VIS_STYLE = new URLSearchParams(location.search).get('style')
   || localStorage.getItem('cl_style') || 'pro';
-const buildRig = VIS_STYLE === 'classic' ? buildBlobRig : buildPlayerRig;
+if (!VIS_STYLES.includes(VIS_STYLE)) VIS_STYLE = 'pro';
+const buildRig = VIS_STYLE === 'classic' ? buildBlobRig
+  : VIS_STYLE === 'kaykit' ? buildKayRig : buildPlayerRig;
+{ // style pill shows where you are and where V takes you
+  const nxt = VIS_STYLES[(VIS_STYLES.indexOf(VIS_STYLE) + 1) % VIS_STYLES.length];
+  document.getElementById('stylepill').textContent =
+    `[ V ] STYLE: ${VIS_STYLE.toUpperCase()} ▸ ${nxt.toUpperCase()}`;
+}
 addEventListener('keydown', e => {
   if (e.key === 'p' || e.key === 'P') {
     const card = document.getElementById('bigcard'), panel = document.getElementById('cardpanel');
@@ -147,7 +193,7 @@ addEventListener('keydown', e => {
     return;
   }
   if (e.key === 'v' || e.key === 'V') {
-    localStorage.setItem('cl_style', VIS_STYLE === 'classic' ? 'pro' : 'classic');
+    localStorage.setItem('cl_style', VIS_STYLES[(VIS_STYLES.indexOf(VIS_STYLE) + 1) % VIS_STYLES.length]);
     const u = new URL(location.href); u.searchParams.delete('style');
     location.href = u.href;
   }
@@ -160,10 +206,17 @@ const GOAL_WIDTH = 9, GOAL_HEIGHT = 3.2, GOAL_DEPTH = 2.4;
 // ============ LEAGUE ============
 const LEAGUE_TEAMS = [
   { color: 0x00e5ff, glow: 0x00e5ff, name: 'NEON FC' },
-  { color: 0xff2d78, glow: 0xff2d78, name: 'VOLT UTD' },
+  // glow3d: ACES-compensated emissive feed. Under ACES filmic + bloom the red channel of
+  // a hot-pink emissive clips first and the post-tonemap blue/red ratio collapses, so the
+  // brand #ff2d78 rendered RED on glowing 3D surfaces. The 3D feed is pre-shifted toward
+  // magenta (extra blue) so the PERCEIVED on-screen color is hot pink #ff2d78.
+  { color: 0xff2d78, glow: 0xff2d78, glow3d: 0xff3fc8, name: 'VOLT UTD' },
   { color: 0xffc24d, glow: 0xffc24d, name: 'GRID ROYALS' },
   { color: 0x8a5cff, glow: 0x8a5cff, name: 'ASTRA NOVA' },
 ];
+// W11: every hex that feeds a 3D emissive/bloomed material goes through glow3();
+// HUD/CSS/canvas textures keep the raw brand hex (no tonemapping in DOM space)
+const glow3 = team => team.glow3d ?? team.glow;
 const FIXTURES = [[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]];
 let TEAM_A = LEAGUE_TEAMS[0];
 let TEAM_B = LEAGUE_TEAMS[1];
@@ -273,7 +326,7 @@ function neonRect(w, h, color, y=0.04) {
   return new THREE.Line(geo, new THREE.LineBasicMaterial({ color }));
 }
 scene.add(neonRect(FIELD_W+6, FIELD_H+6, 0x00e5ff));
-scene.add(neonRect(FIELD_W+6.6, FIELD_H+6.6, 0xff2d78));
+scene.add(neonRect(FIELD_W+6.6, FIELD_H+6.6, 0xff3fc8)); // ACES-compensated — perceived hot pink #ff2d78
 
 // ============ AD BOARDS (LED hoardings) ============
 const ads = ['CYBERLIGA', 'NEON FC', 'VOLT UTD', 'SEASON 2077', '◆ ◆ ◆', 'AI ONLY'];
@@ -384,7 +437,7 @@ tower(-HALF_W-14, HALF_H+14);  tower(HALF_W+14, HALF_H+14);
 // ============ GOALS ============
 function buildGoal(side) { // side: -1 left, +1 right
   const g = new THREE.Group();
-  const postMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, emissive: side<0 ? TEAM_A.glow : TEAM_B.glow, emissiveIntensity: 0.35 });
+  const postMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, emissive: side<0 ? glow3(TEAM_A) : glow3(TEAM_B), emissiveIntensity: 0.35 });
   const r = 0.12;
   const post = () => new THREE.Mesh(new THREE.CylinderGeometry(r, r, GOAL_HEIGHT, 10), postMat);
   const p1 = post(); p1.position.set(0, GOAL_HEIGHT/2, -GOAL_WIDTH/2);
@@ -408,11 +461,51 @@ function buildGoal(side) { // side: -1 left, +1 right
 buildGoal(-1); buildGoal(1);
 
 // ============ PLAYERS ============
+// Personas from PORTRAITS.md (Wave 2 identity pass):
+//   flair — W2 cosmetic tags (mohawk|braids|mask|beard|dreads|glasses|scar|fro|spikes);
+//           rigs that render flair consume them, everything else ignores unknown tags.
+//   ch    — KayKit character for the 'kaykit' style: GKs tank up as Knights, enforcers
+//           go Barbarian, playmakers Mage, tricksters Rogue, the league's menaces
+//           (CIPHER/ONYX/VANTA/QUASAR) are Skeletons, and the two teenage phenoms
+//           (PULSE/LUMEN) are Skeleton Minions for comedy.
+//   hb    — persona-locked headband (AXIOM's headband, DYNAMO's sweatband).
 const ROSTERS = {
-  'NEON FC':     [ {n:'OKAFOR-9',num:1},{n:'VEKTOR',num:4},{n:'HALCYON',num:5},{n:'SYNTH',num:8},{n:'AXIOM',num:6},{n:'RAZOR',num:9},{n:'PRISM',num:11} ],
-  'VOLT UTD':    [ {n:'TESLA JR',num:1},{n:'CIPHER',num:2},{n:'ONYX',num:5},{n:'GLITCH',num:7},{n:'BLITZ',num:8},{n:'NOVA',num:10},{n:'PULSE',num:14} ],
-  'GRID ROYALS': [ {n:'KILOWATT',num:1},{n:'MAINFRAME',num:3},{n:'TURBINE',num:4},{n:'DYNAMO',num:7},{n:'CIRCUIT',num:10},{n:'VANTA',num:9},{n:'HELIX',num:11} ],
-  'ASTRA NOVA':  [ {n:'ORBIT',num:1},{n:'QUASAR',num:2},{n:'ZENITH',num:6},{n:'NEBULA',num:8},{n:'COMET',num:10},{n:'STARFALL',num:9},{n:'LUMEN',num:7} ],
+  'NEON FC': [
+    { n:'OKAFOR-9', num:1,  flair:['scar'],           ch:'Knight' },          // scarred chrome jaw, captain's aura
+    { n:'VEKTOR',   num:4,  flair:[],                 ch:'Knight' },          // analytical silver-haired veteran
+    { n:'HALCYON',  num:5,  flair:[],                 ch:'Barbarian' },       // stocky tank build
+    { n:'SYNTH',    num:8,  flair:[],                 ch:'Mage' },            // slim graceful playmaker
+    { n:'AXIOM',    num:6,  flair:[], hb:true,        ch:'Barbarian' },       // headbanded engine room
+    { n:'RAZOR',    num:9,  flair:['mohawk','scar'],  ch:'Rogue' },           // cocky striker, lightning scar
+    { n:'PRISM',    num:11, flair:['braids'],         ch:'Mage' },            // serene finisher, fiber-optic braids
+  ],
+  'VOLT UTD': [
+    { n:'TESLA JR', num:1,  flair:['spikes'],         ch:'Knight' },          // static-charged spiky hair
+    { n:'CIPHER',   num:2,  flair:['mask'],           ch:'Skeleton_Rogue' },  // masked mystery defender
+    { n:'ONYX',     num:5,  flair:[],                 ch:'Skeleton_Warrior' },// massive immovable wall
+    { n:'GLITCH',   num:7,  flair:['spikes'],         ch:'Rogue' },           // twitchy trickster
+    { n:'BLITZ',    num:8,  flair:['scar'],           ch:'Barbarian' },       // taped boxer's nose
+    { n:'NOVA',     num:10, flair:['braids'],         ch:'Mage' },            // flowing magenta-streaked hair
+    { n:'PULSE',    num:14, flair:[],                 ch:'Skeleton_Minion' }, // baby-faced phenom
+  ],
+  'GRID ROYALS': [
+    { n:'KILOWATT',  num:1,  flair:['beard'],         ch:'Knight' },          // grizzled stubble, gold eye
+    { n:'MAINFRAME', num:3,  flair:['glasses'],       ch:'Mage' },            // AR-glasses professor
+    { n:'TURBINE',   num:4,  flair:['dreads'],        ch:'Barbarian' },       // gold-ringed dreads, powerhouse
+    { n:'DYNAMO',    num:7,  flair:[], hb:true,       ch:'Barbarian' },       // sweatband, relentless runner
+    { n:'CIRCUIT',   num:10, flair:[],                ch:'Mage' },            // regal playmaker
+    { n:'VANTA',     num:9,  flair:['mask'],          ch:'Skeleton_Mage' },   // only the amber eyes visible
+    { n:'HELIX',     num:11, flair:['mohawk'],        ch:'Rogue' },           // helix-shaved agile winger
+  ],
+  'ASTRA NOVA': [
+    { n:'ORBIT',    num:1,  flair:[],                 ch:'Knight' },          // serene spacey keeper
+    { n:'QUASAR',   num:2,  flair:['scar'],           ch:'Skeleton_Warrior' },// cracked visor, volatile enforcer
+    { n:'ZENITH',   num:6,  flair:[],                 ch:'Knight' },          // noble silver-white stopper
+    { n:'NEBULA',   num:8,  flair:['fro'],            ch:'Mage' },            // galaxy-cloud hair, dreamer
+    { n:'COMET',    num:10, flair:[],                 ch:'Rogue' },           // blazing-fast veteran
+    { n:'STARFALL', num:9,  flair:[],                 ch:'Rogue' },           // theatrical showman striker
+    { n:'LUMEN',    num:7,  flair:[],                 ch:'Skeleton_Minion' }, // bioluminescent kid
+  ],
 };
 function makeNameTagTexture(name, number, colorCss) {
   const c = document.createElement('canvas'); c.width = 512; c.height = 112;
@@ -438,28 +531,55 @@ function makeNumberTexture(number) {
 }
 const SKIN_TONES = [0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524, 0x6b4226, 0xffdbac];
 const HAIR_COLORS = [0x14100c, 0x14100c, 0x2a1b10, 0x3d2817, 0x5a3a1a, 0xd8c08a, 0x101418];
-function buildPlayer(team, isGK, name, number, captain) {
-  // skinned human rig (humanrig.js): mocap locomotion + procedural pose library
+// W3: a rig may expose live bone anchors (Object3D refs) so the number planes ride the
+// skinned spine instead of floating at a static offset. Bones often carry import scale,
+// so measure the anchor's world scale once and counteract it — the plane keeps its
+// authored world size. Static rig.anchors offsets remain the fallback (blobrig).
+function mountAtBoneAnchor(anchor, plane, root) {
+  root.updateMatrixWorld(true);
+  const ws = new THREE.Vector3();
+  anchor.getWorldScale(ws);
+  const s = (Math.abs(ws.x) + Math.abs(ws.y) + Math.abs(ws.z)) / 3 || 1;
+  plane.scale.multiplyScalar(1 / s);
+  anchor.add(plane);
+}
+function buildPlayer(team, isGK, r, captain) {
+  const name = r.n, number = r.num;
+  // swappable rig (humanrig 'pro' / kayrig 'kaykit' / blobrig 'classic').
+  // Wave 2 identity pack (W2, additive): jerseyName/jerseyNumber/flair/character —
+  // rigs that can print jerseys or render flair consume them; older rigs ignore them.
   const rig = buildRig({
     kitColor: team.color, glowColor: team.glow,
     skinTone: SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)],
     hairColor: HAIR_COLORS[Math.floor(Math.random()*HAIR_COLORS.length)],
-    isGK, headband: Math.random() < 0.35,
+    isGK, headband: r.hb ?? (Math.random() < 0.35),
     captain: !!captain, pattern: Math.random() < 0.5 ? 'accent' : 'solid',
+    jerseyName: name, jerseyNumber: number,
+    flair: r.flair || [],
+    character: KAY_CHARACTERS.includes(r.ch) ? r.ch : 'Knight',
   });
   const g = rig.group;
 
-  // jersey numbers + nameplate stay host-owned, attached at the rig's anchors
-  const numTex = makeNumberTexture(number);
-  const backNum = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5),
-    new THREE.MeshBasicMaterial({ map: numTex, transparent: true, depthWrite: false }));
-  backNum.position.set(rig.anchors.back.x, rig.anchors.back.y, rig.anchors.back.z);
-  backNum.rotation.y = Math.PI;
-  const chestNum = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.26),
-    new THREE.MeshBasicMaterial({ map: numTex, transparent: true, depthWrite: false }));
-  chestNum.position.set(rig.anchors.chest.x, rig.anchors.chest.y, rig.anchors.chest.z);
-  backNum.renderOrder = 998; chestNum.renderOrder = 998; // stable draw order vs the tag sprite
-  g.add(backNum, chestNum);
+  // W3: a rig that renders its own printed jersey name/number sets rendersJersey —
+  // the host's legacy number planes would double up on top of it, so skip them
+  if (!rig.rendersJersey) {
+    const numTex = makeNumberTexture(number);
+    const backNum = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5),
+      new THREE.MeshBasicMaterial({ map: numTex, transparent: true, depthWrite: false }));
+    backNum.rotation.y = Math.PI;
+    const chestNum = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.26),
+      new THREE.MeshBasicMaterial({ map: numTex, transparent: true, depthWrite: false }));
+    backNum.renderOrder = 998; chestNum.renderOrder = 998; // stable draw order vs the tag sprite
+    const ba = rig.boneAnchors;
+    if (ba && ba.back && ba.back.isObject3D && ba.chest && ba.chest.isObject3D) {
+      mountAtBoneAnchor(ba.back, backNum, g);   // planes ride the spine bones
+      mountAtBoneAnchor(ba.chest, chestNum, g);
+    } else {
+      backNum.position.set(rig.anchors.back.x, rig.anchors.back.y, rig.anchors.back.z);
+      chestNum.position.set(rig.anchors.chest.x, rig.anchors.chest.y, rig.anchors.chest.z);
+      g.add(backNum, chestNum);                 // legacy static anchors
+    }
+  }
 
   const colorCss = '#' + new THREE.Color(team.glow).getHexString();
   const tag = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -485,7 +605,7 @@ const players = [];
 function makeTeam(team, dir) { // dir: -1 defends left goal, +1 defends right goal
   FORMATION.forEach((slot, i) => {
     const r = ROSTERS[team.name][i];
-    const mesh = buildPlayer(team, slot.role === 'GK', r.n, r.num, i === 1); // slot 1 wears the armband
+    const mesh = buildPlayer(team, slot.role === 'GK', r, i === 1); // slot 1 wears the armband
     const sc = 0.94 + Math.random()*0.12; // height variation
     mesh.scale.setScalar(sc);
     scene.add(mesh);
@@ -531,6 +651,7 @@ const trailGeo = new THREE.BufferGeometry();
 trailGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL_N*3), 3));
 const trailLine = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0x7ef0ff, transparent: true, opacity: 0.55 }));
 scene.add(trailLine);
+const trailCol = new THREE.Color(0x7ef0ff); // scratch — trail eases toward the in-possession team's glow
 const trailPts = Array.from({length: TRAIL_N}, () => ball.pos.clone());
 // collapse the trail onto the ball and hide it — ballStep stops running in theater modes,
 // so without this a high-opacity streak hangs frozen in the goalmouth through every replay
@@ -552,6 +673,7 @@ const state = {
   goalTeam: null, scorer: null,
   carrier: null, carrierHold: 0, // sticky carrier + time since last identity change
   celebT: 0,                     // continuous celebration clock (goal + aftermath)
+  lineupIntro: false,            // match-start lineup cards play through an extended kickoff hold
 };
 const HALF_LEN = 120; // seconds of sim per half
 
@@ -958,7 +1080,7 @@ function aiStep(dt) {
           const away = new THREE.Vector3(ball.pos.x - p.pos.x, 0, ball.pos.z - p.pos.z).normalize();
           ball.vel.copy(away).multiplyScalar(7 + Math.random()*3).addScaledVector(p.vel, 0.4);
           ball.vel.y = 0.5;
-          thump(7); kickFlash(ball.pos, p.team.glow);
+          thump(7); kickFlash(ball.pos, glow3(p.team));
           commentate(`CRUNCHING SLIDE FROM ${p.name} — WINS IT CLEAN`);
           story.event('slide', { player: p.name, team: p.team.name, clean: true });
         } else {
@@ -1411,7 +1533,7 @@ function updateKicks(dt) {
           ball.vel.y = k.flight.isShot ? -1.2 : 1.4;       // headed DOWN on target / nodded on
           ball.spin.set(0, 0, 0); ball.knuckle = 0;
           ballTrap = 0;
-          thump(8); kickFlash(ball.pos, p.team.glow);
+          thump(8); kickFlash(ball.pos, glow3(p.team));
         } else {
           p.kickCooldown = Math.min(p.kickCooldown, 0.25); // whiffed — free to play the drop
         }
@@ -1427,7 +1549,7 @@ function updateKicks(dt) {
         const pow = res.speed;
         if (pow > 16) camShake = Math.max(camShake, (pow - 16) / 8);
         thump(pow);
-        kickFlash(ball.pos, p.team.glow);
+        kickFlash(ball.pos, glow3(p.team));
       }
     }
     if (k.t >= k.windup + k.follow) p.kickAnim = null;
@@ -1457,7 +1579,9 @@ function updateFlashes(dt) {
 const CONFETTI_N = 320;
 const confetti = new THREE.InstancedMesh(
   new THREE.PlaneGeometry(0.22, 0.32),
-  new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, transparent: true }),
+  // no vertexColors: the planes have no color attribute (it would shade black);
+  // setColorAt drives instanceColor which MeshBasicMaterial picks up automatically
+  new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, transparent: true, depthWrite: false }),
   CONFETTI_N
 );
 confetti.visible = false;
@@ -1627,6 +1751,12 @@ function ballStep(dt) {
   for (let i = 0; i < TRAIL_N; i++) attr.setXYZ(i, trailPts[i].x, trailPts[i].y, trailPts[i].z);
   attr.needsUpdate = true;
   trailLine.material.opacity = THREE.MathUtils.clamp(ball.vel.length() / 18, 0, 0.6);
+  // team-tinted trail — eased, and fed the ACES-compensated hex so VOLT's streak reads
+  // hot pink (raw #ff2d78 tonemaps to red on a bloomed additive line)
+  if (state.lastTouchTeam) {
+    trailCol.setHex(glow3(state.lastTouchTeam));
+    trailLine.material.color.lerp(trailCol, 1 - Math.exp(-3 * dt));
+  }
 }
 
 // dead-ball physics for theater modes (goal/foul/replay/aftermath/halftime/fulltime):
@@ -1678,7 +1808,7 @@ function goalScored(side) {
   // stands are retinted per fixture via crowd.setTeams in startMatch — pass the live team
   crowd.onGoal(scoringTeam === TEAM_A ? TEAM_A : TEAM_B);
   roar(); whistle(1);
-  burstConfetti(side * (HALF_W - 6), ball.pos.z * 0.5, scoringTeam.glow);
+  burstConfetti(side * (HALF_W - 6), ball.pos.z * 0.5, glow3(scoringTeam));
   commentate(state.scorer
     ? `GOOOAL! #${state.scorer.number} ${state.scorer.name} SCORES FOR ${scoringTeam.name}! ${state.scoreA}-${state.scoreB}`
     : `OWN GOAL! IT FALLS TO ${scoringTeam.name}! ${state.scoreA}-${state.scoreB}`, true);
@@ -1858,16 +1988,60 @@ function takeSetPiece() {
   state.mode = 'play';
 }
 
-// ============ CAMERA (broadcast) ============
+// ============ CAMERA (tension-aware broadcast) ============
 const camTarget = new THREE.Vector3();
 const camShakeOff = new THREE.Vector3(); // last frame's shake offset — peeled off before damping
+const camPosD = new THREE.Vector3(), camTgtD = new THREE.Vector3(); // per-frame desired frame (scratch)
 let camShake = 0;
+const CAM_FOV = 42;
+let camTension = 0;   // 0 = comfortable midfield frame … 1 = box-tight push (slow zone signal)
+let camShotPunch = 0; // brief lens tighten while a shot is in flight
+
+// W8: every smoother below is 1-exp(-k*dt) — rate-independent on any refresh rate
+function easeFov(target, rate, dt) {
+  const f = camera.fov + (target - camera.fov) * (1 - Math.exp(-rate * dt));
+  if (Math.abs(f - camera.fov) > 1e-3) { camera.fov = f; camera.updateProjectionMatrix(); }
+}
+
+// zone tension: midfield reads wide, the final third pushes in, the penalty box is tight;
+// a long airborne switch eases back out so the receiving flank stays in frame
+function liveTension() {
+  const ax = Math.abs(ball.pos.x);
+  let k = THREE.MathUtils.clamp((ax - 10) / 10, 0, 1) * 0.72;     // final-third ramp
+  if (ax > HALF_W - 12 && Math.abs(ball.pos.z) < 11) k = 1;       // penalty box: full push
+  if (ball.pos.y > 1.6) {
+    const bsp = Math.hypot(ball.vel.x, ball.vel.z);
+    k -= THREE.MathUtils.clamp((bsp - 11) / 9, 0, 1) * 0.55;      // long-switch pull
+  }
+  return THREE.MathUtils.clamp(k, 0, 1);
+}
+// the broadcast frame for a given tension — k=0 is the stock Wave-1 framing
+function liveFrame(k, outPos, outTgt, t) {
+  const cl = HALF_W * (0.7 + 0.12 * k); // tighter frames may track further toward the byline
+  const fx = THREE.MathUtils.clamp(ball.pos.x * (0.78 + 0.1 * k), -cl, cl);
+  const fz = THREE.MathUtils.clamp(ball.pos.z * 0.3, -8, 8);
+  const bob = t === undefined ? 0 : Math.sin(t * 0.1) * 0.6 * (1 - k); // breathing only when wide
+  outPos.set(fx, 21 - 8.5 * k + bob, 44 - 15 * k + fz * 0.4);
+  outTgt.set(ball.pos.x * (0.85 + 0.08 * k), 1.2, ball.pos.z * (0.55 + 0.25 * k));
+}
+// composed set-piece frame: lower and closer, looking down the delivery line at the box
+function setPieceFrame(outPos, outTgt) {
+  const gx = state.setpiece.gx * HALF_W;
+  outPos.set(
+    THREE.MathUtils.clamp(ball.pos.x * 0.9, -HALF_W * 0.9, HALF_W * 0.9),
+    9.5,
+    ball.pos.z * 0.45 + 26);
+  outTgt.set((ball.pos.x + gx) * 0.5 * 0.78, 1.1, ball.pos.z * 0.35);
+}
+
 function cameraStep(dt, t) {
   if (state.mode === 'replay' || state.mode === 'aftermath') {
+    // W6: replaySys owns the camera here — copy replayCam verbatim, never blend
     camShakeOff.set(0, 0, 0);
     camera.position.copy(replayCam.camPos);
     camTarget.copy(replayCam.camTarget);
     camera.lookAt(camTarget);
+    easeFov(CAM_FOV, 3, dt); // replays are directed for the stock lens — relax any punch-in
     return;
   }
   // remove the previous shake offset so noise never compounds into the follow damping
@@ -1875,14 +2049,34 @@ function cameraStep(dt, t) {
   if (state.mode === 'goal') {
     // one committed push-in — stacking it on the broadcast lerp drifted to a
     // dt-dependent blend of two moving targets instead of a clean camera move
-    camera.position.lerp(new THREE.Vector3(ball.pos.x*0.8, 8, ball.pos.z + 18), 1 - Math.exp(-1.4*dt));
+    camera.position.lerp(camPosD.set(ball.pos.x*0.8, 8, ball.pos.z + 18), 1 - Math.exp(-1.4*dt));
+    camTarget.lerp(camTgtD.set(ball.pos.x*0.85, 1.2, ball.pos.z*0.55), 1 - Math.exp(-2.2 * dt));
+    easeFov(CAM_FOV, 2.5, dt);
+  } else if (state.mode === 'setpiece' && state.setpiece) {
+    // corners/free kicks/pens: settle into a composed angle for the beat before the kick
+    // (entry into this mode was already a broadcast cut — this only damps, never cuts)
+    setPieceFrame(camPosD, camTgtD);
+    camera.position.lerp(camPosD, 1 - Math.exp(-2.6 * dt));
+    camTarget.lerp(camTgtD, 1 - Math.exp(-2.6 * dt));
+    easeFov(CAM_FOV + 1.5, 2.5, dt); // a hair wider so wall and box both read
   } else {
-    // main broadcast cam: side-on, follows ball with damping
-    const fx = THREE.MathUtils.clamp(ball.pos.x * 0.78, -HALF_W*0.7, HALF_W*0.7);
-    const fz = THREE.MathUtils.clamp(ball.pos.z * 0.3, -8, 8);
-    camera.position.lerp(new THREE.Vector3(fx, 21 + Math.sin(t*0.1)*0.6, 44 + fz*0.4), 1 - Math.exp(-1.6 * dt));
+    // tension-aware live framing — NO cuts in open play, only damped moves
+    camTension += (liveTension() - camTension) * (1 - Math.exp(-1.7 * dt));
+    liveFrame(camTension, camPosD, camTgtD, t);
+    camera.position.lerp(camPosD, 1 - Math.exp(-(1.6 + 0.9 * camTension) * dt));
+    camTarget.lerp(camTgtD, 1 - Math.exp(-(2.2 + 0.9 * camTension) * dt));
+    // shot punch: ball flying hard at a goal → modest FOV tighten, fast in / slow out
+    let shotOn = false;
+    if (state.mode === 'play') {
+      const bsp = Math.hypot(ball.vel.x, ball.vel.z);
+      if (bsp > 13.5 && Math.abs(ball.vel.x) > bsp * 0.45) {
+        const gxN = ball.vel.x > 0 ? HALF_W : -HALF_W;
+        shotOn = Math.hypot(gxN - ball.pos.x, ball.pos.z) < 27;
+      }
+    }
+    camShotPunch += ((shotOn ? 1 : 0) - camShotPunch) * (1 - Math.exp(-(shotOn ? 7 : 2.5) * dt));
+    easeFov(CAM_FOV - camShotPunch * 5 - camTension * 1.2, 8, dt);
   }
-  camTarget.lerp(new THREE.Vector3(ball.pos.x*0.85, 1.2, ball.pos.z*0.55), 1 - Math.exp(-2.2 * dt));
   camShake = Math.max(0, camShake - dt*2);
   // time-seeded shake, recomputed (not accumulated) each frame — per-frame random offsets
   // vibrated harder the higher the refresh rate
@@ -1893,16 +2087,67 @@ function cameraStep(dt, t) {
   camera.position.add(camShakeOff);
   camera.lookAt(camTarget);
 }
-// hard cut to the standard broadcast framing of the current ball position — restart
-// placements are unavoidable teleports, and a cut is how television hides them
+// hard cut to the right framing for the CURRENT state — restart placements are
+// unavoidable teleports, and a cut is how television hides them
 function cameraCut() {
   camShakeOff.set(0, 0, 0);
-  const fx = THREE.MathUtils.clamp(ball.pos.x * 0.78, -HALF_W*0.7, HALF_W*0.7);
-  const fz = THREE.MathUtils.clamp(ball.pos.z * 0.3, -8, 8);
-  camera.position.set(fx, 21, 44 + fz*0.4);
-  camTarget.set(ball.pos.x*0.85, 1.2, ball.pos.z*0.55);
+  if (state.mode === 'setpiece' && state.setpiece) {
+    setPieceFrame(camera.position, camTarget); // cut straight to the composed angle
+  } else {
+    camTension = liveTension(); // land the cut on the correct zone framing, no post-cut drift
+    liveFrame(camTension, camera.position, camTarget);
+  }
   camera.lookAt(camTarget);
 }
+
+// ============ MOMENTUM BAR (broadcast furniture) ============
+// slow-decay momentum signal: territory + possession time accrue, shots spike it.
+// >0 = TEAM_A ascendant, <0 = TEAM_B. The bar under the scoreboard blends both team
+// colors with a soft 14%-wide seam — a broadcast blend, not a winner-takes-all meter.
+const elMomentum = document.getElementById('momentum');
+let momentum = 0, momSm = 0, momShotsA = 0, momShotsB = 0;
+let momCssA = '#00e5ff', momCssB = '#ff2d78'; // HUD-space hexes (raw brand colors, not glow3)
+function momentumStep(dt) {
+  if (state.mode === 'play') {
+    momentum += (ball.pos.x / HALF_W) * 0.10 * dt;              // territory (TEAM_A attacks +x)
+    if (state.lastTouchTeam === TEAM_A) momentum += 0.045 * dt; // possession time
+    else if (state.lastTouchTeam === TEAM_B) momentum -= 0.045 * dt;
+  }
+  // shots are momentum spikes — watch the stat counters so every shot source counts once
+  if (stats.shotsA > momShotsA) { momentum += 0.16 * (stats.shotsA - momShotsA); momShotsA = stats.shotsA; }
+  if (stats.shotsB > momShotsB) { momentum -= 0.16 * (stats.shotsB - momShotsB); momShotsB = stats.shotsB; }
+  momentum = THREE.MathUtils.clamp(momentum, -1, 1) * Math.pow(0.94, dt); // slow decay to neutral
+  momSm += (momentum - momSm) * (1 - Math.exp(-2 * dt));                  // display smoothing
+  if ((momentumStep.f = (momentumStep.f || 0) + 1) % 6 === 0) {
+    const p = 50 + momSm * 36; // ±36%: each side always keeps a visible sliver
+    elMomentum.style.background =
+      `linear-gradient(90deg, ${momCssA} 0%, ${momCssA} ${(p - 7).toFixed(1)}%, ${momCssB} ${(p + 7).toFixed(1)}%, ${momCssB} 100%)`;
+  }
+}
+
+// ============ LINEUP INTRO (match-start lower third) ============
+// plays through an EXTENDED first kickoff hold (LINEUP_HOLD vs the usual 1.4s): card A,
+// fade gap, card B — auto-dismissed for good at the whistle. Restart kickoffs (goals,
+// halftime) keep the quick 1.4s hold and never show it.
+const elLineup = document.getElementById('lineup'), elLineupPanel = document.getElementById('lineuppanel');
+let lineupPhase = -1; // -1 hidden, 0 = TEAM_A card, 1 = TEAM_B card
+const LINEUP_HOLD = 7.6;
+function lineupHTML(team) {
+  const roster = players.filter(p => p.team === team);
+  return `<h3>STARTING SEVEN — ${team.name}</h3>` + roster.map(p =>
+    `<div class="lrow"><span class="num">${p.number}</span><span>${p.name}</span><span class="role">${p.role}</span></div>`).join('');
+}
+function lineupIntroStep(T) {
+  const phase = (T > 0.4 && T < 3.5) ? 0 : (T > 3.9 && T < 7.1) ? 1 : -1;
+  if (phase === lineupPhase) return;
+  lineupPhase = phase;
+  if (phase === -1) { elLineup.classList.remove('show'); return; }
+  const team = phase === 0 ? TEAM_A : TEAM_B;
+  elLineup.style.setProperty('--lucolor', hex6(team.glow));
+  elLineupPanel.innerHTML = lineupHTML(team);
+  elLineup.classList.add('show');
+}
+function hideLineup() { lineupPhase = -1; elLineup.classList.remove('show'); }
 
 // ============ CROWD ANIMATION ============
 let crowdExcitement = 0;
@@ -2271,6 +2516,10 @@ function startMatch() {
   elTeamBEl.style.color = cB;
   resetPositions(Math.random() < 0.5 ? TEAM_A : TEAM_B);
   state.mode = 'kickoff'; state.modeT = 0;
+  state.lineupIntro = true; // lineup cards play through an extended first kickoff hold
+  hideLineup();
+  momentum = momSm = 0; momShotsA = momShotsB = 0; // fresh momentum ledger per fixture
+  momCssA = cA; momCssB = cB;                      // bar blends this fixture's colors
   commentate(`MATCHDAY ${league.fixture + 1}: ${TEAM_A.name} vs ${TEAM_B.name} — KICKOFF AT THE GRAND ARENA`, true);
   story.startMatch(TEAM_A.name, TEAM_B.name, league.fixture + 1);
   for (const l of story.prematchLines(TEAM_A.name, TEAM_B.name)) commentate(l, true);
@@ -2328,14 +2577,19 @@ function captureHeadshot(p) {
 
 // ============ MAIN LOOP ============
 const clock3 = new THREE.Clock();
-function tick() {
-  requestAnimationFrame(tick);
-  const dt = Math.min(clock3.getDelta(), 0.05);
-  const t = clock3.elapsedTime;
+let simT = 0; // manual sim-time accumulator: stays consistent when catch-up steps force dt
+function tick(forcedDt, skipRender) {
+  const dt = typeof forcedDt === 'number' ? forcedDt : Math.min(clock3.getDelta(), 0.05);
+  simT += dt;
+  const t = simT;
 
   if (state.mode === 'kickoff') {
     state.modeT += dt;
-    if (state.modeT > 1.4) { state.mode = 'play'; whistle(1); }
+    if (state.lineupIntro) lineupIntroStep(state.modeT); // match-start lineup cards
+    if (state.modeT > (state.lineupIntro ? LINEUP_HOLD : 1.4)) {
+      if (state.lineupIntro) { state.lineupIntro = false; hideLineup(); }
+      state.mode = 'play'; whistle(1);
+    }
   } else if (state.mode === 'play') {
     state.clock += dt;
     if (state.lastTouchTeam === TEAM_A) stats.posA += dt;
@@ -2505,6 +2759,7 @@ function tick() {
   if (tick.f % 30 === 0) updateJumbotron();
   elClock.textContent = fmtClock(state.clock);
   tickerStep(dt);
+  momentumStep(dt);
   // headshot booth: ONE portrait per frame during the kickoff hold — the old synchronous
   // all-players loop was a multi-hundred-ms freeze at the start of every fixture
   if (headshotQueue.length) {
@@ -2512,9 +2767,11 @@ function tick() {
     if (!headshotQueue.length && story.setHeadshots) story.setHeadshots(headshots);
   }
 
-  composer.render();
+  if (!skipRender) composer.render();
 }
-if (VIS_STYLE !== 'classic') await preloadHumanModel(); // humans cached before teams are built; classic is instant
+// W5: each style preloads ONLY its own models — kaykit GLBs never delay the pro boot
+if (VIS_STYLE === 'kaykit') await preloadKayModels();
+else if (VIS_STYLE !== 'classic') await preloadHumanModel(); // classic is instant
 
 // the referee gets a human body too — hide the module's capsule mesh and puppet a
 // black-kit human rig from its position/judgment brain
@@ -2537,7 +2794,11 @@ function refRigStep(dt, t) {
   refYaw += THREE.MathUtils.clamp(shortestAngle(desired - refYaw), -6 * dt, 6 * dt);
   refRig.group.rotation.y = refYaw;
   if (state.mode === 'foul' && state.foul && state.foul.cardShown && !state.foul.done) {
+    const v = state.foul.ruling.verdict;
     if (state.foul.ruling.penalty && refRig.posePointToSpot) refRig.posePointToSpot(t); // POINTS TO THE SPOT
+    // W7: poseShowCard is the additive card-brandish (feature-detected, only called here);
+    // second yellows arrive with verdict 'red', so isRed covers them too
+    else if ((v === 'yellow' || v === 'red') && refRig.poseShowCard) refRig.poseShowCard(t, v === 'red');
     // card held aloft with a slowly advancing phase — a frozen constant read as a statue
     else refRig.poseCelebrate(2.1 + Math.max(state.modeT - 1.1, 0) * 0.35, 1);
   } else if (state.mode === 'foul') {
@@ -2550,7 +2811,36 @@ function refRigStep(dt, t) {
 }
 
 startMatch();
-tick();
+
+// ============ TICK DRIVER (hidden-tab resilience) ============
+// A 24/7 league can't freeze when the tab hides: rAF stops entirely in hidden
+// tabs, so the sim would stand still for hours. When hidden we drive tick()
+// from setInterval(50ms) instead — browsers throttle hidden-tab timers to
+// ~1Hz, which is fine: dt comes from clock3.getDelta() clamped to 0.05s, so
+// the sim advances slowly instead of freezing. Exactly ONE driver runs at a
+// time (both are torn down before either is started — no double-ticking).
+let rafId = 0, hiddenTimer = 0;
+function rafLoop() { rafId = requestAnimationFrame(rafLoop); tick(); }
+function startDriver() {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+  if (hiddenTimer) { clearInterval(hiddenTimer); hiddenTimer = 0; }
+  if (document.hidden) {
+    // CATCH-UP MODE: hidden-tab timers throttle to ~1Hz, so each fire replays the
+    // real time that passed as fixed 0.05s sim steps (capped at 1s of catch-up per
+    // fire). The league keeps broadcast pace while hidden; only the last step renders.
+    let lastFire = performance.now();
+    hiddenTimer = setInterval(() => {
+      const now = performance.now();
+      const steps = Math.min(Math.floor((now - lastFire) / 50), 20);
+      if (steps <= 0) return;
+      lastFire = now;
+      clock3.getDelta(); // drain THREE's clock so foreground resume doesn't inherit a huge delta
+      for (let i = 0; i < steps; i++) tick(0.05, i < steps - 1);
+    }, 50);
+  } else rafLoop();
+}
+document.addEventListener('visibilitychange', startDriver);
+startDriver();
 
 // debug hook (harmless in prod, lets devtools poke the sim)
 window.CL = { state, ball, players, goalScored, ref, beginFoul, flight, present, tactics, keeperAI, stats, replaySys };
