@@ -410,13 +410,15 @@ function startPass(rec, pending){
 }
 function gainPossession(p, next){
   ball.holder=p; ball.state='HELD'; ball.vel.set(0,0,0); ball.vy=0; ball.shot=null; ball.lastTeam=p.side;
-  if (p.side!==play.offense){ play.offense=p.side; shotClock=24; play.passes=0; }
+  if (p.side!==play.offense){ play.offense=p.side; shotClock=24; play.passes=0;
+    for (const o of allPlayers()) o.contest=false; } // possession flip voids pending contests
   play.wait=0.5+Math.random()*0.6; play.decided=false;
   setState(next);
 }
 function outlet(toIdx){
   play.offense=toIdx; shotClock=24; play.passes=0; play.passGoal=2+Math.floor(Math.random()*3);
   ball.shot=null;
+  for (const p of allPlayers()) p.contest=false; // stale contest flags would chase the new carrier forever
   let best=null, bd=1e9;
   for (const p of teams[toIdx].players){ const d=dxz(p.pos.x,p.pos.z,ball.pos.x,ball.pos.z); if(d<bd){bd=d;best=p;} }
   ball.pos.y=Math.max(ball.pos.y,1.0);
@@ -431,7 +433,9 @@ function releaseShot(sh, kind){
   let contest=0;
   for (const d of teams[1-sh.side].players){ const dd=dxz(d.pos.x,d.pos.z,sh.pos.x,sh.pos.z);
     if (dd<2.0) contest=Math.max(contest,(2.0-dd)/2.0*(d.air?1.25:0.7)); }
-  let err = kind==='layup' ? 0.13+contest*0.22 : (0.15+dist*0.040)*(1+contest*1.4);
+  // tuned vs RIM_R-0.06 entry window (gauss sd≈0.5): open layup ~95%, contested ~70%,
+  // mid-range ~50%, open three ~35-40% — lands teams in the 15-35 pts band per game
+  let err = kind==='layup' ? 0.3+contest*0.32 : (0.28+dist*0.075)*(1+contest*1.2);
   const bank = kind==='layup' ? Math.random()<0.45 : (dist<5.5 && Math.random()<0.16);
   const aim = bank
     ? V3(tm.dir*(BB_X-0.04), RIM_Y+0.35+Math.random()*0.2, (from.z>=0?0.2:-0.2))
@@ -771,6 +775,7 @@ function flow(dt){
             if (offReb && dxz(p.pos.x,p.pos.z,rim.x,rim.z)<3.5 && Math.random()<0.6){
               gainPossession(p,'SET'); startWindup(p,'layup');
             } else gainPossession(p, offReb?'SET':'BRINGUP');
+            if (offReb) shotClock=Math.max(shotClock,14); // offensive board resets to 14, not a near-dead clock
             break;
           }
         }
@@ -814,7 +819,7 @@ function enterBreak(){
     showCard(`<h1>FULL TIME</h1><h2>${line}</h2>
       <table><tr><th>TOP SCORERS</th><th>PTS</th></tr>
       ${all.map(p=>`<tr><td class="n" style="color:${p.td.css}">${p.name} — ${p.td.name}</td><td>${p.pts}</td></tr>`).join('')}</table>
-      <div class="sub" id="countd" style="margin-top:14px">NEXT TIP-OFF IN 6</div>`);
+      <div class="sub" id="countd" style="margin-top:14px">NEXT TIP-OFF IN 7</div>`);
     say(`FULL TIME IN THE HOOPDOME — ${line}`);
     flashMsg('FINAL','', '#ff8a3d');
   } else {
@@ -891,18 +896,46 @@ function fxStep(dt){
 
 // ---------- main loop ----------
 newMatch();
-let last=performance.now();
-renderer.setAnimationLoop(now=>{
-  const dt=Math.min((now-last)/1000, 0.05); last=now; tGlobal+=dt;
+function tick(dt, skipRender=false){
+  tGlobal+=dt;
   if (phase==='PLAY') flow(dt); else breakFlow(dt);
   setTargets(dt);
   updatePlayers(dt);
   updateBall(dt);
+  if (skipRender) return; // hidden-tab catch-up: only the last step touches visuals/DOM
   updateCamera(dt);
   fxStep(dt);
   tickerStep(dt);
   composer.render();
-});
+}
+// ---------- tick driver (hidden-tab resilience, same pattern as index.html) ----------
+// rAF freezes in hidden tabs, so when hidden a setInterval replays elapsed real
+// time as fixed 0.05s sim steps (capped at 1s of catch-up per fire), rendering
+// only the last step. Exactly ONE driver runs at a time.
+let rafId=0, hiddenTimer=0, last=performance.now();
+function rafLoop(now){
+  rafId=requestAnimationFrame(rafLoop);
+  const dt=Math.min((now-last)/1000, 0.05); last=now;
+  if (dt<=0) return;
+  tick(dt);
+}
+function startDriver(){
+  if (rafId){ cancelAnimationFrame(rafId); rafId=0; }
+  if (hiddenTimer){ clearInterval(hiddenTimer); hiddenTimer=0; }
+  if (document.hidden){
+    let lastFire=performance.now();
+    hiddenTimer=setInterval(()=>{
+      const now=performance.now();
+      const steps=Math.min(Math.floor((now-lastFire)/50), 20);
+      if (steps<=0) return;
+      lastFire=now;
+      last=now; // so foreground resume doesn't inherit a huge delta
+      for (let i=0;i<steps;i++) tick(0.05, i<steps-1);
+    },50);
+  } else { last=performance.now(); rafLoop(last); }
+}
+document.addEventListener('visibilitychange', startDriver);
+startDriver();
 addEventListener('resize', ()=>{
   camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight); composer.setSize(innerWidth,innerHeight);
