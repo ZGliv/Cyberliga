@@ -395,7 +395,7 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
   }
 
   // ======================= per-frame driver =======================
-  let locoScale = 1;       // smoothed locomotion weight multiplier
+  const poseFull = {};     // clip name -> was requested as a full-body pose
   let accelS = 0, turnS = 0;
   let _dither = false;     // see scrub branch in update()
 
@@ -415,15 +415,9 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
     walkAct.timeScale = (0.85 + s * 1.1) * persCadence;
     runAct.timeScale = (0.7 + s * 0.55) * persCadence;
 
-    // full-body pose requested -> locomotion fades out; restores otherwise
-    const fadeTarget = (req && reqFull) ? 0 : 1;
-    locoScale += (fadeTarget - locoScale) * Math.min(1, dt * 10);
-    idleAct.setEffectiveWeight(wIdle * locoScale);
-    walkAct.setEffectiveWeight(wWalk * locoScale);
-    runAct.setEffectiveWeight(wRun * locoScale);
-
     // pose action weights: requested name eases in, everything else eases out
-    if (req) poseWs[req.name] = poseWs[req.name] || 0;
+    let fullPoseW = 0; // cumulative full-body pose influence this frame
+    if (req) { poseWs[req.name] = poseWs[req.name] || 0; poseFull[req.name] = reqFull; }
     for (const name in poseWs) {
       const a = actions[name] || act(name);
       let w = poseWs[name];
@@ -443,17 +437,27 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
         }
       } else {
         w = Math.max(0, w - dt * BLEND_OUT);
-        if (w === 0) { a.setEffectiveWeight(0); delete poseWs[name]; continue; }
+        if (w === 0) { a.setEffectiveWeight(0); delete poseWs[name]; delete poseFull[name]; continue; }
       }
       poseWs[name] = w;
       a.setEffectiveWeight(smooth(w));
+      if (poseFull[name]) fullPoseW += smooth(w);
     }
+
+    // locomotion yields exactly the influence full poses currently claim, so
+    // cumulative mixer weight never dips below 1 mid-crossfade — any deficit
+    // would blend toward the bind pose restored above (the arms-out flash on
+    // every pose entry/exit when locoScale decayed on its own clock).
+    const locoW = Math.max(0, 1 - Math.min(1, fullPoseW));
+    idleAct.setEffectiveWeight(wIdle * locoW);
+    walkAct.setEffectiveWeight(wWalk * locoW);
+    runAct.setEffectiveWeight(wRun * locoW);
 
     mixer.update(dt);
 
     // tilt node: ease toward pose targets / home when nothing claims it
     {
-      const e = Math.min(1, dt * (tiltActive ? 12 : 8));
+      const e = 1 - Math.exp(-(tiltActive ? 12 : 8) * dt);
       tilt.rotation.x += ((tiltActive ? tiltX : 0) - tilt.rotation.x) * e;
       tilt.rotation.z += ((tiltActive ? tiltZ : 0) - tilt.rotation.z) * e;
       tilt.position.y += ((tiltActive ? tiltY : 0) - tilt.position.y) * e;
@@ -472,11 +476,11 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
     }
 
     // additive lean/bank from host accel/turn estimates (smoothed; loco only)
-    const addGate = locoScale;
+    const addGate = locoW;
     if (addGate > 0.02 && bones.spine) {
       const targetA = opts && opts.accel !== undefined ? clamp(opts.accel, -1, 1) : 0;
       const targetT = opts && opts.turn !== undefined ? clamp(opts.turn, -1, 1) : 0;
-      const ke = Math.min(1, dt * 6);
+      const ke = 1 - Math.exp(-6 * dt);
       accelS += (targetA - accelS) * ke;
       turnS += (targetT - turnS) * ke;
       const lean = accelS * 0.2 * (0.25 + 0.75 * s) * addGate;

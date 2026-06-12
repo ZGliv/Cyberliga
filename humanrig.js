@@ -24,6 +24,9 @@
 //     to the ground by rotating an INTERNAL tilt node (child of group) and
 //     offsetting its position.y — the host's group transform is never written,
 //     so host yaw/lean logic is safe.
+//   - rig.gaitPhase (contract C2): monotonic radians advanced from actual
+//     ground speed; walk/run are scrubbed from the same master cycle so a foot
+//     visually plants every PI. The host mirrors it into p.stridePhase.
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -80,6 +83,13 @@ const _hsl = { h: 0, s: 0, l: 0 };
 // ease back OUT to locomotion over ~0.18s instead of snapping.
 const BLEND_IN = 1 / 0.12;
 const BLEND_OUT = 1 / 0.18;
+
+// gait calibration: ground distance covered per full clip cycle at the
+// TARGET_HEIGHT scale. Cadence = actualSpeed / stride, so foot plants match
+// ground displacement instead of a hand-tuned timeScale guess (no skating).
+const WALK_STRIDE = 1.6;   // m/cycle (Soldier Walk @ 1.9u)
+const RUN_STRIDE = 3.8;    // m/cycle (Soldier Run @ 1.9u)
+const HOST_MAX_SPEED = 7;  // hosts pass speedNorm = clamp(speed / 7, 0, 1)
 
 // boost saturation so team identity pops after the lerp toward the base
 // texture color (the old flat lerp(0.55) made pink read as washed-out red)
@@ -207,10 +217,14 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
   const runAct = mixer.clipAction(_clips.Run);
   for (const a of [idleAct, walkAct, runAct]) { a.enabled = true; a.setEffectiveWeight(0); a.play(); }
   idleAct.setEffectiveWeight(1);
-  // desync clones so 15 players don't run in lockstep
-  walkAct.time = Math.random() * _clips.Walk.duration;
-  runAct.time = Math.random() * _clips.Run.duration;
-  idleAct.time = Math.random() * _clips.Idle.duration;
+  // walk/run are scrubbed in LOCKSTEP by the master gait clock in update()
+  // (timeScale 0 so the mixer never advances them independently — the old
+  // per-clip random offsets left walk and run mutually de-phased, and the
+  // s~0.4 crossfade band averaged two out-of-phase strides into a scissoring
+  // double-step). Idle free-runs at its natural cadence (timeScale 1).
+  walkAct.timeScale = 0; runAct.timeScale = 0;
+  idleAct.time = Math.random() * _clips.Idle.duration; // desync idles across rigs
+  let gaitCyc = Math.random(); // master gait cycle; random start = per-rig stride desync
 
   // ---- per-rig personality (seeded at build, constant for the rig's life) ----
   const seed = Math.random() * 1000;
@@ -275,16 +289,20 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
     const S = legIndex ? 'Left' : 'Right'; // striking side (legIndex 1 = group +X = model Left)
     const P = legIndex ? 'Right' : 'Left'; // plant side
     let hip, knee; // hip in raw UpLeg.x terms: positive = backswing
-    if (k < 0.45) {           // backswing: hip back, heel folds to glute
-      const u = smooth(k / 0.45);
+    // CONTRACT C3 (frozen): visual ball contact is at k = 0.45 — the hip
+    // crosses vertical mid-drive there (phases tuned so the swing's zero
+    // crossing lands on 0.45 across amp). The host fires the ball impulse at
+    // exactly 0.45 * (windup + follow). Do NOT retime these boundaries.
+    if (k < 0.36) {           // backswing: hip back, heel folds to glute
+      const u = smooth(k / 0.36);
       hip = lerp(-0.1, 0.9 * (0.5 + 0.5 * amp), u);
       knee = lerp(0.2, 1.9, u);
-    } else if (k < 0.62) {    // drive + snap through contact
-      const u = (k - 0.45) / 0.17;
+    } else if (k < 0.58) {    // drive + snap — foot meets ball at k=0.45
+      const u = (k - 0.36) / 0.22;
       hip = lerp(0.9 * (0.5 + 0.5 * amp), -(0.9 + 0.5 * amp), smooth(u));
       knee = lerp(1.9, 0.1, u * u);
     } else {                  // follow-through carries high
-      const u = smooth((k - 0.62) / 0.38);
+      const u = smooth((k - 0.58) / 0.42);
       hip = lerp(-(0.9 + 0.5 * amp), -(1.15 + 0.35 * amp), u);
       knee = lerp(0.1, 0.45, u);
     }
@@ -420,13 +438,15 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
       setTilt(0, bank * 0.18, 0);
       setLeg('Left', 0.18 - bank * 0.1, 0.35, 0);
       setLeg('Right', 0.18 + bank * 0.1, 0.35, 0);
-    } else {                    // variant 2: airplane wings (arms stay at the T-pose rest)
-      setArm('Left', 0, 0); setArm('Right', 0, 0);
-      setElbow('Left', 0); setElbow('Right', 0);
-      setSpine(0.45, 0, Math.sin(t * 3) * 0.18);
-      set('Neck', -0.35, 0, 0);
-      setLeg('Left', 0.2, 0.4, 0);
-      setLeg('Right', 0.2, 0.4, 0);
+    } else {                    // variant 2: double-fist "COME ON!" flex at the crowd
+      const pump = Math.max(0, Math.sin(t * 6));    // rhythmic pull-downs
+      setArm('Left', 0.4, ARM_DOWN - 1.0 - pump * 0.3);
+      setArm('Right', 0.4, ARM_DOWN - 1.0 - pump * 0.3);
+      setElbow('Left', 1.5 + pump * 0.5); setElbow('Right', 1.5 + pump * 0.5);
+      setSpine(0.2 + pump * 0.12, 0, Math.sin(t * 3) * 0.06); // crunch into each pump
+      set('Neck', -0.3, 0, 0);                      // roaring up at the stands
+      setLeg('Left', 0.2, 0.4, 0.08);
+      setLeg('Right', -0.12, 0.3, 0.08);
     }
   }
 
@@ -466,10 +486,13 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
       setArm('Left', 0, lerp(ARM_DOWN, 0.25, c));      // arms wide for balance
       setArm('Right', 0, lerp(ARM_DOWN, 0.25, c));
       setElbow('Left', 0.4); setElbow('Right', 0.4);
-      const ph = k < 0.5 ? smooth(k / 0.5) : smooth((k - 0.5) / 0.5);
-      const first = k < 0.5 ? A : B, second = k < 0.5 ? B : A;
-      setLeg(first, lerp(0.6, -0.4, ph), 0.5 + ph * 0.4, 0);
-      setLeg(second, -0.1, 0.35, 0);
+      // legs hand their roles over across k 0.45-0.55 — the old hard swap at
+      // k=0.5 jumped hip targets ~1 rad in one frame (the channel ease only
+      // smooths WEIGHT, and mid-pose ch.w is already 1)
+      const swap = smooth((k - 0.45) / 0.1);
+      const phA = smooth(k / 0.5), phB = smooth((k - 0.5) / 0.5);
+      setLeg(A, lerp(lerp(0.6, -0.4, phA), -0.1, swap), lerp(0.5 + phA * 0.4, 0.35, swap), 0);
+      setLeg(B, lerp(-0.1, lerp(0.6, -0.4, phB), swap), lerp(0.35, 0.5 + phB * 0.4, swap), 0);
       set('Neck', 0.15 * c, 0, 0); // eyes down on the ball
     }
   }
@@ -753,18 +776,28 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
   function update(dt, speedNorm, opts) {
     const s = clamp(speedNorm || 0, 0, 1);
     // crossfade Idle <-> Walk (s 0..0.4) <-> Run (s 0.4..1)
-    let wIdle, wWalk, wRun;
-    if (s < 0.06) { wIdle = 1; wWalk = 0; wRun = 0; }
-    else if (s < 0.4) { wWalk = (s - 0.06) / 0.34; wIdle = 1 - wWalk; wRun = 0; }
-    else { wRun = (s - 0.4) / 0.6; wWalk = 1 - wRun; wIdle = 0; }
-    // cadence tracks speed; arm-pump personality also quickens the sprint stride a touch
-    walkAct.timeScale = 0.75 + s * 1.2;
-    runAct.timeScale = 0.55 + s * (0.5 + persArm * 0.2);
+    let wWalk = 0, wRun = 0;
+    if (s >= 0.4) { wRun = (s - 0.4) / 0.6; wWalk = 1 - wRun; }
+    else if (s >= 0.06) { wWalk = (s - 0.06) / 0.34; }
+    // gait clock (contract C2): ONE master phase scrubs BOTH walk and run at
+    // the same normalized cycle time (phase-locked, so the blend band can't
+    // double-step), advanced from ACTUAL ground speed so foot plants match
+    // ground displacement. The clips plant a foot at cycle 0 and 0.5, so
+    // gaitPhase (= gaitCyc * 2PI, exposed on the rig) has a footfall every PI.
+    const spd = opts && opts.speed !== undefined ? Math.max(0, opts.speed) : s * HOST_MAX_SPEED;
+    gaitCyc += clamp(spd / lerp(WALK_STRIDE, RUN_STRIDE, wRun), 0, 2.2) * dt;
+    const cyc = gaitCyc % 1;
+    walkAct.time = cyc * _clips.Walk.duration;
+    runAct.time = cyc * _clips.Run.duration;
 
-    // full-body overlays fade locomotion influence down; restore otherwise
+    // full-body overlays fade the walk/run churn out; idle absorbs the freed
+    // weight so TOTAL mixer influence never dips below 1 — PropertyMixer fills
+    // any deficit from each binding's saved original state, which is the bind
+    // T-POSE (the old start/end-of-pose arm flare). The overlay channels then
+    // win their bones on top of the idle base.
     const fadeTarget = (overlayThisFrame && overlayFull) ? 0 : 1;
-    locoScale += (fadeTarget - locoScale) * Math.min(1, dt * 10);
-    idleAct.setEffectiveWeight(wIdle * locoScale);
+    locoScale += (fadeTarget - locoScale) * (1 - Math.exp(-10 * dt));
+    idleAct.setEffectiveWeight(1 - (wWalk + wRun) * locoScale);
     walkAct.setEffectiveWeight(wWalk * locoScale);
     runAct.setEffectiveWeight(wRun * locoScale);
 
@@ -772,7 +805,7 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
 
     // tilt node: ease toward pose targets / ease home when nothing claims it
     {
-      const e = Math.min(1, dt * (tiltActive ? 12 : 8));
+      const e = 1 - Math.exp(-(tiltActive ? 12 : 8) * dt);
       const tx = tiltActive ? tiltX : 0, tz = tiltActive ? tiltZ : 0, ty = tiltActive ? tiltY : 0;
       tilt.rotation.x += (tx - tilt.rotation.x) * e;
       tilt.rotation.z += (tz - tilt.rotation.z) * e;
@@ -799,7 +832,7 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
       }
     }
     // smoothed "overlay influence" gate for additives/idle behaviors
-    overlayW += ((overlayThisFrame || anyOverlay ? 1 : 0) - overlayW) * Math.min(1, dt * 8);
+    overlayW += ((overlayThisFrame || anyOverlay ? 1 : 0) - overlayW) * (1 - Math.exp(-8 * dt));
 
     // ---- locomotion additives: procedural life on top of the mocap --------
     // scaled by locoScale (full poses own the body) and damped by overlayW.
@@ -808,7 +841,7 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
       // smooth the host-fed inputs so accel/turn spikes never twitch the spine
       const targetA = opts && opts.accel !== undefined ? clamp(opts.accel, -1, 1) : 0;
       const targetT = opts && opts.turn !== undefined ? clamp(opts.turn, -1, 1) : 0;
-      const ke = Math.min(1, dt * 6);
+      const ke = 1 - Math.exp(-6 * dt);
       accelS += (targetA - accelS) * ke;
       turnS += (targetT - turnS) * ke;
 
@@ -833,7 +866,7 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
 
       // ---- idle micro-behaviors: 14 idle players never look synchronized --
       const idleTarget = s < 0.08 ? 1 : 0;
-      idleW += (idleTarget - idleW) * Math.min(1, dt * 4);
+      idleW += (idleTarget - idleW) * (1 - Math.exp(-4 * dt));
       if (idleW > 0.01) {
         idleClock += dt;
         const cycle = Math.floor(idleClock / idleCyc);
@@ -893,6 +926,10 @@ export function buildPlayerRig({ kitColor, glowColor, skinTone, hairColor, isGK 
       chest: { x: 0, y: 1.36, z: 0.16 },  // chest number plane (faces +Z)
       tagY: 2.45,                         // floating nameplate sprite height
     },
+    // contract C2: radians, monotonic, advanced from actual ground speed in
+    // update(); a foot visually plants every PI. Host mirrors this into
+    // p.stridePhase after rig.update so ballcontrol touches hit real footfalls.
+    get gaitPhase() { return gaitCyc * Math.PI * 2; },
     update,
     poseKick, poseThrowIn, poseDive, poseFall, poseGetUp,
     poseCelebrate, poseSkill, poseArgue, poseShield,

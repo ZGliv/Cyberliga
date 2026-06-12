@@ -37,30 +37,34 @@ const _step = new THREE.Vector3();
 const _spot = new THREE.Vector3();
 
 const TAU = Math.PI * 2;
+const STATE_TTL = 0.5;            // s a player keeps control state after losing carrier
 
 export function createBallControl(opts = {}) {
   const rng = opts.rng || Math.random;
 
-  // per-carrier control state
+  // per-player control state, kept alive across rapid carrier swaps (contested
+  // scrums flip the carrier frame-to-frame; wiping state re-armed touches every
+  // swap and made the ball ping-pong). Expires only after STATE_TTL away.
   const states = new WeakMap();
-  let lastCarrier = null;
+  let now = 0; // accumulated carrier-time clock for last-seen stamps
 
   function getState(carrier) {
-    if (carrier !== lastCarrier) {
-      // carrier changed: fresh state so a new player doesn't inherit timers
-      states.delete(carrier);
-      lastCarrier = carrier;
-    }
     let s = states.get(carrier);
-    if (!s) {
+    if (!s || now - s.lastSeen > STATE_TTL) {
       s = {
         cooldown: 0,        // s until next touch allowed
         side: rng() < 0.5 ? 1 : -1, // which side of the stride line the last touch went
         alignT: 0,          // accumulated pre-strike footwork time
-        lastPhaseBucket: -1 // which footfall (floor(stridePhase/PI)) last touched
+        lastPhaseBucket: -1, // which footfall (floor(stridePhase/PI)) last touched
+        readyLatch: false,  // sticky 'ready' until the kick actually fires
+        lastSeen: now,
       };
       states.set(carrier, s);
+    } else {
+      // timers keep running while someone else held the ball
+      s.cooldown = Math.max(0, s.cooldown - (now - s.lastSeen));
     }
+    s.lastSeen = now;
     return s;
   }
 
@@ -82,8 +86,8 @@ export function createBallControl(opts = {}) {
 
   function update(dt, carrier, ball, plan, nearestDefender) {
     if (!carrier || !ball) return null;
-    const s = getState(carrier);
-    s.cooldown = Math.max(0, s.cooldown - dt);
+    now += dt;
+    const s = getState(carrier); // getState decays cooldown by elapsed time
 
     // can't play the ball while down or staggering hard
     if (carrier.fallT > 0) return null;
@@ -105,10 +109,12 @@ export function createBallControl(opts = {}) {
     // A moving ball ARRIVING at the feet (fast, faster than the carrier, and
     // closing in — not one of our own push-touches running ahead): one cushion
     // touch into space, already pointing where the carrier wants to go next.
+    // NOTE: the host only elects a carrier below 4 m/s ball speed, so the gate
+    // here must sit under that or settles never fire (was: > 4 — dead code)
     const carrierSpeed = Math.hypot(carrier.vel.x, carrier.vel.z);
     const closing = ballDist > 1e-4 && _rel.dot(_toBall) < 0;
     if (ballDist < RECEIVE_RADIUS && ball.pos.y < 1.1 && closing &&
-        ballSpeed > 4 && ballSpeed > carrierSpeed + 1) {
+        ballSpeed > 2.2 && ballSpeed > carrierSpeed + 0.8) {
       if (s.cooldown > 0) return null; // mid-touch; let it run
       // direction: away from the nearest defender, biased toward the plan
       if (nearestDefender) {
@@ -142,13 +148,18 @@ export function createBallControl(opts = {}) {
 
       s.cooldown = 0.35 + rng() * 0.2; // settle beat before the next touch
       s.alignT = 0;
-      // power encodes the cushion: host kills 80% of speed, redirects remainder
-      return { type: 'settle', dir: _dir.clone(), power: THREE.MathUtils.clamp(ballSpeed / 14, 0.2, 1) };
+      s.readyLatch = false;
+      // power encodes the cushion: host kills 80% of speed, redirects remainder.
+      // Better control skill = softer touch that keeps the ball closer.
+      const ctl = 1.15 - 0.45 * (carrier.flair ?? 0.5);
+      return { type: 'settle', dir: _dir.clone(),
+        power: THREE.MathUtils.clamp(ballSpeed / 14 * ctl, 0.2, 1) };
     }
 
     // ball not controllable and not arriving — nothing to do
     if (!isControlled(carrier, ball)) {
       s.alignT = 0;
+      s.readyLatch = false;
       return null;
     }
 
@@ -161,22 +172,22 @@ export function createBallControl(opts = {}) {
       const facing = _fwd.dot(aim) / (aim.length() || 1);
       const ahead = _toBall.dot(_fwd);
       const lateral = _toBall.dot(_right) * sideNow; // distance toward strike-foot line
+      // acceptance widens the longer alignment runs — the dance never exceeds ALIGN_MAX_T
+      const w = Math.min(s.alignT / ALIGN_MAX_T, 1);
       const inZone =
-        ahead > STRIKE_MIN && ahead < STRIKE_MAX &&
-        Math.abs(lateral - FOOT_OFFSET) < 0.35 &&
-        facing > STRIKE_FACING;
+        ahead > STRIKE_MIN * (1 - 0.6 * w) && ahead < STRIKE_MAX + 0.5 * w &&
+        Math.abs(lateral - FOOT_OFFSET) < 0.35 + 0.3 * w &&
+        facing > STRIKE_FACING - 0.3 * w;
 
-      if (inZone) {
-        s.alignT = 0;
+      if (inZone || s.readyLatch || s.alignT >= ALIGN_MAX_T) {
+        // STICKY: keep saying 'ready' until the kick actually fires (the host may
+        // be on kick cooldown) — re-entering alignment here caused the pre-kick
+        // shuffle-dance loop
+        s.readyLatch = true;
         return { type: 'ready' };
       }
 
       s.alignT += dt;
-      if (s.alignT > ALIGN_MAX_T) {
-        // footwork budget spent — strike from where we are rather than dancing forever
-        s.alignT = 0;
-        return { type: 'ready' };
-      }
       // step so that the ideal spot (0.7m ahead of strike foot, body turned to aim)
       // ends up where the ball is: move the BODY, not the ball.
       _spot.copy(aim).normalize();
@@ -194,9 +205,11 @@ export function createBallControl(opts = {}) {
       return { type: 'align', step: _step.clone() };
     }
     s.alignT = 0;
+    s.readyLatch = false;
 
     // ================= DRIBBLE TOUCH =================
     if (!plan || plan.type !== 'carry' || !plan.carryDir) return null;
+    if (ball.pos.y > 0.45) return null; // airborne ball: let physics bring it down first
     if (s.cooldown > 0) return null;
     if (!onFootfall(carrier)) return null;
     // one touch per footfall: bucket the phase so we don't re-fire within the same window

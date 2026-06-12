@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CYBERLIGA — LEAGUE HUB</title>
+<meta name="description" content="CYBERLIGA: the fully autonomous AI sports universe. Standings, fixtures, players and storylines from the league that never sleeps." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="league.css" />
+</head>
+<body>
+<div id="bgfx" aria-hidden="true"></div>
+
+<header id="topbar">
+  <a class="brand" href="league.html">CYBER<span>LIGA</span></a>
+  <nav aria-label="Sections">
+    <a href="#standings">STANDINGS</a>
+    <a href="#fixtures">FIXTURES</a>
+    <a href="#players">PLAYERS</a>
+    <a href="#stories">STORYLINES</a>
+    <a href="#sports">UNIVERSE</a>
+  </nav>
+  <a class="cta-mini" href="index.html"><span class="live-dot"></span>WATCH</a>
+</header>
+
+<main>
+  <!-- ============ HERO ============ -->
+  <section id="hero">
+    <div class="kicker"><span class="live-dot"></span>SEASON 2077 &middot; AUTONOMOUS AI FOOTBALL</div>
+    <h1 class="wordmark">CYBER<em>LIGA</em></h1>
+    <p class="tagline">FOUR CLUBS. TWENTY-EIGHT ATHLETES. ZERO HUMANS. THE LEAGUE THAT NEVER SLEEPS.</p>
+    <div class="hero-actions">
+      <a class="cta" href="index.html">&#9654; WATCH LIVE</a>
+      <a class="cta ghost" href="#standings">LEAGUE TABLE</a>
+    </div>
+    <div id="billboard" class="billboard panel"></div>
+  </section>
+
+  <!-- ============ WIRE TICKER ============ -->
+  <div id="tickerbar"><div class="tlabel">WIRE</div><div class="ttext" id="tickertext">CYBERLIGA LEAGUE HUB ONLINE —</div></div>
+
+  <!-- ============ STANDINGS ============ -->
+  <section id="standings" class="section">
+    <header class="sechead"><h2>STANDINGS</h2><div class="sub" id="standings-sub"></div></header>
+    <div class="panel table-panel">
+      <div class="table-scroll"><table id="league-table" aria-label="League standings"></table></div>
+    </div>
+  </section>
+
+  <!-- ============ FIXTURES & RESULTS ============ -->
+  <section id="fixtures" class="section">
+    <header class="sechead"><h2>FIXTURES &amp; RESULTS</h2><div class="sub">ENDLESS ROUND-ROBIN &middot; ALL SIMULATIONS FINAL</div></header>
+    <div class="fixture-cols">
+      <div class="panel fixcol" id="results-panel"></div>
+      <div class="panel fixcol" id="upcoming-panel"></div>
+    </div>
+  </section>
+
+  <!-- ============ PLAYERS ============ -->
+  <section id="players" class="section">
+    <header class="sechead"><h2>PLAYERS</h2><div class="sub">28 ATHLETES &middot; CAREERS TRACKED FOR LIFE</div></header>
+    <div id="rosters"></div>
+  </section>
+
+  <!-- ============ STORYLINES ============ -->
+  <section id="stories" class="section">
+    <header class="sechead"><h2>STORYLINES</h2><div class="sub">WRITTEN BY THE SIM &middot; EDITED BY NOBODY</div></header>
+    <div id="storyfeed" class="storyfeed"></div>
+  </section>
+
+  <!-- ============ SPORTS RAIL ============ -->
+  <section id="sports" class="section">
+    <header class="sechead"><h2>THE CYBERLIGA UNIVERSE</h2><div class="sub">ONE LEAGUE WAS NEVER GOING TO BE ENOUGH</div></header>
+    <div id="sportsrail" class="sportsrail"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="fmark">CYBERLIGA</div>
+  <p>A FULLY AUTONOMOUS AI SPORTS UNIVERSE &mdash; NO HUMANS WERE SUBSTITUTED IN THE MAKING OF THIS BROADCAST.</p>
+  <p class="legal">SEASON 2077 &middot; ALL SIMULATIONS FINAL &middot; THE ALGORITHM IS THE ONLY REFEREE</p>
+</footer>
+
+<div id="vignette" aria-hidden="true"></div>
+<div id="scanlines" aria-hidden="true"></div>
+
+<script src="league.js" defer></script>
+</body>
+</html>

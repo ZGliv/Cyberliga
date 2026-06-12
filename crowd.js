@@ -89,6 +89,7 @@ function makeRng(seed) {
 export function createCrowd(scene, opts) {
   const teamA = opts.teamA; // West end
   const teamB = opts.teamB; // East end
+  let curA = teamA, curB = teamB; // current fixture (setTeams retints)
   const rng = makeRng(1337);
 
   // -------------------------------------------------------------------
@@ -103,6 +104,7 @@ export function createCrowd(scene, opts) {
   const flags8 = [];                   // bitfield: 1 sitter, 2 arms-thrower
   const chantOf = [];                  // chant block id, -1 = not an ultra
   const colR = [], colG = [], colB = [];
+  const tintTeamTmp = [], tintMulTmp = []; // retint metadata: -1 neutral, 0 A, 1 B
   const flagFanTmp = [], scarfFanTmp = []; // fan indices owning props
 
   const cA = new THREE.Color(teamA.color);
@@ -122,24 +124,29 @@ export function createCrowd(scene, opts) {
     const superfan = rng() < SUPERFAN_CHANCE;
     if (section === 0 || section === 1) {
       const teamC = section === 0 ? cA : cB;
-      if (superfan) { tmpColor.copy(teamC).multiplyScalar(1.6); return true; }
+      if (superfan) { tmpColor.copy(teamC).multiplyScalar(1.6); tintTeamTmp.push(section); tintMulTmp.push(1.6); return true; }
       if (rng() < 0.82) {
         // team color, dimmed with per-fan variation (scarves, shirts, skin)
-        tmpColor.copy(teamC).multiplyScalar(0.4 + rng() * 0.5);
+        const m = 0.4 + rng() * 0.5;
+        tmpColor.copy(teamC).multiplyScalar(m);
+        tintTeamTmp.push(section); tintMulTmp.push(m);
       } else {
         tmpColor.copy(neutrals[(rng() * neutrals.length) | 0]).multiplyScalar(0.7 + rng() * 0.4);
+        tintTeamTmp.push(-1); tintMulTmp.push(0);
       }
       return false;
     }
     // Neutral side stands: mostly muted, scattered fans of both teams.
     if (superfan) {
-      tmpColor.copy(rng() < 0.5 ? cA : cB).multiplyScalar(1.6);
+      const side = rng() < 0.5 ? 0 : 1;
+      tmpColor.copy(side === 0 ? cA : cB).multiplyScalar(1.6);
+      tintTeamTmp.push(side); tintMulTmp.push(1.6);
       return true;
     }
     const roll = rng();
-    if (roll < 0.08)      tmpColor.copy(cA).multiplyScalar(0.45 + rng() * 0.35);
-    else if (roll < 0.16) tmpColor.copy(cB).multiplyScalar(0.45 + rng() * 0.35);
-    else tmpColor.copy(neutrals[(rng() * neutrals.length) | 0]).multiplyScalar(0.6 + rng() * 0.45);
+    if (roll < 0.08)      { const m = 0.45 + rng() * 0.35; tmpColor.copy(cA).multiplyScalar(m); tintTeamTmp.push(0); tintMulTmp.push(m); }
+    else if (roll < 0.16) { const m = 0.45 + rng() * 0.35; tmpColor.copy(cB).multiplyScalar(m); tintTeamTmp.push(1); tintMulTmp.push(m); }
+    else { tmpColor.copy(neutrals[(rng() * neutrals.length) | 0]).multiplyScalar(0.6 + rng() * 0.45); tintTeamTmp.push(-1); tintMulTmp.push(0); }
     return false;
   }
 
@@ -220,6 +227,8 @@ export function createCrowd(scene, opts) {
   const uSection = Uint8Array.from(sectionOf);
   const uFlags = Uint8Array.from(flags8);
   const iChant = Int8Array.from(chantOf);
+  const tintTeam = Int8Array.from(tintTeamTmp);
+  const tintMul = Float32Array.from(tintMulTmp);
   const baseColor = new Float32Array(COUNT * 3);
   for (let i = 0; i < COUNT; i++) {
     baseColor[i * 3] = colR[i];
@@ -261,10 +270,27 @@ export function createCrowd(scene, opts) {
   const fanSy = new Float32Array(COUNT);
   fanSy.fill(1);
 
+  // Write every instance's resting matrix once so no fan renders as a clump
+  // at the origin before its first (possibly parity-skipped) update pass.
+  for (let i = 0; i < COUNT; i++) {
+    const sxz = fScaleXZ[i];
+    const o = i * 16;
+    matArray[o] = sxz;    matArray[o + 1] = 0;  matArray[o + 2] = 0;  matArray[o + 3] = 0;
+    matArray[o + 4] = 0;  matArray[o + 5] = fScaleY[i]; matArray[o + 6] = 0;  matArray[o + 7] = 0;
+    matArray[o + 8] = 0;  matArray[o + 9] = 0;  matArray[o + 10] = sxz; matArray[o + 11] = 0;
+    matArray[o + 12] = baseX[i];
+    matArray[o + 13] = baseY[i];
+    matArray[o + 14] = baseZ[i];
+    matArray[o + 15] = 1;
+  }
+  mesh.instanceMatrix.needsUpdate = true;
+
   // --- Flags: small team-colored quads waving above ~4% of fans ---
   const FLAG_COUNT = flagFanTmp.length;
   const flagFan = Int32Array.from(flagFanTmp);
   const flagYaw = new Float32Array(FLAG_COUNT * 2); // cos,sin of fixed yaw
+  const flagPhase = new Float64Array(FLAG_COUNT);   // integrated wave phase (no aliasing)
+  const flagMul = new Float32Array(FLAG_COUNT);     // retint multiplier
   const flagGeo = new THREE.PlaneGeometry(1.0, 0.6);
   flagGeo.translate(0.5, 0, 0); // pivot at the held edge so Rz = waving
   const flagMat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
@@ -277,7 +303,9 @@ export function createCrowd(scene, opts) {
     const yaw = fAngle[i] + Math.PI / 2 + (rng() - 0.5) * 0.8; // roughly along the stand
     flagYaw[f * 2] = Math.cos(yaw);
     flagYaw[f * 2 + 1] = Math.sin(yaw);
-    tmpColor.copy(uSection[i] === 0 ? cA : cB).multiplyScalar(1.25 + rng() * 0.35);
+    flagPhase[f] = fPhase[i];
+    flagMul[f] = 1.25 + rng() * 0.35;
+    tmpColor.copy(uSection[i] === 0 ? cA : cB).multiplyScalar(flagMul[f]);
     flagMesh.setColorAt(f, tmpColor);
   }
   if (FLAG_COUNT > 0) scene.add(flagMesh);
@@ -287,6 +315,7 @@ export function createCrowd(scene, opts) {
   const SCARF_COUNT = scarfFanTmp.length;
   const scarfFan = Int32Array.from(scarfFanTmp);
   const scarfYaw = new Float32Array(SCARF_COUNT * 2);
+  const scarfMul = new Float32Array(SCARF_COUNT); // retint multiplier, -1 = white
   const scarfGeo = new THREE.BoxGeometry(1.15, 0.12, 0.05);
   const scarfMat = new THREE.MeshBasicMaterial();
   const scarfMesh = new THREE.InstancedMesh(scarfGeo, scarfMat, Math.max(SCARF_COUNT, 1));
@@ -299,8 +328,8 @@ export function createCrowd(scene, opts) {
     scarfYaw[f * 2] = Math.cos(yaw);
     scarfYaw[f * 2 + 1] = Math.sin(yaw);
     // Scarves are brighter than shirts: team color or white-ish halves.
-    if (rng() < 0.3) tmpColor.setRGB(0.85, 0.85, 0.9);
-    else tmpColor.copy(uSection[i] === 0 ? cA : cB).multiplyScalar(1.1 + rng() * 0.4);
+    if (rng() < 0.3) { scarfMul[f] = -1; tmpColor.setRGB(0.85, 0.85, 0.9); }
+    else { scarfMul[f] = 1.1 + rng() * 0.4; tmpColor.copy(uSection[i] === 0 ? cA : cB).multiplyScalar(scarfMul[f]); }
     scarfMesh.setColorAt(f, tmpColor);
   }
   if (SCARF_COUNT > 0) scene.add(scarfMesh);
@@ -321,6 +350,8 @@ export function createCrowd(scene, opts) {
   let waveActive = false;
   let waveAngle = 0;         // current wave front angle
   let waveTravelled = 0;     // radians covered (stop after one lap)
+  let waveAmp = 0;           // global amplitude envelope 0..1 (fade in/out)
+  let waveDying = false;     // fading out (lap complete or event kill)
 
   // Chant blocks (4 ultras sections, ids 0..3). Each runs 5–10s bounce
   // bursts; the gap between bursts shrinks as excitement rises.
@@ -333,16 +364,31 @@ export function createCrowd(scene, opts) {
   // colors are temporarily blown out to white, restored next frame.
   const FLASH_POOL = 48;
   const flashIdx = new Int32Array(FLASH_POOL).fill(-1);
+  const flashTTL = new Float32Array(FLASH_POOL); // remaining life in seconds
 
-  function restoreFlashes() {
+  // Tick flash lifetimes down; restore expired ones. Returns true if any
+  // colors changed. A flash lives ~0.1s so it reads as a real phone flash
+  // instead of a 1-frame shimmer.
+  function decayFlashes(dt) {
+    let dirty = false;
     for (let f = 0; f < FLASH_POOL; f++) {
       const i = flashIdx[f];
       if (i < 0) continue;
+      flashTTL[f] -= dt;
+      if (flashTTL[f] > 0) continue;
       colArray[i * 3] = baseColor[i * 3];
       colArray[i * 3 + 1] = baseColor[i * 3 + 1];
       colArray[i * 3 + 2] = baseColor[i * 3 + 2];
       flashIdx[f] = -1;
+      dirty = true;
     }
+    return dirty;
+  }
+
+  function igniteFlash(f, i) {
+    flashIdx[f] = i;
+    flashTTL[f] = 0.07 + Math.random() * 0.06;
+    colArray[i * 3] = 2.5; colArray[i * 3 + 1] = 2.5; colArray[i * 3 + 2] = 2.5;
   }
 
   // -------------------------------------------------------------------
@@ -363,20 +409,24 @@ export function createCrowd(scene, opts) {
     const eventBusy = t < goalEnd || t < gaspEnd;
     if (!waveActive && !eventBusy && t >= nextWaveAt) {
       waveActive = true;
+      waveDying = false;
+      waveAmp = 0;
       waveAngle = Math.random() * TWO_PI;
       waveTravelled = 0;
     }
     if (waveActive) {
-      if (eventBusy) { // a goal kills the wave instantly
+      waveAngle += WAVE_SPEED * dt;
+      waveTravelled += WAVE_SPEED * dt;
+      // a goal fades the wave out fast; a completed lap fades it out gently —
+      // either way the standing band ramps down instead of teleporting.
+      if (eventBusy || waveTravelled >= TWO_PI) waveDying = true;
+      waveAmp += waveDying ? -dt / (eventBusy ? 0.25 : 0.7) : dt / 0.7;
+      if (waveAmp >= 1) waveAmp = 1;
+      else if (waveAmp <= 0) {
+        waveAmp = 0;
         waveActive = false;
+        waveDying = false;
         nextWaveAt = t + WAVE_MIN_GAP + Math.random() * (WAVE_MAX_GAP - WAVE_MIN_GAP);
-      } else {
-        waveAngle += WAVE_SPEED * dt;
-        waveTravelled += WAVE_SPEED * dt;
-        if (waveTravelled >= TWO_PI + WAVE_HALF_WIDTH * 2) {
-          waveActive = false;
-          nextWaveAt = t + WAVE_MIN_GAP + Math.random() * (WAVE_MAX_GAP - WAVE_MIN_GAP);
-        }
       }
     }
 
@@ -424,10 +474,11 @@ export function createCrowd(scene, opts) {
 
     // Scarves rise on excitement and goals, settle slowly when calm.
     const scarfTarget = Math.min(1, excitement * 1.2 + goalEnvCoarse * 1.5);
-    scarfRaise += (scarfTarget - scarfRaise) * Math.min(1, dt * (scarfTarget > scarfRaise ? 5 : 1.2));
+    scarfRaise += (scarfTarget - scarfRaise) * (1 - Math.exp(-(scarfTarget > scarfRaise ? 5 : 1.2) * dt));
 
     const idleAmp = 0.05 + 0.1 * excitement; // ambient bob amplitude
     const wAngle = waveAngle % TWO_PI;
+    const wEnv = waveAmp * waveAmp * (3 - 2 * waveAmp); // C1 wave fade envelope
 
     // Half-rate idling: when nothing is happening, only touch fans whose
     // index parity matches the frame parity. The skipped half keeps last
@@ -462,8 +513,8 @@ export function createCrowd(scene, opts) {
         if (ad < WAVE_HALF_WIDTH) {
           const k = Math.cos((ad / WAVE_HALF_WIDTH) * Math.PI * 0.5); // 1 at front
           const part = sitter ? 0.45 : 1.0; // half-hearted sitters
-          yOff += 0.55 * k * part;
-          sy += (sitter ? 0.35 : 0.55) * k * part; // stand + arms-up stretch
+          yOff += 0.55 * k * part * wEnv;
+          sy += (sitter ? 0.35 : 0.55) * k * part * wEnv; // stand + arms-up stretch
         }
       }
 
@@ -484,12 +535,16 @@ export function createCrowd(scene, opts) {
           if (sect === sadSection) {
             // Despair: stillness + slump... except the arm-throwers, who
             // spike tall (arms up in disbelief) then sag below baseline.
-            const ds = Math.min(1, (t - fDelay[i] - goalStart) / DESPAIR_DUR);
-            yOff *= 0.15; xLean *= 0.3;
+            // dEnv eases the whole act in (~0.4s) and out (~0.7s) so nothing
+            // engages or releases as a step when the window opens/closes.
+            const el = t - fDelay[i] - goalStart;
+            const ds = Math.min(1, el / DESPAIR_DUR);
+            const dEnv = Math.min(1, el / 0.4, (GOAL_DUR - el) / 0.7);
+            yOff *= 1 - 0.85 * dEnv; xLean *= 1 - 0.7 * dEnv;
             if (fl & 2) {
-              sy += ds < 0.15 ? (ds / 0.15) * 0.4 : 0.4 - (ds - 0.15) / 0.85 * 0.65;
+              sy += (ds < 0.15 ? (ds / 0.15) * 0.4 : 0.4 - (ds - 0.15) / 0.85 * 0.65) * dEnv;
             } else {
-              sy -= 0.18 * Math.min(1, ds * 4) * (1 - ds * 0.3) * (sitter ? 0.6 : 1.0);
+              sy -= 0.18 * Math.min(1, ds * 4) * (1 - ds * 0.3) * (sitter ? 0.6 : 1.0) * dEnv;
             }
           } else {
             const boost = sect === goalSection ? 2.0 : 1.0;
@@ -512,10 +567,14 @@ export function createCrowd(scene, opts) {
             sy += k * 0.2 * sitFac;
           } else {
             const settle = 1 - (ge - 0.35) / (GASP_DUR - 0.35); // 1 → 0
-            yOff += settle * 0.5 * (0.7 + 0.3 * vg) * sitFac * 0.4;
-            // grumble: fast small jitter that decays as they sit back down
-            yOff += Math.sin(t * 14 + ph * 3) * 0.05 * settle * vg;
-            xLean += Math.sin(t * 9 + ph) * 0.05 * settle;
+            // settle² starts exactly at the rise peak and eases down — no pop
+            const s2 = settle * settle;
+            yOff += s2 * 0.5 * (0.7 + 0.3 * vg) * sitFac;
+            sy += s2 * 0.2 * sitFac;
+            // grumble: fast small jitter, zero at both ends of the settle
+            const gj = settle * (1 - settle) * 4;
+            yOff += Math.sin(t * 14 + ph * 3) * 0.05 * gj * vg;
+            xLean += Math.sin(t * 9 + ph) * 0.05 * gj;
           }
         }
       }
@@ -548,11 +607,14 @@ export function createCrowd(scene, opts) {
       const frenzy = goalEnvCoarse > 0 && uSection[i] === goalSection ? goalEnvCoarse : 0;
       const wSpeed = 2.2 + fSpeed[i] + frenzy * 9;
       const wAmp = 0.18 + 0.1 * excitement + frenzy * 0.55;
-      const roll = Math.sin(t * wSpeed + ph) * wAmp;
+      // integrate phase (phase += ω·dt) so frequency ramps (goal frenzy)
+      // shift smoothly instead of aliasing sin(t·ω) into a strobe
+      const fp = flagPhase[f] += wSpeed * dt;
+      const roll = Math.sin(fp) * wAmp;
       const cz = Math.cos(roll), sz = Math.sin(roll);
       const cy = flagYaw[f * 2], syaw = flagYaw[f * 2 + 1];
       // cloth "breathes": x-scale pulses out of phase with the roll
-      const sx = 0.78 + 0.22 * Math.sin(t * wSpeed * 1.3 + ph * 2);
+      const sx = 0.78 + 0.22 * Math.sin(fp * 1.3 + ph);
       const o = f * 16;
       // M = T * Rz(roll) * Ry(yaw) * Sx — column-major
       flagMat4[o] = sx * cz * cy;       flagMat4[o + 1] = sx * sz * cy;  flagMat4[o + 2] = -sx * syaw; flagMat4[o + 3] = 0;
@@ -570,12 +632,13 @@ export function createCrowd(scene, opts) {
       const i = scarfFan[f];
       const ph = fPhase[i];
       const raise = scarfRaise * (0.6 + 0.4 * fVigor[i]);
-      const vis = raise > 0.06 ? 1 : 0; // hidden (scale 0) when lowered
       // side-to-side sway while held up, like the whole end singing
       const roll = Math.sin(t * 2.6 + ph * 0.5) * 0.35 * raise;
       const cz = Math.cos(roll), sz = Math.sin(roll);
       const cy = scarfYaw[f * 2], syaw = scarfYaw[f * 2 + 1];
-      const s = vis * (0.5 + 0.5 * raise);
+      // scale grows smoothly from zero as the scarf comes up (no pop-in)
+      const q = Math.min(1, raise * 4);
+      const s = q * q * (3 - 2 * q) * (0.5 + 0.5 * raise);
       const o = f * 16;
       scarfMat4[o] = s * cz * cy;   scarfMat4[o + 1] = s * sz * cy;  scarfMat4[o + 2] = -s * syaw; scarfMat4[o + 3] = 0;
       scarfMat4[o + 4] = -s * sz;   scarfMat4[o + 5] = s * cz;       scarfMat4[o + 6] = 0;         scarfMat4[o + 7] = 0;
@@ -588,29 +651,31 @@ export function createCrowd(scene, opts) {
     if (SCARF_COUNT > 0) scarfMesh.instanceMatrix.needsUpdate = true;
 
     // ---- phone/camera flashes ----
-    // Restore last frame's flashed instances, then blow out a fresh handful:
-    // dense in the scoring end during eruptions, a rare twinkle elsewhere.
-    let colorsDirty = false;
-    for (let f = 0; f < FLASH_POOL; f++) if (flashIdx[f] >= 0) { colorsDirty = true; break; }
-    restoreFlashes();
+    // Age out lit flashes, then ignite new ones into free pool slots. Spawn
+    // chances are rates (* dt) so density is frame-rate independent: dense in
+    // the scoring end during eruptions, a rare twinkle elsewhere.
+    let colorsDirty = decayFlashes(dt);
     if (goalEnvCoarse > 0.15) {
       const scoring = goalSection === 0 ? sect0 : sect1;
       for (let f = 0; f < FLASH_POOL; f++) {
-        if (Math.random() > goalEnvCoarse * 0.8) continue; // density follows the envelope
+        if (flashIdx[f] >= 0) continue; // slot still lit
+        if (Math.random() > goalEnvCoarse * 8 * dt) continue; // density follows the envelope
         // 75% of flashes concentrate in the scoring end, the rest scatter
         const i = Math.random() < 0.75
           ? scoring[(Math.random() * scoring.length) | 0]
           : (Math.random() * COUNT) | 0;
-        flashIdx[f] = i;
-        colArray[i * 3] = 2.5; colArray[i * 3 + 1] = 2.5; colArray[i * 3 + 2] = 2.5;
+        igniteFlash(f, i);
+        colorsDirty = true;
       }
-      colorsDirty = true;
-    } else if (Math.random() < 0.04 + excitement * 0.1) {
+    } else if (Math.random() < (2.4 + excitement * 6) * dt) {
       // ambient: the odd phone flash somewhere in the dark
-      const i = (Math.random() * COUNT) | 0;
-      flashIdx[0] = i;
-      colArray[i * 3] = 2.5; colArray[i * 3 + 1] = 2.5; colArray[i * 3 + 2] = 2.5;
-      colorsDirty = true;
+      for (let f = 0; f < FLASH_POOL; f++) {
+        if (flashIdx[f] < 0) {
+          igniteFlash(f, (Math.random() * COUNT) | 0);
+          colorsDirty = true;
+          break;
+        }
+      }
     }
     if (colorsDirty) mesh.instanceColor.needsUpdate = true;
   }
@@ -618,12 +683,40 @@ export function createCrowd(scene, opts) {
   return {
     update,
 
-    /** Goal scored by `team` (=== opts.teamA or opts.teamB). 4.5s eruption
-     *  in the scoring end, 4s despair slump in the conceding end. */
+    /** Goal scored by `team` (current fixture team set via setTeams, or the
+     *  build-time opts.teamA/teamB sentinels). 4.5s eruption in the scoring
+     *  end, 4s despair slump in the conceding end. */
     onGoal(team) {
-      goalSection = team === teamA ? 0 : 1;
+      goalSection = team === curA ? 0 : team === curB ? 1 : team === teamA ? 0 : 1;
       sadSection = 1 - goalSection;
       goalStart = lastT; goalEnd = goalStart + GOAL_DUR;
+    },
+
+    /** Retint crowd bodies, flags and scarves for a new fixture (call when
+     *  matches rotate teams). Layout/archetypes stay fixed — no rebuild. */
+    setTeams(a, b) {
+      if (!a || !b) return;
+      curA = a; curB = b;
+      cA.set(a.color); cB.set(b.color);
+      for (let i = 0; i < COUNT; i++) {
+        const tt = tintTeam[i];
+        if (tt < 0) continue;
+        tmpColor.copy(tt === 0 ? cA : cB).multiplyScalar(tintMul[i]);
+        baseColor[i * 3] = tmpColor.r; baseColor[i * 3 + 1] = tmpColor.g; baseColor[i * 3 + 2] = tmpColor.b;
+        colArray[i * 3] = tmpColor.r; colArray[i * 3 + 1] = tmpColor.g; colArray[i * 3 + 2] = tmpColor.b;
+      }
+      mesh.instanceColor.needsUpdate = true;
+      for (let f = 0; f < FLAG_COUNT; f++) {
+        tmpColor.copy(uSection[flagFan[f]] === 0 ? cA : cB).multiplyScalar(flagMul[f]);
+        flagMesh.setColorAt(f, tmpColor);
+      }
+      if (FLAG_COUNT > 0) flagMesh.instanceColor.needsUpdate = true;
+      for (let f = 0; f < SCARF_COUNT; f++) {
+        if (scarfMul[f] < 0) continue; // white-ish scarves stay white
+        tmpColor.copy(uSection[scarfFan[f]] === 0 ? cA : cB).multiplyScalar(scarfMul[f]);
+        scarfMesh.setColorAt(f, tmpColor);
+      }
+      if (SCARF_COUNT > 0) scarfMesh.instanceColor.needsUpdate = true;
     },
 
     /** Shot just wide / off the bar — sharp rise, then grumbling settle. */

@@ -79,7 +79,12 @@ export function createDribbling(opts = {}) {
   function pickCarryDir(carrier, defenders, out) {
     const attackDir = -carrier.dir;
     // Aim at goal mouth, not the corner flag: target x = attackDir*32, z -> 0-ish.
-    _toGoal.set(attackDir * 32 - carrier.pos.x, 0, -carrier.pos.z * 0.4).normalize();
+    _toGoal.set(attackDir * 32 - carrier.pos.x, 0, -carrier.pos.z * 0.4);
+    // On the goal line near z=0 this degenerates to (0,0,0) and THREE's
+    // normalize keeps it zero — a dead touch that stops the ball in front of
+    // goal. Fall back to straight at goal.
+    if (_toGoal.lengthSq() < 1e-6) _toGoal.set(attackDir, 0, 0);
+    _toGoal.normalize();
 
     let bestAngle = 0;
     let bestScore = Infinity;
@@ -158,7 +163,10 @@ export function createDribbling(opts = {}) {
       else exitDir.copy(_exit);                                             // roulette: spin, keep going
       // Victim sent the wrong way.
       victim.stagger = 0.6 + rng() * 0.3;
-      if (rng() < FALL_CHANCE) victim.fallT = 0.9; // juked out of his boots
+      // Juked out of his boots: the host's fall pose ramps from fallT >= 1.15
+      // (kf = (1.15 - fallT) / 0.3) — anything lower snaps him mid-fall in one
+      // frame. Match the collision/slide paths and clear the stagger wobble.
+      if (rng() < FALL_CHANCE) { victim.fallT = Math.max(victim.fallT, 1.15 + rng() * 0.1); victim.stagger = 0; }
     } else {
       // Botched it — ball pops off at a bad angle, roughly into the defender.
       _tmp.subVectors(victim.pos, carrier.pos).normalize();

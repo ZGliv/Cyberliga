@@ -28,6 +28,12 @@
 //     reorganize (the counter). The losing team's nearest players swarm the
 //     ball immediately (counter-press), then everyone collapses into shape.
 //
+// Every per-frame role election in here (supporters, width-holder, presser,
+// cover, danger man) is STICKY: the incumbent keeps the job until a challenger
+// beats him by a clear margin. Bare per-frame argmins made 10m-apart
+// assignments ping-pong every frame — the single biggest source of the
+// "players hover at midpoints / reverse direction" look.
+//
 // Coordinates: pitch x ∈ [-32,32] (length), z ∈ [-20,20] (width).
 // A team with dir = -1 defends x=-32 and attacks toward +x; dir = +1 the
 // opposite. Goal mouth is z ∈ [-4.5, 4.5].
@@ -47,12 +53,13 @@ const _c = new THREE.Vector3();
 const _d = new THREE.Vector3();
 const _lane = new THREE.Vector3();
 
-// Persistent target vectors per player so the intents Map never allocates.
-const _targets = new WeakMap();
-function targetOf(p) {
-  let t = _targets.get(p);
-  if (!t) { t = new THREE.Vector3(); _targets.set(p, t); }
-  return t;
+// Persistent {target, urgency} wrapper per player so the intents Map never
+// allocates — neither the Vector3 nor the wrapper object.
+const _intentPool = new WeakMap();
+function intentOf(p) {
+  let it = _intentPool.get(p);
+  if (!it) { it = { target: new THREE.Vector3(), urgency: 0 }; _intentPool.set(p, it); }
+  return it;
 }
 
 export function createTactics(opts = {}) {
@@ -63,10 +70,21 @@ export function createTactics(opts = {}) {
   let transitionT = 0;           // counts down from 2s after a turnover
   let transitionWinner = null;   // team that just won the ball
   let planClock = 0;             // time since the carrier last re-planned
-  let planInterval = 0.4;        // randomized 0.3–0.5s per decision
+  let planInterval = 0.8;        // randomized 0.6–1.0s per decision
   let currentPlan = null;        // committed plan (returned until re-plan)
   let currentCarrier = null;     // who the plan belongs to
+  let pendingCarrier = null;     // opponent who must hold the ball briefly
+  let pendingT = 0;              //   before we surrender the current plan
+  let lostT = 0;                 // grace timer while no carrier is elected
+  let simT = 0;                  // slow clock for off-ball sway (NOT stride rate)
   const intents = new Map();     // reused every frame
+
+  // sticky role assignments
+  let sup1 = null, sup2 = null, supTeam = null;  // support-triangle pair
+  const supSide = new WeakMap();                 // latched triangle side per player
+  let flank = null, flankTeam = null;            // width-holder
+  let rPresser = null, rCover = null, rDanger = null, rPressSide = 1, rTeam = null;
+  const lineMem = new Map();                     // team -> smoothed back-line depth
 
   // =========================================================================
   // helpers
@@ -106,6 +124,9 @@ export function createTactics(opts = {}) {
       if (depth > deepest) { second = deepest; deepest = depth; }
       else if (depth > second) second = depth;
     }
+    // degenerate squads (send-offs): fall back to the deepest man, then to a
+    // line just off the goal — never ±1e9 (it pinned forwards to the pitch edge)
+    if (second < -1e8) second = deepest > -1e8 ? deepest : HALF_W - 1;
     return second * defDir; // back to world x
   }
 
@@ -171,8 +192,10 @@ export function createTactics(opts = {}) {
   //   3. lane safety — is the path actually open,
   //   risk — losing the ball in your own third concedes goals, so safety
   //          matters most there and least near their goal.
+  // stickyMate (the previously committed receiver) gets a small bonus so the
+  // chosen target doesn't re-roll on every re-plan over a near-tie.
   // =========================================================================
-  function evaluatePasses(players, carrier, phase, out) {
+  function evaluatePasses(players, carrier, phase, out, stickyMate) {
     const dir = carrier.dir;
     out.best = null; out.bestScore = -1e9;
     const riskWeight = phase === 'buildup' ? 2.4 : phase === 'progression' ? 1.2 : 0.5;
@@ -201,6 +224,7 @@ export function createTactics(opts = {}) {
       // Patience bias: in build-up, short safe passes beat hero balls.
       let score = progression + space - risk * riskWeight;
       if (phase === 'buildup' && dist < 12 && safe) score += 3;
+      if (mate === stickyMate && !(mate.fallT > 0)) score += 2; // commitment hysteresis
       // In the final third, reward balls into the box / behind the line.
       const line = defensiveLineX(players, opTeam(players, carrier.team), -dir);
       const behindLine = ax(_b.x, dir) > ax(line, dir);
@@ -239,28 +263,35 @@ export function createTactics(opts = {}) {
 
   // =========================================================================
   // CARRIER PLAN
+  // prev = the previous committed plan (or null). Stochastic components (aim
+  // side, clearance z, through-ball lead) are inherited from prev so a re-plan
+  // refines the idea instead of rolling a new one — the carrier stops
+  // dithering and the watchdog snap-kick stops firing.
   // =========================================================================
-  function makePlan(players, carrier) {
+  function makePlan(players, carrier, prev) {
     const dir = carrier.dir;
     const phase = phaseOf(carrier.pos.x, dir);
     const gx = attackX(dir);
     const press = nearestOpponentDist(players, carrier.team, carrier.pos);
-    const passes = evaluatePasses(players, carrier, phase, _passOut);
+    const prevMate = prev && prev.type === 'pass' ? prev.mate : null;
+    const passes = evaluatePasses(players, carrier, phase, _passOut, prevMate);
 
     // Panic clearance: deep in our own third, under heavy pressure, no safe
     // pass — just put it in row Z. Defending 101.
     if (phase === 'buildup' && press < 2.2 && (!passes.best || passes.bestScore < 0)) {
+      const clearZ = prev && prev.type === 'clear' ? prev.aimPoint.z : (rng() - 0.5) * 30;
       return {
         type: 'clear',
-        aimPoint: new THREE.Vector3(gx * 0.4, 0, (rng() - 0.5) * 30),
+        aimPoint: new THREE.Vector3(gx * 0.4, 0, clearZ),
         technique: 'clearance', power: 0.85 + rng() * 0.15, curve: 0,
-        holdMs: 0,
+        holdMs: 0, _press: press,
       };
     }
 
     // Shot vs pass in the final third: shoot when the look beats the ball.
     const sv = shotValue(players, carrier);
-    if (phase === 'final' && sv > 0.22 && sv * 14 > passes.bestScore) {
+    const wasShot = prev && prev.type === 'shoot';
+    if (phase === 'final' && sv > 0.22 && sv * 14 + (wasShot ? 2 : 0) > passes.bestScore) {
       const dist = Math.hypot(gx - carrier.pos.x, carrier.pos.z);
       const keeper = keeperOf(players, carrier.team, true);
       const offLine = keeper ? Math.abs(keeper.pos.x - keeper.dir * HALF_W) : 0;
@@ -269,31 +300,38 @@ export function createTactics(opts = {}) {
       else if (dist > 14 && dist < 23 && Math.abs(carrier.pos.z) > 3) {
         technique = 'curler'; power = 0.82 + rng() * 0.12;
         curve = Math.sign(carrier.pos.z) * -dir; // bend it back toward the far post
-      } else if (dist > 18 && carrier.flair > 0.6 && rng() < 0.3) {
+      } else if (dist > 18 && carrier.flair > 0.6 && (wasShot ? prev.technique === 'screamer' : rng() < 0.3)) {
         technique = 'screamer'; power = 1;
       }
-      // aim inside a post, biased away from the keeper
-      let aimZ = (rng() < 0.5 ? -1 : 1) * (GOAL_HALF - 1.1);
-      if (keeper) aimZ = keeper.pos.z > 0 ? -(GOAL_HALF - 1.1) : (GOAL_HALF - 1.1);
+      // aim inside a post, biased away from the keeper; keep the chosen post
+      // between re-plans so the aim doesn't flip side every decision
+      let aimZ;
+      if (keeper && Math.abs(keeper.pos.z) > 0.4) aimZ = keeper.pos.z > 0 ? -(GOAL_HALF - 1.1) : (GOAL_HALF - 1.1);
+      else if (wasShot) aimZ = Math.sign(prev.aimPoint.z || 1) * (GOAL_HALF - 1.1);
+      else aimZ = (rng() < 0.5 ? -1 : 1) * (GOAL_HALF - 1.1);
       return {
         type: 'shoot',
         aimPoint: new THREE.Vector3(gx, 0, aimZ),
         technique, power, curve,
         holdMs: press < 2 ? 0 : 120, // no time to set yourself under pressure
+        _press: press,
       };
     }
 
     // Carry when there's open grass AND it progresses better than passing,
     // unless we're being pressed (then move the ball, not the feet).
+    // The previous decision is worth ±2 points — carry<->pass must not
+    // alternate over a near-constant tie on every re-plan.
     const room = press > 2.4 ? carryRoom(players, carrier) : null;
-    const carryGain = room ? 5 + carrier.flair * 3 : -1e9;
+    let carryGain = room ? 5 + carrier.flair * 3 : -1e9;
+    if (room && prev) carryGain += prev.type === 'carry' ? 2 : prev.type === 'pass' ? -2 : 0;
     if (room && carryGain > passes.bestScore && phase !== 'buildup') {
       return {
         type: 'carry',
         carryDir: room.clone(),
         aimPoint: new THREE.Vector3().copy(carrier.pos).addScaledVector(room, 5),
         technique: 'pass', power: 0.3, curve: 0,
-        holdMs: 0,
+        holdMs: 0, _press: press,
       };
     }
 
@@ -302,9 +340,12 @@ export function createTactics(opts = {}) {
       const mate = passes.best;
       const aim = passes.aim.clone();
       let technique = 'pass', power = THREE.MathUtils.clamp(passes.dist / 22, 0.3, 0.85), curve = 0;
+      let lead = 0;
       if (passes.through) {
-        // through ball: aim 3–6m into the space AHEAD of the runner
-        aim.x += -dir * (3 + rng() * 3);
+        // through ball: aim 3–6m into the space AHEAD of the runner (the lead
+        // is rolled once per committed target, not per re-plan)
+        lead = (prev && prev.type === 'pass' && prev.mate === mate && prev._lead) ? prev._lead : 3 + rng() * 3;
+        aim.x += -dir * lead;
         aim.z = THREE.MathUtils.lerp(aim.z, aim.z * 0.8, 0.5); // angle slightly inward
         technique = 'driven'; power = THREE.MathUtils.clamp(aim.distanceTo(carrier.pos) / 20, 0.5, 0.95);
       } else if (phase === 'final' && Math.abs(carrier.pos.z) > 11) {
@@ -317,6 +358,7 @@ export function createTactics(opts = {}) {
       return {
         type: 'pass', mate, aimPoint: aim, technique, power, curve,
         holdMs: press < 2 ? 60 : 180 + rng() * 200, // scan time when unpressured = patience
+        _press: press, _lead: lead, _through: passes.through,
       };
     }
 
@@ -326,7 +368,7 @@ export function createTactics(opts = {}) {
       type: 'carry',
       carryDir: fallback ? fallback.clone() : new THREE.Vector3(0, 0, carrier.pos.z >= 0 ? -1 : 1),
       aimPoint: carrier.pos.clone(),
-      technique: 'pass', power: 0.3, curve: 0, holdMs: 0,
+      technique: 'pass', power: 0.3, curve: 0, holdMs: 0, _press: press,
     };
   }
 
@@ -334,50 +376,78 @@ export function createTactics(opts = {}) {
   // OFF-BALL MOVEMENT
   // =========================================================================
   function setIntent(p, x, z, urgency) {
-    const t = targetOf(p);
-    t.set(
+    const it = intentOf(p);
+    it.target.set(
       THREE.MathUtils.clamp(x, -HALF_W + 0.6, HALF_W - 0.6), 0,
       THREE.MathUtils.clamp(z, -HALF_H + 0.6, HALF_H - 0.6));
-    intents.set(p, { target: t, urgency });
+    it.urgency = urgency;
+    intents.set(p, it);
   }
 
   function attackingIntents(players, ball, team, carrier, phase) {
-    const dir = carrier ? carrier.dir : null;
+    const dir = carrier ? carrier.dir : teamDir(players, team);
     const oppTeam = opTeam(players, team);
     const anchor = carrier ? carrier.pos : ball.pos;
     // offside line we must respect until the ball is played
-    const line = dir != null ? defensiveLineX(players, oppTeam, -dir) : 0;
+    const line = defensiveLineX(players, oppTeam, -dir);
 
     // rank teammates by distance to the carrier for triangle support
-    let near1 = null, near2 = null, d1 = 1e9, d2 = 1e9;
-    let farFlank = null, fw = -1;
+    let c1 = null, c2 = null, d1 = 1e9, d2 = 1e9, dSup1 = 1e9, dSup2 = 1e9;
+    let flankCand = null, fw = -1;
     for (const p of players) {
       if (p.team !== team || p.role === 'GK' || p === carrier) continue;
       const d = p.pos.distanceTo(anchor);
-      if (d < d1) { d2 = d1; near2 = near1; d1 = d; near1 = p; }
-      else if (d < d2) { d2 = d; near2 = p; }
+      if (p === sup1) dSup1 = d;
+      if (p === sup2) dSup2 = d;
+      if (d < d1) { d2 = d1; c2 = c1; d1 = d; c1 = p; }
+      else if (d < d2) { d2 = d; c2 = p; }
       const w = Math.abs(p.pos.z - anchor.z);
-      if (Math.sign(p.pos.z || 1) !== Math.sign(anchor.z || 1) && w > fw) { fw = w; farFlank = p; }
+      if (Math.sign(p.pos.z || 1) !== Math.sign(anchor.z || 1) && w > fw) { fw = w; flankCand = p; }
     }
+
+    // STICKY SUPPORT PAIR: incumbents keep the job until a challenger is a
+    // clear 2m closer (or they become invalid). Each supporter LATCHES his
+    // triangle side at election — no more mirror-jumps when the ranking swaps.
+    if (supTeam !== team) { sup1 = null; sup2 = null; supTeam = team; }
+    if (sup1 && (sup1 === carrier || sup1.team !== team || !players.includes(sup1))) sup1 = null;
+    if (sup2 && (sup2 === carrier || sup2 === sup1 || sup2.team !== team || !players.includes(sup2))) sup2 = null;
+    let cand = c1 !== sup2 ? c1 : c2, candD = c1 !== sup2 ? d1 : d2;
+    if (cand && cand !== sup1 && (!sup1 || candD < dSup1 - 2)) {
+      sup1 = cand;
+      if (supSide.get(sup1) === undefined) supSide.set(sup1, sup1.pos.z >= anchor.z ? 1 : -1);
+    }
+    cand = c1 !== sup1 ? c1 : c2; candD = c1 !== sup1 ? d1 : d2;
+    if (cand && cand !== sup1 && cand !== sup2 && (!sup2 || candD < dSup2 - 2)) {
+      sup2 = cand;
+      if (supSide.get(sup2) === undefined) supSide.set(sup2, sup2.pos.z >= anchor.z ? 1 : -1);
+    }
+    // the pair must flank the carrier on opposite sides
+    if (sup1 && sup2 && supSide.get(sup1) === supSide.get(sup2)) supSide.set(sup2, -supSide.get(sup1));
+
+    // STICKY WIDTH-HOLDER: don't reassign just because the carrier crossed the
+    // centerline — only when play has clearly moved onto the flank's side.
+    if (flankTeam !== team) { flank = null; flankTeam = team; }
+    if (flank && (flank === carrier || flank.team !== team || !players.includes(flank))) flank = null;
+    if (flank && Math.abs(anchor.z) > 2 && Math.sign(flank.pos.z || 1) === Math.sign(anchor.z)) flank = null;
+    if (flankCand && flankCand !== sup1 && flankCand !== sup2 &&
+        (!flank || fw > Math.abs(flank.pos.z - anchor.z) + 2)) flank = flankCand;
 
     for (const p of players) {
       if (p.team !== team || p.role === 'GK' || p === carrier) continue;
       const adir = p.dir; // same as carrier's
-      const gx = attackX(adir);
 
-      if (p === near1 || p === near2) {
-        // SUPPORT TRIANGLES: stand 6–10m from the carrier at 35–50° off his
+      if (p === sup1 || p === sup2) {
+        // SUPPORT TRIANGLES: stand ~8m from the carrier at ~±40° off his
         // facing so he always has two angled outlets (a straight-behind man
         // is in his blind spot; a straight-ahead man shares his defender).
-        const side = p === near1 ? 1 : -1;
-        const ang = (40 + 8 * Math.sin(p.stridePhase || 0)) * Math.PI / 180 * side;
+        // The angle sways on a slow per-player clock — NOT stride frequency.
+        const side = supSide.get(p) || 1;
+        const ang = (40 + 8 * Math.sin(simT * 0.4 + (p.phase || 0))) * Math.PI / 180 * side;
         const faceX = -adir; // carrier roughly faces goal
-        const cos = Math.cos(ang), sin = Math.sin(ang);
-        const ox = faceX * cos * 8, oz = sin * 8 + faceX * 0; // rotate facing by ±~40°
-        setIntent(p, anchor.x + ox, anchor.z + oz * (anchor.z > 0 ? -1 : 1) * side * side + sin * 8 * side, 0.55);
+        setIntent(p, anchor.x + faceX * Math.cos(ang) * 8, anchor.z + Math.sin(ang) * 8, 0.55);
         continue;
       }
-      if (p === farFlank) {
+      if (p === flank) {
         // MAX WIDTH: one player always hugs the far touchline. Defenses are
         // narrow by instinct; width forces them to choose between center
         // and flank — that choice is where space comes from.
@@ -402,20 +472,36 @@ export function createTactics(opts = {}) {
     }
   }
 
-  function defendingIntents(players, ball, team, carrier, counterPress) {
+  function defendingIntents(players, ball, team, carrier, counterPress, dt) {
     // dir of the defending team
     let defDir = 0;
     for (const p of players) if (p.team === team) { defDir = p.dir; break; }
-    const ownGoalX = defDir * HALF_W;
 
-    // who presses, who covers
-    let presser = null, cover = null, d1 = 1e9, d2 = 1e9;
+    if (rTeam !== team) { rPresser = null; rCover = null; rDanger = null; rTeam = team; }
+
+    // who presses, who covers — STICKY: the incumbent keeps his role until a
+    // challenger is clearly (1.5m) closer, so two near-equidistant defenders
+    // stop swapping press/cover targets every frame.
+    let c1 = null, c2 = null, d1 = 1e9, d2 = 1e9, dPress = 1e9, dCov = 1e9;
     for (const p of players) {
       if (p.team !== team || p.role === 'GK') continue;
       const d = p.pos.distanceTo(ball.pos);
-      if (d < d1) { d2 = d1; cover = presser; d1 = d; presser = p; }
-      else if (d < d2) { d2 = d; cover = p; }
+      if (p === rPresser) dPress = d;
+      if (p === rCover) dCov = d;
+      if (d < d1) { d2 = d1; c2 = c1; d1 = d; c1 = p; }
+      else if (d < d2) { d2 = d; c2 = p; }
     }
+    if (rPresser && dPress === 1e9) rPresser = null; // left the squad
+    if (c1 && c1 !== rPresser && (!rPresser || d1 < dPress - 1.5)) {
+      rPresser = c1;
+      // latch the press-curve side for this engagement — re-rolled only on
+      // re-election, never when the presser crosses the ball's z mid-run
+      rPressSide = ball.pos.z > rPresser.pos.z ? -1 : 1;
+    }
+    if (rCover === rPresser || (rCover && dCov === 1e9)) rCover = null;
+    const covCand = c1 === rPresser ? c2 : c1;
+    const covCandD = c1 === rPresser ? d2 : d1;
+    if (covCand && covCand !== rPresser && covCand !== rCover && (!rCover || covCandD < dCov - 1.5)) rCover = covCand;
 
     // PRESSING TRIGGERS: a heavy touch (ball escapes the carrier's feet) or a
     // backward pass in their own third is the cue to spring — the moment the
@@ -424,51 +510,64 @@ export function createTactics(opts = {}) {
     if (carrier && ball.pos.distanceTo(carrier.pos) > 1.5) trigger = true;
     if (carrier && (ball.vel.x * -carrier.dir) < -2 && phaseOf(ball.pos.x, carrier.dir) === 'buildup') trigger = true;
 
-    // most dangerous outlet = the attacker most advanced toward our goal with space
-    let danger = null, dscore = -1e9;
+    // most dangerous outlet — sticky: a challenger must beat the incumbent by
+    // a clear margin before the cover man re-aims at someone 10m away
+    let dangCand = null, dScore = -1e9, dIncScore = -1e9;
     for (const q of players) {
       if (q.team === team || q.role === 'GK' || q === carrier) continue;
       const s = q.pos.x * defDir + Math.min(nearestOpponentDist(players, q.team, q.pos), 8) * 0.5;
-      if (s > dscore) { dscore = s; danger = q; }
+      if (q === rDanger) dIncScore = s;
+      if (s > dScore) { dScore = s; dangCand = q; }
     }
+    if (rDanger && dIncScore === -1e9) rDanger = null;
+    if (dangCand && (!rDanger || dScore > dIncScore + 3)) rDanger = dangCand;
 
-    const lineX = (() => {
-      // OFFSIDE LINE: defenders stay level with the deepest threat, but STEP
-      // UP when the ball moves backward — squeezing the space attackers can
-      // legally occupy. This is what a real back line does in unison.
-      let deepest = 0;
-      for (const q of players) {
-        if (q.team === team || q.role === 'GK') continue;
-        deepest = Math.max(deepest, q.pos.x * defDir);
-      }
-      let lx = Math.min(deepest, Math.abs(ball.pos.x * defDir) + 6);
-      if (ball.vel.x * defDir < -1.5) lx -= 3; // ball going away from our goal → step up
-      return THREE.MathUtils.clamp(lx, 2, HALF_W - 4) * defDir;
-    })();
+    // OFFSIDE LINE: defenders stay level with the deepest threat, but STEP
+    // UP when the ball moves backward — squeezing the space attackers can
+    // legally occupy. The step-up is continuous in ball speed and the line is
+    // low-passed per team, so a single carry touch can't square-wave the
+    // whole back four ±3m at touch cadence.
+    let deepest = 0;
+    for (const q of players) {
+      if (q.team === team || q.role === 'GK') continue;
+      deepest = Math.max(deepest, q.pos.x * defDir);
+    }
+    let lx = Math.min(deepest, Math.abs(ball.pos.x * defDir) + 6);
+    lx -= 3 * THREE.MathUtils.clamp((-ball.vel.x * defDir - 0.5) / 3, 0, 1); // ball going away → step up
+    lx = THREE.MathUtils.clamp(lx, 2, HALF_W - 4);
+    let lm = lineMem.get(team);
+    if (!lm) { lm = { x: lx }; lineMem.set(team, lm); }
+    lm.x += (lx - lm.x) * (1 - Math.exp(-2.5 * dt));
+    const lineX = lm.x * defDir;
+
+    // counter-press radius shrinks over the transition window so the swarm
+    // peels off one by one instead of all snapping back to shape at once
+    const cpR = counterPress > 0 ? 12 * Math.min(1, transitionT * 0.5) : 0;
 
     for (const p of players) {
       if (p.team !== team || p.role === 'GK') continue;
 
-      if (p === presser || (counterPress && p.pos.distanceTo(ball.pos) < 12)) {
+      if (p === rPresser || (cpR > 0 && p.pos.distanceTo(ball.pos) < cpR)) {
         // CURVED PRESS: approach from slightly goal-side so the carrier's easy
         // forward option is your body. Pressing straight on invites a knock
         // past you; pressing on a curve herds them sideways or backward.
         _a.subVectors(ball.pos, p.pos);
         const d = _a.length();
         const curveOff = THREE.MathUtils.clamp(d * 0.35, 0.5, 3);
+        const side = p === rPresser ? rPressSide : (ball.pos.z > p.pos.z ? -1 : 1);
         setIntent(p,
           ball.pos.x + defDir * Math.min(1.2, d * 0.2),           // arrive goal-side
-          ball.pos.z + (ball.pos.z > p.pos.z ? -1 : 1) * curveOff * 0.4,
-          trigger || counterPress ? 1 : 0.8);
+          ball.pos.z + side * curveOff * 0.4,
+          trigger ? 1 : 0.8 + 0.2 * counterPress);
         continue;
       }
-      if (p === cover && danger && carrier) {
+      if (p === rCover && rDanger && carrier) {
         // COVER THE LANE: stand on the segment carrier → most dangerous
         // outlet, closer to the outlet. Cutting one lane forces the slower,
         // safer pass — which buys the whole team time to shift.
         setIntent(p,
-          carrier.pos.x + (danger.pos.x - carrier.pos.x) * 0.65,
-          carrier.pos.z + (danger.pos.z - carrier.pos.z) * 0.65,
+          carrier.pos.x + (rDanger.pos.x - carrier.pos.x) * 0.65,
+          carrier.pos.z + (rDanger.pos.z - carrier.pos.z) * 0.65,
           trigger ? 0.95 : 0.7);
         continue;
       }
@@ -489,6 +588,7 @@ export function createTactics(opts = {}) {
   function update(dt, world) {
     const { players, ball, possessionTeam, carrier } = world;
     intents.clear();
+    simT += dt;
 
     // ---- transition tracking: did the ball change hands? ----
     if (possessionTeam && prevPossession && possessionTeam !== prevPossession) {
@@ -499,47 +599,100 @@ export function createTactics(opts = {}) {
     if (possessionTeam) prevPossession = possessionTeam;
     transitionT = Math.max(0, transitionT - dt);
 
-    // ---- carrier decision, with commitment (re-plan every 0.3–0.5s) ----
+    // A "carrier" on the non-possessing team is a tackler mid-duel, not a
+    // playmaker — team geometry (phase, offside line, FWD runs) must never
+    // flip sign on him. He gets no plan; the host's no-idle carry moves him
+    // forward in HIS direction until his first touch flips possession.
+    const effCarrier = (carrier && possessionTeam && carrier.team !== possessionTeam) ? null : carrier;
+
+    // ---- carrier decision, with commitment + identity-swap grace ----
     planClock += dt;
     let plan = null;
-    if (carrier) {
-      const press = nearestOpponentDist(players, carrier.team, carrier.pos);
+    if (effCarrier) {
+      lostT = 0;
+      const press = nearestOpponentDist(players, effCarrier.team, effCarrier.pos);
       // pressure shortens the thinking window — you decide faster when hunted
-      const interval = press < 2.5 ? planInterval * 0.5 : planInterval;
-      if (carrier !== currentCarrier || planClock >= interval) {
-        currentPlan = makePlan(players, carrier);
-        currentCarrier = carrier;
-        planClock = 0;
-        planInterval = 0.3 + rng() * 0.2;
-      } else if (currentPlan && currentPlan.type === 'pass' && currentPlan.mate) {
-        // keep the committed choice but refresh the lead on the runner
-        const m = currentPlan.mate;
-        const flight = m.pos.distanceTo(carrier.pos) / 14;
-        currentPlan.aimPoint.copy(m.pos).addScaledVector(m.vel, flight);
+      const interval = press < 2.5 ? Math.max(0.25, planInterval * 0.5) : planInterval;
+      if (effCarrier !== currentCarrier) {
+        if (currentPlan && currentCarrier && currentCarrier.team === effCarrier.team) {
+          // a teammate took over in the scramble: adopt the plan (the game
+          // state is the same), with a soft re-plan shortly after
+          currentCarrier = effCarrier;
+          pendingCarrier = null;
+          planClock = Math.min(planClock, Math.max(0, interval - 0.15));
+        } else if (!currentPlan || !currentCarrier) {
+          currentCarrier = effCarrier;
+          currentPlan = makePlan(players, effCarrier, null);
+          planClock = 0; planInterval = 0.6 + rng() * 0.4;
+          pendingCarrier = null;
+        } else {
+          // an opponent is on the ball: hold our plan until he is clearly
+          // established — kills the 60Hz re-roll thrash in contested duels
+          if (pendingCarrier !== effCarrier) { pendingCarrier = effCarrier; pendingT = 0; }
+          pendingT += dt;
+          if (pendingT >= 0.12) {
+            currentCarrier = effCarrier;
+            currentPlan = makePlan(players, effCarrier, null);
+            planClock = 0; planInterval = 0.6 + rng() * 0.4;
+            pendingCarrier = null;
+          }
+        }
       }
-      plan = currentPlan;
+      if (effCarrier === currentCarrier && currentPlan) {
+        pendingCarrier = null;
+        const m = currentPlan;
+        // early re-plan only when the situation MATERIALLY changes
+        const mateDown = m.type === 'pass' && m.mate && ((m.mate.fallT || 0) > 0 || !players.includes(m.mate));
+        const pressArrived = m._press !== undefined && m._press >= 2.5 && press < 1.6;
+        const laneClosed = m.type === 'pass' && m.mate && planClock > 0.25 &&
+          !laneIsSafe(players, effCarrier.team, effCarrier.pos, m.aimPoint);
+        if (planClock >= interval || mateDown || pressArrived || laneClosed) {
+          currentPlan = makePlan(players, effCarrier, mateDown ? null : currentPlan);
+          planClock = 0;
+          planInterval = 0.6 + rng() * 0.4;
+        } else if (m.type === 'pass' && m.mate) {
+          // keep the committed choice but refresh the lead on the runner
+          const flight = m.mate.pos.distanceTo(effCarrier.pos) / 14;
+          m.aimPoint.copy(m.mate.pos).addScaledVector(m.mate.vel, flight);
+          if (m._through && m._lead) m.aimPoint.x += -effCarrier.dir * m._lead;
+        }
+        plan = currentPlan;
+      }
     } else {
-      currentPlan = null; currentCarrier = null;
+      // no eligible carrier (ball rolling between touches, or a cross-team
+      // duel): hold the plan briefly — every carry touch pushes the ball over
+      // the host's carrier speed gate, and re-rolling per stride was thrash
+      pendingCarrier = null;
+      lostT += dt;
+      if (lostT > 1.0) { currentPlan = null; currentCarrier = null; }
     }
 
     // ---- off-ball intents for every outfielder ----
     const attTeam = possessionTeam;
     if (attTeam) {
-      const phase = carrier ? phaseOf(carrier.pos.x, carrier.dir) : phaseOf(ball.pos.x, teamDir(players, attTeam));
+      const phase = effCarrier ? phaseOf(effCarrier.pos.x, effCarrier.dir)
+                               : phaseOf(ball.pos.x, teamDir(players, attTeam));
       const defTeam = opTeam(players, attTeam);
       const countering = transitionT > 0 && transitionWinner === attTeam;
-      const counterPressing = transitionT > 0 && transitionWinner === attTeam; // losers counter-press
+      // eased transition blend: ramps in/out over ~0.4s instead of snapping an
+      // urgency-1 override onto half the pitch in a single frame
+      const transW = transitionT > 0
+        ? Math.min(1, (2.0 - transitionT) / 0.4) * Math.min(1, transitionT / 0.4)
+        : 0;
 
-      attackingIntents(players, ball, attTeam, carrier, phase);
-      if (countering) {
-        // COUNTER: for 2s, forwards ignore patience and sprint in behind.
+      attackingIntents(players, ball, attTeam, effCarrier, phase);
+      if (countering && transW > 0) {
+        // COUNTER: forwards ignore patience and sprint in behind.
         for (const p of players) {
           if (p.team !== attTeam || p.role !== 'FWD') continue;
           const it = intents.get(p);
-          if (it) { it.target.x = attackX(p.dir) * 0.8; it.urgency = 1; }
+          if (it) {
+            it.target.x += (attackX(p.dir) * 0.8 - it.target.x) * transW;
+            it.urgency += (1 - it.urgency) * transW;
+          }
         }
       }
-      if (defTeam) defendingIntents(players, ball, defTeam, carrier, counterPressing && transitionT > 0);
+      if (defTeam) defendingIntents(players, ball, defTeam, effCarrier, countering ? transW : 0, dt); // losers counter-press
     } else {
       // loose ball, no possession: both teams defend their shape, nearest men chase
       for (const p of players) {

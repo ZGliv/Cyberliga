@@ -119,6 +119,8 @@ export function createPresentation() {
 
   const queue = [];
   let showing = false;
+  let liveCard = null;
+  let holdTimer = 0, outTimer = 0;
 
   function renderCard({ kind, title, subtitle, color }) {
     const card = document.createElement('div');
@@ -156,19 +158,29 @@ export function createPresentation() {
   }
 
   function playNext() {
-    const ev = queue.shift();
+    // drop entries that went stale waiting in line — a card must caption the
+    // play on screen, not one from ten seconds ago
+    let ev;
+    while ((ev = queue.shift())) {
+      const age = performance.now() - (ev._t || 0);
+      if (ev.kind === 'skill' && age > 4000) continue;
+      if (age > 9000) continue;
+      break;
+    }
     if (!ev) { showing = false; return; }
     showing = true;
     const card = renderCard(ev);
+    liveCard = card;
     layer.appendChild(card);
     // slide in on next frame so the transition fires
     requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add('in')));
     const hold = ev.kind === 'skill' ? 2000 : 3500;
-    setTimeout(() => {
+    holdTimer = setTimeout(() => {
       card.classList.remove('in');
       card.classList.add('out');
-      setTimeout(() => {
+      outTimer = setTimeout(() => {
         card.remove();
+        if (liveCard === card) liveCard = null;
         playNext();
       }, 300);
     }, hold);
@@ -176,8 +188,29 @@ export function createPresentation() {
 
   function showEvent(ev) {
     if (!ev || !ev.kind) return;
+    ev._t = performance.now();
+    // a newer skill card supersedes any still waiting in the queue
+    if (ev.kind === 'skill') {
+      for (let i = queue.length - 1; i >= 0; i--) if (queue[i].kind === 'skill') queue.splice(i, 1);
+    }
     queue.push(ev);
     if (!showing) playNext();
+  }
+
+  /** Flush the queue and slide out the live card — call at match boundaries
+   *  so stale cards never leak into the next fixture. */
+  function clear() {
+    queue.length = 0;
+    clearTimeout(holdTimer);
+    clearTimeout(outTimer);
+    if (liveCard) {
+      const card = liveCard;
+      liveCard = null;
+      card.classList.remove('in');
+      card.classList.add('out');
+      setTimeout(() => card.remove(), 350);
+    }
+    showing = false;
   }
 
   // ============ COMMENTARY LINE BANKS ============
@@ -265,5 +298,5 @@ export function createPresentation() {
     },
   };
 
-  return { showEvent, lines };
+  return { showEvent, clear, lines };
 }

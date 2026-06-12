@@ -36,7 +36,7 @@ import * as THREE from 'three';
 
 export const SKILL_MOVES = ['stepover', 'bodyfeint', 'dragback', 'roulette'];
 
-const FLOATS_PER_PLAYER = 8;            // x, z, yaw, speed, kind, k, a, b
+const FLOATS_PER_PLAYER = 9;            // x, z, yaw, speed, kind, k, a, b, uid
 const HEADER = 6;                       // t, ballX, ballY, ballZ, ballMeshY, count
 
 export function createReplaySystem(opts = {}) {
@@ -50,6 +50,8 @@ export function createReplaySystem(opts = {}) {
   let head = 0;        // next write slot
   let count = 0;       // valid frames in ring
   let lastT = -1;
+  let nextUid = 1;     // stable per-player ids (stamped lazily as p._rsUid)
+  let stepSerial = 0;  // per-step stamp so unrecorded live players get idled
 
   // ---- clip state ----
   // clip = ordered list of ring row offsets (Int32Array, preallocated)
@@ -62,7 +64,9 @@ export function createReplaySystem(opts = {}) {
   let holdT = 0;       // phase C hold timer
   let phase = 'A';
   let goalSide = 1;    // which goal (x = ±32) the ball ended at
+  let camZ = -1;       // lateral camera side, picked ONCE per clip (never flips mid-replay)
   let camInit = false;
+  let cutDone = false; // step() snapped the camera to the aftermath framing (the cut)
   let orbitBase = new THREE.Vector3();   // cam offset captured at phase C entry
   let orbitTarget = new THREE.Vector3(); // hold target at phase C
 
@@ -126,6 +130,29 @@ export function createReplaySystem(opts = {}) {
       // guard against duplicate clocks (paused frames) producing 0-span intervals
       if (clock <= lastT) return;
       lastT = clock;
+      // detect recording gaps: record() only runs in 'play', so a foul/restart/
+      // replay leaves adjacent ring frames separated by a world teleport. The
+      // tell is the teleport ITSELF — ball or any player jumping farther than a
+      // 0.05s-clamped sim step allows — NOT wall-clock time: slow or hitchy
+      // frames inside continuous play must never wipe the ring (a wall-clock
+      // gap test killed every replay on machines that hitch past the timeout).
+      if (count > 0) {
+        const prev = rowAt(count - 1);
+        let jump = Math.hypot(ball.pos.x - buf[prev + 1], ball.pos.z - buf[prev + 3]) > 2.0;
+        const pn = Math.min(players.length, maxPlayers), qn = buf[prev + 5] | 0;
+        for (let i = 0; !jump && i < pn; i++) {
+          const uid = players[i]._rsUid;
+          if (!uid) continue;
+          for (let j = 0; j < qn; j++) {
+            const o = prev + HEADER + j * FLOATS_PER_PLAYER;
+            if (buf[o + 8] === uid) {
+              if (Math.hypot(players[i].pos.x - buf[o], players[i].pos.z - buf[o + 1]) > 1.6) jump = true;
+              break;
+            }
+          }
+        }
+        if (jump) count = 0; // unrecorded pause: start the ring fresh, never splice
+      }
       const base = head * ROW;
       const n = Math.min(players.length, maxPlayers);
       buf[base] = clock;
@@ -143,6 +170,7 @@ export function createReplaySystem(opts = {}) {
         const d = p._poseDesc;
         if (d) { buf[o + 4] = d.kind; buf[o + 5] = d.k; buf[o + 6] = d.a || 0; buf[o + 7] = d.b || 0; }
         else   { buf[o + 4] = 0; buf[o + 5] = 0; buf[o + 6] = 0; buf[o + 7] = 0; }
+        buf[o + 8] = p._rsUid || (p._rsUid = nextUid++);
       }
       head = (head + 1) % maxFrames;
       if (count < maxFrames) count++;
@@ -166,18 +194,23 @@ export function createReplaySystem(opts = {}) {
       if (clipLen < 12) return false;
       clipT0 = buf[clipRows[0]];
       clipDur = endT - clipT0;
-      playT = 0; playIdx = 0; holdT = 0; phase = 'A'; camInit = false;
+      playT = 0; playIdx = 0; holdT = 0; phase = 'A'; camInit = false; cutDone = false;
       const last = clipRows[clipLen - 1];
       _final.set(buf[last + 1], buf[last + 4], buf[last + 3]);
       goalSide = _final.x >= 0 ? 1 : -1;
+      // pick the touchline side ONCE from the clip's average ball z — the cam
+      // must never hop the pitch mid-replay when the ball crosses z=0
+      let zsum = 0;
+      for (let i = 0; i < clipLen; i++) zsum += buf[clipRows[i] + 3];
+      camZ = (zsum / clipLen) >= 0 ? -1 : 1;
       afterT = 0;
       return true;
     },
 
     /**
-     * Play back ONE frame. playersArr = the live players array (mapped by
-     * index, bounds-guarded — players sent off mid-clip simply hold their
-     * live position for the missing tail). ballMesh = ball.mesh.
+     * Play back ONE frame. playersArr = the live players array (matched by
+     * stable uid, so a mid-clip send-off never maps a recording onto the
+     * wrong body). ballMesh = ball.mesh.
      * out = { camPos: Vector3, camTarget: Vector3 } — mutated in place.
      * Returns { done, phase }.
      */
@@ -194,6 +227,23 @@ export function createReplaySystem(opts = {}) {
         holdT += dt;
       }
       phase = playT >= clipDur ? 'C' : (playT >= clipDur - PHASE_B_LEAD ? 'B' : 'A');
+      // rigs and ball spin must run on PLAYBACK time, not wall time, or feet
+      // slide at 1.5-2.2x during slow-mo; in the phase-C freeze they hold still
+      const pdt = atEnd ? 0 : dt * (inB ? 0.45 : 0.65);
+
+      // ---- done frame: hard broadcast cut ----
+      // Snap the camera straight to the aftermath framing and write nothing
+      // else. The host flips to 'aftermath' this same tick, animatePlayers
+      // restores every live transform, and the mass "teleport" back to the
+      // celebration lands exactly on the cut — never mid-shot.
+      if (holdT >= HOLD_DUR) {
+        const cx = _final.x - goalSide * 4, cz = _final.z;
+        const ang = goalSide > 0 ? Math.PI : 0;
+        out.camPos.set(cx + Math.cos(ang) * 4.5, 1.6, cz + Math.sin(ang) * 4.5);
+        out.camTarget.set(cx, 1.15, cz);
+        cutDone = true;
+        return { done: true, phase: 'C' };
+      }
 
       // ---- locate bracketing frames ----
       const simT = clipT0 + playT;
@@ -210,16 +260,29 @@ export function createReplaySystem(opts = {}) {
         THREE.MathUtils.lerp(buf[r0 + 3], buf[r1 + 3], al));
       // spin the ball with its captured horizontal velocity for visual continuity
       const bvx = (buf[r1 + 1] - buf[r0 + 1]) / span, bvz = (buf[r1 + 3] - buf[r0 + 3]) / span;
-      ballMesh.rotation.x += bvz * dt * 2;
-      ballMesh.rotation.z -= bvx * dt * 2;
+      ballMesh.rotation.x += bvz * pdt * 2;
+      ballMesh.rotation.z -= bvx * pdt * 2;
 
-      // ---- players: exact positions, yaws, speeds, AND poses ----
-      const n = Math.min(playersArr.length, buf[r0 + 5] | 0, buf[r1 + 5] | 0);
-      for (let i = 0; i < n; i++) {
-        const e = rigOf(playersArr[i]);
-        if (!e) continue;
+      // ---- players: exact positions, yaws, speeds, AND poses (by uid) ----
+      stepSerial++;
+      const n0 = Math.min(buf[r0 + 5] | 0, maxPlayers);
+      const n1 = Math.min(buf[r1 + 5] | 0, maxPlayers);
+      for (let i = 0; i < n0; i++) {
         const o0 = r0 + HEADER + i * FLOATS_PER_PLAYER;
-        const o1 = r1 + HEADER + i * FLOATS_PER_PLAYER;
+        const uid = buf[o0 + 8];
+        let p = null;
+        for (let j = 0; j < playersArr.length; j++)
+          if (playersArr[j]._rsUid === uid) { p = playersArr[j]; break; }
+        if (!p) continue; // sent off mid-window — no live body to puppet
+        p._rsStamp = stepSerial;
+        const e = rigOf(p);
+        if (!e) continue;
+        // match the same uid in f1 (slots shift if the array changed); hold f0 if gone
+        let o1 = o0;
+        for (let j = 0; j < n1; j++) {
+          const o = r1 + HEADER + ((i + j) % n1) * FLOATS_PER_PLAYER;
+          if (buf[o + 8] === uid) { o1 = o; break; }
+        }
         e.obj.position.set(
           THREE.MathUtils.lerp(buf[o0], buf[o1], al), 0,
           THREE.MathUtils.lerp(buf[o0 + 1], buf[o1 + 1], al));
@@ -237,29 +300,31 @@ export function createReplaySystem(opts = {}) {
           applyPose(e.rig, kind0, k, buf[o0 + 6], buf[o0 + 7]);
         }
         const spd = THREE.MathUtils.lerp(buf[o0 + 3], buf[o1 + 3], al);
-        e.rig.update(dt, THREE.MathUtils.clamp(spd / 7, 0, 1), undefined);
+        e.rig.update(pdt, atEnd ? 0 : THREE.MathUtils.clamp(spd / 7, 0, 1), undefined);
       }
-      // players beyond the recorded count (subbed in? impossible mid-match, but
-      // guard anyway): freeze them with an idle update so rigs don't T-pose
-      for (let i = n; i < playersArr.length; i++) {
+      // live players absent from the recording: hold them with an idle update
+      // so rigs don't T-pose
+      for (let i = 0; i < playersArr.length; i++) {
+        if (playersArr[i]._rsStamp === stepSerial) continue;
         const e = rigOf(playersArr[i]);
-        if (e) e.rig.update(dt, 0, undefined);
+        if (e) e.rig.update(pdt, 0, undefined);
       }
 
       // ---- broadcast direction ----
       const bp = ballMesh.position;
       if (phase === 'A') {
-        // low side cam leading the ball: positioned off the near touchline,
-        // slightly goal-side so the run plays INTO frame
+        // low side cam leading the ball: positioned off the clip's chosen
+        // touchline (camZ, fixed at startClip), slightly goal-side so the run
+        // plays INTO frame
         const px = bp.x + goalSide * 4.5;
-        const pz = bp.z + (bp.z >= 0 ? -9.5 : 9.5);
+        const pz = bp.z + camZ * 9.5;
         if (!camInit) { out.camPos.set(px, 2.1, pz); out.camTarget.set(bp.x, 0.9, bp.z); camInit = true; }
         damp(out.camPos, px, 2.1, pz, 3.0, dt);
         damp(out.camTarget, bp.x + goalSide * 2.5, 0.9, bp.z, 5.0, dt);
       } else if (phase === 'B') {
         // push in toward the goal mouth for the finish
         const px = goalSide * 23;
-        const pz = bp.z * 0.45 + (bp.z >= 0 ? -7 : 7);
+        const pz = bp.z * 0.45 + camZ * 7;
         damp(out.camPos, px, 1.7, pz, 2.2, dt);
         damp(out.camTarget, goalSide * 31, 1.1, bp.z * 0.4, 4.0, dt);
         camInit = true;
@@ -278,7 +343,7 @@ export function createReplaySystem(opts = {}) {
         out.camTarget.copy(orbitTarget);
       }
 
-      return { done: holdT >= HOLD_DUR, phase };
+      return { done: false, phase };
     },
 
     /**
@@ -289,13 +354,21 @@ export function createReplaySystem(opts = {}) {
      * Returns { done }.
      */
     aftermath(dt, scorer, out) {
+      const first = afterT === 0;
       afterT += dt;
       const cx = scorer ? scorer.pos.x : _final.x - goalSide * 4;
       const cz = scorer ? scorer.pos.z : _final.z;
       const ang = afterT * 0.55 + (goalSide > 0 ? Math.PI : 0); // slow arc, start facing the pitch
       const r = 4.5;
-      damp(out.camPos, cx + Math.cos(ang) * r, 1.6, cz + Math.sin(ang) * r, 4.0, dt);
-      damp(out.camTarget, cx, 1.15, cz, 6.0, dt);
+      if (first && !cutDone) {
+        // no cut happened (entered without a clip): snap so we never blend
+        // the camera across the replay→live boundary
+        out.camPos.set(cx + Math.cos(ang) * r, 1.6, cz + Math.sin(ang) * r);
+        out.camTarget.set(cx, 1.15, cz);
+      } else {
+        damp(out.camPos, cx + Math.cos(ang) * r, 1.6, cz + Math.sin(ang) * r, 4.0, dt);
+        damp(out.camTarget, cx, 1.15, cz, 6.0, dt);
+      }
       return { done: afterT >= AFTER_DUR };
     },
 
@@ -303,7 +376,7 @@ export function createReplaySystem(opts = {}) {
     reset() {
       head = 0; count = 0; lastT = -1;
       clipLen = 0; playT = 0; playIdx = 0; holdT = 0; afterT = 0;
-      camInit = false; orbitBase.set(0, 0, 0);
+      camInit = false; cutDone = false; orbitBase.set(0, 0, 0);
     },
   };
 }

@@ -18,10 +18,13 @@ import * as THREE from 'three';
 // -- Aerodynamics --
 const AIR_DRAG = 0.018;          // quadratic drag coefficient: a = -DRAG * |v| * v
 const MAGNUS_K = 0.026;          // Magnus accel = MAGNUS_K * (spin × vel).
-                                 //   full-power curler (~26 m/s, spin.y≈22 rad/s) gives
-                                 //   ~0.026*22*27 ≈ 15 m/s² lateral at launch, decaying with
-                                 //   spin → 3-6 m of bend over a 25 m flight.
-const MAGNUS_MAX_ACCEL = 60;     // clamp Magnus accel magnitude (stability at dt=0.05)
+                                 //   full-power curler (~17 m/s, spin.y≈14 rad/s) gives
+                                 //   ~0.026*14*17 ≈ 6 m/s² lateral at launch, decaying with
+                                 //   spin → 2-4 m of bend over a 20 m flight.
+const MAGNUS_MAX_ACCEL = 60;     // clamp Magnus accel magnitude (stability guard)
+const MAX_SUBSTEP = 1 / 120;     // fixed integration substep — a 21 m/s screamer moves
+                                 //   ~17 cm per substep instead of >1 m at the dt=0.05 clamp,
+                                 //   so it can't tunnel feet/keeper reach checks
 const SPIN_MAX = 40;             // rad/s hard cap on spin magnitude
 const SPIN_AIR_DECAY = 0.45;     // per-second exponential spin decay in flight
 
@@ -49,15 +52,20 @@ const BOUNCE_FRICTION = 0.88;    // horizontal velocity retained through a bounc
 // speed: launch speed at power=1 (m/s). loft: vertical fraction (vy = speed*loft adj).
 // top: topspin (+) / backspin (−) rad/s at power=1. side: sidespin rad/s (scaled by curve).
 // knuckle: chaos amount 0..1.
+// Speeds are sized so the HORIZONTAL pace at power=1 ≈ the host's per-technique
+// SPEED_CAPS (index.html updateKicks) — the old table launched 60%+ hot, the host
+// rescaled only the horizontal velocity, and the leftover full-power vy/spin made
+// every shot balloon and over-curl. Spin values are scaled down with the speeds
+// so the spin-to-speed ratios stay at their tuned pairings.
 const TECHNIQUES = {
-  pass:      { speed: 14, loft: 0.06, top:  4,  side: 0,  knuckle: 0 },
-  driven:    { speed: 26, loft: 0.10, top:  6,  side: 0,  knuckle: 0 },
-  lob:       { speed: 21, loft: 0.95, top: -14, side: 0,  knuckle: 0 },
-  chip:      { speed: 20, loft: 1.25, top: -22, side: 0,  knuckle: 0 },
-  curler:    { speed: 27, loft: 0.30, top: -4,  side: 22, knuckle: 0 },
-  screamer:  { speed: 30, loft: 0.16, top:  1,  side: 0,  knuckle: 1 },
-  cross:     { speed: 19, loft: 0.55, top: -8,  side: 14, knuckle: 0 },
-  clearance: { speed: 24, loft: 0.70, top: -6,  side: 0,  knuckle: 0 },
+  pass:      { speed: 12.5, loft: 0.06, top:  4,  side: 0,  knuckle: 0 },
+  driven:    { speed: 16,   loft: 0.10, top:  4,  side: 0,  knuckle: 0 },
+  lob:       { speed: 17,   loft: 0.95, top: -11, side: 0,  knuckle: 0 },
+  chip:      { speed: 18,   loft: 1.25, top: -20, side: 0,  knuckle: 0 },
+  curler:    { speed: 17,   loft: 0.30, top: -3,  side: 14, knuckle: 0 },
+  screamer:  { speed: 21,   loft: 0.16, top:  1,  side: 0,  knuckle: 1 },
+  cross:     { speed: 17.5, loft: 0.55, top: -7,  side: 13, knuckle: 0 },
+  clearance: { speed: 21,   loft: 0.70, top: -5,  side: 0,  knuckle: 0 },
 };
 const MIN_POWER = 0.25;          // power floor so a 0-power kick still moves the ball
 const LIFT_MOD_RANGE = 0.5;      // opts.lift remaps loft by ±50%
@@ -81,9 +89,15 @@ export function createBallFlight(opts = {}) {
   let knuckleDirX = 0, knuckleDirY = 0, knuckleDirZ = 0;
 
   function step(ball, dt) {
-    dt = Math.min(dt, 0.05);
-    if (dt <= 0) return;
+    dt = Math.min(dt, 0.05); // pause guard only — integration happens in substeps
+    while (dt > 1e-6) {
+      const h = dt > MAX_SUBSTEP ? MAX_SUBSTEP : dt;
+      substep(ball, h);
+      dt -= h;
+    }
+  }
 
+  function substep(ball, dt) {
     const grounded = ball.pos.y <= GROUND_Y + 1e-4 && ball.vel.y <= 0.001;
 
     // ---- Forces (airborne) ----
@@ -125,7 +139,7 @@ export function createBallFlight(opts = {}) {
         ball.knuckle = Math.max(0, ball.knuckle - KNUCKLE_DECAY * dt);
       }
 
-      // Semi-implicit Euler: stable at dt=0.05.
+      // Semi-implicit Euler at the fixed substep.
       ball.vel.addScaledVector(_accel, dt);
       ball.pos.addScaledVector(ball.vel, dt);
 
@@ -143,6 +157,14 @@ export function createBallFlight(opts = {}) {
         ball.vel.z *= scale;
         ball.pos.x += ball.vel.x * dt;
         ball.pos.z += ball.vel.z * dt;
+      } else if (hSpeed > 0.02) {
+        // under the roll threshold: bleed out exponentially (~0.1 s) instead of
+        // freezing mid-frame — no instant-stop snap
+        const f = Math.exp(-18 * dt);
+        ball.vel.x *= f;
+        ball.vel.z *= f;
+        ball.pos.x += ball.vel.x * dt;
+        ball.pos.z += ball.vel.z * dt;
       } else {
         ball.vel.x = 0;
         ball.vel.z = 0;
@@ -154,9 +176,12 @@ export function createBallFlight(opts = {}) {
 
     // ---- Ground bounce ----
     if (ball.pos.y < GROUND_Y && ball.vel.y < 0) {
-      ball.pos.y = GROUND_Y;
+      const pen = GROUND_Y - ball.pos.y; // sub-step penetration depth
       if (-ball.vel.y > BOUNCE_MIN_VY) {
         ball.vel.y = -ball.vel.y * RESTITUTION;
+        // rebound the overshoot instead of clamping to the plane — the ball never
+        // visibly clips into the turf for a frame
+        ball.pos.y = GROUND_Y + pen * RESTITUTION;
 
         // Spin↔velocity coupling at the contact patch.
         // Horizontal travel direction:
@@ -179,6 +204,7 @@ export function createBallFlight(opts = {}) {
         ball.spin.multiplyScalar(1 - BOUNCE_SPIN_LOSS);
       } else {
         // Too slow to bounce — settle into a roll.
+        ball.pos.y = GROUND_Y;
         ball.vel.y = 0;
       }
     }
@@ -189,7 +215,7 @@ export function createBallFlight(opts = {}) {
     }
   }
 
-  function kick(ball, { dir, power = 1, technique = 'pass', curve = 0, lift } = {}) {
+  function kick(ball, { dir, power = 1, technique = 'pass', curve = 0, lift, capSpeed } = {}) {
     const t = TECHNIQUES[technique] || TECHNIQUES.pass;
     const p = MIN_POWER + (1 - MIN_POWER) * Math.min(Math.max(power, 0), 1);
 
@@ -205,7 +231,7 @@ export function createBallFlight(opts = {}) {
       loft *= 1 + (Math.min(Math.max(lift, 0), 1) - 0.5) * 2 * LIFT_MOD_RANGE;
     }
 
-    const speed = t.speed * p;
+    let speed = t.speed * p;
     // Split speed into horizontal pace and vertical loft so total launch
     // speed stays ≈ technique speed regardless of loft.
     const ang = Math.atan(loft);
@@ -213,14 +239,29 @@ export function createBallFlight(opts = {}) {
     ball.vel.y = speed * Math.sin(ang);
 
     // Spin: topspin/backspin about the side axis, sidespin about world Y.
-    // curve > 0 bends toward (up × dir); curve < 0 bends the other way.
+    // curve > 0 bends toward (up × dir); curve < 0 bends the other way;
+    // curve 0 means NO sidespin — explicit zero is respected.
     const c = Math.min(Math.max(curve, -1), 1);
-    const sideSpin = t.side !== 0 ? t.side * (c !== 0 ? c : 1) * p : t.side * c * p;
     ball.spin.copy(_sideAxis).multiplyScalar(t.top * p);
-    ball.spin.y += (t.side !== 0 && c === 0 ? t.side * p : sideSpin);
+    ball.spin.y += t.side * c * p;
     if (ball.spin.lengthSq() > SPIN_MAX * SPIN_MAX) ball.spin.setLength(SPIN_MAX);
 
     ball.knuckle = t.knuckle * p;
+
+    // Optional host pace cap: scale the WHOLE launch — pace, loft and spin
+    // together — so a capped kick keeps a physically consistent flight instead
+    // of full-power loft/curl on a slowed ball.
+    if (capSpeed !== undefined) {
+      const hs = Math.hypot(ball.vel.x, ball.vel.z);
+      if (hs > capSpeed) {
+        const sc = capSpeed / hs;
+        ball.vel.multiplyScalar(sc);
+        ball.spin.multiplyScalar(sc);
+        ball.knuckle *= sc;
+        speed *= sc;
+      }
+    }
+
     knuckleTimer = 0; // re-roll wander direction immediately
 
     return { speed, technique };

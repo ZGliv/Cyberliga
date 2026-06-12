@@ -67,7 +67,11 @@ export function createStoryEngine() {
     dirty = 0;
     try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { /* quota / private mode */ }
   }
-  function touch() { if (++dirty >= 10) save(); }
+  // Mark state dirty but DON'T persist mid-match: apps only increments at
+  // full time, so a mid-match save followed by a refresh would keep partial
+  // goals with no appearance and permanently skew per-app averages. Career
+  // state hits localStorage only at endMatch()/reset().
+  function touch() { dirty++; }
 
   function P(name) { return S.players[name] || (S.players[name] = blankPlayer()); }
   function T(name) { return S.teams[name] || (S.teams[name] = { w: 0, d: 0, l: 0, streakType: '', streakN: 0 }); }

@@ -43,6 +43,7 @@ export function buildBlobRig({ kitColor, glowColor, isGK = false, captain = fals
 
   // frame-local pose intents, applied + decayed in update()
   let bobT = Math.random() * 6.28, tiltX = 0, leanZ = 0, lift = 0, squash = 1;
+  let liftS = 0, squashS = 1; // smoothed lift/squash actually applied to the mesh
   const setPose = (x, z, y = 0, s = 1) => { tiltX = x; leanZ = z; lift = y; squash = s; };
 
   const api = {
@@ -52,17 +53,24 @@ export function buildBlobRig({ kitColor, glowColor, isGK = false, captain = fals
     update(dt, speedNorm = 0, opts = {}) {
       bobT += dt * (4 + speedNorm * 8);
       const bob = Math.abs(Math.sin(bobT)) * speedNorm * 0.12;
-      body.position.y = 1.05 + bob + lift;
-      body.scale.set(1, squash, 1);
+      // ease lift/squash toward their targets like rotation, so t-driven
+      // poses starting mid-cycle slide in instead of teleporting the body
+      const ke = 1 - Math.exp(-14 * dt);
+      liftS += (lift - liftS) * ke;
+      squashS += (squash - squashS) * ke;
+      body.position.y = 1.05 + bob + liftS;
+      body.scale.set(1, squashS, 1);
       body.rotation.x = THREE.MathUtils.lerp(body.rotation.x,
         tiltX + (opts.accel || 0) * 0.18 + speedNorm * 0.1, 1 - Math.exp(-12 * dt));
       body.rotation.z = THREE.MathUtils.lerp(body.rotation.z,
         leanZ - (opts.turn || 0) * 0.2, 1 - Math.exp(-12 * dt));
       ring.material.opacity = 0.35 + speedNorm * 0.3;
-      // decay pose intents so un-posed frames return to neutral
-      tiltX *= 0.85; leanZ *= 0.85; lift *= 0.85; squash = 1 + (squash - 1) * 0.85;
+      // decay pose intents so un-posed frames return to neutral (dt-correct:
+      // 0.85 per 60Hz-frame equivalent, same feel at any refresh rate)
+      const d = Math.pow(0.85, dt * 60);
+      tiltX *= d; leanZ *= d; lift *= d; squash = 1 + (squash - 1) * d;
     },
-    clearOverlay() { setPose(0, 0, 0, 1); },
+    clearOverlay() { setPose(0, 0, 0, 1); liftS = 0; squashS = 1; },
     dispose() {
       g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
     },

@@ -68,38 +68,85 @@ function buildBallKid() {
 }
 
 // poses ---------------------------------------------------------------------
-function poseKneel(kid, swayT) {
-  const { legL, legR, armL, armR, torso } = kid.parts;
+// Each compute* writes channel TARGETS into a pooled object; applyKidPose
+// exp-smooths the kid's current channels toward them (frame-rate independent),
+// so kneel/run/carry/place transitions ease over ~0.2s instead of snapping.
+function computeKneel(o, swayT) {
   // kneeling: legs folded, body lowered, subtle idle sway
   const sway = Math.sin(swayT) * 0.05;
-  kid.group.children.forEach(() => {});
-  legL.rotation.x = -1.5; legR.rotation.x = -1.5;
-  armL.rotation.x = -0.25 + sway * 0.4; armR.rotation.x = -0.25 - sway * 0.4;
-  armL.rotation.z = 0.12; armR.rotation.z = -0.12;
-  torso.rotation.x = 0.1 + sway * 0.3;
-  kid.group.position.y = -0.32; // sunk so folded legs read as kneeling
-  kid.group.rotation.z = sway * 0.5;
+  o.legL = -1.5; o.legR = -1.5;
+  o.armLx = -0.25 + sway * 0.4; o.armRx = -0.25 - sway * 0.4;
+  o.armLz = 0.12; o.armRz = -0.12;
+  o.torso = 0.1 + sway * 0.3;
+  o.y = -0.32; // sunk so folded legs read as kneeling
+  o.rotZ = sway * 0.5;
 }
 
-function poseRun(kid, stridePhase, runK) {
-  const { legL, legR, armL, armR, torso } = kid.parts;
+function computeRun(o, stridePhase, runK) {
   const s = Math.sin(stridePhase), c = Math.sin(stridePhase + Math.PI);
-  legL.rotation.x = s * 0.85 * runK;
-  legR.rotation.x = c * 0.85 * runK;
-  armL.rotation.x = c * 0.7 * runK;   // arms counter-swing the legs
-  armR.rotation.x = s * 0.7 * runK;
-  armL.rotation.z = 0.1; armR.rotation.z = -0.1;
-  torso.rotation.x = 0.18 * runK;     // forward lean
-  kid.group.rotation.z = 0;
-  kid.group.position.y = Math.abs(Math.sin(stridePhase)) * 0.04 * runK; // bob
+  o.legL = s * 0.85 * runK;
+  o.legR = c * 0.85 * runK;
+  o.armLx = c * 0.7 * runK;   // arms counter-swing the legs
+  o.armRx = s * 0.7 * runK;
+  o.armLz = 0.1; o.armRz = -0.1;
+  o.torso = 0.18 * runK;      // forward lean
+  o.rotZ = 0;
+  o.y = Math.abs(Math.sin(stridePhase)) * 0.04 * runK; // bob
 }
 
-function poseCarry(kid, stridePhase, runK) {
-  poseRun(kid, stridePhase, runK);
-  const { armL, armR } = kid.parts;
+function computeCarry(o, stridePhase, runK) {
+  computeRun(o, stridePhase, runK);
   // both arms forward cradling the ball
-  armL.rotation.x = -1.1; armR.rotation.x = -1.1;
-  armL.rotation.z = 0.3; armR.rotation.z = -0.3;
+  o.armLx = -1.1; o.armRx = -1.1;
+  o.armLz = 0.3; o.armRz = -0.3;
+}
+
+function computePlace(o, kk) {
+  // standing still, bending to set the ball down (kk 0..1)
+  o.legL = 0; o.legR = 0;
+  o.armLx = -1.1 - kk * 0.5; o.armRx = -1.1 - kk * 0.5;
+  o.armLz = 0.3; o.armRz = -0.3;
+  o.torso = 0.18 + kk * 0.7;
+  o.y = -kk * 0.12; // slight dip into the bend
+  o.rotZ = 0;
+}
+
+const _kp = { legL: 0, legR: 0, armLx: 0, armRx: 0, armLz: 0, armRz: 0, torso: 0, y: 0, rotZ: 0 };
+
+function applyKidPose(kid, tgt, dt) {
+  const c = kid.poseCur, a = 1 - Math.exp(-16 * dt);
+  c.legL += (tgt.legL - c.legL) * a;   c.legR += (tgt.legR - c.legR) * a;
+  c.armLx += (tgt.armLx - c.armLx) * a; c.armRx += (tgt.armRx - c.armRx) * a;
+  c.armLz += (tgt.armLz - c.armLz) * a; c.armRz += (tgt.armRz - c.armRz) * a;
+  c.torso += (tgt.torso - c.torso) * a;
+  c.y += (tgt.y - c.y) * a;
+  c.rotZ += (tgt.rotZ - c.rotZ) * a;
+  const { legL, legR, armL, armR, torso } = kid.parts;
+  legL.rotation.x = c.legL; legR.rotation.x = c.legR;
+  armL.rotation.x = c.armLx; armR.rotation.x = c.armRx;
+  armL.rotation.z = c.armLz; armR.rotation.z = c.armRz;
+  torso.rotation.x = c.torso;
+  kid.group.position.y = c.y;
+  kid.group.rotation.z = c.rotZ;
+}
+
+// steering: capped jog with accel ramp + shortest-arc yaw ease (no 13 m/s
+// teleport-dashes, no instant pivots). Frame-rate independent smoothing.
+function moveKid(k, target, arriveDist, dt) {
+  const dx = target.x - k.pos.x, dz = target.z - k.pos.z;
+  const d = Math.hypot(dx, dz);
+  const want = d < arriveDist ? 0 : THREE.MathUtils.clamp(d / 0.9, 1.4, 7);
+  k.spd += (want - k.spd) * (1 - Math.exp(-8 * dt));
+  if (d < arriveDist) return true;
+  const step = Math.min(k.spd * dt, d);
+  k.pos.x += (dx / d) * step;
+  k.pos.z += (dz / d) * step;
+  let dyaw = Math.atan2(dx / d, dz / d) - k.yaw;
+  while (dyaw > Math.PI) dyaw -= Math.PI * 2;
+  while (dyaw < -Math.PI) dyaw += Math.PI * 2;
+  k.yaw += dyaw * (1 - Math.exp(-10 * dt));
+  k.stridePhase += k.spd * dt * 2.4; // same gait convention as the game
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -127,7 +174,11 @@ export function createBoundarySystem(scene, opts = {}) {
       yaw: Math.atan2(-post.x, -post.z),
       swayPhase: i * 1.7,
       stridePhase: 0,
+      spd: 0,
       busy: false,
+      goHome: false, // preempted mid-fetch: jog back to the post empty-handed
+      poseCur: { legL: -1.5, legR: -1.5, armLx: -0.25, armRx: -0.25,
+                 armLz: 0.12, armRz: -0.12, torso: 0.1, y: -0.32, rotZ: 0 },
     };
   });
 
@@ -239,90 +290,123 @@ export function createBoundarySystem(scene, opts = {}) {
     },
 
     summonFetch(spot, restartKind) {
-      if (fetch) return; // one fetch at a time
       const spotV = new THREE.Vector3(spot.x, 0, spot.z);
+      if (fetch) {
+        if (fetch.phase === 'going' || fetch.phase === 'carrying') {
+          // new dead ball mid-fetch: retarget the same kid at the new restart
+          fetch.spot.copy(spotV);
+          fetch.kind = restartKind;
+          return;
+        }
+        // placing/returning: that fetch is history — a stale one here is what
+        // made the next out-of-play teleport the ball. Send the kid home
+        // empty-handed and start a fresh fetch for the new ball.
+        fetch.kid.busy = false;
+        fetch.kid.goHome = true;
+        fetch = null;
+      }
       const kid = nearestIdleKid(spotV);
       if (!kid) return;
       kid.busy = true;
+      kid.goHome = false;
       fetch = {
         kid, kind: restartKind,
         spot: spotV,
         phase: 'going',
         ballPos: null,
         placeT: 0,
-        speed: 6, // refined per-leg in update() so the whole trip stays 2.5-4s
+        carryT: 0,
+        setT: 0,
+        grab: new THREE.Vector3(),
+        setFrom: new THREE.Vector3(),
       };
     },
 
     update(t, dt, ball) {
-      // idle kids: kneel + sway
+      // idle / homebound kids: kneel + sway, or jog back to the post
       for (const k of kids) {
         if (fetch && fetch.kid === k) continue;
+        if (k.goHome) {
+          if (moveKid(k, k.post, 0.35, dt)) k.goHome = false;
+          computeRun(_kp, k.stridePhase, 0.8);
+        } else {
+          // settle exactly onto the post and ease back to facing the pitch
+          const a = 1 - Math.exp(-2 * dt);
+          k.pos.x += (k.post.x - k.pos.x) * a;
+          k.pos.z += (k.post.z - k.pos.z) * a;
+          let dyaw = Math.atan2(-k.post.x, -k.post.z) - k.yaw;
+          while (dyaw > Math.PI) dyaw -= Math.PI * 2;
+          while (dyaw < -Math.PI) dyaw += Math.PI * 2;
+          k.yaw += dyaw * (1 - Math.exp(-6 * dt));
+          k.spd *= Math.exp(-8 * dt);
+          computeKneel(_kp, t * 1.1 + k.swayPhase);
+        }
         k.group.position.set(k.pos.x, 0, k.pos.z);
         k.group.rotation.y = k.yaw;
-        poseKneel(k, t * 1.1 + k.swayPhase);
+        applyKidPose(k, _kp, dt);
       }
       if (!fetch) return;
 
       const k = fetch.kid;
-      const moveTo = (target, arriveDist) => {
-        const d = Math.hypot(target.x - k.pos.x, target.z - k.pos.z);
-        if (d < arriveDist) return true;
-        // jog faster on long legs so total fetch stays short (2.5-4s flavor)
-        const speed = THREE.MathUtils.clamp(d / 0.9, 5, 13);
-        const nx = (target.x - k.pos.x) / d, nz = (target.z - k.pos.z) / d;
-        k.pos.x += nx * speed * dt;
-        k.pos.z += nz * speed * dt;
-        k.yaw = Math.atan2(nx, nz);
-        k.stridePhase += speed * dt * 2.4; // same gait convention as the game
-        k.group.position.set(k.pos.x, 0, k.pos.z);
-        k.group.rotation.y = k.yaw;
-        return false;
-      };
-
       if (fetch.phase === 'going') {
         // chase the LIVE ball — physics still runs, it may still be rolling
-        const arrived = moveTo(ball.pos, 0.55);
-        poseRun(k, k.stridePhase, 1);
+        const arrived = moveKid(k, ball.pos, 0.55, dt);
+        computeRun(_kp, k.stridePhase, 1);
         if (arrived && Math.hypot(ball.vel.x, ball.vel.z) < 3) {
           fetch.phase = 'carrying';
-          fetch.ballPos = new THREE.Vector3();
+          fetch.carryT = 0; fetch.setT = 0;
+          fetch.grab.copy(ball.pos); // scoop starts from where the ball rests
+          fetch.ballPos = new THREE.Vector3().copy(ball.pos);
         }
       } else if (fetch.phase === 'carrying') {
-        const arrived = moveTo(fetch.spot, 0.4);
-        poseCarry(k, k.stridePhase, 1);
-        // ball cradled at chest height in front of the kid
-        fetch.ballPos.set(
-          k.pos.x + Math.sin(k.yaw) * 0.35,
-          0.75,
-          k.pos.z + Math.cos(k.yaw) * 0.35,
-        );
-        if (arrived) {
-          fetch.phase = 'placing';
-          fetch.placeT = 0;
+        const arrived = moveKid(k, fetch.spot, 0.4, dt);
+        fetch.carryT += dt;
+        const cradleX = k.pos.x + Math.sin(k.yaw) * 0.35;
+        const cradleZ = k.pos.z + Math.cos(k.yaw) * 0.35;
+        if (!arrived) {
+          fetch.setT = 0;
+          computeCarry(_kp, k.stridePhase, 1);
+          // pick-up: lift the ball from the turf into the cradle over 0.25s
+          const kk = Math.min(fetch.carryT / 0.25, 1);
+          fetch.ballPos.set(
+            THREE.MathUtils.lerp(fetch.grab.x, cradleX, kk),
+            THREE.MathUtils.lerp(fetch.grab.y, 0.75, kk),
+            THREE.MathUtils.lerp(fetch.grab.z, cradleZ, kk));
+        } else {
+          // at the spot: bend and lower the ball to the turf BEFORE the phase
+          // flips to 'placing', so the host's snap-to-spot lands exactly where
+          // the ball already is — no chest-to-ground pop
+          if (fetch.setT === 0) fetch.setFrom.copy(fetch.ballPos);
+          fetch.setT += dt;
+          const kk = Math.min(fetch.setT / 0.4, 1);
+          computePlace(_kp, kk);
+          fetch.ballPos.set(
+            THREE.MathUtils.lerp(fetch.setFrom.x, fetch.spot.x, kk),
+            THREE.MathUtils.lerp(fetch.setFrom.y, BALL_R, kk),
+            THREE.MathUtils.lerp(fetch.setFrom.z, fetch.spot.z, kk));
+          if (fetch.setT > 0.45) { fetch.phase = 'placing'; fetch.placeT = 0; }
         }
       } else if (fetch.phase === 'placing') {
+        // ball is down on the spot — straighten back up
         fetch.placeT += dt;
-        // bend and set it down on the spot
-        const kk = Math.min(fetch.placeT / 0.35, 1);
-        k.parts.torso.rotation.x = 0.18 + kk * 0.7;
-        k.parts.armL.rotation.x = -1.1 - kk * 0.5;
-        k.parts.armR.rotation.x = -1.1 - kk * 0.5;
-        fetch.ballPos.set(fetch.spot.x, BALL_R + (1 - kk) * 0.5, fetch.spot.z);
-        if (fetch.placeT > 0.45) {
+        const kk = Math.min(fetch.placeT / 0.3, 1);
+        computePlace(_kp, 1 - kk);
+        fetch.ballPos.set(fetch.spot.x, BALL_R, fetch.spot.z);
+        if (fetch.placeT > 0.3) {
           fetch.phase = 'returning';
           fetch.ballPos = null;
         }
       } else if (fetch.phase === 'returning') {
-        const arrived = moveTo(k.post, 0.3);
-        poseRun(k, k.stridePhase, 0.8);
+        const arrived = moveKid(k, k.post, 0.35, dt);
+        computeRun(_kp, k.stridePhase, 0.8);
         if (arrived) {
-          k.pos.copy(k.post);
-          k.yaw = Math.atan2(-k.post.x, -k.post.z);
           k.busy = false;
           fetch = null;
         }
       }
+      k.group.position.set(k.pos.x, 0, k.pos.z);
+      k.group.rotation.y = k.yaw;
+      applyKidPose(k, _kp, dt);
     },
 
     fetchState() {

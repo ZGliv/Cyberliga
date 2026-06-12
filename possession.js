@@ -42,7 +42,8 @@ const SPRING_K = 9.0;         // spring stiffness toward sweet spot
 const SPRING_D = 5.0;         // damping on relative velocity
 const AWAY_DEAD_SPEED = 3.0;  // ball receding faster than this => deadzone (touch/poke in progress)
 const AWAY_DEAD_FADE = 1.5;   // fade width below the deadzone threshold
-const FACE_CONE_COS = 0.5;    // cos(60°)
+const FACE_ENTER_COS = 0.4;   // faceBall switches ON below this cos (~66°)
+const FACE_EXIT_COS  = 0.6;   // ...and OFF only above this (~53°) — hysteresis
 const BURST_MAX = 1.15;       // catch-up burst ceiling
 const SLOW_FLOOR = 0.25;      // never command a full stop — keep legs moving
 const SCALE_SMOOTH = 12;      // 1/s — speedScale smoothing rate (fast but unjittery)
@@ -62,7 +63,7 @@ export function createPossession(opts = {}) {
   const states = new WeakMap();
   function getState(c) {
     let s = states.get(c);
-    if (!s) { s = { scale: 1 }; states.set(c, s); }
+    if (!s) { s = { scale: 1, facing: false }; states.set(c, s); }
     return s;
   }
 
@@ -74,15 +75,21 @@ export function createPossession(opts = {}) {
     const s = getState(carrier);
 
     // ---- carrier frame ----
-    // motion direction: velocity if actually moving, else facing. Using the
-    // REAL velocity (not yaw, not the tactical target) is the fix for touches
-    // diverging from the carrier's path — corrections always reference where
-    // the body is actually going this frame.
+    // motion direction: BLEND facing -> velocity over spd 0.3..0.8 instead of
+    // switching at a hard threshold. Using the REAL velocity (not the tactical
+    // target) keeps corrections referenced to where the body actually goes;
+    // blending kills the ~1.6m sweet-spot jump (and the spring-direction snap)
+    // when a turning carrier crossed the old spd=0.5 switch.
     const spd = Math.hypot(carrier.vel.x, carrier.vel.z);
-    if (spd > 0.5) {
-      _dir.set(carrier.vel.x / spd, 0, carrier.vel.z / spd);
+    _fwd.set(Math.sin(carrier.yaw), 0, Math.cos(carrier.yaw));
+    const wVel = THREE.MathUtils.clamp((spd - 0.3) / 0.5, 0, 1);
+    if (wVel > 0) {
+      _dir.set(carrier.vel.x / spd, 0, carrier.vel.z / spd)
+        .multiplyScalar(wVel).addScaledVector(_fwd, 1 - wVel);
+      const dl = _dir.length();
+      if (dl > 1e-4) _dir.multiplyScalar(1 / dl); else _dir.copy(_fwd);
     } else {
-      _dir.set(Math.sin(carrier.yaw), 0, Math.cos(carrier.yaw));
+      _dir.copy(_fwd);
     }
     _right.set(_dir.z, 0, -_dir.x);
     _toBall.subVectors(ball.pos, carrier.pos); _toBall.y = 0;
@@ -92,9 +99,11 @@ export function createPossession(opts = {}) {
     _relVel.subVectors(ball.vel, carrier.vel); _relVel.y = 0;
     const recede = dist > 1e-4 ? _relVel.dot(_toBall) / dist : 0; // +away, -closing
 
-    // ---- faceBall: ball outside the +-60° cone of where the BODY faces ----
-    _fwd.set(Math.sin(carrier.yaw), 0, Math.cos(carrier.yaw));
-    out.faceBall = dist > 0.15 && (_fwd.dot(_toBall) / dist) < FACE_CONE_COS;
+    // ---- faceBall: ball outside the body's forward cone, with hysteresis so
+    // a ball sitting ON the cone edge can't toggle the torso every frame ----
+    const cosA = dist > 1e-4 ? _fwd.dot(_toBall) / dist : 1;
+    s.facing = s.facing ? cosA < FACE_EXIT_COS : cosA < FACE_ENTER_COS;
+    out.faceBall = dist > 0.15 && s.facing;
 
     // ---- speedScale: the overrun guard ----
     // Decompose the problem in the carrier's frame:
@@ -126,14 +135,18 @@ export function createPossession(opts = {}) {
     const wide = THREE.MathUtils.clamp((Math.abs(lateral) - 0.45) / 0.7, 0, 1);
     target *= 1 - 0.6 * wide * (1 - chaseGate);
     target = Math.max(target, SLOW_FLOOR);
-    // smooth — legs respond in ~80ms, not instantaneously
-    s.scale += (target - s.scale) * Math.min(1, SCALE_SMOOTH * dt);
+    // smooth — legs respond in ~80ms, not instantaneously (frame-rate safe)
+    s.scale += (target - s.scale) * (1 - Math.exp(-SCALE_SMOOTH * dt));
     out.speedScale = s.scale;
 
     // ---- ballAccel: continuous shepherding spring ----
-    // Hard deadzones first — when we must NOT touch the ball:
-    if (ball.pos.y > GROUNDED_Y) return out;                  // airborne
+    // Deadzones — when we must NOT touch the ball. Both FADE over a band
+    // instead of toggling the 8 m/s² spring on/off at a hard edge (a lightly
+    // bouncing or edge-of-range ball used to get a force pulse per crossing):
+    if (ball.pos.y > GROUNDED_Y + 0.2) return out;            // airborne
     if (dist > CARRY_RADIUS + 0.6) return out;                // not ours to nudge
+    const airGate = THREE.MathUtils.clamp((GROUNDED_Y + 0.2 - ball.pos.y) / 0.2, 0, 1);
+    const nearGate = THREE.MathUtils.clamp((CARRY_RADIUS + 0.6 - dist) / 0.4, 0, 1);
     // away-at-pace deadzone: a touch in progress or an opponent's poke.
     // Full strength when slow/closing, fading to zero as recede speed rises.
     // ...and direction-agnostic: a ball moving fast RELATIVE to the carrier in
@@ -158,7 +171,7 @@ export function createPossession(opts = {}) {
       .addScaledVector(_relVel, -SPRING_D);
     out.ballAccel.y = 0;
     const mag = out.ballAccel.length();
-    const scale = (mag > 1e-6 ? Math.min(1, ACCEL_MAX / mag) : 0) * awayGate * bandFade;
+    const scale = (mag > 1e-6 ? Math.min(1, ACCEL_MAX / mag) : 0) * awayGate * bandFade * airGate * nearGate;
     out.ballAccel.multiplyScalar(scale);
     return out;
   }
@@ -173,7 +186,10 @@ export function createPossession(opts = {}) {
   }
 
   function release(carrier) {
-    if (carrier) states.delete(carrier);
+    // Keep the smoothed per-carrier state: deleting it meant a braking carrier
+    // who re-acquired the ball snapped 0.25 -> 1 in one frame. Kept state lets
+    // the next acquisition RAMP from where the legs actually are (WeakMap, so
+    // departed players are still collected).
   }
 
   return { update, isCarrying, release };

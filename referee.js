@@ -100,38 +100,61 @@ export function createReferee(scene, opts = {}) {
   const bookings = new Map();               // key: name+teamName → yellow count
   let foulCooldown = 0;                     // seconds of game time until next foul possible
   let cardAnim = 0;                         // remaining seconds of arm-raise animation
+  let cardW = 0;                            // smoothed card-arm blend weight (no end pop)
   let foulSpot = null;                      // Vector3-ish {x,z} to sprint toward after a ruling
+  let ceremonyT = 0;                        // card theater: hold position, ignore crowding
 
   const target = new THREE.Vector3();
   const tmp = new THREE.Vector3();
+  const offDir = new THREE.Vector3(0, 0, 1); // persistent ball→standoff direction
+  let standSm = 11;                          // smoothed standoff distance
 
   function update(t, dt, ball, players) {
     foulCooldown = Math.max(0, foulCooldown - dt);
+    ceremonyT = Math.max(0, ceremonyT - dt);
 
     // ---- positioning AI ----
     // Classic referee diagonal: run roughly the bottom-left ↔ top-right line,
-    // staying 8-14m from the ball so he sees play without being in it.
+    // staying 10-14m from the ball so he sees play without being in it.
     if (foulSpot) {
       target.set(foulSpot.x, 0, foulSpot.z);
     } else {
-      // point on the diagonal nearest the ball, then back off ~11m from the ball
+      // point on the diagonal nearest the ball, backed off along a PERSISTENT
+      // smoothed direction — near midfield the raw ball→diagonal vector is
+      // near-zero and flips sign as the ball drifts across the diagonal, which
+      // used to swing the target 16-19m and march the ref through play.
       const dProj = clamp((ball.pos.x / HALF_W + ball.pos.z / HALF_H) * 0.5, -0.85, 0.85);
       target.set(dProj * (HALF_W - 5), 0, dProj * (HALF_H - 5));
       tmp.subVectors(target, ball.pos); tmp.y = 0;
-      const d = tmp.length() || 1;
-      const want = clamp(d, 8, 14);                 // keep 8-14m from the ball
-      target.copy(ball.pos).addScaledVector(tmp, want / d);
+      const d = tmp.length();
+      if (d > 3) { // direction is trustworthy: ease the held offset toward it
+        const a = 1 - Math.exp(-1.5 * dt);
+        offDir.x += (tmp.x / d - offDir.x) * a;
+        offDir.z += (tmp.z / d - offDir.z) * a;
+        offDir.y = 0;
+        const l = offDir.length();
+        if (l > 1e-3) offDir.multiplyScalar(1 / l);
+        else offDir.set(tmp.x / d, 0, tmp.z / d); // degenerate mid-flip: re-seed
+      }
+      const wantD = clamp(d, 10, 14);              // never closer than 10m
+      standSm += (wantD - standSm) * (1 - Math.exp(-2 * dt));
+      target.copy(ball.pos).addScaledVector(offDir, standSm);
+      target.y = 0;
     }
 
-    // steer away from player clusters (cheap: one pass, push-out within 2m)
-    for (let i = 0; i < players.length; i++) {
-      const p = players[i];
-      const dx = pos.x - p.pos.x, dz = pos.z - p.pos.z;
-      const d2 = dx * dx + dz * dz;
-      if (d2 < 4 && d2 > 1e-4) {
-        const d = Math.sqrt(d2);
-        target.x += (dx / d) * (2 - d) * 2.5;
-        target.z += (dz / d) * (2 - d) * 2.5;
+    // steer away from player clusters (cheap: one pass, push-out within 2m) —
+    // suspended during the card ceremony, or the arguers crowding him push the
+    // whole scene drifting across the pitch (flee/chase feedback loop)
+    if (ceremonyT <= 0) {
+      for (let i = 0; i < players.length; i++) {
+        const p = players[i];
+        const dx = pos.x - p.pos.x, dz = pos.z - p.pos.z;
+        const d2 = dx * dx + dz * dz;
+        if (d2 < 4 && d2 > 1e-4) {
+          const d = Math.sqrt(d2);
+          target.x += (dx / d) * (2 - d) * 2.5;
+          target.z += (dz / d) * (2 - d) * 2.5;
+        }
       }
     }
     target.x = clamp(target.x, -HALF_W + 1, HALF_W - 1);
@@ -143,17 +166,19 @@ export function createReferee(scene, opts = {}) {
     const maxSp = foulSpot ? 8.0 : 5.5;
     const sp = Math.min(maxSp, dist * 1.6);
     if (dist > 0.15) pos.addScaledVector(tmp, (sp * dt) / dist);
-    if (foulSpot && dist < 1.5) foulSpot = null;   // arrived; stand over the spot
+    // hold the spot for the WHOLE card scene — clearing it on arrival made the
+    // ref turn and walk away mid-card with the arguers in tow
+    if (foulSpot && ceremonyT <= 0 && dist < 1.5) foulSpot = null;
 
-    // face the ball (shortest-arc turn, damped)
+    // face the ball (shortest-arc turn, damped, frame-rate independent)
     const wantYaw = Math.atan2(ball.pos.x - pos.x, ball.pos.z - pos.z);
     let dyaw = wantYaw - yaw;
     while (dyaw > Math.PI) dyaw -= Math.PI * 2;
     while (dyaw < -Math.PI) dyaw += Math.PI * 2;
-    yaw += dyaw * Math.min(1, dt * 8);
+    yaw += dyaw * (1 - Math.exp(-8 * dt));
 
     // ---- gait (matches the game's convention: phase += speed*dt*2.4) ----
-    speedSm += (sp - speedSm) * Math.min(1, dt * 6);
+    speedSm += (sp - speedSm) * (1 - Math.exp(-6 * dt));
     stridePhase += speedSm * dt * 2.4;
     const gaitAmp = clamp(speedSm / 7, 0, 1) * 0.6 + (speedSm > 0.3 ? 0.05 : 0);
     const stride = Math.sin(stridePhase) * gaitAmp;
@@ -161,18 +186,20 @@ export function createReferee(scene, opts = {}) {
     legs[1].rotation.x = -stride;
     arms[0].rotation.x = -stride * 0.85;
 
-    // right arm: counter-swing normally, raise overhead during card animation
+    // right arm: counter-swing normally, raise overhead during card animation.
+    // cardW blends card pose ↔ gait swing so the arm never pops at expiry.
+    let cardX = 0, cardZ = 0;
     if (cardAnim > 0) {
       cardAnim -= dt;
       // ease the arm up fast, hold, then drop in the last 0.3s
-      const k = cardAnim > 0.3 ? 1 : cardAnim / 0.3;
-      arms[1].rotation.x = -Math.PI * 0.95 * Math.min(1, (1.5 - cardAnim) * 4) * k;
-      arms[1].rotation.z = 0.15 * k;
-      card.visible = cardAnim > 0.05;
-      if (cardAnim <= 0) { card.visible = false; arms[1].rotation.z = 0; }
-    } else {
-      arms[1].rotation.x = stride * 0.85;
+      const k = cardAnim > 0.3 ? 1 : Math.max(cardAnim, 0) / 0.3;
+      cardX = -Math.PI * 0.95 * Math.min(1, (1.5 - cardAnim) * 4) * k;
+      cardZ = 0.15 * k;
     }
+    cardW += ((cardAnim > 0 ? 1 : 0) - cardW) * (1 - Math.exp(-12 * dt));
+    arms[1].rotation.x = stride * 0.85 * (1 - cardW) + cardX * cardW;
+    arms[1].rotation.z = cardZ * cardW;
+    card.visible = cardAnim > 0.05;
 
     mesh.position.copy(pos);
     mesh.position.y = Math.abs(Math.cos(stridePhase)) * clamp(speedSm / 7, 0, 1) * 0.05;
@@ -238,6 +265,7 @@ export function createReferee(scene, opts = {}) {
       (offender.dir === -1 ? fx <= -BOX_X : fx >= BOX_X);
 
     foulSpot = { x: fx, z: fz }; // sprint there to administer the ruling
+    ceremonyT = 4.5; // anchor the card theater: hold the spot, ignore crowding
     return { verdict, reason, freeKick: { x: fx, z: fz }, penalty: inOwnBox, sendOff };
   }
 
@@ -250,8 +278,13 @@ export function createReferee(scene, opts = {}) {
     bookings.clear();
     foulCooldown = 0;
     cardAnim = 0;
+    cardW = 0;
     card.visible = false;
     foulSpot = null;
+    ceremonyT = 0;
+    offDir.set(0, 0, 1);
+    standSm = 11;
+    speedSm = 0;
     pos.set(0, 0, 12);
   }
 
