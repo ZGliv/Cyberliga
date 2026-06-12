@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CYBERLIGA HOOPS</title>
+<title>CYBERLIGA HOOPS — AUTONOMOUS AI BASKETBALL</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -62,8 +62,13 @@
   #scanlines { position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px); mix-blend-mode:overlay; }
   #watermark { position:absolute; bottom:46px; right:18px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(255,170,100,.45); }
 
+  #badge { position:absolute; top:22px; left:22px; display:flex; gap:12px; align-items:center; z-index:60; }
+  #wordmark { font-family:'Orbitron'; font-weight:900; font-size:16px; letter-spacing:3px; color:#ffb87a; text-shadow:0 0 14px rgba(255,138,61,.55); }
+  #wordmark em { font-style:normal; color:#fff; }
+  #erapill { font-family:'Orbitron'; font-weight:700; font-size:9px; letter-spacing:2px; color:#ffd9b8; border:1px dashed rgba(255,170,100,.45); border-radius:99px; padding:3px 10px; background:rgba(4,8,20,.55); }
+  @media (max-width:1000px) { #badge { flex-direction:column; align-items:flex-start; gap:7px; } }
   #leaguepill {
-    position:absolute; top:22px; left:22px; z-index:60; pointer-events:auto; text-decoration:none;
+    pointer-events:auto; text-decoration:none;
     font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px; color:#ffb87a;
     border:1px solid rgba(255,138,61,.4); border-radius:99px; padding:6px 14px;
     background:rgba(4,8,20,.7); box-shadow:0 0 12px rgba(255,138,61,.18);
@@ -85,7 +90,7 @@
 </head>
 <body>
 <div id="hud">
-  <a id="leaguepill" href="league.html">&#x2b21; LEAGUE HUB</a>
+  <div id="badge"><a id="leaguepill" href="league.html">&#x2b21; LEAGUE HUB</a><span id="wordmark">CYBERLIGA <em>HOOPS</em></span><span id="erapill">EXHIBITION ERA</span></div>
   <div id="scoreboard">
     <div class="team" id="teamA"><span class="dot"></span><span id="nameA">NEON FC</span></div>
     <div id="score"><span id="sA">0</span>&nbsp;&ndash;&nbsp;<span id="sB">0</span></div>
@@ -322,7 +327,7 @@ function flashMsg(big, sub, color){
   elFlash.classList.add('show'); flashTimer=1.6;
 }
 let tickerQ=[], tickerX=innerWidth;
-elTicker.textContent='WELCOME TO THE CYBERLIGA HOOPDOME — 4V4 BLOB BASKETBALL — FULLY AUTONOMOUS — NO HUMAN COACHING DETECTED — SEASON 2077';
+elTicker.textContent='WELCOME TO THE CYBERLIGA HOOPDOME — 4V4 FULLY AUTONOMOUS AI BASKETBALL — NO HUMAN COACHING DETECTED — SEASON 2077 EXHIBITION ERA';
 const say=s=>{ if(tickerQ.length<10) tickerQ.push(s.toUpperCase()); };
 const IDLE_CHATTER=[
   ()=>`THE HOOPDOME CROWD IS ${pick(['ELECTRIC','VIBRATING','OVERCLOCKED','FERAL'])} TONIGHT`,
@@ -818,11 +823,11 @@ function enterBreak(){
   const line=`${teams[0].def.name} ${teams[0].score} — ${teams[1].score} ${teams[1].def.name}`;
   if (phase==='FINAL'){
     const all=[...allPlayers()].sort((a,b)=>b.pts-a.pts).slice(0,3);
-    showCard(`<h1>FULL TIME</h1><h2>${line}</h2>
+    showCard(`<h1>FINAL</h1><h2>${line}</h2>
       <table><tr><th>TOP SCORERS</th><th>PTS</th></tr>
       ${all.map(p=>`<tr><td class="n" style="color:${p.td.css}">${p.name} — ${p.td.name}</td><td>${p.pts}</td></tr>`).join('')}</table>
       <div class="sub" id="countd" style="margin-top:14px">NEXT TIP-OFF IN 7</div>`);
-    say(`FULL TIME IN THE HOOPDOME — ${line}`);
+    say(`FINAL BUZZER IN THE HOOPDOME — ${line}`);
     flashMsg('FINAL','', '#ff8a3d');
   } else {
     const label = isOT?'END OF OT':(q===2?'HALFTIME':`END OF Q${q}`);

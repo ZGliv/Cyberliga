@@ -277,7 +277,7 @@
     }
 
     bb.innerHTML =
-      '<div class="bb-label">NEXT ON THE GRID &mdash; MATCHDAY ' + next.matchday + ' &middot; GRAND ARENA</div>' +
+      '<div class="bb-label">NEXT ON THE GRID &middot; FOOTBALL &mdash; MATCHDAY ' + next.matchday + ' &middot; GRAND ARENA</div>' +
       '<div class="bb-row">' +
         '<div class="bb-side">' + crestHTML(next.a) + '<div class="bb-name" style="--tc:' + next.a.color + '">' + next.a.name + '</div></div>' +
         '<div class="bb-vs">VS</div>' +
@@ -421,9 +421,9 @@
 
     if (!anyPlayed) {
       lines.push({ tag: 'SEASON ZERO', color: '#7ef0ff',
-        text: 'A new universe boots up. <b>MATCHDAY 1: ' + next.a.name + ' vs ' + next.b.name + '</b> opens Season 2077 — every stat this league will ever have starts at zero tonight.' });
+        text: 'The football division boots up. <b>MATCHDAY 1: ' + next.a.name + ' vs ' + next.b.name + '</b> opens Season 2077 — every stat this division will ever have starts at zero tonight.' });
       lines.push({ tag: 'THE FORMAT', color: '#8fa3c8',
-        text: 'Four clubs. Twenty-eight athletes. An endless round-robin where the table never sleeps and <b>nobody gets relegated — only humiliated</b>.' });
+        text: 'Four clubs. Twenty-eight footballers. An endless round-robin where the table never sleeps and <b>nobody gets relegated — only humiliated</b>.' });
       return lines;
     }
 
@@ -540,7 +540,7 @@
       return s.tag + ': ' + (d.textContent || '').toUpperCase();
     });
     var next = fixtureAt(league.fixture);
-    plain.unshift('NEXT ON THE GRID — MATCHDAY ' + next.matchday + ': ' + next.a.name + ' vs ' + next.b.name);
+    plain.unshift('FOOTBALL — NEXT ON THE GRID — MATCHDAY ' + next.matchday + ': ' + next.a.name + ' vs ' + next.b.name);
     el('tickertext').textContent = plain.join('   ///   ') + '   ///   ';
   }
 
@@ -555,9 +555,9 @@
   function renderSports() {
     var host = el('sportsrail');
     var cards = [
-      { key: 'soccer', name: 'SOCCER', color: '#00e5ff', href: 'index.html', live: true },
-      { key: 'hockey', name: 'HOCKEY', color: '#58c6ff', href: 'hockey.html', pending: true },
-      { key: 'hoops', name: 'BASKETBALL', color: '#ff8a3d', href: 'hoops.html', pending: true },
+      { key: 'soccer', name: 'FOOTBALL', color: '#00e5ff', href: 'index.html', live: true },
+      { key: 'hockey', name: 'HOCKEY', color: '#58c6ff', href: 'hockey.html', pending: true, sub: 'EXHIBITION ERA' },
+      { key: 'hoops', name: 'BASKETBALL', color: '#ff8a3d', href: 'hoops.html', pending: true, sub: 'EXHIBITION ERA' },
       { key: 'baseball', name: 'BASEBALL', color: '#5dffb0', href: 'baseball.html', pending: true },
       { key: 'fighting', name: 'FIGHTING', color: '#ff4d6b', href: 'fight.html', pending: true },
     ];
@@ -569,7 +569,9 @@
         '<span class="sname">' + c.name + '</span>' +
         '<span class="sport-status">' +
           (c.live ? '<span class="live-dot"></span>LIVE NOW' : 'IN DEVELOPMENT') +
-        '</span></a>';
+        '</span>' +
+        (c.sub ? '<span class="sport-sub">' + c.sub + '</span>' : '') +
+        '</a>';
     }).join('');
 
     // block navigation while pending

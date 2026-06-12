@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CYBERLIGA</title>
+<title>CYBERLIGA PITCH</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -111,9 +111,14 @@
   #lineup .lrow .num { font-family:'Orbitron'; font-weight:700; font-size:13px; color:var(--lucolor,#00e5ff); width:24px; text-align:right; flex:0 0 auto; }
   #lineup .lrow .role { margin-left:auto; font-size:11px; letter-spacing:2px; color:rgba(180,210,235,.6); }
 
-  /* League hub link — the one interactive element in the HUD */
+  /* Corner badge: league hub link + arena wordmark (matches ICE/HOOPS treatment) */
+  #badge { position:absolute; top:22px; left:22px; display:flex; gap:12px; align-items:center; z-index:60; }
+  #wordmark { font-family:'Orbitron'; font-weight:900; font-size:16px; letter-spacing:3px; color:#7ef0ff; text-shadow:0 0 14px rgba(0,229,255,.55); }
+  #wordmark em { font-style:normal; color:#fff; }
+  /* narrow viewports: the centered scoreboard reaches the corner badge — stack under the pill */
+  @media (max-width: 1100px) { #badge { flex-direction:column; align-items:flex-start; gap:6px; } #wordmark { font-size:12px; letter-spacing:2px; } }
   #leaguepill {
-    position:absolute; top:22px; left:22px; z-index:60; pointer-events:auto;
+    pointer-events:auto;
     font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px;
     color:#7ef0ff; text-decoration:none; border:1px solid rgba(0,229,255,.4);
     padding:6px 14px; border-radius:99px; background:rgba(4,8,20,.7);
@@ -132,16 +137,16 @@
   </div>
   <div id="momentum"></div>
   <div id="clockwrap"><span class="live"></span><span id="clock">00:00</span><span id="half">1ST HALF</span></div>
-  <a id="leaguepill" href="league.html">⬡ LEAGUE HUB</a>
+  <div id="badge"><a id="leaguepill" href="league.html">⬡ LEAGUE HUB</a><span id="wordmark">CYBERLIGA <em>PITCH</em></span></div>
   <div id="goalflash"><div id="goaltext">GOAL</div><div id="goalsub"></div></div>
-  <div id="ticker"><div id="tickerlabel">CYBERLIGA</div><div id="tickertext">WELCOME TO THE CYBERLIGA GRAND ARENA — NEON FC vs VOLT UTD — FULLY AUTONOMOUS AI MATCH — NO HUMANS WERE CONSULTED IN THE MAKING OF THESE TACTICS — SEASON 2077 — MATCHDAY 1 —</div></div>
+  <div id="ticker"><div id="tickerlabel">CYBERLIGA</div><div id="tickertext">WELCOME TO THE CYBERLIGA PITCH — THE FOOTBALL ARENA OF THE CYBERLIGA — FOUR CLUBS · EVERY SPORT · ONE LEAGUE — NO HUMANS WERE CONSULTED IN THE MAKING OF THESE TACTICS — SEASON 2077 —</div></div>
   <div id="replaytag">◉ REPLAY</div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
   <div id="soundpill">🔊 CLICK ANYWHERE FOR SOUND</div>
   <div id="stylepill" style="position:absolute;bottom:46px;left:310px;font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;color:#7ef0ff;border:1px solid rgba(0,229,255,.35);padding:4px 12px;border-radius:99px;background:rgba(4,8,20,.7)">[ V ] SWITCH VIEW</div>
   <div id="lineup"><div class="panel" id="lineuppanel"></div></div>
   <div id="vignette"></div><div id="scanlines"></div>
-  <div id="watermark">CYBERLIGA</div>
+  <div id="watermark">CYBERLIGA PITCH</div>
 </div>
 
 <script type="importmap">
@@ -337,7 +342,8 @@ scene.add(neonRect(FIELD_W+6, FIELD_H+6, 0x00e5ff));
 scene.add(neonRect(FIELD_W+6.6, FIELD_H+6.6, 0xff3fc8)); // ACES-compensated — perceived hot pink #ff2d78
 
 // ============ AD BOARDS (LED hoardings) ============
-const ads = ['CYBERLIGA', 'NEON FC', 'VOLT UTD', 'SEASON 2077', '◆ ◆ ◆', 'AI ONLY'];
+const ads = ['CYBERLIGA PITCH', 'NEON FC', 'VOLT UTD', 'GRID ROYALS', 'ASTRA NOVA', '◆ ◆ ◆',
+  'SEASON 2077', 'CYBERLIGA ICE', 'CYBERLIGA HOOPS', 'EVERY SPORT · ONE LEAGUE'];
 function makeAdTexture(text, fg, bg) {
   const c = document.createElement('canvas'); c.width = 1024; c.height = 96;
   const g = c.getContext('2d');
@@ -522,10 +528,17 @@ function makeNameTagTexture(name, number, colorCss) {
   g.beginPath(); g.roundRect(40, 14, c.width-80, 84, 14); g.fill();
   g.strokeStyle = colorCss; g.lineWidth = 3;
   g.beginPath(); g.roundRect(40, 14, c.width-80, 84, 14); g.stroke();
-  g.textAlign = 'center'; g.textBaseline = 'middle';
+  // number in pure white, name in team color — measured as one run so the plate
+  // keeps the exact centering/spacing of the old single-pass draw
+  g.textAlign = 'left'; g.textBaseline = 'middle';
   g.font = '700 52px Orbitron, sans-serif';
-  g.fillStyle = colorCss; g.shadowColor = colorCss; g.shadowBlur = 14;
-  g.fillText(`${number}  ${name}`, c.width/2, 60);
+  const numStr = String(number), gapStr = '  ';
+  const wNum = g.measureText(numStr).width, wGap = g.measureText(gapStr).width, wName = g.measureText(name).width;
+  const x0 = (c.width - (wNum + wGap + wName)) / 2;
+  g.fillStyle = '#ffffff'; g.shadowColor = '#ffffff'; g.shadowBlur = 14;
+  g.fillText(numStr, x0, 60);
+  g.fillStyle = colorCss; g.shadowColor = colorCss;
+  g.fillText(name, x0 + wNum + wGap, 60);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 function makeNumberTexture(number) {
@@ -1634,7 +1647,7 @@ function confettiStep(dt) {
 
 // ============ COMMENTARY TICKER ============
 const elTicker = document.getElementById('tickertext');
-const tickerEvents = ['WELCOME TO THE CYBERLIGA GRAND ARENA — NEON FC vs VOLT UTD — FULLY AUTONOMOUS AI MATCH — SEASON 2077 — MATCHDAY 1'];
+const tickerEvents = ['WELCOME TO THE CYBERLIGA PITCH — THE FOOTBALL ARENA OF THE CYBERLIGA — FOUR CLUBS · EVERY SPORT · ONE LEAGUE — NO HUMANS WERE CONSULTED IN THE MAKING OF THESE TACTICS — SEASON 2077'];
 let lastCommentT = -10, tickerDirty = true;
 function commentate(msg, force) {
   // throttle so the ticker reads like commentary, not spam
@@ -1660,9 +1673,167 @@ function tickerStep(dt) {
   elTicker.style.transform = `translateX(${tickerX}px)`;
 }
 
+// ============ GOAL NET + WOODWORK CONTAINMENT ============
+// Real collision for both goals, swept against each frame's motion segment (prev→pos)
+// so a fast ball can never tunnel the netting in either direction. Inside the pocket
+// the net is dead — restitution 0.15, tangential damping 0.5 — so the ball pockets
+// believably and slumps to the turf. Arriving from outside (behind/side/above) it's a
+// slightly springy block (restitution 0.3). Posts/crossbar get thin swept-cylinder
+// reflection. No energy gain (every factor < 1); zero-length normals are guarded.
+const BALL_R = 0.24, WOOD_R = 0.12 + BALL_R; // post/bar radius + ball radius
+const NET_BACK = HALF_W + GOAL_DEPTH, GW2 = GOAL_WIDTH / 2;
+const netPrev = new THREE.Vector3();
+const crossF = (a0, a1, w) => THREE.MathUtils.clamp((w - a0) / ((a1 - a0) || 1e-9), 0, 1);
+
+// closest approach of a 2D motion segment to a thin post/bar axis → hit normal or null
+function sweptCircleHit(p0a, p0b, p1a, p1b, ca, cb) {
+  const da = p1a - p0a, db = p1b - p0b;
+  const fa = p0a - ca, fb = p0b - cb;
+  const A = da * da + db * db;
+  let u = A > 1e-12 ? -(fa * da + fb * db) / A : 0;
+  u = THREE.MathUtils.clamp(u, 0, 1);
+  const qa = fa + da * u, qb = fb + db * u;
+  const d = Math.hypot(qa, qb);
+  if (d >= WOOD_R) return null;
+  if (d > 1e-6) return { na: qa / d, nb: qb / d };
+  const L = Math.sqrt(A) || 1; // dead-center pass: push straight back along travel
+  return { na: (-da / L) || 1, nb: -db / L };
+}
+
+function woodwork(prev, s) {
+  const gx = s * HALF_W;
+  // posts (x,z plane), only below bar height
+  if (Math.min(prev.y, ball.pos.y) < GOAL_HEIGHT) {
+    for (const zP of [-GW2, GW2]) {
+      const h = sweptCircleHit(prev.x, prev.z, ball.pos.x, ball.pos.z, gx, zP);
+      if (!h) continue;
+      ball.pos.x = gx + h.na * WOOD_R; ball.pos.z = zP + h.nb * WOOD_R;
+      const vn = ball.vel.x * h.na + ball.vel.z * h.nb;
+      if (vn < 0) { // PING — woodwork is springy but still lossy
+        ball.vel.x -= 1.6 * vn * h.na; ball.vel.z -= 1.6 * vn * h.nb;
+        ball.spin.multiplyScalar(0.7);
+      }
+    }
+  }
+  // crossbar (x,y plane), only within the mouth span
+  if (Math.abs(ball.pos.z) < GW2 + 0.3) {
+    const h = sweptCircleHit(prev.x, prev.y, ball.pos.x, ball.pos.y, gx, GOAL_HEIGHT);
+    if (h) {
+      ball.pos.x = gx + h.na * WOOD_R; ball.pos.y = GOAL_HEIGHT + h.nb * WOOD_R;
+      const vn = ball.vel.x * h.na + ball.vel.y * h.nb;
+      if (vn < 0) {
+        ball.vel.x -= 1.6 * vn * h.na; ball.vel.y -= 1.6 * vn * h.nb;
+        ball.spin.multiplyScalar(0.7);
+      }
+    }
+  }
+}
+
+function goalNetStep(prev) {
+  for (const s of [-1, 1]) {
+    const u0 = s * prev.x, u1 = s * ball.pos.x; // signed depth axis: u > HALF_W = past the line
+    if (Math.max(u0, u1) < HALF_W - 1) continue; // nowhere near this goal
+    woodwork(prev, s);
+    const backIn = NET_BACK - BALL_R, backOut = NET_BACK + BALL_R;
+
+    // BACK PANEL — from inside the pocket (the classic tunnel case)
+    if (u0 <= backIn && u1 > backIn) {
+      const f = crossF(u0, u1, backIn);
+      const yc = THREE.MathUtils.lerp(prev.y, ball.pos.y, f), zc = THREE.MathUtils.lerp(prev.z, ball.pos.z, f);
+      if (yc < GOAL_HEIGHT && Math.abs(zc) < GW2) {
+        ball.pos.set(s * backIn, Math.max(yc, BALL_R), zc);
+        if (s * ball.vel.x > 0) ball.vel.x = -s * (s * ball.vel.x) * 0.15;
+        ball.vel.y *= 0.5; ball.vel.z *= 0.5;
+        ball.spin.multiplyScalar(0.3); ball.knuckle = 0;
+      }
+    } else if (u0 >= backOut && u1 < backOut) { // arriving from behind the goal
+      const f = crossF(u0, u1, backOut);
+      const yc = THREE.MathUtils.lerp(prev.y, ball.pos.y, f), zc = THREE.MathUtils.lerp(prev.z, ball.pos.z, f);
+      if (yc < GOAL_HEIGHT && Math.abs(zc) < GW2) {
+        ball.pos.set(s * backOut, Math.max(yc, BALL_R), zc);
+        if (s * ball.vel.x < 0) ball.vel.x = -s * (s * ball.vel.x) * 0.3;
+        ball.vel.y *= 0.85; ball.vel.z *= 0.85;
+        ball.spin.multiplyScalar(0.6);
+      }
+    }
+
+    // SIDE PANELS (two-sided, swept) — span x ∈ [line, back], below the bar
+    for (const zs of [-1, 1]) {
+      const w0 = zs * prev.z, w1 = zs * ball.pos.z;
+      const inW = GW2 - BALL_R, outW = GW2 + BALL_R;
+      if (w0 <= inW && w1 > inW) { // from inside the pocket, out through the side netting
+        const f = crossF(w0, w1, inW);
+        const xc = THREE.MathUtils.lerp(prev.x, ball.pos.x, f), yc = THREE.MathUtils.lerp(prev.y, ball.pos.y, f);
+        const uc = s * xc;
+        if (uc > HALF_W && uc < NET_BACK && yc < GOAL_HEIGHT) {
+          ball.pos.set(xc, Math.max(yc, BALL_R), zs * inW);
+          if (zs * ball.vel.z > 0) ball.vel.z = -zs * (zs * ball.vel.z) * 0.15;
+          ball.vel.x *= 0.5; ball.vel.y *= 0.5;
+          ball.spin.multiplyScalar(0.3); ball.knuckle = 0;
+        }
+      } else if (w0 >= outW && w1 < outW) { // from outside, into the side netting
+        const f = crossF(w0, w1, outW);
+        const xc = THREE.MathUtils.lerp(prev.x, ball.pos.x, f), yc = THREE.MathUtils.lerp(prev.y, ball.pos.y, f);
+        const uc = s * xc;
+        if (uc > HALF_W && uc < NET_BACK && yc < GOAL_HEIGHT) {
+          ball.pos.set(xc, Math.max(yc, BALL_R), zs * outW);
+          if (zs * ball.vel.z < 0) ball.vel.z = -zs * (zs * ball.vel.z) * 0.3;
+          ball.vel.x *= 0.85; ball.vel.y *= 0.85;
+          ball.spin.multiplyScalar(0.6);
+        }
+      }
+    }
+
+    // ROOF (two-sided, swept) — same footprint as the side panels
+    const roofIn = GOAL_HEIGHT - BALL_R, roofOut = GOAL_HEIGHT + BALL_R;
+    if (prev.y <= roofIn && ball.pos.y > roofIn) { // rising into the roof from inside
+      const f = crossF(prev.y, ball.pos.y, roofIn);
+      const xc = THREE.MathUtils.lerp(prev.x, ball.pos.x, f), zc = THREE.MathUtils.lerp(prev.z, ball.pos.z, f);
+      const uc = s * xc;
+      if (uc > HALF_W && uc < NET_BACK && Math.abs(zc) < GW2) {
+        ball.pos.set(xc, roofIn, zc);
+        if (ball.vel.y > 0) ball.vel.y = -ball.vel.y * 0.15;
+        ball.vel.x *= 0.5; ball.vel.z *= 0.5;
+        ball.spin.multiplyScalar(0.3); ball.knuckle = 0;
+      }
+    } else if (prev.y >= roofOut && ball.pos.y < roofOut) { // dropping onto the net roof
+      const f = crossF(prev.y, ball.pos.y, roofOut);
+      const xc = THREE.MathUtils.lerp(prev.x, ball.pos.x, f), zc = THREE.MathUtils.lerp(prev.z, ball.pos.z, f);
+      const uc = s * xc;
+      if (uc > HALF_W && uc < NET_BACK && Math.abs(zc) < GW2) {
+        ball.pos.set(xc, roofOut, zc);
+        if (ball.vel.y < 0) ball.vel.y = -ball.vel.y * 0.3;
+        ball.vel.x *= 0.85; ball.vel.z *= 0.85;
+        ball.spin.multiplyScalar(0.6);
+      }
+    }
+
+    // BELT AND BRACES: ball already inside the pocket volume → positional clamp only
+    // (covers any edge case the sweeps missed; adds no energy). Gated on the segment
+    // STARTING on the pocket side (u0 < NET_BACK) — a ball that sailed over the goal
+    // and legitimately lives behind the net must never be teleported back inside.
+    if (u1 > HALF_W && u0 < NET_BACK && Math.abs(ball.pos.z) < GW2 && ball.pos.y < GOAL_HEIGHT) {
+      if (s * ball.pos.x > backIn) {
+        ball.pos.x = s * backIn;
+        if (s * ball.vel.x > 0) ball.vel.x = -s * (s * ball.vel.x) * 0.15;
+      }
+      if (Math.abs(ball.pos.z) > GW2 - BALL_R) {
+        const zc2 = Math.sign(ball.pos.z) || 1;
+        ball.pos.z = zc2 * (GW2 - BALL_R);
+        if (ball.vel.z * zc2 > 0) ball.vel.z = -ball.vel.z * 0.15;
+      }
+      if (ball.pos.y > GOAL_HEIGHT - BALL_R && u1 > HALF_W + WOOD_R) {
+        ball.pos.y = GOAL_HEIGHT - BALL_R;
+        if (ball.vel.y > 0) ball.vel.y = -ball.vel.y * 0.15;
+      }
+    }
+  }
+}
+
 // ============ BALL PHYSICS ============
 let ballTrap = 0; // interception trap window — pace bleeds off over ~0.12s, not in one frame
 function ballStep(dt) {
+  netPrev.copy(ball.pos); // motion-segment start for the swept net/woodwork pass
   if (ballTrap > 0) {
     ballTrap -= dt;
     const tf = Math.pow(1e-5, dt); // ≈0.25 total over the 0.12s window
@@ -1708,6 +1879,10 @@ function ballStep(dt) {
     }
   }
 
+  // net + woodwork containment BEFORE the goal check — a screamer that jumps the whole
+  // net in one frame is pocketed at the back panel first, then still counts as a goal
+  goalNetStep(netPrev);
+
   // goal check (crossing the line within the goal mouth)
   if (state.mode === 'play') {
     for (const side of [-1, 1]) {
@@ -1744,11 +1919,6 @@ function ballStep(dt) {
       ball.spin.multiplyScalar(0.5);
     }
   }
-  // ball in the net: dampen
-  if (Math.abs(ball.pos.x) > HALF_W + GOAL_DEPTH - 0.2 && Math.abs(ball.pos.z) <= GOAL_WIDTH/2 && ball.pos.y <= GOAL_HEIGHT) {
-    ball.pos.x = Math.sign(ball.pos.x) * (HALF_W + GOAL_DEPTH - 0.2); ball.vel.multiplyScalar(0.2);
-  }
-
   ball.mesh.position.copy(ball.pos);
   ball.mesh.rotation.x += ball.vel.z * dt * 2;
   ball.mesh.rotation.z -= ball.vel.x * dt * 2;
@@ -1771,6 +1941,7 @@ function ballStep(dt) {
 // gravity + bounce + heavy damping, NO goal/out-of-bounds checks — a ball that was
 // airborne when the whistle/goal froze play settles to the turf instead of levitating
 function ballSettleStep(dt) {
+  netPrev.copy(ball.pos);
   ball.vel.y -= 22 * dt;
   ball.pos.addScaledVector(ball.vel, dt);
   if (ball.pos.y < 0.24) {
@@ -1780,10 +1951,8 @@ function ballSettleStep(dt) {
   const f = Math.pow(0.18, dt); // dead ball rolls out fast
   ball.vel.x *= f; ball.vel.z *= f;
   ball.spin.multiplyScalar(Math.pow(0.2, dt));
-  // keep it inside the net / arena if it ended up there
-  if (Math.abs(ball.pos.x) > HALF_W + GOAL_DEPTH - 0.2 && Math.abs(ball.pos.z) <= GOAL_WIDTH/2 && ball.pos.y <= GOAL_HEIGHT) {
-    ball.pos.x = Math.sign(ball.pos.x) * (HALF_W + GOAL_DEPTH - 0.2); ball.vel.multiplyScalar(0.2);
-  }
+  // keep it inside the net (swept — same containment as live play) and the arena
+  goalNetStep(netPrev);
   if (Math.abs(ball.pos.x) > HALF_W + 10) { ball.pos.x = Math.sign(ball.pos.x) * (HALF_W + 10); ball.vel.x *= -0.4; }
   if (Math.abs(ball.pos.z) > HALF_H + 10) { ball.pos.z = Math.sign(ball.pos.z) * (HALF_H + 10); ball.vel.z *= -0.4; }
 }
@@ -2067,6 +2236,17 @@ function cameraStep(dt, t) {
     camera.position.lerp(camPosD, 1 - Math.exp(-2.6 * dt));
     camTarget.lerp(camTgtD, 1 - Math.exp(-2.6 * dt));
     easeFov(CAM_FOV + 1.5, 2.5, dt); // a hair wider so wall and box both read
+  } else if (state.mode === 'foul' && state.foul && state.foul.ruling.penalty
+      && state.foul.cardShown && !state.foul.done) {
+    // PENALTY BROADCAST MOMENT: damped pan onto the referee while he points to the
+    // spot — refRigStep holds posePointToSpot for exactly this cardShown→done window,
+    // so the camera and the signal are in sync by construction. Released by the
+    // beginSetPiece cameraCut when the spot-kick theater takes over.
+    camPosD.set(ref.pos.x * 0.92, 2.6, ref.pos.z + 6.5); // ~7m, chest height, broadcast side
+    camTgtD.set(ref.pos.x, 1.4, ref.pos.z);
+    camera.position.lerp(camPosD, 1 - Math.exp(-2.8 * dt));
+    camTarget.lerp(camTgtD, 1 - Math.exp(-2.8 * dt));
+    easeFov(CAM_FOV - 4, 3, dt); // slight punch-in so the signal reads
   } else {
     // tension-aware live framing — NO cuts in open play, only damped moves
     camTension += (liveTension() - camTension) * (1 - Math.exp(-1.7 * dt));
@@ -2403,7 +2583,7 @@ function updateJumbotron() {
   g.strokeStyle = 'rgba(0,229,255,.4)'; g.lineWidth = 5; g.strokeRect(5, 5, 502, 246);
   g.textAlign = 'center';
   g.font = '700 26px Orbitron, sans-serif'; g.fillStyle = '#7ef0ff'; g.shadowColor = '#00e5ff'; g.shadowBlur = 8;
-  g.fillText('CYBERLIGA', 256, 50);
+  g.fillText('CYBERLIGA PITCH', 256, 50);
   g.font = '900 72px Orbitron, sans-serif'; g.fillStyle = '#ffffff'; g.shadowBlur = 18;
   g.fillText(`${state.scoreA} - ${state.scoreB}`, 256, 130);
   g.font = '700 24px Orbitron, sans-serif'; g.shadowBlur = 6;
@@ -2452,7 +2632,8 @@ function tableHTML() {
     ).join('') + '</tbody></table>';
 }
 function showCard(title, score, withTable) {
-  elPanel.innerHTML = `<h1>${title}</h1><h2>${score}</h2>` + matchStatsHTML()
+  elPanel.innerHTML = `<div style="font-family:'Rajdhani';font-weight:700;font-size:12px;letter-spacing:4px;color:rgba(140,225,255,.65);margin-bottom:6px">CYBERLIGA · FOOTBALL DIVISION</div>`
+    + `<h1>${title}</h1><h2>${score}</h2>` + matchStatsHTML()
     + (withTable ? '<div style="height:14px"></div>' + tableHTML() : '');
   elCard.classList.add('show');
 }
@@ -2528,7 +2709,7 @@ function startMatch() {
   hideLineup();
   momentum = momSm = 0; momShotsA = momShotsB = 0; // fresh momentum ledger per fixture
   momCssA = cA; momCssB = cB;                      // bar blends this fixture's colors
-  commentate(`MATCHDAY ${league.fixture + 1}: ${TEAM_A.name} vs ${TEAM_B.name} — KICKOFF AT THE GRAND ARENA`, true);
+  commentate(`MATCHDAY ${league.fixture + 1}: ${TEAM_A.name} vs ${TEAM_B.name} — LIVE FROM THE CYBERLIGA PITCH`, true);
   story.startMatch(TEAM_A.name, TEAM_B.name, league.fixture + 1);
   for (const l of story.prematchLines(TEAM_A.name, TEAM_B.name)) commentate(l, true);
   headshotQueue = players.slice(); // portraits captured one per frame during the kickoff hold
@@ -2673,7 +2854,8 @@ function tick(forcedDt, skipRender) {
         present.showEvent({ kind: 'foul', title: present.lines.foul(f.victim.name, f.offender.name), subtitle: f.offender.team.name, color: css });
       }
     }
-    if (state.modeT > 4.2 && !f.done) {
+    // penalties hold ~1s longer — the pan to the ref + point-to-the-spot needs room to read
+    if (state.modeT > (f.ruling.penalty ? 5.2 : 4.2) && !f.done) {
       f.done = true;
       if (f.ruling.sendOff) sendOff(f.offender);
       beginSetPiece(f);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CYBERLIGA ICE</title>
+<title>CYBERLIGA ICE — AUTONOMOUS AI HOCKEY</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -61,6 +61,8 @@
   #badge { position:absolute; top:22px; left:22px; display:flex; gap:12px; align-items:center; z-index:60; }
   #wordmark { font-family:'Orbitron'; font-weight:900; font-size:16px; letter-spacing:3px; color:#7ef0ff; text-shadow:0 0 14px rgba(0,229,255,.55); }
   #wordmark em { font-style:normal; color:#fff; }
+  #erapill { font-family:'Orbitron'; font-weight:700; font-size:9px; letter-spacing:2px; color:#9fdcff; border:1px dashed rgba(126,240,255,.45); border-radius:99px; padding:3px 10px; background:rgba(4,8,20,.55); }
+  @media (max-width:1000px) { #badge { flex-direction:column; align-items:flex-start; gap:7px; } }
   #leaguepill {
     pointer-events:auto; font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px;
     color:#7ef0ff; text-decoration:none; border:1px solid rgba(0,229,255,.4); padding:6px 14px; border-radius:99px;
@@ -85,7 +87,7 @@
 </head>
 <body>
 <div id="hud">
-  <div id="badge"><a id="leaguepill" href="league.html">&#x2b21; LEAGUE HUB</a><span id="wordmark">CYBERLIGA <em>ICE</em></span></div>
+  <div id="badge"><a id="leaguepill" href="league.html">&#x2b21; LEAGUE HUB</a><span id="wordmark">CYBERLIGA <em>ICE</em></span><span id="erapill">EXHIBITION ERA</span></div>
   <div id="scoreboard">
     <div class="team" id="teamA"><span class="dot"></span><span class="tn">NEON FC</span></div>
     <div id="score"><span id="sA">0</span>&nbsp;&ndash;&nbsp;<span id="sB">0</span></div>
@@ -508,7 +510,7 @@ function setupMatch(firstLoad) {
   applyTeamHUD();
   elSA.textContent = '0'; elSB.textContent = '0';
   elCard.classList.remove('show'); elFlash.classList.remove('show');
-  say(`WELCOME TO THE CYBERLIGA ICE DOME — ${TEAM_A.name} vs ${TEAM_B.name} — FULLY AUTONOMOUS AI HOCKEY — SEASON 2077`, true);
+  say(`WELCOME TO THE CYBERLIGA ICE DOME — ${TEAM_A.name} vs ${TEAM_B.name} — FULLY AUTONOMOUS AI HOCKEY — SEASON 2077 EXHIBITION ERA`, true);
   setFaceoff(0, 0, firstLoad);
   setState('FACEOFF');
 }
@@ -851,7 +853,7 @@ function showFinalCard() {
   const [na, nb] = FIXTURES[(fixtureIdx + 1) % FIXTURES.length]; // the fixture we rotate to, not the one just played
   elPanel.innerHTML = `<h1>FINAL</h1>
     <h2>${TEAM_A.name} ${S.score[0]} — ${S.score[1]} ${TEAM_B.name}</h2>${statsTable()}
-    <p class="next">NEXT MATCH — ${LEAGUE_TEAMS[na].name} vs ${LEAGUE_TEAMS[nb].name} — <span id="nextin">8</span>s</p>`;
+    <p class="next">NEXT FACEOFF — ${LEAGUE_TEAMS[na].name} vs ${LEAGUE_TEAMS[nb].name} — <span id="nextin">8</span>s</p>`;
   elCard.classList.add('show');
   const w = S.score[0] > S.score[1] ? TEAM_A.name : S.score[1] > S.score[0] ? TEAM_B.name : null;
   say(w ? `FINAL HORN — ${w} TAKE IT ${Math.max(...S.score)}-${Math.min(...S.score)}` : 'FINAL HORN — HONOURS EVEN ON THE ICE', true);
