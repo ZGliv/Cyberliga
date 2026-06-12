@@ -70,7 +70,8 @@
   #watermark { position:absolute; bottom:46px; right:18px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(126,240,255,.4); }
 
   /* Replay tag */
-  #replaytag { position:absolute; top:24px; left:26px; font-family:'Orbitron'; font-weight:900; font-size:20px; letter-spacing:6px; color:#ffe14d; opacity:0; transition:opacity .2s; text-shadow:0 0 16px rgba(255,225,77,.8); }
+  /* top offset clears the league pill (pill bottom ≈ 53px) */
+  #replaytag { position:absolute; top:64px; left:26px; font-family:'Orbitron'; font-weight:900; font-size:20px; letter-spacing:6px; color:#ffe14d; opacity:0; transition:opacity .2s; text-shadow:0 0 16px rgba(255,225,77,.8); }
   #replaytag.show { opacity:1; animation: blink 1s steps(2) infinite; }
   @keyframes blink { 50% { opacity:.35; } }
 
@@ -111,13 +112,15 @@
   #lineup .lrow .role { margin-left:auto; font-size:11px; letter-spacing:2px; color:rgba(180,210,235,.6); }
 
   /* League hub link — the one interactive element in the HUD */
-  #leaguebtn {
-    position:absolute; top:24px; right:26px; pointer-events:auto;
-    font-family:'Orbitron'; font-weight:700; font-size:12px; letter-spacing:3px;
-    color:#7ef0ff; text-decoration:none; border:1px solid rgba(0,229,255,.35);
-    padding:6px 14px; border-radius:8px; background:rgba(4,8,20,.75);
+  #leaguepill {
+    position:absolute; top:22px; left:22px; z-index:60; pointer-events:auto;
+    font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px;
+    color:#7ef0ff; text-decoration:none; border:1px solid rgba(0,229,255,.4);
+    padding:6px 14px; border-radius:99px; background:rgba(4,8,20,.7);
+    box-shadow:0 0 12px rgba(0,229,255,.18);
+    transition:color .15s, border-color .15s, box-shadow .15s;
   }
-  #leaguebtn:hover { color:#fff; box-shadow:0 0 16px rgba(0,229,255,.5); border-color:rgba(0,229,255,.7); }
+  #leaguepill:hover { color:#fff; background:rgba(0,229,255,.16); border-color:rgba(0,229,255,.7); box-shadow:0 0 18px rgba(0,229,255,.5); }
 </style>
 </head>
 <body>
@@ -129,7 +132,7 @@
   </div>
   <div id="momentum"></div>
   <div id="clockwrap"><span class="live"></span><span id="clock">00:00</span><span id="half">1ST HALF</span></div>
-  <a id="leaguebtn" href="league.html">⬡ LEAGUE</a>
+  <a id="leaguepill" href="league.html">⬡ LEAGUE HUB</a>
   <div id="goalflash"><div id="goaltext">GOAL</div><div id="goalsub"></div></div>
   <div id="ticker"><div id="tickerlabel">CYBERLIGA</div><div id="tickertext">WELCOME TO THE CYBERLIGA GRAND ARENA — NEON FC vs VOLT UTD — FULLY AUTONOMOUS AI MATCH — NO HUMANS WERE CONSULTED IN THE MAKING OF THESE TACTICS — SEASON 2077 — MATCHDAY 1 —</div></div>
   <div id="replaytag">◉ REPLAY</div>
@@ -186,6 +189,11 @@ const buildRig = VIS_STYLE === 'classic' ? buildBlobRig
     `[ V ] STYLE: ${VIS_STYLE.toUpperCase()} ▸ ${nxt.toUpperCase()}`;
 }
 addEventListener('keydown', e => {
+  // Escape backs out to the league hub
+  if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+    location.href = 'league.html';
+    return;
+  }
   if (e.key === 'p' || e.key === 'P') {
     const card = document.getElementById('bigcard'), panel = document.getElementById('cardpanel');
     if (card.classList.contains('show')) { card.classList.remove('show'); }

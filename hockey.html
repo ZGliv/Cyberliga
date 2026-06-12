@@ -58,15 +58,16 @@
   #scanlines { position:absolute; inset:0; background: repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px); mix-blend-mode: overlay; }
   #watermark { position:absolute; bottom:46px; right:18px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(126,240,255,.4); }
 
-  #badge { position:absolute; top:24px; left:22px; display:flex; gap:10px; align-items:center; }
+  #badge { position:absolute; top:22px; left:22px; display:flex; gap:12px; align-items:center; z-index:60; }
   #wordmark { font-family:'Orbitron'; font-weight:900; font-size:16px; letter-spacing:3px; color:#7ef0ff; text-shadow:0 0 14px rgba(0,229,255,.55); }
   #wordmark em { font-style:normal; color:#fff; }
-  #leaguelink {
+  #leaguepill {
     pointer-events:auto; font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px;
-    color:#7ef0ff; text-decoration:none; border:1px solid rgba(0,229,255,.35); padding:4px 12px; border-radius:99px;
-    background:rgba(4,8,20,.7);
+    color:#7ef0ff; text-decoration:none; border:1px solid rgba(0,229,255,.4); padding:6px 14px; border-radius:99px;
+    background:rgba(4,8,20,.7); box-shadow:0 0 12px rgba(0,229,255,.18);
+    transition:color .15s, border-color .15s, box-shadow .15s;
   }
-  #leaguelink:hover { background:rgba(0,229,255,.18); color:#fff; }
+  #leaguepill:hover { color:#fff; background:rgba(0,229,255,.16); border-color:rgba(0,229,255,.7); box-shadow:0 0 18px rgba(0,229,255,.5); }
 
   #bigcard { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(2,3,10,.45); backdrop-filter: blur(3px); }
   #bigcard.show { display:flex; }
@@ -84,7 +85,7 @@
 </head>
 <body>
 <div id="hud">
-  <div id="badge"><span id="wordmark">CYBERLIGA <em>ICE</em></span><a id="leaguelink" href="league.html">&larr; LEAGUE</a></div>
+  <div id="badge"><a id="leaguepill" href="league.html">&#x2b21; LEAGUE HUB</a><span id="wordmark">CYBERLIGA <em>ICE</em></span></div>
   <div id="scoreboard">
     <div class="team" id="teamA"><span class="dot"></span><span class="tn">NEON FC</span></div>
     <div id="score"><span id="sA">0</span>&nbsp;&ndash;&nbsp;<span id="sB">0</span></div>
@@ -1103,6 +1104,11 @@ addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
   composer.setSize(innerWidth, innerHeight);
+});
+
+// Escape backs out to the league hub
+addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) location.href = 'league.html';
 });
 </script>
 </body>

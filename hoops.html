@@ -62,12 +62,14 @@
   #scanlines { position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px); mix-blend-mode:overlay; }
   #watermark { position:absolute; bottom:46px; right:18px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(255,170,100,.45); }
 
-  #leaguelink {
-    position:absolute; top:24px; left:22px; pointer-events:auto; text-decoration:none;
-    font-family:'Orbitron'; font-weight:700; font-size:12px; letter-spacing:3px; color:#ffb87a;
-    border:1px solid rgba(255,138,61,.4); border-radius:99px; padding:7px 16px; background:rgba(4,8,20,.7);
+  #leaguepill {
+    position:absolute; top:22px; left:22px; z-index:60; pointer-events:auto; text-decoration:none;
+    font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px; color:#ffb87a;
+    border:1px solid rgba(255,138,61,.4); border-radius:99px; padding:6px 14px;
+    background:rgba(4,8,20,.7); box-shadow:0 0 12px rgba(255,138,61,.18);
+    transition:color .15s, border-color .15s, box-shadow .15s;
   }
-  #leaguelink:hover { background:rgba(255,138,61,.18); color:#fff; }
+  #leaguepill:hover { color:#fff; background:rgba(255,138,61,.16); border-color:rgba(255,138,61,.7); box-shadow:0 0 18px rgba(255,138,61,.5); }
 
   #bigcard { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(2,3,10,.45); backdrop-filter:blur(3px); }
   #bigcard.show { display:flex; }
@@ -83,7 +85,7 @@
 </head>
 <body>
 <div id="hud">
-  <a id="leaguelink" href="league.html">&larr; LEAGUE</a>
+  <a id="leaguepill" href="league.html">&#x2b21; LEAGUE HUB</a>
   <div id="scoreboard">
     <div class="team" id="teamA"><span class="dot"></span><span id="nameA">NEON FC</span></div>
     <div id="score"><span id="sA">0</span>&nbsp;&ndash;&nbsp;<span id="sB">0</span></div>
@@ -939,6 +941,11 @@ startDriver();
 addEventListener('resize', ()=>{
   camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight); composer.setSize(innerWidth,innerHeight);
+});
+
+// Escape backs out to the league hub
+addEventListener('keydown', e=>{
+  if (e.key==='Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) location.href='league.html';
 });
 </script>
 </body>
