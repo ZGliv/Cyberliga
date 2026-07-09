@@ -128,6 +128,20 @@
 
   /* Sound pill */
   #soundpill { position:absolute; bottom:46px; left:18px; font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px; color:#7ef0ff; border:1px solid rgba(0,229,255,.35); padding:4px 12px; border-radius:99px; background:rgba(4,8,20,.7); }
+  #stylepill {
+    position:absolute; bottom:46px; left:310px; right:auto;
+    pointer-events:auto; cursor:pointer;
+    appearance:none; -webkit-appearance:none;
+    display:inline-flex; align-items:center; justify-content:center;
+    min-height:30px; max-width:calc(100vw - 36px);
+    font-family:'Rajdhani', sans-serif; font-weight:700; font-size:13px; letter-spacing:2px;
+    color:#7ef0ff; border:1px solid rgba(0,229,255,.35);
+    padding:4px 13px; border-radius:99px; background:rgba(4,8,20,.78);
+    box-shadow:0 0 12px rgba(0,229,255,.16);
+    transition:color .15s, border-color .15s, background .15s, box-shadow .15s, transform .15s;
+  }
+  #stylepill:hover { color:#fff; background:rgba(0,229,255,.16); border-color:rgba(0,229,255,.75); box-shadow:0 0 18px rgba(0,229,255,.42); }
+  #stylepill:active { transform:translateY(1px); }
 
   /* Momentum bar — thin team-color blend under the scoreboard */
   #momentum {
@@ -245,9 +259,16 @@
     #tickerlabel { padding:0 10px; font-size:10px; letter-spacing:2px; }
     #tickertext { font-size:13px; letter-spacing:.6px; }
     #soundpill {
-      left:10px; right:10px; bottom:42px;
+      left:10px; right:10px; bottom:84px;
       display:flex; justify-content:center;
       padding:6px 10px; font-size:11px; letter-spacing:1.4px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    #stylepill {
+      left:10px; right:10px; bottom:44px;
+      min-height:34px; padding:6px 12px;
+      max-width:none;
+      font-size:12px; letter-spacing:1.4px;
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
     #watermark { display:none; }
@@ -278,6 +299,7 @@
   <div id="replaytag">◉ REPLAY</div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
   <div id="soundpill">🔊 CLICK ANYWHERE FOR SOUND</div>
+  <button id="stylepill" type="button" aria-label="Switch player view">SWITCH VIEW</button>
   <div id="lineup"><div class="panel" id="lineuppanel"></div></div>
   <div id="vignette"></div><div id="scanlines"></div>
   <div id="watermark">CYBERLIGA SOCCER</div>
@@ -305,15 +327,38 @@ import { createGoalkeeper } from './goalkeeper.js';
 import { createBoundarySystem } from './boundary.js';
 import { createPossession } from './possession.js';
 import { createReplaySystem, SKILL_MOVES } from './replaysys.js';
+import { preloadHumanModel, buildPlayerRig } from './humanrig.js';
+import { preloadHumanModel as preloadKayModels, buildPlayerRig as buildKayRig, CHARACTERS as KAY_CHARACTERS } from './kayrig.js';
 import { buildBlobRig } from './blobrig.js';
 import { createStoryEngine } from './story.js';
 const story = createStoryEngine();
 
-// Prototype renderer lock (7/9): use the instant-loading blob athletes while the
-// simulation and broadcast product are iterated. Human/KayKit rigs remain parked in
-// the repository for a later character-art reboot, but are intentionally absent from
-// the soccer runtime and UI.
-const buildRig = buildBlobRig;
+// Blobs remain the prototype default, with the two experimental comparison views
+// available on demand. Keeping one shared rig API lets visual exploration continue
+// without coupling character art to the simulation.
+const VIS_STYLES = ['classic', 'pro', 'kaykit'];
+const STYLE_LABELS = { classic: 'BLOBS', pro: 'ROBOTS', kaykit: 'CHARACTERS' };
+let VIS_STYLE = new URLSearchParams(location.search).get('style')
+  || localStorage.getItem('cl_style') || 'classic';
+if (!VIS_STYLES.includes(VIS_STYLE)) VIS_STYLE = 'classic';
+const buildRig = VIS_STYLE === 'classic' ? buildBlobRig
+  : VIS_STYLE === 'kaykit' ? buildKayRig : buildPlayerRig;
+function nextVisualStyle() {
+  return VIS_STYLES[(VIS_STYLES.indexOf(VIS_STYLE) + 1) % VIS_STYLES.length];
+}
+function cycleVisualStyle() {
+  localStorage.setItem('cl_style', nextVisualStyle());
+  const u = new URL(location.href);
+  u.searchParams.delete('style');
+  location.href = u.href;
+}
+{
+  const stylePill = document.getElementById('stylepill');
+  const nxt = nextVisualStyle();
+  stylePill.textContent = `VIEW: ${STYLE_LABELS[VIS_STYLE]} ▸ ${STYLE_LABELS[nxt]}`;
+  stylePill.setAttribute('aria-label', `Switch player view from ${STYLE_LABELS[VIS_STYLE]} to ${STYLE_LABELS[nxt]}`);
+  stylePill.addEventListener('click', cycleVisualStyle);
+}
 addEventListener('keydown', e => {
   // Escape backs out to the league hub
   if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
@@ -326,6 +371,7 @@ addEventListener('keydown', e => {
     else { panel.innerHTML = story.leagueWrapHTML(TEAM_A.name, TEAM_B.name); card.classList.add('show'); }
     return;
   }
+  if (e.key === 'v' || e.key === 'V') cycleVisualStyle();
 });
 
 // ============ CONSTANTS ============
@@ -701,6 +747,8 @@ function makeNumberTexture(number) {
   g.fillText(String(number), 128, 138);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
+const SKIN_TONES = [0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524, 0x6b4226, 0xffdbac];
+const HAIR_COLORS = [0x14100c, 0x14100c, 0x2a1b10, 0x3d2817, 0x5a3a1a, 0xd8c08a, 0x101418];
 // W3: a rig may expose live bone anchors (Object3D refs) so the number planes ride the
 // skinned spine instead of floating at a static offset. Bones often carry import scale,
 // so measure the anchor's world scale once and counteract it — the plane keeps its
@@ -715,13 +763,18 @@ function mountAtBoneAnchor(anchor, plane, root) {
 }
 function buildPlayer(team, isGK, r, captain) {
   const name = r.n, number = r.num;
-  // The prototype uses one deliberately anonymous, readable body language: blobs.
-  // Player identity stays in names, numbers, stats, behavior, and story—not a temporary
-  // cookie-cutter model that could accidentally become the permanent brand.
+  // Player identity stays in names, numbers, stats, behavior, and story. The robot and
+  // character views are comparisons, while blobs remain the iteration default.
   const rig = buildRig({
     kitColor: team.color, glowColor: team.glow,
-    isGK,
-    captain: !!captain,
+    skinTone: SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)],
+    hairColor: HAIR_COLORS[Math.floor(Math.random()*HAIR_COLORS.length)],
+    isGK, headband: r.hb ?? (Math.random() < 0.35),
+    captain: !!captain, pattern: Math.random() < 0.5 ? 'accent' : 'solid',
+    jerseyName: name, jerseyNumber: number,
+    flair: r.flair || [],
+    character: KAY_CHARACTERS.includes(r.ch) ? r.ch : 'Knight',
+    dna: r.dna,
   });
   const g = rig.group;
 
@@ -3727,10 +3780,13 @@ function syncLiveScore() {
     }));
   } catch (e) { /* storage full/blocked — beacon is best-effort */ }
 }
-// Render the referee with the same blob vocabulary so soccer has one coherent visual
-// language during prototyping.
+// Only the active view's models are loaded; blobs remain instant.
+if (VIS_STYLE === 'kaykit') await preloadKayModels();
+else if (VIS_STYLE === 'pro') await preloadHumanModel();
+
+// Keep the referee in the active visual vocabulary as well.
 ref.mesh.visible = false;
-const refRig = buildRig({ kitColor: 0x16181f, glowColor: 0xffe14d, isGK: false });
+const refRig = buildRig({ kitColor: 0x16181f, glowColor: 0xffe14d, skinTone: 0, hairColor: 0, isGK: false, headband: true });
 refRig.group.scale.setScalar(0.97);
 scene.add(refRig.group);
 const refPrev = new THREE.Vector3().copy(ref.pos);

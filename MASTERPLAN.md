@@ -6,18 +6,18 @@ Watchability > realism. The unit of growth is the 20-second clip.
 
 **Architecture lock: ONE simulation, renderer-independent events — NOT game branches.**
 The simulation (tactics, physics, refs, leagues, story) is fully decoupled from bodies.
-Renderers implement one shared rig API. `blobrig.js` is the only soccer renderer exposed
-during prototyping: it loads instantly, reads clearly at broadcast distance, and keeps
-temporary robot/fantasy models from hardening into the brand. `humanrig.js` and
-`kayrig.js` remain parked as experiments, not product options. Character visuals return
-only after an art bible establishes genuinely distinct silhouettes, faces, movement,
-and team culture. The durable IP lives in names, behavior, stats, rivalries, and lore.
+Renderers implement one shared rig API. `blobrig.js` is the default soccer renderer during
+prototyping: it loads instantly and reads clearly at broadcast distance. `humanrig.js`
+and `kayrig.js` remain available as optional comparison views, labeled ROBOTS and
+CHARACTERS, but are not the production character direction. Production character visuals
+wait for an art bible establishing genuinely distinct silhouettes, faces, movement, and
+team culture. The durable IP lives in names, behavior, stats, rivalries, and lore.
 
 **Current strategy locks (7/9):**
 - Ship one canonical soccer league before trying to make every arena equally complete.
 - Other sports remain clearly labeled exhibitions while the shared application foundation is built.
 - Order: source control → deterministic sim → canonical persistence → application shell → reliability → content engine.
-- Blobs are the prototype visual language; character production is intentionally paused.
+- Blobs are the prototype default; robot and character views remain optional comparisons.
 - Crypto/monetization: not before audience. Prediction points first, much later.
 
 ---

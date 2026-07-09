@@ -25,8 +25,8 @@ or five equally mature sports.
 
 - [x] Create the `codex/ship-foundation` working branch.
 - [x] Restore a repeatable local preview command.
-- [x] Make blobs the only soccer renderer exposed during prototyping.
-- [x] Remove robot/KayKit loading and the renderer switch from soccer.
+- [x] Make blobs the default soccer renderer during prototyping.
+- [x] Keep robot and character renderers available as clearly labeled comparison views.
 - [x] Reconcile the master plan with the product and character-direction decisions.
 - [x] Commit the complete deployed prototype plus this stabilization pass.
 - [ ] Configure a Git remote and push the branch.
