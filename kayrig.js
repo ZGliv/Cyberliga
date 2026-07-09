@@ -89,7 +89,7 @@ const lerp = THREE.MathUtils.lerp;
 function smooth(k) { k = clamp(k, 0, 1); return k * k * (3 - 2 * k); }
 function bell(k) { return Math.sin(clamp(k, 0, 1) * Math.PI); }
 
-// weapons/props baked into the GLBs that a footballer must not carry
+// weapons/props baked into the GLBs that a soccer player must not carry
 const PROP_RE = /sword|shield|axe|crossbow|knife|wand|staff|spellbook|mug|throwable|offhand/i;
 
 // ---- W12: LOOK DNA ----------------------------------------------------------

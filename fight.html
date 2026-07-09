@@ -106,6 +106,116 @@
   #bigcard td, #bigcard th { padding:4px 12px; border-bottom:1px solid rgba(255,255,255,.08); }
   #bigcard th { color:#ff9aa9; font-size:11px; letter-spacing:2px; }
   #bigcard td.n { text-align:left; font-weight:700; }
+  @media (max-width:1320px) and (min-width:701px) {
+    #badge { gap:10px; }
+    #wordmark { font-size:14px; letter-spacing:2px; }
+    #erapill { display:none; }
+  }
+  @media (max-width:700px) {
+    #hud { isolation:isolate; min-height:100dvh; }
+    #vignette {
+      z-index:2;
+      background:
+        linear-gradient(180deg, rgba(2,3,10,.92) 0%, rgba(2,3,10,.74) 24%, transparent 52%, rgba(2,3,10,.6) 78%, rgba(2,3,10,.82) 100%),
+        radial-gradient(ellipse at center, transparent 48%, rgba(0,0,10,.58) 100%);
+    }
+    #scanlines { z-index:3; opacity:.72; }
+    #badge {
+      top:calc(env(safe-area-inset-top, 0px) + 10px); left:10px; right:10px;
+      display:grid; grid-template-columns:auto minmax(0, 1fr); align-items:center; gap:8px; z-index:70;
+    }
+    #leaguepill {
+      min-height:30px; display:inline-flex; align-items:center;
+      padding:6px 10px; font-size:10.5px; letter-spacing:1.25px; white-space:nowrap;
+      background:rgba(5,12,24,.82); box-shadow:0 0 18px rgba(255,61,90,.22), inset 0 1px 0 rgba(255,255,255,.08);
+    }
+    #wordmark {
+      justify-self:end; min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis;
+      white-space:nowrap; text-align:right; font-size:12px; letter-spacing:1.1px;
+    }
+    #erapill { display:none; }
+    #roundwrap {
+      top:calc(env(safe-area-inset-top, 0px) + 53px);
+      width:calc(100vw - 20px); max-width:420px;
+      min-height:36px; justify-content:center; padding:8px 12px; border-radius:12px; z-index:60;
+      background:linear-gradient(180deg, rgba(9,13,28,.96), rgba(3,4,14,.92));
+      box-shadow:0 10px 28px rgba(0,0,0,.38), 0 0 24px rgba(255,61,90,.2), inset 0 1px 0 rgba(255,255,255,.07);
+    }
+    #round { font-size:12px; letter-spacing:2px; white-space:nowrap; }
+    #clock { font-size:12px; letter-spacing:1.5px; }
+    .fpanel {
+      top:calc(env(safe-area-inset-top, 0px) + 101px);
+      width:calc(50vw - 15px); max-width:none;
+      padding:9px 10px 10px; border-radius:10px; z-index:60;
+      background:linear-gradient(180deg, rgba(8,12,28,.92), rgba(3,5,14,.9));
+      box-shadow:0 12px 28px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    #fpA { left:10px; }
+    #fpB { right:10px; }
+    .fname { min-width:0; gap:6px; font-size:11px; letter-spacing:1px; }
+    .fname span:not(.dot) { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .fname .dot { width:8px; height:8px; flex:0 0 8px; }
+    .frec { font-size:10px; letter-spacing:1px; }
+    .barlbl { font-size:9px; letter-spacing:1px; margin-top:6px; }
+    .bar { height:8px; }
+    .bar.stam { height:5px; }
+    .bar.guard { height:4px; }
+    #flash { z-index:45; }
+    #flashtext { max-width:100vw; font-size:clamp(38px, 13vw, 70px); letter-spacing:5px; line-height:.98; text-align:center; overflow-wrap:anywhere; }
+    #flashsub { max-width:calc(100vw - 28px); font-size:14px; letter-spacing:2.6px; line-height:1.15; text-align:center; padding:0 16px; }
+    #count { z-index:45; font-size:clamp(86px, 30vw, 188px); }
+    #banner {
+      left:12px; right:12px; bottom:calc(82px + env(safe-area-inset-bottom, 0px));
+      z-index:55; transform:translateY(28px);
+    }
+    #banner.show { transform:translateY(0); }
+    #bannername { font-size:clamp(28px, 10vw, 46px); letter-spacing:5px; }
+    #bannersub { font-size:13px; letter-spacing:3px; }
+    #bigcard { z-index:80; padding:12px; }
+    #bigcard .panel {
+      min-width:0; width:min(100%, 430px); max-height:calc(100vh - 24px); max-height:calc(100dvh - 24px);
+      overflow:auto; padding:22px 16px; border-radius:12px;
+    }
+    #bigcard h1 { font-size:23px; letter-spacing:4px; }
+    #bigcard h2 { font-size:18px; }
+    #ticker {
+      height:calc(35px + env(safe-area-inset-bottom, 0px)); padding-bottom:env(safe-area-inset-bottom, 0px);
+      z-index:65; background:linear-gradient(180deg, rgba(5,9,22,.92), rgba(2,3,10,.98));
+    }
+    #tickerlabel { padding:0 10px; font-size:10px; letter-spacing:2px; }
+    #tickertext { font-size:13px; letter-spacing:.6px; }
+    #soundpill {
+      left:10px; right:10px; bottom:calc(42px + env(safe-area-inset-bottom, 0px)); z-index:66;
+      min-height:30px; display:flex; align-items:center; justify-content:center;
+      padding:6px 10px; font-size:11px; letter-spacing:1.3px;
+      background:rgba(4,8,20,.82); box-shadow:0 8px 22px rgba(0,0,0,.35);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    #watermark { display:none; }
+  }
+  @media (max-width:380px) {
+    #badge { left:8px; right:8px; }
+    #leaguepill { padding:6px 9px; font-size:10px; letter-spacing:1px; }
+    #wordmark { font-size:10.5px; letter-spacing:.8px; }
+    #roundwrap { width:calc(100vw - 16px); }
+    .fpanel { width:calc(50vw - 12px); padding:8px 8px 9px; }
+    #fpA { left:8px; }
+    #fpB { right:8px; }
+    .fname { font-size:10px; letter-spacing:.7px; }
+    .fname .dot { width:7px; height:7px; flex-basis:7px; }
+    .frec { font-size:9px; letter-spacing:.7px; }
+    .barlbl { font-size:8.5px; letter-spacing:.7px; }
+    #tickerlabel { padding:0 8px; font-size:9px; letter-spacing:1.2px; }
+    #tickertext { font-size:12px; }
+    #soundpill { left:8px; right:8px; font-size:10px; letter-spacing:1px; }
+  }
+  @media (max-width:700px) and (max-height:720px) {
+    #roundwrap { top:calc(env(safe-area-inset-top, 0px) + 50px); }
+    .fpanel { top:calc(env(safe-area-inset-top, 0px) + 94px); padding-top:8px; padding-bottom:8px; }
+    .barlbl { margin-top:4px; }
+    #banner { bottom:calc(72px + env(safe-area-inset-bottom, 0px)); }
+    #soundpill { bottom:calc(39px + env(safe-area-inset-bottom, 0px)); }
+  }
 </style>
 </head>
 <body>
@@ -475,6 +585,8 @@ const COMM = {
   upper: ['{a} TEARS AN UPPERCUT THROUGH THE MIDDLE', '{b} GETS LIFTED BY THE UPPERCUT', 'UPPERCUT! {a} FINDS THE BUTTON'],
   block: ['{b} EATS IT ON THE GUARD', '{b} WALLS UP — GOOD DEFENSE', 'BLOCKED — {b} STAYS COMPOSED'],
   dodge: ['{b} SLIPS IT — BEAUTIFUL HEAD MOVEMENT', '{b} LEANS BACK — NOTHING BUT AIR', '{a} SWINGS AT NEON DUST — {b} IS GONE'],
+  body:  ['{a} DIGS TO THE BODY — {b} FELT THAT', '{a} RIPS THE BODY SHOT UNDER THE ELBOW', 'BODY WORK FROM {a} — THAT STEALS OXYGEN'],
+  feint: ['{a} FEINTS — TRYING TO DRAW THE GUARD', '{a} SHOWS THE JAB AND MAKES {b} THINK', '{a} TWITCHES THE LEAD HAND — SETTING A TRAP'],
   combo: ['{a} IS PUTTING PUNCHES IN BUNCHES', 'COMBINATION! {a} GOES TO WORK', '{a} UNLOADS A {n}-PUNCH COMBO'],
   kd:    ['{b} GOES DOWN!! {a} DROPS THE HAMMER', 'TIMBER! {b} HITS THE CANVAS', '{a} FLATTENS {b} — THE OCTAGON SHAKES'],
   getup: ['{b} BEATS THE COUNT — WHAT HEART', '{b} CLIMBS OFF THE CANVAS — UNBELIEVABLE', '{b} RISES AT {c} — THE CROWD ERUPTS'],
@@ -490,16 +602,17 @@ const fill = (t, a, b, n) => t.replace(/\{a\}/g, a || '').replace(/\{b\}/g, b ||
 
 // ============ FIGHTERS ============
 const STRIKES = {
-  JAB:    { dmg: 4.0,  dur: 0.34, reach: 2.15, stam: 3.5, lunge: 2.6, heavy: false, comm: 'jab',   out: 0.34 },
-  CROSS:  { dmg: 6.5,  dur: 0.42, reach: 2.25, stam: 6,   lunge: 3.4, heavy: false, comm: 'cross', out: 0.42 },
-  HOOK:   { dmg: 9.0,  dur: 0.50, reach: 1.95, stam: 9,   lunge: 3.0, heavy: true,  comm: 'hook',  out: 0.50 },
-  UPPER:  { dmg: 12.0, dur: 0.56, reach: 1.75, stam: 12,  lunge: 2.4, heavy: true,  comm: 'upper', out: 0.52 },
+  JAB:    { dmg: 4.0,  dur: 0.32, reach: 2.18, stam: 3.3, lunge: 2.35, heavy: false, comm: 'jab',   out: 0.38, zone: 'head' },
+  CROSS:  { dmg: 6.6,  dur: 0.40, reach: 2.30, stam: 5.8, lunge: 3.25, heavy: false, comm: 'cross', out: 0.44, zone: 'head' },
+  HOOK:   { dmg: 9.2,  dur: 0.50, reach: 1.98, stam: 8.8, lunge: 2.8,  heavy: true,  comm: 'hook',  out: 0.50, zone: 'head' },
+  BODY:   { dmg: 7.2,  dur: 0.46, reach: 1.86, stam: 7.4, lunge: 2.7,  heavy: false, comm: 'body',  out: 0.48, zone: 'body' },
+  UPPER:  { dmg: 12.0, dur: 0.56, reach: 1.78, stam: 11.5,lunge: 2.35, heavy: true,  comm: 'upper', out: 0.52, zone: 'head' },
 };
 
 // ============ ARMS — page-local articulated assemblies bolted onto the blob rig ============
 // shoulder pivot → upper-arm capsule → elbow pivot → forearm capsule → oversized glove sphere.
 // blobrig.js stays untouched: we add children to rig.group and drive joint rotations here.
-const ARM_UP = 0.34, ARM_FORE = 0.32, GLOVE_R = 0.175, SH_Y = 1.52, SH_Z = 0.10, SH_X = 0.47;
+const ARM_UP = 0.38, ARM_FORE = 0.38, GLOVE_R = 0.215, SH_Y = 1.52, SH_Z = 0.12, SH_X = 0.5;
 function buildArms(rig, club) {
   const mkSide = (sx) => {
     const armMat = new THREE.MeshStandardMaterial({
@@ -513,12 +626,48 @@ function buildArms(rig, club) {
     const el = new THREE.Group(); el.position.y = -ARM_UP; sh.add(el);
     const fo = new THREE.Mesh(new THREE.CapsuleGeometry(0.072, ARM_FORE - 0.15, 4, 8), armMat);
     fo.position.y = -ARM_FORE/2; el.add(fo);
-    const glove = new THREE.Mesh(new THREE.SphereGeometry(GLOVE_R, 12, 10), gloveMat);
-    glove.position.y = -ARM_FORE - GLOVE_R*0.55; el.add(glove);
+    const glove = new THREE.Group();
+    glove.position.y = -ARM_FORE - GLOVE_R*0.55;
+    const palm = new THREE.Mesh(new THREE.SphereGeometry(GLOVE_R, 16, 12), gloveMat);
+    palm.scale.set(1.08, 0.92, 1.18);
+    const knuckle = new THREE.Mesh(new THREE.SphereGeometry(GLOVE_R*0.74, 12, 10), gloveMat);
+    knuckle.position.set(0, GLOVE_R*0.03, GLOVE_R*0.48);
+    knuckle.scale.set(1.18, 0.78, 0.72);
+    const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.16, 12), gloveMat);
+    cuff.position.y = GLOVE_R*0.62;
+    glove.add(palm, knuckle, cuff);
+    el.add(glove);
     rig.group.add(sh);
-    return { sh, el, glove, cur: { sx: -0.2, sy: 0, sz: sx < 0 ? -0.15 : 0.15, ex: -0.45 } };
+    return { sh, el, glove, palm, knuckle, cur: { sx: -0.2, sy: 0, sz: sx < 0 ? -0.15 : 0.15, ex: -0.45 } };
   };
   return { L: mkSide(-SH_X), R: mkSide(SH_X) };  // disposed with the rig (group traverse)
+}
+function buildBoxerDetails(rig, club) {
+  const shellMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(club.kit).multiplyScalar(0.78), roughness:0.48, metalness:0.1,
+    emissive: club.glow, emissiveIntensity:0.18
+  });
+  const trimMat = new THREE.MeshBasicMaterial({ color: club.glow, transparent:true, opacity:0.78 });
+  const darkMat = new THREE.MeshStandardMaterial({ color:0x080b14, roughness:0.5, emissive:club.glow, emissiveIntensity:0.06 });
+  const detail = new THREE.Group();
+  const chest = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.42, 6, 14), shellMat);
+  chest.position.set(0, 1.15, 0.015); chest.scale.set(1.18, 0.72, 0.82);
+  const trunks = new THREE.Mesh(new THREE.CylinderGeometry(0.43, 0.5, 0.24, 16), darkMat);
+  trunks.position.y = 0.64; trunks.scale.z = 0.78;
+  const belt = new THREE.Mesh(new THREE.TorusGeometry(0.43, 0.028, 6, 28), trimMat);
+  belt.rotation.x = Math.PI/2; belt.position.y = 0.78; belt.scale.z = 0.72;
+  const mkShoulder = sx => {
+    const s = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 8), shellMat);
+    s.position.set(sx, SH_Y + 0.02, SH_Z*0.45); s.scale.set(1.18, 0.78, 0.9); return s;
+  };
+  const footGeom = new THREE.BoxGeometry(0.34, 0.1, 0.56);
+  const lFoot = new THREE.Mesh(footGeom, darkMat), rFoot = new THREE.Mesh(footGeom, darkMat);
+  lFoot.position.set(-0.27, 0.08, 0.12); rFoot.position.set(0.27, 0.08, -0.12);
+  lFoot.rotation.y = -0.15; rFoot.rotation.y = 0.15;
+  const lShoulder = mkShoulder(-0.48), rShoulder = mkShoulder(0.48);
+  detail.add(chest, trunks, belt, lShoulder, rShoulder, lFoot, rFoot);
+  rig.group.add(detail);
+  return { detail, chest, trunks, belt, lShoulder, rShoulder, lFoot, rFoot };
 }
 // seeded per-name style: RAZOR always fights like RAZOR
 function nameRng(name) {
@@ -539,7 +688,7 @@ function mkFighter(side, clubIdx) {
   const r = nameRng(name); // style is identity: seeded from the name, tiny per-fight jitter
   const j = () => (Math.random() - 0.5) * 0.06;
   return {
-    side, club, name, rig, arms: buildArms(rig, club),
+    side, club, name, rig, arms: buildArms(rig, club), kit: buildBoxerDetails(rig, club),
     x: CORNER[side].x, z: CORNER[side].z, y: RING_Y, vx: 0, vz: 0, heading: 0,
     hp: 100, stam: 100, guard: 100,
     pow:       0.86 + r()*0.28 + j(),  // punching power
@@ -551,9 +700,12 @@ function mkFighter(side, clubIdx) {
     counterTend: 0.3 + r()*0.6,        // punish whiffs
     reachPref: 0.88 + r()*0.45,        // preferred operating range multiplier
     act: 'move', actT: 0, strike: null, strikeK: 0, strikeDone: false,
-    strikeArm: 'L', strikeDur: 0.4, strikeLanded: false, comboQ: null,
-    openT: 0, counterT: 0, recovT: 0, armJolt: 0, headSnap: 0, walkPh: Math.random()*6,
+    strikeArm: 'L', strikeDur: 0.4, strikeLanded: false, comboQ: null, targetZone: 'head',
+    feintArm: 'L', slipDir: 1,
+    openT: 0, counterT: 0, recovT: 0, armJolt: 0, headSnap: 0, bodyShot: 0, hitSide: 0, hitStun: 0.32,
+    torsoShock: 0, walkPh: Math.random()*6,
     twistCur: 0,
+    stanceW: 0.32 + r()*0.12,
     decT: 0.4 + Math.random()*0.6, circ: Math.random() < 0.5 ? 1 : -1, wantDist: 3.2,
     downs: 0, invulnT: 0, comboN: 0, comboT: 0, gasSaid: false,
   };
@@ -613,15 +765,27 @@ function startStrike(f, kindKey) {
   const k = STRIKES[kindKey];
   f.act = 'strike'; f.actT = 0; f.strike = k; f.strikeK = kindKey;
   f.strikeDone = false; f.strikeLanded = false;
+  f.targetZone = k.zone || 'head';
   // lead hand jabs, rear hand crosses/uppercuts, hooks come from either side
   f.strikeArm = kindKey === 'JAB' ? (f.side === 0 ? 'L' : 'R')
-              : kindKey === 'HOOK' ? (Math.random() < 0.5 ? 'L' : 'R')
+              : (kindKey === 'HOOK' || kindKey === 'BODY') ? (Math.random() < 0.5 ? 'L' : 'R')
               : (f.side === 0 ? 'R' : 'L');
   f.strikeDur = k.dur * (1 + (1 - f.stam/100)*0.4);   // tired punches travel slower
   f.stam = Math.max(0, f.stam - k.stam);
   const o = opp(f), dx = o.x - f.x, dz = o.z - f.z, d = Math.hypot(dx, dz) || 1e-6;
   f.vx += dx/d * k.lunge; f.vz += dz/d * k.lunge;  // lunge into it
   S.noAction = 0;
+}
+function startFeint(f) {
+  const o = opp(f);
+  f.act = 'feint'; f.actT = 0; f.feintArm = Math.random() < 0.62 ? (f.side === 0 ? 'L' : 'R') : (f.side === 0 ? 'R' : 'L');
+  f.stam = Math.max(0, f.stam - 1.2);
+  f.decT = 0.18 + Math.random()*0.18;
+  if (o.act === 'move' && Math.hypot(o.x - f.x, o.z - f.z) < 2.45) {
+    if (Math.random() < o.blockTend*0.22) { o.act = 'block'; o.actT = 0; o.decT = 0.35; o.openT = Math.max(o.openT, 0.65); }
+    else if (Math.random() < o.slipTend*0.08) { o.act = 'dodge'; o.actT = 0; o.slipDir = -o.circ; o.openT = Math.max(o.openT, 0.35); }
+  }
+  if (Math.random() < 0.45) say(fill(pick(COMM.feint), f.name, o.name));
 }
 function guardBreak(o, f) {
   o.act = 'stun'; o.actT = 0; o.guard = 38;   // partial reset — no chain-stun spiral
@@ -640,12 +804,14 @@ function resolveStrike(f) {
   const k = f.strike, o = opp(f);
   if (S.state !== 'FIGHT') { whiff(); return; } // nothing lands after the bell — keeps the state machine clean
   const d = Math.hypot(o.x - f.x, o.z - f.z);
-  if (d > k.reach + 0.3 || o.invulnT > 0 || o.act === 'down' || o.act === 'getup') { whiff(); return; }
+  const rangeFit = clamp((k.reach + 0.32 - d) / 0.78, 0, 1);
+  if (d > k.reach + 0.32 || o.invulnT > 0 || o.act === 'down' || o.act === 'getup') { whiff(); return; }
   const stamF = o.stam / 100;
+  const bodyShot = f.targetZone === 'body' || k.zone === 'body';
   // mid-slip: early window dodges clean and arms a counter; late window = caught recovering
   let caughtSlipping = false;
   if (o.act === 'dodge') {
-    if (o.actT < 0.26) {
+    if (!bodyShot && o.actT < 0.26) {
       whiff(); say(fill(pick(COMM.dodge), f.name, o.name));
       o.counterT = 0.9; f.comboN = 0; f.comboQ = null;
       return;
@@ -654,26 +820,30 @@ function resolveStrike(f) {
   }
   const stunned = o.act === 'stun';
   // fresh slip attempt — head movement is a read, not a coin flip: style + stamina + already-armed counters
-  if (o.act === 'move' && Math.random() < (0.06 + stamF*0.10) * o.slipTend + (o.counterT > 0 ? 0.06 : 0)) {
-    o.act = 'dodge'; o.actT = 0; o.circ = -o.circ;
+  const slipChance = ((0.06 + stamF*0.10) * o.slipTend + (o.counterT > 0 ? 0.06 : 0)) * (bodyShot ? 0.35 : 1);
+  if (o.act === 'move' && Math.random() < slipChance) {
+    o.act = 'dodge'; o.actT = 0; o.circ = -o.circ; o.slipDir = Math.random() < 0.5 ? -1 : 1;
     const away = Math.atan2(o.x - f.x, o.z - f.z);
-    o.vx += Math.sin(away)*2.2; o.vz += Math.cos(away)*2.2;
+    o.vx += Math.sin(away)*2.2 + Math.cos(away)*o.slipDir*0.85; o.vz += Math.cos(away)*2.2 - Math.sin(away)*o.slipDir*0.85;
     whiff(); say(fill(pick(COMM.dodge), f.name, o.name));
     o.counterT = 0.85;            // slipping earns the counter window
     f.comboN = 0; f.comboQ = null;
     return;
   }
   let dmg = k.dmg * FIGHT_DMG * f.pow * (0.85 + Math.random()*0.3);
+  dmg *= 0.86 + rangeFit*0.18;                 // short/long shots lose sting at the edge of range
   dmg *= 1 + (1 - o.stam/100)*0.3;          // tired fighters take more
   if (f.stam < 25) dmg *= 0.7;              // gassed punches lose steam
   if (o.openT > 0) dmg *= 1.12;             // the jab opened the door
   if (caughtSlipping || stunned) dmg *= 1.3; // clean shot on a compromised head
+  if (bodyShot) dmg *= 0.82;
   // block check — blocking is real defense but it spends the guard meter
   let blocked = false;
   if (o.act === 'block' || o.act === 'move') {
     let bc = o.act === 'block' ? 0.8 : (0.16 + stamF*0.12) * o.blockTend;
     if (o.openT > 0) bc *= 0.45;            // opening = the line is unguarded
     if (o.stam < 20) bc *= 0.5;             // tired hands drop
+    if (bodyShot) bc *= 0.68;               // body shots sneak under the high shell
     if (Math.random() < bc) {
       blocked = true;
       const absorbed = dmg * 0.78; dmg *= 0.22;
@@ -683,13 +853,15 @@ function resolveStrike(f) {
     }
   }
   o.hp = Math.max(0, o.hp - dmg);
-  o.stam = Math.max(0, o.stam - dmg*0.4);
+  o.stam = Math.max(0, o.stam - dmg*(bodyShot ? 1.25 : 0.4) - (bodyShot ? 3 : 0));
+  if (bodyShot) o.guard = Math.max(0, o.guard - 3.5);
   S.roundDmg[S.round-1][f.side] += dmg;
   // visuals + audio between the striking glove and the target's head
   strikeGlovePos(f, gloveTmp);
-  const hy = RING_Y + (k.comm === 'upper' ? 1.5 : 1.2);
+  const hy = RING_Y + (bodyShot ? 0.78 : k.comm === 'upper' ? 1.5 : 1.22);
+  const minImpactY = bodyShot ? RING_Y + 0.55 : RING_Y + 0.9;
   const ix = lerp(gloveTmp.x, o.x, 0.55), iz = lerp(gloveTmp.z, o.z, 0.55),
-        iy = Math.max(RING_Y + 0.9, lerp(gloveTmp.y, hy, 0.55));
+        iy = Math.max(minImpactY, lerp(gloveTmp.y, hy, 0.55));
   impactFlash.position.set(ix, iy, iz);
   impactFlash.material.color.setHex(blocked ? 0x9fb4cc : 0xffffff);
   impactT = blocked ? 0.1 : 0.18;
@@ -706,14 +878,20 @@ function resolveStrike(f) {
   punchHeat = 1; shake = Math.min(1, shake + (k.heavy ? 0.5 : 0.22));
   crowdLevel = Math.min(0.4, crowdLevel + (k.heavy ? 0.12 : 0.05));
   // hit reaction — head snaps on anything clean
-  o.act = 'hit'; o.actT = 0; o.headSnap = k.heavy ? 1 : 0.6;
+  o.act = 'hit'; o.actT = 0; o.hitStun = bodyShot ? 0.44 : (k.heavy ? 0.42 : 0.32);
+  o.headSnap = bodyShot ? 0.22 : (k.heavy ? 1 : 0.6);
+  o.bodyShot = bodyShot ? 1 : 0;
+  o.torsoShock = bodyShot ? 1 : (k.heavy ? 0.55 : 0.28);
+  o.hitSide = f.strikeArm === 'L' ? -1 : 1;
   const kb = (k.heavy ? 3.6 : 2.2) / Math.max(0.5, o.chin);
   const dx = o.x - f.x, dz = o.z - f.z, dd = Math.hypot(dx, dz) || 1e-6;
-  o.vx += dx/dd*kb; o.vz += dz/dd*kb;
+  o.vx += dx/dd*(bodyShot ? kb*0.45 : kb); o.vz += dz/dd*(bodyShot ? kb*0.45 : kb);
+  f.vx -= dx/dd*(k.heavy ? 0.65 : 0.32); f.vz -= dz/dd*(k.heavy ? 0.65 : 0.32);
   // jabs probe and build openings; landed shots can chain a combo
   if (k.comm === 'jab' && Math.random() < 0.8) o.openT = Math.max(o.openT, 1.7);
+  if (bodyShot && Math.random() < 0.65) o.openT = Math.max(o.openT, 0.9);
   if (!k.heavy && Math.random() < f.comboTend && f.stam > 18)
-    f.comboQ = pick([['CROSS'], ['JAB','CROSS'], ['CROSS','HOOK'], ['HOOK'], ['CROSS','UPPER']]).slice();
+    f.comboQ = pick([['CROSS'], ['JAB','CROSS'], ['BODY','HOOK'], ['CROSS','BODY'], ['CROSS','HOOK'], ['HOOK'], ['CROSS','UPPER']]).slice();
   // combo bookkeeping
   f.comboN = (f.comboT > 0 ? f.comboN : 0) + 1; f.comboT = 2.2;
   if (caughtSlipping) say(fill(pick(COMM.caught), f.name, o.name), true);
@@ -723,6 +901,7 @@ function resolveStrike(f) {
   const hurt = 1 - o.hp/100;
   let pKD = ((k.heavy ? 0.032 : 0.007) + hurt*0.075 + (o.stam < 30 ? 0.025 : 0)
             + (caughtSlipping ? 0.065 : 0) + (stunned ? 0.075 : 0)) / o.chin;
+  if (bodyShot) pKD *= o.stam < 18 ? 0.62 : 0.28;
   if (k.heavy && (caughtSlipping || stunned)) pKD = Math.max(pKD, 0.27);
   if (o.hp <= 0) pKD = 1;
   if (Math.random() < pKD) knockdown(f, o);
@@ -791,11 +970,15 @@ function fighterBrain(f, dt) {
   if (f.stam < 18) aggr *= 0.4;                       // gassed — buy time
   if (S.noAction > 5) aggr = 1;                       // forced engage: crowd wants blood
   if (d < 2.45 && Math.random() < aggr) {
+    if (f.stam > 22 && o.act === 'move' && Math.random() < 0.16*f.counterTend*(o.openT > 0 ? 0.35 : 1)) {
+      startFeint(f);
+      return;
+    }
     // pick a punch by range: power range ⇒ hooks/uppercuts, jab range ⇒ jab/cross
     const r = Math.random();
     let kind;
-    if (d < 1.85) kind = r < 0.32 ? 'HOOK' : r < 0.54 ? 'UPPER' : r < 0.8 ? 'CROSS' : 'JAB';
-    else if (d < 2.2) kind = r < 0.45 ? 'JAB' : r < 0.82 ? 'CROSS' : 'HOOK';
+    if (d < 1.75) kind = r < 0.26 ? 'HOOK' : r < 0.46 ? 'UPPER' : r < 0.68 ? 'BODY' : r < 0.88 ? 'CROSS' : 'JAB';
+    else if (d < 2.12) kind = r < 0.38 ? 'JAB' : r < 0.68 ? 'CROSS' : r < 0.84 ? 'BODY' : 'HOOK';
     else kind = r < 0.7 ? 'JAB' : 'CROSS';
     // no opening yet? probe with the jab before committing power
     if (o.openT <= 0 && STRIKES[kind].heavy && Math.random() < 0.4) kind = 'JAB';
@@ -813,6 +996,8 @@ function moveFighter(f, dt) {
   const o = opp(f);
   f.actT += dt; f.invulnT -= dt; f.comboT -= dt;
   f.openT -= dt; f.counterT -= dt; f.recovT -= dt;
+  f.bodyShot = Math.max(0, f.bodyShot - dt*2.4);
+  f.torsoShock = Math.max(0, f.torsoShock - dt*3.2);
   if (f.comboT <= 0) f.comboN = 0;
   // act phase exits
   if (f.act === 'strike') {
@@ -825,7 +1010,8 @@ function moveFighter(f, dt) {
       }
       f.act = 'move'; f.actT = 0;
     }
-  } else if (f.act === 'hit'    && f.actT > 0.32) { f.act = 'move'; f.actT = 0; }
+  } else if (f.act === 'hit'    && f.actT > f.hitStun) { f.act = 'move'; f.actT = 0; }
+  else if (f.act === 'feint'  && f.actT > 0.28) { f.act = 'move'; f.actT = 0; }
   else if (f.act === 'dodge'  && f.actT > 0.4)  { f.act = 'move'; f.actT = 0; }
   else if (f.act === 'block'  && f.actT > 0.55) { f.act = 'move'; f.actT = 0; }
   else if (f.act === 'stun'   && f.actT > 1.35) { f.act = 'move'; f.actT = 0; f.guard = Math.max(f.guard, 40); }
@@ -837,14 +1023,18 @@ function moveFighter(f, dt) {
   // steering (only when free + fight live)
   if (S.state === 'FIGHT' && f.act === 'move') {
     fighterBrain(f, dt);
-    const dx = o.x - f.x, dz = o.z - f.z, d = Math.hypot(dx, dz) || 1e-6;
-    const nx = dx/d, nz = dz/d;
-    const radial = (d - f.wantDist);                  // + ⇒ close in
-    const tangX = -nz*f.circ, tangZ = nx*f.circ;      // circle the opponent
-    const spd = f.stam < 20 ? 4.5 : 7;
-    f.vx += (nx*clamp(radial, -1, 1)*spd + tangX*2.6)*dt*2.4;
-    f.vz += (nz*clamp(radial, -1, 1)*spd + tangZ*2.6)*dt*2.4;
-    f.stam = Math.min(100, f.stam + dt*(d > 2.6 ? 5.5 : 2.8));  // breathe at range
+    if (f.act === 'move') {
+      const dx = o.x - f.x, dz = o.z - f.z, d = Math.hypot(dx, dz) || 1e-6;
+      const nx = dx/d, nz = dz/d;
+      const radial = (d - f.wantDist);                  // + ⇒ close in
+      const weave = Math.sin(simClockTotal*4.7 + f.side*2.1) * clamp((2.4 - d)/1.2, 0, 1) * 0.65;
+      const tangX = -nz*(f.circ + weave), tangZ = nx*(f.circ + weave);      // circle the opponent
+      const spd = f.stam < 20 ? 4.5 : 7;
+      const pressure = o.openT > 0 ? 1.2 : 0;
+      f.vx += (nx*clamp(radial + pressure*0.18, -1, 1)*spd + tangX*(2.25 + pressure))*dt*2.35;
+      f.vz += (nz*clamp(radial + pressure*0.18, -1, 1)*spd + tangZ*(2.25 + pressure))*dt*2.35;
+      f.stam = Math.min(100, f.stam + dt*(d > 2.6 ? 5.5 : 2.8));  // breathe at range
+    }
   } else if (f.act === 'down') {
     f.vx *= Math.exp(-6*dt); f.vz *= Math.exp(-6*dt);
   }
@@ -865,8 +1055,8 @@ function moveFighter(f, dt) {
   // separation — no clipping through each other
   const o2 = opp(f);
   const ddx = o2.x - f.x, ddz = o2.z - f.z, dd = Math.hypot(ddx, ddz);
-  if (dd < 1.05 && dd > 1e-4) {
-    const push = (1.05 - dd)/2, px = ddx/dd, pz = ddz/dd;
+  if (dd < 1.14 && dd > 1e-4) {
+    const push = (1.14 - dd)/2, px = ddx/dd, pz = ddz/dd;
     f.x -= px*push; f.z -= pz*push; o2.x += px*push; o2.z += pz*push;
   }
 }
@@ -1136,6 +1326,8 @@ function refStep(dt) {
 // every joint angle is computed as a target each frame, then eased toward — punches
 // get a snappy ease (fast out, faster back via the strike envelope), everything else glides.
 const blendT = (a, b, t) => ({ sx: lerp(a.sx, b.sx, t), sy: lerp(a.sy, b.sy, t), sz: lerp(a.sz, b.sz, t), ex: lerp(a.ex, b.ex, t) });
+const easeOut = t => 1 - Math.pow(1 - clamp(t, 0, 1), 3);
+const easeInOut = t => 0.5 - Math.cos(clamp(t, 0, 1)*Math.PI)*0.5;
 function armTargetsFor(f, armKey, dt) {
   const sgnX = armKey === 'L' ? -1 : 1;              // shoulder x sign
   const t = simClockTotal, sp = Math.hypot(f.vx, f.vz);
@@ -1147,21 +1339,27 @@ function armTargetsFor(f, armKey, dt) {
   let T, twist = 0, k = 14;
   if (f.act === 'strike') {
     const kk = clamp(f.actT/f.strikeDur, 0, 1), st = f.strike, out = st.out;
-    // strike envelope: fast out, faster back
-    const e = kk < out ? Math.pow(kk/out, 0.65) : Math.pow(Math.max(0, 1 - (kk - out)/(1 - out)), 1.5);
+    // strike envelope: small shoulder load, fast delivery, snappy recoil.
+    const load = kk < 0.18 ? Math.sin((kk/0.18)*Math.PI) : 0;
+    const e = kk < out ? easeOut(kk/out) : Math.pow(Math.max(0, 1 - (kk - out)/(1 - out)), 1.55);
     const mine = f.strikeArm === armKey;
     const armSign = armKey === 'L' ? 1 : -1;          // which way the torso twists for this arm
-    if (!mine) { T = blendT(guard, { sx: -0.8, sy: -sgnX*0.6, sz: sgnX*0.04, ex: -2.15 }, e); k = 18; }
+    const bodyShot = f.targetZone === 'body' || f.strikeK === 'BODY';
+    if (!mine) { T = blendT(guard, { sx: -0.86, sy: -sgnX*0.64, sz: sgnX*0.04, ex: -2.22 }, e); k = 18; }
     else if (f.strikeK === 'JAB' || f.strikeK === 'CROSS') {
-      T = blendT(guard, { sx: -1.52, sy: -sgnX*0.18, sz: 0, ex: -0.08 }, e);
-      twist = armSign*(f.strikeK === 'JAB' ? 0.2 : 0.45)*e;
+      const loadPose = { sx: -0.58, sy: -sgnX*0.7, sz: sgnX*0.12, ex: -2.22 };
+      const firePose = { sx: bodyShot ? -1.18 : -1.56, sy: -sgnX*0.16, sz: bodyShot ? sgnX*0.16 : 0, ex: bodyShot ? -0.38 : -0.06 };
+      T = blendT(blendT(guard, loadPose, load*0.75), firePose, e);
+      twist = armSign*(f.strikeK === 'JAB' ? 0.22 : 0.52)*e - armSign*0.12*load;
       k = 30;
-    } else if (f.strikeK === 'HOOK') {
+    } else if (f.strikeK === 'HOOK' || f.strikeK === 'BODY') {
       // arm horizontal at 90° elbow, sweeping across — big torso rotation
+      const low = f.strikeK === 'BODY';
       T = { sx: lerp(guard.sx, -1.32, Math.min(1, e*1.6)),
-            sy: lerp(sgnX*1.15, -sgnX*0.6, e),
-            sz: 0, ex: lerp(guard.ex, -1.55, Math.min(1, e*1.6)) };
-      twist = armSign*0.75*e;
+            sy: lerp(sgnX*(low ? 0.82 : 1.15), -sgnX*(low ? 0.34 : 0.6), e),
+            sz: low ? sgnX*0.22 : 0,
+            ex: lerp(guard.ex, low ? -1.2 : -1.55, Math.min(1, e*1.6)) };
+      twist = armSign*(low ? 0.52 : 0.75)*e - armSign*0.22*load;
       k = 26;
     } else { // UPPER: glove drops, then drives up through the middle
       const drop = { sx: -0.18, sy: -sgnX*0.2, sz: sgnX*0.12, ex: -2.5 };
@@ -1173,15 +1371,22 @@ function armTargetsFor(f, armKey, dt) {
       k = 26;
     }
   }
+  else if (f.act === 'feint') {
+    const e = Math.sin(clamp(f.actT/0.28, 0, 1)*Math.PI);
+    const mine = f.feintArm === armKey;
+    T = mine ? blendT(guard, { sx:-1.05, sy:-sgnX*0.35, sz:sgnX*0.03, ex:-1.15 }, e) : guard;
+    twist = (armKey === 'L' ? 1 : -1) * (mine ? 0.12*e : 0);
+    k = 28;
+  }
   else if (f.act === 'block') T = { sx: -1.02, sy: -sgnX*0.62, sz: sgnX*0.05, ex: -2.3 };
-  else if (f.act === 'hit')   { T = { sx: -0.4, sy: sgnX*0.35, sz: sgnX*0.55, ex: -0.9 }; k = 18; }
+  else if (f.act === 'hit')   { T = f.bodyShot > 0.05 ? { sx: -0.9, sy: -sgnX*0.38, sz: sgnX*0.2, ex: -2.15 } : { sx: -0.4, sy: sgnX*0.35, sz: sgnX*0.55, ex: -0.9 }; k = 18; }
   else if (f.act === 'stun')  T = { sx: -0.15 + Math.sin(t*7 + f.side)*0.08, sy: 0, sz: sgnX*0.4, ex: -0.6 };
   else if (f.act === 'down')  { T = { sx: -0.12, sy: 0, sz: sgnX*1.3, ex: -0.12 }; k = 7; }  // arms splay on the canvas
   else if (f.act === 'getup') { T = guard; k = 8; }
   else if ((S.state === 'KO_SEQ' || S.state === 'DECISION') && S.winner === f)
     T = { sx: -2.75, sy: 0, sz: sgnX*0.3, ex: -0.3 + Math.sin(t*6)*0.15 };  // arms to the sky
   else if (S.state === 'ROUND_END') T = { sx: -0.5, sy: -sgnX*0.2, sz: sgnX*0.2, ex: -1.7 };
-  else if (f.act === 'dodge') T = guard;                       // slip keeps the guard glued on
+  else if (f.act === 'dodge') { T = { sx: -0.86, sy: -sgnX*0.58 + (f.slipDir||1)*0.18, sz: sgnX*0.05, ex: -2.18 }; twist = (f.slipDir||1)*0.24; } // slip keeps the guard glued on
   else if (fighting) T = f.stam < 20 ? tired : guard;
   else { // walking / entrances: arms swing with the stride
     const swing = Math.sin(f.walkPh)*Math.min(sp/3, 1)*0.45*sgnX;
@@ -1192,6 +1397,41 @@ function armTargetsFor(f, armKey, dt) {
     T = { sx: T.sx + (Math.random() - 0.5)*f.armJolt*0.5, sy: T.sy, sz: T.sz, ex: T.ex + (Math.random() - 0.5)*f.armJolt*0.6 };
   }
   return { T, twist, k };
+}
+function updateBoxerDetails(f, dt, sp, twistWant) {
+  const k = f.kit;
+  if (!k) return;
+  const fight = S.state === 'FIGHT' || S.state === 'KNOCKDOWN';
+  const phase = f.walkPh + f.side*Math.PI;
+  const step = Math.sin(phase), alt = Math.cos(phase);
+  const pocket = fight ? clamp((2.7 - Math.hypot(opp(f).x - f.x, opp(f).z - f.z))/1.8, 0, 1) : 0;
+  const crouch = fight ? (0.05 + pocket*0.04 + (f.stam < 25 ? 0.06 : 0)) : 0;
+  const recoil = f.torsoShock;
+  const slip = f.act === 'dodge' ? Math.sin(clamp(f.actT/0.4, 0, 1)*Math.PI)*(f.slipDir || 1) : 0;
+  const strikeK = f.act === 'strike' ? clamp(f.actT/f.strikeDur, 0, 1) : 0;
+  const strikeDrive = f.act === 'strike' ? Math.sin(strikeK*Math.PI) : 0;
+  const stance = f.stanceW + (fight ? 0.08 : 0);
+  const lead = f.side === 0 ? -1 : 1;
+
+  k.detail.position.y = -crouch - recoil*0.08;
+  k.chest.rotation.x = crouch*0.9 + recoil*0.28 + (f.bodyShot > 0 ? 0.18*f.bodyShot : 0);
+  k.chest.rotation.z = -slip*0.18 + twistWant*0.14;
+  k.chest.position.z = strikeDrive*0.04 - recoil*0.04;
+  k.trunks.rotation.z = -slip*0.1 + twistWant*0.08;
+  k.belt.rotation.z = k.trunks.rotation.z;
+
+  const lift = Math.min(sp/5, 1);
+  k.lFoot.position.set(-stance, 0.08, 0.16 + lead*0.1 + step*0.05*lift);
+  k.rFoot.position.set( stance, 0.08, -0.16 - lead*0.1 - step*0.05*lift);
+  k.lFoot.rotation.y = -0.18 + twistWant*0.08 + alt*0.08*lift;
+  k.rFoot.rotation.y =  0.18 + twistWant*0.08 - alt*0.08*lift;
+  k.lFoot.scale.set(1 + Math.max(0, step)*0.12*lift, 1, 1 + pocket*0.08);
+  k.rFoot.scale.set(1 + Math.max(0, -step)*0.12*lift, 1, 1 + pocket*0.08);
+
+  k.lShoulder.position.y = SH_Y + 0.02 - crouch + strikeDrive*(f.strikeArm === 'L' ? 0.04 : -0.01);
+  k.rShoulder.position.y = SH_Y + 0.02 - crouch + strikeDrive*(f.strikeArm === 'R' ? 0.04 : -0.01);
+  k.lShoulder.rotation.z = twistWant*0.22 - slip*0.08;
+  k.rShoulder.rotation.z = twistWant*0.22 - slip*0.08;
 }
 function updateRigs(dt) {
   for (const f of fighters) {
@@ -1229,9 +1469,14 @@ function updateRigs(dt) {
       c.sz += (T.sz - c.sz)*ke; c.ex += (T.ex - c.ex)*ke;
       a.sh.rotation.set(c.sx, c.sy, c.sz);
       a.el.rotation.x = c.ex;
+      const isStrikeGlove = f.act === 'strike' && f.strikeArm === armKey;
+      const isFeintGlove = f.act === 'feint' && f.feintArm === armKey;
+      const punchK = isStrikeGlove ? Math.sin(clamp(f.actT/f.strikeDur, 0, 1)*Math.PI) : isFeintGlove ? Math.sin(clamp(f.actT/0.28, 0, 1)*Math.PI)*0.45 : 0;
+      a.glove.scale.set(1 + punchK*0.16, 1 + punchK*0.06, 1 + punchK*0.28);
     }
     f.twistCur += (twistWant - f.twistCur)*dampK(20, dt);
     f.rig.group.rotation.y = f.heading + f.twistCur;
+    updateBoxerDetails(f, dt, sp, twistWant);
     f.armJolt *= Math.exp(-5*dt);
     f.headSnap *= Math.exp(-6*dt);
     // ---- head + shoulders follow the body on knockdown topple ----
@@ -1249,8 +1494,11 @@ function updateRigs(dt) {
       }
     } else {
       hp.position.set(0, 1.98, 0);
-      hp.rotation.x = -f.headSnap*0.55;            // clean punches snap the head back
-      hp.rotation.y = 0;
+      hp.position.y -= f.bodyShot*0.08;
+      hp.position.z += f.bodyShot*0.07;
+      hp.rotation.x = -f.headSnap*0.55 + f.bodyShot*0.22;            // clean punches snap the head back, body shots fold
+      hp.rotation.y = f.hitSide*f.headSnap*0.24;
+      hp.rotation.z = f.hitSide*f.headSnap*0.12;
       for (const armKey of ['L', 'R']) { const sh = f.arms[armKey].sh; sh.position.y = SH_Y; sh.position.z = SH_Z; }
     }
     f.rig.update(dt, clamp(sp/6, 0, 1), { accel: clamp(sp/6, 0, 1)*0.35 });
@@ -1350,8 +1598,39 @@ window._dbg = () => ({ state: S.state, t: +S.t.toFixed(2), round: S.round, clock
   count: S.count, getUpAt: S.getUpAt, winner: S.winner && S.winner.name, method: S.method,
   names: fighters.map(f => f.name), pos: fighters.map(f => [+f.x.toFixed(2), +f.z.toFixed(2)]),
   noAction: +S.noAction.toFixed(1) });
+function renderGameToText() {
+  return JSON.stringify({
+    note: 'Coordinates are ring-space x/z with origin at center canvas; +z is one corner direction.',
+    state: S.state,
+    round: S.round,
+    clock: +S.clock.toFixed(1),
+    count: S.count,
+    method: S.method,
+    winner: S.winner && S.winner.name,
+    fighters: fighters.map(f => ({
+      name: f.name,
+      club: f.club.name,
+      hp: +f.hp.toFixed(1),
+      stamina: +f.stam.toFixed(1),
+      guard: +f.guard.toFixed(1),
+      action: f.act,
+      strike: f.act === 'strike' ? f.strikeK : '',
+      target: f.act === 'strike' ? f.targetZone : '',
+      position: { x: +f.x.toFixed(2), z: +f.z.toFixed(2) },
+      downs: f.downs
+    })),
+    roundDamage: S.roundDmg.map(r => r.map(v => +v.toFixed(1))),
+    knockdowns: S.kdRound
+  });
+}
+window.render_game_to_text = renderGameToText;
 window._results = []; window._koSrc = [];
 window._ff = secs => { const n = Math.max(1, Math.round(secs/0.05)); for (let i = 0; i < n; i++) tick(0.05, i < n - 1); };
+window.advanceTime = ms => {
+  const steps = Math.max(1, Math.round(ms / (1000/60)));
+  for (let i = 0; i < steps; i++) tick(1/60, i < steps - 1);
+  return renderGameToText();
+};
 function tick(dt, skipRender = false) {
   simClockTotal += dt;
   const simDt = S.slowmo > 0 ? dt*0.24 : dt;   // slow-mo on knockdowns / the final blow
@@ -1359,7 +1638,10 @@ function tick(dt, skipRender = false) {
   stateStep(simDt);
   for (const f of fighters) moveFighter(f, simDt);
   refStep(simDt);
-  if (skipRender) return; // hidden-tab catch-up: only the last step touches visuals/DOM
+  if (skipRender) {
+    if (flashTimer > 0) { flashTimer -= dt; if (flashTimer <= 0) elFlash.classList.remove('show'); }
+    return; // hidden-tab catch-up: only the last step touches visuals/DOM
+  }
   updateRigs(simDt);
   updateFX(dt);
   cameraStep(dt);

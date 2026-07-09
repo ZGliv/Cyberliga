@@ -160,7 +160,7 @@ function buildKitParams({ kitColor, glowColor, isGK, pattern }) {
 }
 
 // ---- kit zone shader ---------------------------------------------------------
-// Recolors the Soldier body into a real football kit. Zones + pattern are
+// Recolors the Soldier body into a real soccer kit. Zones + pattern are
 // computed from the BIND-POSE vertex position (the raw `position` attribute,
 // sampled before skinning) so the print sticks to the cloth through animation,
 // independent of the GLB's UV layout. Heights are normalized by the geometry's

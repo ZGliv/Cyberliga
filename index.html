@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CYBERLIGA PITCH</title>
+<title>CYBERLIGA SOCCER</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -20,10 +20,11 @@
     box-shadow: 0 0 24px rgba(0,229,255,.18), inset 0 1px 0 rgba(255,255,255,.06);
     overflow: hidden; backdrop-filter: blur(6px);
   }
-  .team { display:flex; align-items:center; gap:10px; padding: 0 16px; font-family:'Orbitron'; font-weight:700; font-size:15px; letter-spacing:2px; }
+  .team { display:flex; align-items:center; gap:10px; min-width:0; padding: 0 16px; font-family:'Orbitron'; font-weight:700; font-size:15px; letter-spacing:2px; white-space:nowrap; }
+  .team-name { min-width:0; overflow:hidden; text-overflow:ellipsis; }
   .team .dot { width:10px; height:10px; border-radius:2px; transform: rotate(45deg); }
   #teamA { color:#7ef0ff; } #teamA .dot { background:#00e5ff; box-shadow:0 0 10px #00e5ff; }
-  #teamB { color:#ffb1d4; } #teamB .dot { background:#ff2d78; box-shadow:0 0 10px #ff2d78; }
+  #teamB { color:#ffb1d4; justify-content:flex-end; text-align:right; } #teamB .dot { background:#ff2d78; box-shadow:0 0 10px #ff2d78; }
   #score {
     display:flex; align-items:center; padding:0 18px; font-family:'Orbitron'; font-weight:900; font-size:22px; color:#fff;
     background: rgba(0,229,255,.08); border-left:1px solid rgba(0,229,255,.2); border-right:1px solid rgba(0,229,255,.2);
@@ -152,43 +153,134 @@
 
   /* Corner badge: league hub link + arena wordmark (matches ICE/HOOPS treatment) */
   #badge { position:absolute; top:22px; left:22px; display:flex; gap:12px; align-items:center; z-index:60; }
-  #wordmark { font-family:'Orbitron'; font-weight:900; font-size:16px; letter-spacing:3px; color:#7ef0ff; text-shadow:0 0 14px rgba(0,229,255,.55); }
+  #wordmark { font-family:'Orbitron'; font-weight:900; font-size:16px; letter-spacing:3px; color:#7ef0ff; text-shadow:0 0 14px rgba(0,229,255,.55); white-space:nowrap; }
   #wordmark em { font-style:normal; color:#fff; }
   /* narrow viewports: the centered scoreboard reaches the corner badge — stack under the pill */
   @media (max-width: 1100px) { #badge { flex-direction:column; align-items:flex-start; gap:6px; } #wordmark { font-size:12px; letter-spacing:2px; } }
   #leaguepill {
     pointer-events:auto;
+    display:inline-flex; align-items:center; gap:6px;
     font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px;
     color:#7ef0ff; text-decoration:none; border:1px solid rgba(0,229,255,.4);
     padding:6px 14px; border-radius:99px; background:rgba(4,8,20,.7);
     box-shadow:0 0 12px rgba(0,229,255,.18);
     transition:color .15s, border-color .15s, box-shadow .15s;
   }
+  #leaguepill .pill-short { display:none; }
   #leaguepill:hover { color:#fff; background:rgba(0,229,255,.16); border-color:rgba(0,229,255,.7); box-shadow:0 0 18px rgba(0,229,255,.5); }
+  @media (max-width: 700px) {
+    #scoreboard {
+      top:calc(env(safe-area-inset-top, 0px) + 54px);
+      left:50%; width:calc(100vw - 20px); max-width:460px; height:42px;
+      display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items:stretch;
+      border-radius:10px;
+    }
+    .team { gap:7px; padding:0 9px; font-size:11px; letter-spacing:1px; }
+    .team .dot { width:8px; height:8px; flex:0 0 8px; }
+    #score { min-width:70px; padding:0 10px; font-size:18px; letter-spacing:2px; }
+    #momentum {
+      top:calc(env(safe-area-inset-top, 0px) + 100px);
+      width:min(330px, calc(100vw - 44px));
+    }
+    #clockwrap {
+      top:calc(env(safe-area-inset-top, 0px) + 110px);
+      padding:4px 10px; gap:7px; border-radius:999px;
+    }
+    #clock { font-size:12px; letter-spacing:1.4px; }
+    #half { font-size:10px; letter-spacing:1.2px; white-space:nowrap; }
+    #badge {
+      top:calc(env(safe-area-inset-top, 0px) + 10px);
+      left:10px; right:10px;
+      display:grid; grid-template-columns:auto minmax(0, 1fr);
+      align-items:center; gap:10px;
+    }
+    #leaguepill {
+      min-height:34px; padding:7px 11px;
+      font-size:12px; letter-spacing:1.2px;
+      background:rgba(4,8,20,.82);
+    }
+    #leaguepill .pill-full { display:none; }
+    #leaguepill .pill-short { display:inline; }
+    #wordmark {
+      justify-self:end;
+      min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis;
+      font-size:12px; letter-spacing:1.6px; text-align:right;
+    }
+    #feed {
+      top:calc(env(safe-area-inset-top, 0px) + 142px);
+      left:10px; right:10px;
+      max-width:none;
+    }
+    #replaytag {
+      top:calc(env(safe-area-inset-top, 0px) + 140px);
+      left:12px; font-size:14px; letter-spacing:3px;
+    }
+    #pentag {
+      top:calc(env(safe-area-inset-top, 0px) + 138px);
+      right:10px; left:10px;
+      text-align:center; font-size:12px; letter-spacing:2px;
+    }
+    #goaltext { font-size:clamp(44px, 15vw, 76px); letter-spacing:8px; }
+    #goalsub { font-size:15px; letter-spacing:3px; text-align:center; padding:0 16px; }
+    #penstinger .ptext { font-size:clamp(40px, 13vw, 68px); letter-spacing:6px; text-align:center; }
+    #penstinger .psub { font-size:14px; letter-spacing:3px; text-align:center; padding:0 16px; }
+    #bigcard { padding:12px; }
+    #bigcard .panel {
+      min-width:0; width:100%; max-height:calc(100vh - 44px);
+      overflow:auto; padding:22px 16px;
+    }
+    #bigcard h1 { font-size:24px; letter-spacing:4px; }
+    #bigcard h2 { font-size:19px; }
+    #bigcard table { font-size:13px; }
+    #lineup {
+      left:10px; right:10px; bottom:126px;
+    }
+    #lineup .panel {
+      min-width:0; width:100%; padding:11px 14px;
+    }
+    #lineup h3 { font-size:12px; letter-spacing:2px; }
+    #lineup .lrow { font-size:13px; gap:9px; }
+    #ticker { height:34px; }
+    #tickerlabel { padding:0 10px; font-size:10px; letter-spacing:2px; }
+    #tickertext { font-size:13px; letter-spacing:.6px; }
+    #soundpill {
+      left:10px; right:10px; bottom:42px;
+      display:flex; justify-content:center;
+      padding:6px 10px; font-size:11px; letter-spacing:1.4px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    #watermark { display:none; }
+  }
+  @media (max-width: 390px) {
+    #scoreboard { width:calc(100vw - 16px); }
+    .team { padding:0 7px; font-size:10px; letter-spacing:.7px; }
+    #score { min-width:62px; padding:0 8px; font-size:17px; }
+    #wordmark { font-size:11px; letter-spacing:1.1px; }
+  }
 </style>
 </head>
 <body>
 <div id="hud">
   <div id="scoreboard">
-    <div class="team" id="teamA"><span class="dot"></span>NEON FC</div>
+    <div class="team" id="teamA"><span class="dot"></span><span class="team-name">NEON FC</span></div>
     <div id="score"><span id="sA">0</span>&nbsp;–&nbsp;<span id="sB">0</span></div>
-    <div class="team" id="teamB">VOLT UTD<span class="dot"></span></div>
+    <div class="team" id="teamB"><span class="team-name">VOLT UTD</span><span class="dot"></span></div>
   </div>
   <div id="momentum"></div>
   <div id="feed"></div>
   <div id="clockwrap"><span class="live"></span><span id="clock">00:00</span><span id="half">1ST HALF</span></div>
-  <div id="badge"><a id="leaguepill" href="league.html">⬡ LEAGUE HUB</a><span id="wordmark">CYBERLIGA <em>PITCH</em></span></div>
+  <div id="badge"><a id="leaguepill" href="league.html" aria-label="Back to league hub"><span aria-hidden="true">←</span><span class="pill-full">LEAGUE HUB</span><span class="pill-short">HUB</span></a><span id="wordmark">CYBERLIGA <em>SOCCER</em></span></div>
   <div id="goalflash"><div id="goaltext">GOAL</div><div id="goalsub"></div></div>
   <div id="penstinger"><div class="pflash"></div><div class="ptext">PENALTY!</div><div class="psub" id="pensub"></div></div>
   <div id="pentag">⬤ PENALTY · <span id="pentagteam"></span></div>
-  <div id="ticker"><div id="tickerlabel">CYBERLIGA</div><div id="tickertext">WELCOME TO THE CYBERLIGA PITCH — THE FOOTBALL ARENA OF THE CYBERLIGA — FOUR CLUBS · EVERY SPORT · ONE LEAGUE — NO HUMANS WERE CONSULTED IN THE MAKING OF THESE TACTICS — SEASON 2077 —</div></div>
+  <div id="ticker"><div id="tickerlabel">CYBERLIGA</div><div id="tickertext">WELCOME TO THE CYBERLIGA SOCCER ARENA — FOUR CLUBS · EVERY SPORT · ONE LEAGUE — NO HUMANS WERE CONSULTED IN THE MAKING OF THESE TACTICS — SEASON 2077 —</div></div>
   <div id="replaytag">◉ REPLAY</div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
   <div id="soundpill">🔊 CLICK ANYWHERE FOR SOUND</div>
-  <div id="stylepill" style="position:absolute;bottom:46px;left:310px;font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;color:#7ef0ff;border:1px solid rgba(0,229,255,.35);padding:4px 12px;border-radius:99px;background:rgba(4,8,20,.7)">[ V ] SWITCH VIEW</div>
   <div id="lineup"><div class="panel" id="lineuppanel"></div></div>
   <div id="vignette"></div><div id="scanlines"></div>
-  <div id="watermark">CYBERLIGA PITCH</div>
+  <div id="watermark">CYBERLIGA SOCCER</div>
 </div>
 
 <script type="importmap">
@@ -213,28 +305,15 @@ import { createGoalkeeper } from './goalkeeper.js';
 import { createBoundarySystem } from './boundary.js';
 import { createPossession } from './possession.js';
 import { createReplaySystem, SKILL_MOVES } from './replaysys.js';
-import { preloadHumanModel, buildPlayerRig } from './humanrig.js';
-// W4: kayrig's export names are frozen identical to humanrig's — aliased here
-import { preloadHumanModel as preloadKayModels, buildPlayerRig as buildKayRig, CHARACTERS as KAY_CHARACTERS } from './kayrig.js';
 import { buildBlobRig } from './blobrig.js';
 import { createStoryEngine } from './story.js';
 const story = createStoryEngine();
 
-// VISUAL STYLE CYCLE (W5): 'pro' skinned humans → 'kaykit' KayKit fantasy bodies →
-// 'classic' glowing athletes → back to 'pro'. Same simulation, swappable renderer.
-// Press V to cycle, or ?style=kaykit / localStorage('cl_style'). Each style's models
-// load only when that style is active — the pro boot never pays for KayKit GLBs.
-const VIS_STYLES = ['pro', 'kaykit', 'classic'];
-let VIS_STYLE = new URLSearchParams(location.search).get('style')
-  || localStorage.getItem('cl_style') || 'pro';
-if (!VIS_STYLES.includes(VIS_STYLE)) VIS_STYLE = 'pro';
-const buildRig = VIS_STYLE === 'classic' ? buildBlobRig
-  : VIS_STYLE === 'kaykit' ? buildKayRig : buildPlayerRig;
-{ // style pill shows where you are and where V takes you
-  const nxt = VIS_STYLES[(VIS_STYLES.indexOf(VIS_STYLE) + 1) % VIS_STYLES.length];
-  document.getElementById('stylepill').textContent =
-    `[ V ] STYLE: ${VIS_STYLE.toUpperCase()} ▸ ${nxt.toUpperCase()}`;
-}
+// Prototype renderer lock (7/9): use the instant-loading blob athletes while the
+// simulation and broadcast product are iterated. Human/KayKit rigs remain parked in
+// the repository for a later character-art reboot, but are intentionally absent from
+// the soccer runtime and UI.
+const buildRig = buildBlobRig;
 addEventListener('keydown', e => {
   // Escape backs out to the league hub
   if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
@@ -246,11 +325,6 @@ addEventListener('keydown', e => {
     if (card.classList.contains('show')) { card.classList.remove('show'); }
     else { panel.innerHTML = story.leagueWrapHTML(TEAM_A.name, TEAM_B.name); card.classList.add('show'); }
     return;
-  }
-  if (e.key === 'v' || e.key === 'V') {
-    localStorage.setItem('cl_style', VIS_STYLES[(VIS_STYLES.indexOf(VIS_STYLE) + 1) % VIS_STYLES.length]);
-    const u = new URL(location.href); u.searchParams.delete('style');
-    location.href = u.href;
   }
 });
 
@@ -384,7 +458,7 @@ scene.add(neonRect(FIELD_W+6, FIELD_H+6, 0x00e5ff));
 scene.add(neonRect(FIELD_W+6.6, FIELD_H+6.6, 0xff3fc8)); // ACES-compensated — perceived hot pink #ff2d78
 
 // ============ AD BOARDS (LED hoardings) ============
-const ads = ['CYBERLIGA PITCH', 'NEON FC', 'VOLT UTD', 'GRID ROYALS', 'ASTRA NOVA', '◆ ◆ ◆',
+const ads = ['CYBERLIGA SOCCER', 'NEON FC', 'VOLT UTD', 'GRID ROYALS', 'ASTRA NOVA', '◆ ◆ ◆',
   'SEASON 2077', 'CYBERLIGA ICE', 'CYBERLIGA HOOPS', 'EVERY SPORT · ONE LEAGUE'];
 function makeAdTexture(text, fg, bg) {
   const c = document.createElement('canvas'); c.width = 1024; c.height = 96;
@@ -627,8 +701,6 @@ function makeNumberTexture(number) {
   g.fillText(String(number), 128, 138);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
-const SKIN_TONES = [0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524, 0x6b4226, 0xffdbac];
-const HAIR_COLORS = [0x14100c, 0x14100c, 0x2a1b10, 0x3d2817, 0x5a3a1a, 0xd8c08a, 0x101418];
 // W3: a rig may expose live bone anchors (Object3D refs) so the number planes ride the
 // skinned spine instead of floating at a static offset. Bones often carry import scale,
 // so measure the anchor's world scale once and counteract it — the plane keeps its
@@ -643,19 +715,13 @@ function mountAtBoneAnchor(anchor, plane, root) {
 }
 function buildPlayer(team, isGK, r, captain) {
   const name = r.n, number = r.num;
-  // swappable rig (humanrig 'pro' / kayrig 'kaykit' / blobrig 'classic').
-  // Wave 2 identity pack (W2, additive): jerseyName/jerseyNumber/flair/character —
-  // rigs that can print jerseys or render flair consume them; older rigs ignore them.
+  // The prototype uses one deliberately anonymous, readable body language: blobs.
+  // Player identity stays in names, numbers, stats, behavior, and story—not a temporary
+  // cookie-cutter model that could accidentally become the permanent brand.
   const rig = buildRig({
     kitColor: team.color, glowColor: team.glow,
-    skinTone: SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)],
-    hairColor: HAIR_COLORS[Math.floor(Math.random()*HAIR_COLORS.length)],
-    isGK, headband: r.hb ?? (Math.random() < 0.35),
-    captain: !!captain, pattern: Math.random() < 0.5 ? 'accent' : 'solid',
-    jerseyName: name, jerseyNumber: number,
-    flair: r.flair || [],
-    character: KAY_CHARACTERS.includes(r.ch) ? r.ch : 'Knight',
-    dna: r.dna,  // W12 LOOK DNA — kayrig consumes; humanrig/blobrig ignore unknown opts
+    isGK,
+    captain: !!captain,
   });
   const g = rig.group;
 
@@ -1856,7 +1922,7 @@ function confettiStep(dt) {
 
 // ============ COMMENTARY TICKER ============
 const elTicker = document.getElementById('tickertext');
-const tickerEvents = ['WELCOME TO THE CYBERLIGA PITCH — THE FOOTBALL ARENA OF THE CYBERLIGA — FOUR CLUBS · EVERY SPORT · ONE LEAGUE — NO HUMANS WERE CONSULTED IN THE MAKING OF THESE TACTICS — SEASON 2077'];
+const tickerEvents = ['WELCOME TO THE CYBERLIGA SOCCER ARENA — FOUR CLUBS · EVERY SPORT · ONE LEAGUE — NO HUMANS WERE CONSULTED IN THE MAKING OF THESE TACTICS — SEASON 2077'];
 let lastCommentT = -10, tickerDirty = true;
 function commentate(msg, force) {
   // throttle so the ticker reads like commentary, not spam
@@ -2973,7 +3039,7 @@ function updateJumbotron() {
   g.strokeStyle = 'rgba(0,229,255,.4)'; g.lineWidth = 5; g.strokeRect(5, 5, 502, 246);
   g.textAlign = 'center';
   g.font = '700 26px Orbitron, sans-serif'; g.fillStyle = '#7ef0ff'; g.shadowColor = '#00e5ff'; g.shadowBlur = 8;
-  g.fillText('CYBERLIGA PITCH', 256, 50);
+  g.fillText('CYBERLIGA SOCCER', 256, 50);
   g.font = '900 72px Orbitron, sans-serif'; g.fillStyle = '#ffffff'; g.shadowBlur = 18;
   g.fillText(`${state.scoreA} - ${state.scoreB}`, 256, 130);
   g.font = '700 24px Orbitron, sans-serif'; g.shadowBlur = 6;
@@ -3022,7 +3088,7 @@ function tableHTML() {
     ).join('') + '</tbody></table>';
 }
 function showCard(title, score, withTable) {
-  elPanel.innerHTML = `<div style="font-family:'Rajdhani';font-weight:700;font-size:12px;letter-spacing:4px;color:rgba(140,225,255,.65);margin-bottom:6px">CYBERLIGA · FOOTBALL DIVISION</div>`
+  elPanel.innerHTML = `<div style="font-family:'Rajdhani';font-weight:700;font-size:12px;letter-spacing:4px;color:rgba(140,225,255,.65);margin-bottom:6px">CYBERLIGA · SOCCER DIVISION</div>`
     + `<h1>${title}</h1><h2>${score}</h2>` + matchStatsHTML()
     + (withTable ? '<div style="height:14px"></div>' + tableHTML() : '');
   elCard.classList.add('show');
@@ -3146,7 +3212,7 @@ async function buildMatchPoster(snap) {
   spacing(5);
   g.font = '600 27px Rajdhani, sans-serif';
   g.fillStyle = '#98a1b3';
-  g.fillText(`FOOTBALL DIVISION · MATCHDAY ${snap.matchday} · SEASON 2077`, W / 2 + 2, 164);
+  g.fillText(`SOCCER DIVISION · MATCHDAY ${snap.matchday} · SEASON 2077`, W / 2 + 2, 164);
   spacing(10);
   g.font = '700 23px Rajdhani, sans-serif';
   g.fillStyle = 'rgba(233,238,248,.5)';
@@ -3328,9 +3394,9 @@ function startMatch() {
   stats.reset(); replaySys.reset();
   elSA.textContent = '0'; elSB.textContent = '0'; elHalf.textContent = '1ST HALF';
   const cA = hex6(TEAM_A.glow), cB = hex6(TEAM_B.glow);
-  elTeamAEl.innerHTML = `<span class="dot" style="background:${cA};box-shadow:0 0 10px ${cA}"></span>${TEAM_A.name}`;
+  elTeamAEl.innerHTML = `<span class="dot" style="background:${cA};box-shadow:0 0 10px ${cA}"></span><span class="team-name">${TEAM_A.name}</span>`;
   elTeamAEl.style.color = cA;
-  elTeamBEl.innerHTML = `${TEAM_B.name}<span class="dot" style="background:${cB};box-shadow:0 0 10px ${cB}"></span>`;
+  elTeamBEl.innerHTML = `<span class="team-name">${TEAM_B.name}</span><span class="dot" style="background:${cB};box-shadow:0 0 10px ${cB}"></span>`;
   elTeamBEl.style.color = cB;
   resetPositions(Math.random() < 0.5 ? TEAM_A : TEAM_B);
   state.mode = 'kickoff'; state.modeT = 0;
@@ -3338,7 +3404,7 @@ function startMatch() {
   hideLineup();
   momentum = momSm = 0; momShotsA = momShotsB = 0; // fresh momentum ledger per fixture
   momCssA = cA; momCssB = cB;                      // bar blends this fixture's colors
-  commentate(`MATCHDAY ${league.fixture + 1}: ${TEAM_A.name} vs ${TEAM_B.name} — LIVE FROM THE CYBERLIGA PITCH`, true);
+  commentate(`MATCHDAY ${league.fixture + 1}: ${TEAM_A.name} vs ${TEAM_B.name} — LIVE FROM THE CYBERLIGA SOCCER ARENA`, true);
   story.startMatch(TEAM_A.name, TEAM_B.name, league.fixture + 1);
   for (const l of story.prematchLines(TEAM_A.name, TEAM_B.name)) commentate(l, true);
   headshotQueue = players.slice(); // portraits captured one per frame during the kickoff hold
@@ -3642,7 +3708,7 @@ function tick(forcedDt, skipRender) {
 }
 
 // ---- live-score beacon for the league hub (localStorage 'cyberliga_live') ----
-// The hub shows "● LIVE — A 2-1 B · 34'" on its football tile + billboard via the
+// The hub shows "● LIVE — A 2-1 B · 34'" on its soccer tile + billboard via the
 // cross-tab 'storage' event. Contract: continuous state.clock (NO per-half reset),
 // canonical team names, mode live|ht|ft. Throttled to ~3s except on score changes.
 let _liveLast = 0, _liveSig = '';
@@ -3661,14 +3727,10 @@ function syncLiveScore() {
     }));
   } catch (e) { /* storage full/blocked — beacon is best-effort */ }
 }
-// W5: each style preloads ONLY its own models — kaykit GLBs never delay the pro boot
-if (VIS_STYLE === 'kaykit') await preloadKayModels();
-else if (VIS_STYLE !== 'classic') await preloadHumanModel(); // classic is instant
-
-// the referee gets a human body too — hide the module's capsule mesh and puppet a
-// black-kit human rig from its position/judgment brain
+// Render the referee with the same blob vocabulary so soccer has one coherent visual
+// language during prototyping.
 ref.mesh.visible = false;
-const refRig = buildRig({ kitColor: 0x16181f, glowColor: 0xffe14d, skinTone: 0, hairColor: 0, isGK: false, headband: true });
+const refRig = buildRig({ kitColor: 0x16181f, glowColor: 0xffe14d, isGK: false });
 refRig.group.scale.setScalar(0.97);
 scene.add(refRig.group);
 const refPrev = new THREE.Vector3().copy(ref.pos);

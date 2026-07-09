@@ -1,23 +1,23 @@
 # CYBERLIGA — Master Plan
 
 **Vision:** A 24/7 autonomous AI sports universe built to go viral. Not a FIFA competitor —
-a Marble League × Blaseball with real animated bodies, personalities, and storylines.
+a Marble League × Blaseball with recognizable competitors, personalities, and storylines.
 Watchability > realism. The unit of growth is the 20-second clip.
 
-**Architecture lock (decided 6/12): ONE codebase, swappable renderer — NOT branches.**
+**Architecture lock: ONE simulation, renderer-independent events — NOT game branches.**
 The simulation (tactics, physics, refs, leagues, story) is fully decoupled from bodies.
-Renderers implement one shared rig API: `humanrig.js` (pro/skinned humans, default),
-`blobrig.js` (classic glowing athletes — instant load, used for prototyping new sports),
-`kayrig.js` (KayKit fantasy characters, on disk, unused). Press V in-game or `?style=classic`
-to switch. New sports get built in classic first; each gets its hyper-real pass later.
-Custom/hyper-real bodies (jersey UVs with printed names, headshot renders for profiles,
-merch-grade models) = a later commissioned-model or AI-3D-gen pass that drops onto the
-same skeleton + API with zero sim changes. The IP lives in names/stats/lore, not meshes.
+Renderers implement one shared rig API. `blobrig.js` is the only soccer renderer exposed
+during prototyping: it loads instantly, reads clearly at broadcast distance, and keeps
+temporary robot/fantasy models from hardening into the brand. `humanrig.js` and
+`kayrig.js` remain parked as experiments, not product options. Character visuals return
+only after an art bible establishes genuinely distinct silhouettes, faces, movement,
+and team culture. The durable IP lives in names, behavior, stats, rivalries, and lore.
 
-**Strategy locks (from Zack):**
-- Don't publish until the whole product is done.
-- Order: (1) features → (2) fewer penalties/fouls → (3) animation depth + UI/UX polish → (4) other sports.
-- No second sport until the soccer template is perfect.
+**Current strategy locks (7/9):**
+- Ship one canonical soccer league before trying to make every arena equally complete.
+- Other sports remain clearly labeled exhibitions while the shared application foundation is built.
+- Order: source control → deterministic sim → canonical persistence → application shell → reliability → content engine.
+- Blobs are the prototype visual language; character production is intentionally paused.
 - Crypto/monetization: not before audience. Prediction points first, much later.
 
 ---
@@ -32,47 +32,47 @@ same skeleton + API with zero sim changes. The IP lives in names/stats/lore, not
 - Brains: tactics (phases, pass evaluation, off-ball runs, pressing shape), ball control
   (footfall touches, settles), dribbling skills, goalkeeper (positioning, reaction dives),
   referee (foul judgment, yellow/red, second-yellow, send-offs)
-- Bodies: skinned Mixamo-skeleton humans (Soldier.glb), idle/walk/run mocap + procedural
-  pose library (kick, throw-in, dive, fall/get-up, celebrate ×3, argue, 4 skill moves)
+- Bodies: instant-loading glowing blobs with a shared procedural pose vocabulary; the
+  skinned-human and KayKit experiments are retained off-product for future reference
 - Presentation: scoreboard, ticker commentary, lower-thirds (cards/penalty/skill), GOAL
   overlay, confetti, synthesized audio (crowd bed, roar, whistle, kick thumps)
-- Human referee body. Smaller ball (r=0.24). Receivers attack passes. Anti-freeze watchdogs.
+- Blob referee. Smaller ball (r=0.24). Receivers attack passes. Anti-freeze watchdogs.
 
 ## Known issues / tuning
 - [x] Too many penalties → judge-rate gate + penalty downgrade (this session)
-- [ ] Motion reads "choppy/templatey" → animation-depth program below
+- [ ] Blob actions need clearer anticipation, contact, and follow-through
 - [ ] Ref sometimes too close to play
-- [ ] VOLT pink reads red on armor tint
 
 ---
 
 ## Workstream 1 — Features (gameplay events worth clipping)
-- [ ] Slide tackles (timed, can win ball clean or give away fouls)
-- [ ] Headers (jump + head crosses/corners/long balls)
-- [ ] GK catch-and-hold + punch-clears (uses keeper brain's catch/parry)
+- [x] Slide tackles (timed, can win ball clean or give away fouls)
+- [x] Headers (jump + head crosses/corners/long balls)
+- [x] GK catch-and-hold + punch-clears (uses keeper brain's catch/parry)
 - [ ] Sent-off walk to the tunnel; injured limp after big fouls
 - [ ] Kickoff huddle; halftime/fulltime exhausted poses; lineup handshake (later)
 - [ ] Bicycle kick (rare), backheel passes (flair-gated)
 - [ ] Substitutions (needs bench) — later, pairs with coaches
 
-## Workstream 2 — Animation Depth ("smooth, not templatey")
-Principle: every state change BLENDS (~0.15s), nothing snaps. Per-position, per-speed.
-- Locomotion additives: turn-on-a-dime plant-and-cut, acceleration lunge, deceleration
-  brake steps, lean into turns, arm pump scaling with effort, look-over-shoulder
-- Outfield idle variety: hands-on-hips, bounce-on-toes, pointing/organizing teammates
-- Striker: settle-and-strike chains, volley pose, near-miss head-in-hands
-- Defender: jockeying stance (low, side-on), blocks, last-ditch lunge
-- GK: set stance, shuffle steps, claim cross, pickup, bowl-out, wall-organizing
-- Referee: card brandish (proper), whistle-to-mouth, advantage wave, pointing to spot
+## Workstream 2 — Blob Motion Language
+Principle: every state change blends, every major action has anticipation → contact →
+follow-through, and roles remain readable without human anatomy.
+- Locomotion: plant-and-cut squash, acceleration stretch, deceleration compression,
+  direction-change tilt, and speed-specific bounce cadence
+- Striker: settle-and-strike chains, volley snap, near-miss deflation
+- Defender: low wide jockey squash, blocks, last-ditch launch
+- GK: set pulse, lateral shuffle, claim, pickup, bowl-out, wall-organizing
+- Referee: distinct whistle pulse, advantage lean, and point-to-spot gesture
 - Crowd (per-fan program): sit/stand mix, individual jump timing, flag wavers, scarf
   holders, phone flashes, section chants (coordinated bounce), despair slump on conceding
 - Celebrations: knee slide, corner-flag point, group mob with pile-on, badge tap
 
-## Workstream 3 — Reskin & Identity
-- Near-term (materials on current body): per-team emissive armor patterns, visor colors,
-  captain armband glow, GK distinct, better VOLT pink
-- Next session (new rigged GLBs via Mixamo, drop onto same skeleton — zero code change):
-  **Crash-test dummies** (top pick: collision comedy, IP-free) or corporate suits
+## Workstream 3 — Identity Before Character Models
+- Preserve player names, numbers, roles, stats, behavior traits, and rivalries now
+- Build a character art bible before commissioning or generating production bodies:
+  silhouette families, face language, proportions, movement signatures, team culture
+- Do not ship a model merely because it is technically rigged; every featured player
+  must be recognizable from silhouette or motion before portraits return to center stage
 - Ball: paneled texture, team-tinted trail
 - Crowd recolored per fixture; coaches + benches; stadium dressing (flags, tunnel, dugouts)
 
@@ -87,5 +87,7 @@ Principle: every state change BLENDS (~0.15s), nothing snaps. Per-position, per-
 - Pre-match narrative cards, post-match recaps, season arcs
 - Social layer: AI player accounts, trash talk, lore — pre-launch content bank
 
-## Workstream 6 — Other Sports (only after template is perfect)
-- Hockey → basketball → football → fighting. Same skeleton/template, new pitch + rules.
+## Workstream 6 — Exhibition Arenas
+- Hockey, basketball, baseball, and fighting remain playable experiments.
+- Promote an arena into the canonical application only after it adopts the shared
+  deterministic event contract, persistence, recovery, and automated test gates.

@@ -102,7 +102,7 @@ a:focus-visible, button:focus-visible {
 }
 #topbar .brand {
   font-weight: 900; font-stretch: 120%; font-size: 14px;
-  letter-spacing: .06em; color: var(--text); white-space: nowrap;
+  letter-spacing: .06em; color: var(--text); white-space: nowrap; flex: 0 0 auto;
 }
 #topbar nav {
   display: flex; gap: clamp(12px, 2.4vw, 26px); margin-left: auto;
@@ -128,6 +128,7 @@ a:focus-visible, button:focus-visible {
   font-weight: 700; font-size: 12px; letter-spacing: .06em;
   color: var(--ink); background: linear-gradient(135deg, var(--accent), #7be8ff);
   border-radius: 10px; padding: 8px 14px;
+  white-space: nowrap;
   box-shadow: 0 4px 16px rgba(31, 210, 255, .22);
   transition: filter .14s ease-out, transform .14s ease-out, box-shadow .14s ease-out;
 }
@@ -517,7 +518,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 32px); }
 
 /* ---------- live score (consumer of 'cyberliga_live') ---------- */
 /* cells may never expand past their track (would clip the last channel);
-   while a match is live the rail gives FOOTBALL a wider fr-share instead —
+   while a match is live the rail gives SOCCER a wider fr-share instead —
    one transition at kickoff, then score/minute updates never move a divider */
 .sport-cell { min-width: 0; }
 .sportsrail { transition: grid-template-columns .3s ease-out; }
@@ -532,7 +533,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 32px); }
 }
 .sport-cell .sport-status.is-ht .live-dot { visibility: hidden; } /* keeps spacing, kills the glow at the break */
 @media (max-width: 1040px) and (min-width: 721px) {
-  /* tighter grid band: widen FOOTBALL further and condense the numerals */
+  /* tighter grid band: widen SOCCER further and condense the numerals */
   .sportsrail.has-livescore { grid-template-columns: 2fr repeat(4, 1fr); }
   .sport-cell .sport-status.is-score .st-text { font-size: 11.5px; }
 }
@@ -600,6 +601,29 @@ footer .legal { margin-top: 4px; font-size: 12px; color: var(--dim); }
   .fixture-cols::before { display: none; }
 }
 @media (max-width: 720px) {
+  main { padding: 0 16px; }
+  .section { margin-top: 56px; }
+  #hero {
+    gap: 28px;
+    padding-top: 38px;
+  }
+  .hero-actions { gap: 12px; margin-top: 22px; }
+  .hero-actions .btn {
+    flex: 1 1 100%;
+    text-align: center;
+    padding: 12px 16px;
+  }
+  .textlink { font-size: 12px; }
+  .bb-kicker {
+    white-space: normal;
+    line-height: 1.35;
+  }
+  .bb-poster { padding: 18px 10px 16px; }
+  .bb-name { font-size: 12px; }
+  .bb-meta {
+    font-size: 12px;
+    line-height: 1.35;
+  }
   /* arena strip full-bleed + horizontal-scrolls, hairline dividers intact */
   .sportsrail {
     display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -611,6 +635,64 @@ footer .legal { margin-top: 4px; font-size: 12px; color: var(--dim); }
   .castchip { width: 56px; height: 56px; }
 }
 @media (max-width: 560px) {
+  #topbar {
+    height: auto; min-height: 56px;
+    padding: 9px 14px;
+    gap: 10px;
+  }
+  #topbar .brand { font-size: 13px; letter-spacing: .05em; }
+  .btn-live {
+    margin-left: auto;
+    padding: 8px 11px;
+    border-radius: 9px;
+    font-size: 11px;
+    letter-spacing: .04em;
+  }
+  .sechead {
+    gap: 8px 10px;
+    margin-bottom: 16px;
+  }
+  .sechead h2 { font-size: 18px; }
+  .sechead .idx { font-size: 14px; }
+  .sechead .divchip {
+    padding: 3px 7px;
+    font-size: 9px;
+    letter-spacing: .10em;
+  }
+  .sechead .rule { display: none; }
+  .sechead .sub {
+    flex: 1 1 100%;
+    white-space: normal;
+    line-height: 1.35;
+  }
+  .fixture-cols { row-gap: 28px; }
+  .fixrow {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: center;
+    gap: 7px 10px;
+    padding: 12px 4px;
+  }
+  .fixrow .md { min-width: 0; }
+  .fixrow .pair {
+    grid-column: 2;
+    min-width: 0;
+  }
+  .fixrow .res,
+  .fixrow .watchlink {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .fixrow .tm {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .fixrow .tm-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .watchlink { padding: 6px 12px; }
   /* compact table: hide GF/GA, keep P W D L GD PTS */
   #league-table th:nth-child(7), #league-table td:nth-child(7),
   #league-table th:nth-child(8), #league-table td:nth-child(8) { display: none; }
@@ -618,13 +700,24 @@ footer .legal { margin-top: 4px; font-size: 12px; color: var(--dim); }
   #league-table td { padding: 11px 6px; font-size: 15px; }
   #league-table .club .clubcell { gap: 8px; }
   #league-table .club .cname { font-size: 14px; }
-  #topbar { gap: 16px; }
   #topbar nav { gap: 14px; }
 }
 @media (max-width: 480px) {
   /* nowrap masthead must never exceed the content column (368px @ 56px) */
   .masthead { font-stretch: 100%; font-size: clamp(38px, 13.4vw, 56px); }
   .btn-live { padding: 8px 10px; }
+  #tickerbar {
+    height: 36px;
+    margin-top: 42px;
+  }
+  #tickerbar .tlabel {
+    padding: 0 11px;
+    font-size: 10px;
+  }
+  #tickerbar .ttext {
+    font-size: 12px;
+    letter-spacing: .06em;
+  }
 }
 /* small screens: a clipped nav reads sloppier than no nav — sections are one scroll away */
 @media (max-width: 600px) {
@@ -638,6 +731,22 @@ footer .legal { margin-top: 4px; font-size: 12px; color: var(--dim); }
   .bb-vs { font-size: 30px; }
   .bb-poster { padding: 16px 8px 14px; }
   .bb-crestfield { border-radius: 12px; padding: 10px; }
+  footer { padding-bottom: 44px; }
+}
+@media (max-width: 360px) {
+  main { padding: 0 14px; }
+  #topbar { padding-left: 12px; padding-right: 12px; }
+  #topbar .brand { font-size: 12px; }
+  .btn-live {
+    padding: 7px 9px;
+    font-size: 10px;
+    letter-spacing: .03em;
+  }
+  .sport-cell { min-width: 140px; padding-left: 14px; padding-right: 14px; }
+  .cards { gap: 8px; }
+  .pcard .pname { font-size: 12px; }
+  .pcard .pstats { gap: 4px; }
+  .pcard .stat .k { font-size: 9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

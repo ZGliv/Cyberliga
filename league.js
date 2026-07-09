@@ -305,7 +305,7 @@
 
     bb.innerHTML =
       '<div class="bb-kicker"><span class="bb-kick-l"><span class="live-dot" hidden></span>' +
-        '<span class="bb-kick-text">NEXT &mdash; FOOTBALL &middot; MATCHDAY ' + next.matchday + '</span></span>' +
+        '<span class="bb-kick-text">NEXT &mdash; SOCCER &middot; MATCHDAY ' + next.matchday + '</span></span>' +
         '<span>GRAND ARENA</span></div>' +
       '<div class="bb-poster" style="' + field + '">' +
         crestCardHTML(next.a) +
@@ -459,9 +459,9 @@
 
     if (!anyPlayed) {
       lines.push({ tag: 'SEASON ZERO', color: '#7ef0ff',
-        text: 'The football division boots up. <b>MATCHDAY 1:</b> ' + teamRef(next.a) + ' vs ' + teamRef(next.b) + ' opens Season 2077 — every stat this division will ever have starts at zero tonight.' });
+        text: 'The soccer division boots up. <b>MATCHDAY 1:</b> ' + teamRef(next.a) + ' vs ' + teamRef(next.b) + ' opens Season 2077 — every stat this division will ever have starts at zero tonight.' });
       lines.push({ tag: 'THE FORMAT', color: '#8fa3c8',
-        text: 'Four clubs. Twenty-eight footballers. An endless round-robin where the table never sleeps and <b>nobody gets relegated — only humiliated</b>.' });
+        text: 'Four clubs. Twenty-eight soccer players. An endless round-robin where the table never sleeps and <b>nobody gets relegated — only humiliated</b>.' });
       return lines;
     }
 
@@ -581,7 +581,7 @@
       return s.tag + ': ' + (d.textContent || '').toUpperCase();
     });
     var next = fixtureAt(league.fixture);
-    plain.unshift('FOOTBALL — NEXT ON THE GRID — MATCHDAY ' + next.matchday + ': ' + next.a.name + ' vs ' + next.b.name);
+    plain.unshift('SOCCER — NEXT ON THE GRID — MATCHDAY ' + next.matchday + ': ' + next.a.name + ' vs ' + next.b.name);
     el('tickertext').textContent = plain.join('   —   ') + '   —   ';
   }
 
@@ -635,7 +635,7 @@
   function renderSports() {
     var host = el('sportsrail');
     var cards = [
-      { name: 'FOOTBALL', href: 'index.html', live: true },
+      { name: 'SOCCER', href: 'index.html', live: true },
       { name: 'HOCKEY', href: 'hockey.html', pending: true, sub: 'EXHIBITION ERA' },
       { name: 'BASKETBALL', href: 'hoops.html', pending: true, sub: 'EXHIBITION ERA' },
       { name: 'BASEBALL', href: 'baseball.html', pending: true, sub: 'EXHIBITION ERA' },
@@ -722,7 +722,7 @@
   // halves (state.clock runs 0..HALF_LEN*2 and is never reset at the break;
   // fmtClock displays it directly), so the minute is derived from the clock
   // alone — a (half-1)*halfMinutes offset would double-count the first half.
-  // Football-style 1-based in-progress minute, clamped to the 0..7200s contract.
+  // Soccer-style 1-based in-progress minute, clamped to the 0..7200s contract.
   function liveMinute(clock) {
     return Math.min(120, Math.max(1, Math.ceil(clock / 60)));
   }
@@ -737,7 +737,7 @@
       if (sig === liveUI.sig) return; // in-place + idempotent: untouched DOM never flickers
       liveUI.sig = sig;
 
-      // --- football arena tile status line ---
+      // --- soccer arena tile status line ---
       if (liveUI.rail) liveUI.rail.classList.toggle('has-livescore', !!live);
       if (liveUI.tileStatus && liveUI.tileText) {
         var st = liveUI.tileStatus;
