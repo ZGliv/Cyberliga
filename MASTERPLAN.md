@@ -18,6 +18,8 @@ team culture. The durable IP lives in names, behavior, stats, rivalries, and lor
 - Other sports remain clearly labeled exhibitions while the shared application foundation is built.
 - Order: source control → deterministic sim → canonical persistence → application shell → reliability → content engine.
 - Blobs are the prototype default; robot and character views remain optional comparisons.
+- OG broadcast grammar is the visual north star: wide live camera, minimal permanent HUD,
+  contextual names, and motion/crowd/ball behavior carrying the spectacle.
 - Crypto/monetization: not before audience. Prediction points first, much later.
 
 ---
@@ -77,8 +79,9 @@ follow-through, and roles remain readable without human anatomy.
 - Crowd recolored per fixture; coaches + benches; stadium dressing (flags, tunnel, dugouts)
 
 ## Workstream 4 — UI/UX & Broadcast
-- Tension-aware camera (zoom on box entries, set-piece cams, celebration orbit)
-- Lineup intro card, momentum bar, possession ticker
+- [x] Restore the wide OG live camera; reserve directed shots for goals and replays
+- [x] Reduce permanent match furniture to score, clock, ticker, hub link, and controls
+- [x] Make player nameplates contextual to the current action
 - Better replay direction (multiple angles, freeze-frame on contact)
 - Auto-highlight clip export (the virality engine)
 

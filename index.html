@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>CYBERLIGA SOCCER</title>
+<link rel="icon" href="data:," />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -278,6 +279,26 @@
     .team { padding:0 7px; font-size:10px; letter-spacing:.7px; }
     #score { min-width:62px; padding:0 8px; font-size:17px; }
     #wordmark { font-size:11px; letter-spacing:1.1px; }
+  }
+
+  /* OG CUT — let the match be the graphic. The simulation still produces every
+     event, but routine information stays in the ticker instead of covering play. */
+  #feed, #momentum, #lineup, #penstinger, #pentag { display:none !important; }
+  #wordmark { display:none; }
+  #clockwrap { top:74px; }
+  #stylepill { left:310px; }
+  #ticker { background:linear-gradient(180deg,rgba(4,6,16,.78),rgba(2,3,10,.92)); }
+  #scanlines { opacity:.62; }
+  @media (max-width:700px) {
+    #clockwrap { top:calc(env(safe-area-inset-top, 0px) + 102px); }
+    #stylepill {
+      left:auto; right:10px; bottom:44px; width:auto; max-width:190px;
+      min-height:30px; padding:5px 10px; font-size:10px; letter-spacing:1.1px;
+    }
+    #soundpill {
+      left:10px; right:auto; bottom:44px; width:auto;
+      min-height:30px; padding:5px 10px; font-size:10px; letter-spacing:1.1px;
+    }
   }
 </style>
 </head>
@@ -801,13 +822,15 @@ function buildPlayer(team, isGK, r, captain) {
 
   const colorCss = '#' + new THREE.Color(team.glow).getHexString();
   const tag = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: makeNameTagTexture(name, number, colorCss), transparent: true, depthWrite: false, opacity: 0.95 }));
-  tag.scale.set(2.7, 0.6, 1); tag.position.y = rig.anchors.tagY ?? 2.55;
+    map: makeNameTagTexture(name, number, colorCss), transparent: true, depthWrite: false, opacity: 0 }));
+  tag.scale.set(2.35, 0.52, 1); tag.position.y = rig.anchors.tagY ?? 2.55;
+  tag.visible = false;
   tag.renderOrder = 999; // tags always draw after numbers — kills the front/back sorting pop
   g.add(tag);
 
   g.userData.rig = rig;
   g.userData.headPivot = rig.headPivot;
+  g.userData.nameTag = tag;
   return g;
 }
 
@@ -2601,58 +2624,20 @@ function takeSetPiece() {
   state.mode = 'play';
 }
 
-// ============ CAMERA (tension-aware broadcast) ============
+// ============ CAMERA (OG wide broadcast) ============
 const camTarget = new THREE.Vector3();
 const camShakeOff = new THREE.Vector3(); // last frame's shake offset — peeled off before damping
 const camPosD = new THREE.Vector3(), camTgtD = new THREE.Vector3(); // per-frame desired frame (scratch)
 let camShake = 0;
 const CAM_FOV = 42;
-let camTension = 0;   // 0 = comfortable midfield frame … 1 = box-tight push (slow zone signal)
-let camShotPunch = 0; // brief lens tighten while a shot is in flight
-
-// W8: every smoother below is 1-exp(-k*dt) — rate-independent on any refresh rate
-function easeFov(target, rate, dt) {
-  const f = camera.fov + (target - camera.fov) * (1 - Math.exp(-rate * dt));
-  if (Math.abs(f - camera.fov) > 1e-3) { camera.fov = f; camera.updateProjectionMatrix(); }
-}
-
-// zone tension: midfield reads wide, the final third pushes in, the penalty box is tight;
-// a long airborne switch eases back out so the receiving flank stays in frame
-function liveTension() {
-  const ax = Math.abs(ball.pos.x);
-  let k = THREE.MathUtils.clamp((ax - 10) / 10, 0, 1) * 0.72;     // final-third ramp
-  if (ax > HALF_W - 12 && Math.abs(ball.pos.z) < 11) k = 1;       // penalty box: full push
-  if (ball.pos.y > 1.6) {
-    const bsp = Math.hypot(ball.vel.x, ball.vel.z);
-    k -= THREE.MathUtils.clamp((bsp - 11) / 9, 0, 1) * 0.55;      // long-switch pull
-  }
-  return THREE.MathUtils.clamp(k, 0, 1);
-}
-// the broadcast frame for a given tension — k=0 is the stock Wave-1 framing
-function liveFrame(k, outPos, outTgt, t) {
-  const cl = HALF_W * (0.7 + 0.12 * k); // tighter frames may track further toward the byline
-  const fx = THREE.MathUtils.clamp(ball.pos.x * (0.78 + 0.1 * k), -cl, cl);
+// The earliest version stayed wide enough to read the formation and let the blobs'
+// movement create tension. Follow the ball, but never turn open play into a close-up.
+function ogLiveFrame(outPos, outTgt, t) {
+  const fx = THREE.MathUtils.clamp(ball.pos.x * 0.78, -HALF_W * 0.7, HALF_W * 0.7);
   const fz = THREE.MathUtils.clamp(ball.pos.z * 0.3, -8, 8);
-  const bob = t === undefined ? 0 : Math.sin(t * 0.1) * 0.6 * (1 - k); // breathing only when wide
-  outPos.set(fx, 21 - 8.5 * k + bob, 44 - 15 * k + fz * 0.4);
-  outTgt.set(ball.pos.x * (0.85 + 0.08 * k), 1.2, ball.pos.z * (0.55 + 0.25 * k));
-}
-// composed set-piece frame: lower and closer, looking down the delivery line at the box
-function setPieceFrame(outPos, outTgt) {
-  const sp = state.setpiece;
-  const gx = sp.gx * HALF_W;
-  if (sp.kind === 'penalty') {
-    // TV penalty composition: low, behind and just off the taker's shoulder, looking
-    // down the run-up line — taker foreground, keeper bouncing on his line, goal framed
-    outPos.set(ball.pos.x - sp.gx * 8.5, 2.6, ball.pos.z + 5.4);
-    outTgt.set(gx * 0.97, 1.25, 0);
-    return;
-  }
-  outPos.set(
-    THREE.MathUtils.clamp(ball.pos.x * 0.9, -HALF_W * 0.9, HALF_W * 0.9),
-    9.5,
-    ball.pos.z * 0.45 + 26);
-  outTgt.set((ball.pos.x + gx) * 0.5 * 0.78, 1.1, ball.pos.z * 0.35);
+  const bob = t === undefined ? 0 : Math.sin(t * 0.1) * 0.6;
+  outPos.set(fx, 21 + bob, 44 + fz * 0.4);
+  outTgt.set(ball.pos.x * 0.85, 1.2, ball.pos.z * 0.55);
 }
 
 function cameraStep(dt, t) {
@@ -2662,54 +2647,19 @@ function cameraStep(dt, t) {
     camera.position.copy(replayCam.camPos);
     camTarget.copy(replayCam.camTarget);
     camera.lookAt(camTarget);
-    easeFov(CAM_FOV, 3, dt); // replays are directed for the stock lens — relax any punch-in
+    if (camera.fov !== CAM_FOV) { camera.fov = CAM_FOV; camera.updateProjectionMatrix(); }
     return;
   }
   // remove the previous shake offset so noise never compounds into the follow damping
   camera.position.sub(camShakeOff);
+  ogLiveFrame(camPosD, camTgtD, t);
+  camera.position.lerp(camPosD, 1 - Math.exp(-1.6 * dt));
+  camTarget.lerp(camTgtD, 1 - Math.exp(-2.2 * dt));
   if (state.mode === 'goal') {
-    // one committed push-in — stacking it on the broadcast lerp drifted to a
-    // dt-dependent blend of two moving targets instead of a clean camera move
-    camera.position.lerp(camPosD.set(ball.pos.x*0.8, 8, ball.pos.z + 18), 1 - Math.exp(-1.4*dt));
-    camTarget.lerp(camTgtD.set(ball.pos.x*0.85, 1.2, ball.pos.z*0.55), 1 - Math.exp(-2.2 * dt));
-    easeFov(CAM_FOV, 2.5, dt);
-  } else if (state.mode === 'setpiece' && state.setpiece) {
-    // corners/free kicks/pens: settle into a composed angle for the beat before the kick
-    // (entry into this mode was already a broadcast cut — this only damps, never cuts)
-    setPieceFrame(camPosD, camTgtD);
-    camera.position.lerp(camPosD, 1 - Math.exp(-2.6 * dt));
-    camTarget.lerp(camTgtD, 1 - Math.exp(-2.6 * dt));
-    // pens punch in a touch (taker/keeper duel); other set pieces go a hair wider
-    easeFov(state.setpiece.kind === 'penalty' ? CAM_FOV - 2 : CAM_FOV + 1.5, 2.5, dt);
-  } else if (state.mode === 'foul' && state.foul && state.foul.ruling.penalty
-      && !state.foul.done) {
-    // PENALTY BROADCAST MOMENT: opened by the hard cutToRefCam in beginFoul, then this
-    // damped follow tracks the official for the WHOLE call — whistle to mouth, striding
-    // to the spot, posePointToSpot, the card. Released by the beginSetPiece cameraCut
-    // when the spot-kick theater takes over.
-    camPosD.set(ref.pos.x * 0.92, 2.6, ref.pos.z + 6.5); // ~7m, chest height, broadcast side
-    camTgtD.set(ref.pos.x, 1.4, ref.pos.z);
-    camera.position.lerp(camPosD, 1 - Math.exp(-2.8 * dt));
-    camTarget.lerp(camTgtD, 1 - Math.exp(-2.8 * dt));
-    easeFov(CAM_FOV - 4, 3, dt); // slight punch-in so the signal reads
-  } else {
-    // tension-aware live framing — NO cuts in open play, only damped moves
-    camTension += (liveTension() - camTension) * (1 - Math.exp(-1.7 * dt));
-    liveFrame(camTension, camPosD, camTgtD, t);
-    camera.position.lerp(camPosD, 1 - Math.exp(-(1.6 + 0.9 * camTension) * dt));
-    camTarget.lerp(camTgtD, 1 - Math.exp(-(2.2 + 0.9 * camTension) * dt));
-    // shot punch: ball flying hard at a goal → modest FOV tighten, fast in / slow out
-    let shotOn = false;
-    if (state.mode === 'play') {
-      const bsp = Math.hypot(ball.vel.x, ball.vel.z);
-      if (bsp > 13.5 && Math.abs(ball.vel.x) > bsp * 0.45) {
-        const gxN = ball.vel.x > 0 ? HALF_W : -HALF_W;
-        shotOn = Math.hypot(gxN - ball.pos.x, ball.pos.z) < 27;
-      }
-    }
-    camShotPunch += ((shotOn ? 1 : 0) - camShotPunch) * (1 - Math.exp(-(shotOn ? 7 : 2.5) * dt));
-    easeFov(CAM_FOV - camShotPunch * 5 - camTension * 1.2, 8, dt);
+    // Goals earn the one deliberate push-in; everything else stays readable and wide.
+    camera.position.lerp(camPosD.set(ball.pos.x * 0.8, 8, ball.pos.z + 18), 1 - Math.exp(-1.2 * dt));
   }
+  if (camera.fov !== CAM_FOV) { camera.fov = CAM_FOV; camera.updateProjectionMatrix(); }
   camShake = Math.max(0, camShake - dt*2);
   // time-seeded shake, recomputed (not accumulated) each frame — per-frame random offsets
   // vibrated harder the higher the refresh rate
@@ -2720,25 +2670,17 @@ function cameraStep(dt, t) {
   camera.position.add(camShakeOff);
   camera.lookAt(camTarget);
 }
-// hard cut to the right framing for the CURRENT state — restart placements are
-// unavoidable teleports, and a cut is how television hides them
+// Restarts may teleport the simulation, so land immediately on the same wide grammar.
 function cameraCut() {
   camShakeOff.set(0, 0, 0);
-  if (state.mode === 'setpiece' && state.setpiece) {
-    setPieceFrame(camera.position, camTarget); // cut straight to the composed angle
-  } else {
-    camTension = liveTension(); // land the cut on the correct zone framing, no post-cut drift
-    liveFrame(camTension, camera.position, camTarget);
-  }
+  ogLiveFrame(camera.position, camTarget);
+  camera.fov = CAM_FOV;
+  camera.updateProjectionMatrix();
   camera.lookAt(camTarget);
 }
-// hard cut framing the OFFICIAL — the penalty call opens on the man making it, then the
-// damped foul-mode branch in cameraStep takes over from exactly this framing
+// Calls stay in the wide composition; referee movement, crowd and ticker carry the beat.
 function cutToRefCam() {
-  camShakeOff.set(0, 0, 0);
-  camera.position.set(ref.pos.x * 0.92, 2.6, ref.pos.z + 6.5);
-  camTarget.set(ref.pos.x, 1.4, ref.pos.z);
-  camera.lookAt(camTarget);
+  cameraCut();
 }
 
 // ============ MOMENTUM BAR (broadcast furniture) ============
@@ -2981,6 +2923,20 @@ function animatePlayers(dt, t) {
     // gait-sync contract: rigs that report their true footfall phase override the
     // distance-based estimate above (which remains the fallback for rigs without it)
     if (rig.gaitPhase !== undefined) p.stridePhase = rig.gaitPhase;
+
+    // Names are story beats, not permanent furniture. Reveal only the player(s) making
+    // the current action so the colored silhouettes remain the first read at a glance.
+    const tag = p.mesh.userData.nameTag;
+    if (tag) {
+      const foulFocus = state.foul && (p === state.foul.offender || p === state.foul.victim);
+      const goalFocus = (state.mode === 'goal' || state.mode === 'aftermath') && p === state.scorer;
+      const nearBall = p.pos.distanceTo(ball.pos) < 2.25;
+      const active = goalFocus || foulFocus || p.kickAnim || p.skillAnim || p.slideT > 0
+        || (state.mode === 'play' && nearBall);
+      const targetOpacity = active ? 0.92 : 0;
+      tag.material.opacity += (targetOpacity - tag.material.opacity) * (1 - Math.exp(-(active ? 14 : 7) * dt));
+      tag.visible = tag.material.opacity > 0.025;
+    }
 
     // stagger wobble rides on top of whatever pose is active — ABSOLUTE assignment every
     // frame. The old `+=` integrated raw sine forever: frame-rate-dependent keel-over,
@@ -3453,7 +3409,7 @@ function startMatch() {
   elTeamBEl.style.color = cB;
   resetPositions(Math.random() < 0.5 ? TEAM_A : TEAM_B);
   state.mode = 'kickoff'; state.modeT = 0;
-  state.lineupIntro = true; // lineup cards play through an extended first kickoff hold
+  state.lineupIntro = false; // OG cut: get to motion immediately; rosters live on the hub
   hideLineup();
   momentum = momSm = 0; momShotsA = momShotsB = 0; // fresh momentum ledger per fixture
   momCssA = cA; momCssB = cB;                      // bar blends this fixture's colors
