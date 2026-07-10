@@ -101,6 +101,21 @@ for (const page of supportingPages) {
   check(page.screen.test(source), `${page.file} render state does not identify its screen`);
 }
 
+check(await exists('appshell.css'), 'Missing shared application-shell styles');
+check(await exists('appshell.js'), 'Missing shared application-shell behavior');
+for (const page of supportingPages.filter((page) => page.file !== 'world.html')) {
+  const source = await text(page.file);
+  check(source.includes('appshell.css'), `${page.file} does not load the shared application-shell styles`);
+  check(source.includes('appshell.js'), `${page.file} does not load the shared application-shell behavior`);
+}
+const appShellSource = await text('appshell.js');
+for (const arena of arenas) {
+  check(appShellSource.includes(arena.id) && appShellSource.includes(arena.file), `Application shell does not expose the ${arena.id} arena`);
+}
+for (const route of ['world.html', 'menu.html', 'league.html', 'social.html', 'replay.html', 'player.html', 'moment.html', 'clip.html']) {
+  check(appShellSource.includes(route), `Application shell does not expose ${route}`);
+}
+
 const worldSource = await text('world.html');
 const atlasSource = await text('league.html');
 const socialSource = await text('social.html');

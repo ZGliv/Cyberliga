@@ -13,6 +13,7 @@
   ];
   var path = (root.location && root.location.pathname || '').split('/').pop() || 'index.html';
   var current = ROUTES.find(function (route) { return route.href === path; }) || ROUTES[0];
+  try { root.localStorage.setItem('cyberliga:sport', current.id); } catch (_) {}
   var open = false;
   var previousFocus = null;
 
@@ -55,22 +56,21 @@
 
   var hub = root.document.createElement('div');
   hub.id = 'cyberliga-game-hub';
-  hub.innerHTML = '<button id="cgh-toggle" type="button" aria-controls="cgh-panel" aria-expanded="false">NAVIGATE</button>' +
+  hub.innerHTML = '<button id="cgh-toggle" type="button" aria-controls="cgh-panel" aria-expanded="false">MENU · ' + escapeHtml(current.code) + '</button>' +
     '<div id="cgh-backdrop" aria-hidden="true"></div>' +
     '<aside id="cgh-panel" role="dialog" aria-modal="true" aria-labelledby="cgh-title" aria-hidden="true">' +
-      '<div class="cgh-head"><div class="cgh-brand" id="cgh-title">WHERE DO YOU WANT TO GO?<small>CYBERLIGA APP NAVIGATION</small></div><button id="cgh-close" type="button" aria-label="Close navigation">×</button></div>' +
+      '<div class="cgh-head"><div class="cgh-brand" id="cgh-title">CYBERLIGA<small>ONE WORLD · SIX LEAGUES</small></div><button id="cgh-close" type="button" aria-label="Close navigation">×</button></div>' +
       '<div class="cgh-current"><small>CURRENT SCREEN</small><b>' + escapeHtml(current.name) + '</b><span>' + escapeHtml(current.league) + ' · MATCH ARENA</span></div>' +
       '<span class="cgh-section-title">MAIN DESTINATIONS</span>' +
       '<nav class="cgh-actions" aria-label="Arena destinations">' +
         '<a class="cgh-home" href="world.html">⌂ &nbsp; HOME · CHOOSE A SPORT</a>' +
-        '<a href="menu.html">WATCH GUIDE</a>' +
-        '<a href="league.html?sport=' + encodeURIComponent(current.id) + '">TEAMS &amp; LEAGUE</a>' +
+        '<a href="menu.html">WATCH</a>' +
+        '<a href="league.html?sport=' + encodeURIComponent(current.id) + '">LEAGUES</a>' +
         '<a href="social.html?sport=' + encodeURIComponent(current.id) + '">COMMUNITY</a>' +
-        '<a href="moment.html?sport=' + encodeURIComponent(current.id) + '">MAKE A POSTER</a>' +
-        '<a href="clip.html?sport=' + encodeURIComponent(current.id) + '">CREATE A CLIP</a>' +
         '<a href="replay.html?sport=' + encodeURIComponent(current.id) + '">REPLAYS</a>' +
         '<a href="player.html?sport=' + encodeURIComponent(current.id) + '">PLAYERS</a>' +
-        '<a href="characterlab.html">PLAYER DIRECTORY</a>' +
+        '<a href="moment.html?sport=' + encodeURIComponent(current.id) + '">MAKE A POSTER</a>' +
+        '<a href="clip.html?sport=' + encodeURIComponent(current.id) + '">CREATE A CLIP</a>' +
       '</nav><span class="cgh-label">SWITCH SPORT</span><nav class="cgh-sports" aria-label="Switch sports">' + ROUTES.map(routeLink).join('') + '</nav>' +
       '<div class="cgh-foot">PRESS G TO OPEN NAVIGATION · ESC TO CLOSE<br>YOUR MATCH REMAINS OPEN BEHIND THIS PANEL.</div>' +
     '</aside>';
