@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>CYBERLIGA WORLD — Five Autonomous Sports Leagues</title>
-<meta name="description" content="One physical world. Five autonomous sports leagues. Tune into football, basketball, hockey, baseball, and fight circuits." />
+<title>CYBERLIGA WORLD — Six Autonomous Sports Leagues</title>
+<meta name="description" content="One physical world. Six autonomous sports leagues. Tune into soccer, American football, basketball, hockey, baseball, and fight circuits." />
 <meta name="theme-color" content="#020304" />
 <meta property="og:type" content="website" />
-<meta property="og:title" content="CYBERLIGA — One Planet. Five Leagues." />
-<meta property="og:description" content="A living global network for autonomous football, basketball, hockey, baseball, and fight leagues." />
+<meta property="og:title" content="CYBERLIGA — One Planet. Six Leagues." />
+<meta property="og:description" content="A living global network for autonomous soccer, American football, basketball, hockey, baseball, and fight leagues." />
 <meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-world-og.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="CYBERLIGA — One Planet. Five Leagues." />
+<meta name="twitter:title" content="CYBERLIGA — One Planet. Six Leagues." />
 <meta name="twitter:description" content="Open the globe and tune into a living autonomous sports network." />
 <meta name="twitter:image" content="https://cyberliga-ten.vercel.app/cyberliga-world-og.png" />
 <link rel="icon" href="data:," />
@@ -80,8 +80,9 @@
   .signal-actions { display:flex; gap:8px; margin-top:15px; }
   .signal-actions a,.signal-actions button { min-height:38px; display:inline-flex; align-items:center; justify-content:center; padding:0 13px; cursor:pointer; font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
   .signal-actions a { flex:1; color:#020304; background:#fff; }
+  .signal-actions #signal-explore { color:#fff; border:1px solid var(--line); background:transparent; }
   .signal-actions button { color:var(--muted); border:1px solid var(--line); background:transparent; }
-  .sportbar { position:fixed; z-index:28; left:30px; right:30px; bottom:28px; display:grid; grid-template-columns:auto repeat(5,1fr); gap:1px; background:var(--line); }
+  .sportbar { position:fixed; z-index:28; left:30px; right:30px; bottom:28px; display:grid; grid-template-columns:auto repeat(6,1fr); gap:1px; background:var(--line); }
   .sportbar > span,.sportbar button { min-width:0; min-height:50px; display:flex; align-items:center; padding:0 13px; background:rgba(4,6,8,.84); backdrop-filter:blur(12px); }
   .sportbar > span { color:var(--muted); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
   .sportbar button { position:relative; gap:9px; cursor:pointer; color:#fff; text-align:left; }
@@ -96,14 +97,15 @@
   @media (max-width:900px) {
     body::before { background:linear-gradient(180deg,rgba(2,3,4,.8),transparent 42%,rgba(2,3,4,.82)); }
     .topbar { height:70px; padding:0 18px; }
-    .brand span,.brand i,.nav a:first-child { display:none; }
+    .brand span,.brand i { display:none; }
+    .nav { gap:12px; }
     .intro { top:90px; left:18px; width:calc(100vw - 36px); transform:none; }
     .intro h1 { font-size:49px; width:270px; }
     .intro .lede,.intro .proof { display:none; }
     .liveboard { top:auto; left:18px; right:18px; bottom:95px; width:auto; }
     .liveboard { bottom:22px; }
     .signal-card { display:none; }
-    .league-list { grid-template-columns:repeat(5,1fr); }
+    .league-list { grid-template-columns:repeat(3,1fr); }
     .league-row { display:block; min-height:61px; padding:8px 6px; text-align:center; }
     .league-code { height:24px; border:0; }
     .league-row b { margin-top:4px; font-size:9px; }
@@ -119,33 +121,34 @@
 </head>
 <body>
 <div class="loading" id="loading"><p>ACQUIRING THE WORLD SIGNAL</p></div>
-<canvas id="globe" aria-label="Interactive globe showing five Cyberliga sports leagues"></canvas>
+<canvas id="globe" aria-label="Interactive globe showing six Cyberliga sports leagues"></canvas>
 <div id="labels"></div>
 <div class="frame" aria-hidden="true"></div>
 
 <header class="topbar">
   <a class="brand" href="world.html"><strong>CYBERLIGA</strong><i></i><span>THE AUTONOMOUS SPORTS WORLD</span></a>
-  <nav class="nav"><a href="#network">5 LEAGUES</a><a class="live" id="watch-primary" href="index.html"><span class="dot"></span>WATCH FOOTBALL LIVE</a></nav>
+  <nav class="nav"><a href="league.html?sport=soccer">ATLAS</a><a href="social.html">WORLD WIRE</a><a class="live" id="watch-primary" href="index.html"><span class="dot"></span>LIVE SOCCER</a></nav>
 </header>
 
 <section class="intro">
   <p class="eyebrow">THE AUTONOMOUS SPORTS NETWORK · SEASON ZERO</p>
-  <h1>ONE PLANET. <span>FIVE LEAGUES.</span></h1>
-  <p class="lede">Football, basketball, hockey, baseball, and fight circuits broadcasting from one physical world. Pick a signal and drop in.</p>
-  <div class="proof"><div><b>5</b><span>SPORTS LEAGUES</span></div><div><b>10</b><span>HOST CITIES</span></div><div><b>1</b><span>LIVE WORLD</span></div></div>
+  <h1>ONE PLANET. <span>SIX LEAGUES.</span></h1>
+  <p class="lede">Soccer, American football, basketball, hockey, baseball, and fight circuits broadcasting from one physical world. Pick a signal and drop in.</p>
+  <div class="proof"><div><b>6</b><span>SPORTS LEAGUES</span></div><div><b>48</b><span>CLUBS</span></div><div><b>288</b><span>ATHLETES</span></div></div>
 </section>
 
 <aside class="liveboard" id="network">
-  <div class="panel-label"><span><strong>● NETWORK ONLINE</strong> · SELECT A LEAGUE</span><span id="round-label">5 SIGNALS</span></div>
+  <div class="panel-label"><span><strong>● NETWORK ONLINE</strong> · SELECT A LEAGUE</span><span id="round-label">6 SIGNALS</span></div>
   <div class="league-list" id="league-list"></div>
   <section class="signal-card" id="signal-card">
     <p class="sport" id="signal-sport"></p><h2 id="signal-name"></h2><p class="route" id="signal-route"></p><p class="copy" id="signal-copy"></p>
-    <div class="signal-actions"><a id="signal-watch" href="index.html">ENTER THE ARENA ↗</a><button id="share" type="button">COPY WORLD LINK</button></div>
+    <div class="signal-actions"><a id="signal-watch" href="index.html">ENTER THE ARENA ↗</a><a id="signal-explore" href="league.html?sport=soccer">MEET THE LEAGUE</a><button id="share" type="button">COPY LINK</button></div>
   </section>
 </aside>
 
 <div class="sportbar" id="sportbar" aria-label="Cyberliga sports network"><span>NETWORK //</span></div>
 
+<script src="worlddata.js"></script>
 <script src="universe.js"></script>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
 <script type="module">
@@ -154,20 +157,23 @@ import * as THREE from 'three';
 const U = window.CyberligaUniverse;
 let matches = U.liveMatches(Date.now());
 const LEAGUES = [
-  { id:'football', code:'FBL', sport:'FOOTBALL', name:'GLOBAL PREMIERSHIP', color:'#00e5ff', live:true,
-    state:'2 LIVE', hosts:[{city:'Tokyo',lat:35.6762,lon:139.6503},{city:'São Paulo',lat:-23.5505,lon:-46.6333}],
-    copy:'The canonical league. Two fixtures run on one seeded UTC timeline, so every screen joins the same match already in progress.',
+  { id:'soccer', contentId:'soccer', code:'SCL', sport:'SOCCER', name:'THE COMMON GROUND', color:'#00e5ff', live:true,
+    state:'4 LIVE', hosts:[{city:'Tokyo',lat:35.6762,lon:139.6503},{city:'São Paulo',lat:-23.5505,lon:-46.6333}],
+    copy:'The canonical league. Eight clubs fill four fixtures on one seeded UTC timeline, so every screen joins the same match already in progress.',
     href:()=>U.sharePath(matches[0]) },
-  { id:'hoops', code:'HPS', sport:'BASKETBALL', name:'SKYLINE CIRCUIT', color:'#ff8a3d', live:false,
+  { id:'gridiron', contentId:'american-football', code:'AMF', sport:'AMERICAN FOOTBALL', name:'THE SUNDAY ANIMAL', color:'#c8ff44', live:false,
+    state:'PLAYABLE', hosts:[{city:'Dallas',lat:32.7767,lon:-96.7970},{city:'Osaka',lat:34.6937,lon:135.5023}],
+    copy:'Six-on-six pressure football with collapsing pockets, violent route breaks, interceptions, and a full-field race after every catch.', href:()=> 'football.html' },
+  { id:'hoops', contentId:'basketball', code:'HPS', sport:'BASKETBALL', name:'THE HIGH ROOM', color:'#ff8a3d', live:false,
     state:'PLAYABLE', hosts:[{city:'New York',lat:40.7128,lon:-74.0060},{city:'Manila',lat:14.5995,lon:120.9842}],
     copy:'Four-on-four pace, violent transitions, and a vertical city circuit built for impossible finishes above the rim.', href:()=> 'hoops.html' },
-  { id:'ice', code:'ICE', sport:'HOCKEY', name:'POLAR LEAGUE', color:'#78dfff', live:false,
+  { id:'ice', contentId:'hockey', code:'ICE', sport:'HOCKEY', name:'THE COLD ARGUMENT', color:'#78dfff', live:false,
     state:'PLAYABLE', hosts:[{city:'Montréal',lat:45.5019,lon:-73.5674},{city:'Stockholm',lat:59.3293,lon:18.0686}],
     copy:'A cold-weather circuit of speed, collisions, sudden-death pressure, and arenas that never fully stop shaking.', href:()=> 'hockey.html' },
-  { id:'diamond', code:'BSB', sport:'BASEBALL', name:'NIGHT DIAMOND', color:'#58ffb4', live:false,
+  { id:'diamond', contentId:'baseball', code:'BSB', sport:'BASEBALL', name:'THE LONG AFTERNOON', color:'#58ffb4', live:false,
     state:'PLAYABLE', hosts:[{city:'Mexico City',lat:19.4326,lon:-99.1332},{city:'Seoul',lat:37.5665,lon:126.9780}],
     copy:'A nocturnal baseball league where every pitch becomes a duel and every ball in play turns the whole field into a chase.', href:()=> 'baseball.html' },
-  { id:'fight', code:'FYT', sport:'COMBAT', name:'THE UNDERCARD', color:'#ff3d5a', live:false,
+  { id:'fight', contentId:'combat', code:'FYT', sport:'COMBAT', name:'THE HANDMADE UNDERCARD', color:'#ff3d5a', live:false,
     state:'PLAYABLE', hosts:[{city:'Lagos',lat:6.5244,lon:3.3792},{city:'Las Vegas',lat:36.1716,lon:-115.1391}],
     copy:'Three-round fight nights with distinct styles, visible fatigue, scorecards, knockdowns, and no safe route to the final bell.', href:()=> 'fight.html' }
 ];
@@ -199,6 +205,7 @@ function selectLeague(league, fly) {
   document.getElementById('signal-copy').textContent=league.copy;
   document.getElementById('signal-watch').href=league.href();
   document.getElementById('signal-watch').textContent=league.live?'JOIN THE LIVE MATCH ↗':'ENTER THE EXHIBITION ↗';
+  document.getElementById('signal-explore').href=`league.html?sport=${encodeURIComponent(league.contentId)}`;
   document.querySelectorAll('.league-row').forEach((button,i)=>button.classList.toggle('active',LEAGUES[i]===league));
   document.querySelectorAll('#sportbar button').forEach((button,i)=>button.classList.toggle('active',LEAGUES[i]===league));
   document.querySelectorAll('.marker').forEach(button=>button.classList.toggle('selected',button.dataset.league===league.id));
@@ -206,14 +213,14 @@ function selectLeague(league, fly) {
 }
 
 function tickNetwork() {
-  matches=U.liveMatches(Date.now());document.getElementById('round-label').textContent=`5 LEAGUES · ROUND ${matches[0].round}`;
+  matches=U.liveMatches(Date.now());document.getElementById('round-label').textContent=`6 LEAGUES · ROUND ${matches[0].round}`;
   document.getElementById('watch-primary').href=U.sharePath(matches[0]);
   if(selected.live){document.getElementById('signal-route').textContent=routeText(selected);document.getElementById('signal-watch').href=selected.href();}
 }
 
 document.getElementById('share').addEventListener('click', async () => {
   const button = document.getElementById('share');
-  try { await navigator.clipboard.writeText(location.href); button.textContent = 'COPIED'; setTimeout(() => button.textContent = 'COPY WORLD LINK', 1200); } catch (_) {}
+  try { await navigator.clipboard.writeText(location.href); button.textContent = 'COPIED'; setTimeout(() => button.textContent = 'COPY LINK', 1200); } catch (_) {}
 });
 
 const canvas = document.getElementById('globe');
@@ -306,7 +313,7 @@ function render(now){requestAnimationFrame(render);const dt=Math.min((now-last)/
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<700?1.35:1.75));renderer.setSize(innerWidth,innerHeight,false);} addEventListener('resize',resize);resize();
 tickNetwork();selectLeague(selected,false);requestAnimationFrame(render);setTimeout(()=>document.getElementById('loading').classList.add('done'),260);
 setInterval(tickNetwork,1000);
-window.render_game_to_text=()=>JSON.stringify({screen:'world',selectedLeague:{id:selected.id,sport:selected.sport,name:selected.name,state:selected.state},canonicalFootball:{round:matches[0].round,signals:matches.map(match=>({id:match.id,home:match.home.name,away:match.away.name,elapsed:U.clock(match.elapsedMs)}))},leagues:LEAGUES.map(league=>({id:league.id,sport:league.sport,name:league.name,state:league.state,hosts:league.hosts.map(host=>host.city)}))});
+window.render_game_to_text=()=>JSON.stringify({screen:'world',selectedLeague:{id:selected.id,sport:selected.sport,name:selected.name,state:selected.state},canonicalSoccer:{round:matches[0].round,signals:matches.map(match=>({id:match.id,home:match.home.name,away:match.away.name,elapsed:U.clock(match.elapsedMs)}))},leagues:LEAGUES.map(league=>({id:league.id,sport:league.sport,name:league.name,state:league.state,hosts:league.hosts.map(host=>host.city)}))});
 window.advanceTime=ms=>{planet.rotation.y+=ms*.000025;updateLabels(performance.now()+ms);renderer.render(scene,camera);};
 </script>
 </body>

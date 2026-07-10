@@ -1,0 +1,15 @@
+{
+  "name": "cyberliga",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The autonomous Cyberliga sports world prototype.",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "verify": "node scripts/verify.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -33,6 +33,13 @@
     border:1px solid rgba(255,61,90,.3); border-radius:8px; padding:8px 18px;
     box-shadow:0 0 24px rgba(255,61,90,.16), inset 0 1px 0 rgba(255,255,255,.06);
   }
+  #playstatus {
+    position:absolute; top:74px; left:50%; transform:translateX(-50%);
+    min-width:180px; padding:5px 14px; border-radius:999px; text-align:center;
+    font-family:'Orbitron'; font-weight:900; font-size:10px; letter-spacing:2.2px; color:#ffd9de;
+    background:rgba(5,7,18,.8); border:1px solid rgba(255,61,90,.24); box-shadow:0 0 18px rgba(255,61,90,.14);
+  }
+  #playstatus.hot { color:#fff0a8; border-color:rgba(255,194,77,.72); box-shadow:0 0 25px rgba(255,194,77,.3); }
   .live { width:7px; height:7px; border-radius:50%; background:#ff2d55; animation:pulse 1.2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1; box-shadow:0 0 8px #ff2d55;} 50%{opacity:.3;} }
   #round { font-family:'Orbitron'; font-weight:900; font-size:15px; color:#ffd9de; letter-spacing:3px; }
@@ -94,8 +101,15 @@
 
   #vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,10,.55) 100%); }
   #scanlines { position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px); mix-blend-mode:overlay; }
-  #watermark { position:absolute; bottom:46px; right:18px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(255,150,165,.45); }
+  #watermark { position:absolute; bottom:50px; right:162px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(255,150,165,.45); }
   #soundpill { position:absolute; bottom:46px; left:18px; font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px; color:#ff9aa9; border:1px solid rgba(255,61,90,.35); padding:4px 12px; border-radius:99px; background:rgba(4,8,20,.7); }
+  #controls { position:absolute; bottom:44px; right:18px; display:flex; gap:6px; pointer-events:auto; }
+  #controls button {
+    min-width:36px; height:28px; padding:0 9px; border-radius:999px; cursor:pointer;
+    font-family:'Orbitron'; font-weight:700; font-size:9px; letter-spacing:1px; color:#ffc1cb;
+    border:1px solid rgba(255,61,90,.34); background:rgba(4,8,20,.76);
+  }
+  #controls button:hover, #controls button:focus-visible { color:#fff; border-color:#ff6f85; outline:none; box-shadow:0 0 14px rgba(255,61,90,.36); }
 
   #bigcard { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(2,3,10,.45); backdrop-filter:blur(3px); }
   #bigcard.show { display:flex; }
@@ -141,6 +155,10 @@
       min-height:36px; justify-content:center; padding:8px 12px; border-radius:12px; z-index:60;
       background:linear-gradient(180deg, rgba(9,13,28,.96), rgba(3,4,14,.92));
       box-shadow:0 10px 28px rgba(0,0,0,.38), 0 0 24px rgba(255,61,90,.2), inset 0 1px 0 rgba(255,255,255,.07);
+    }
+    #playstatus {
+      top:calc(env(safe-area-inset-top, 0px) + 214px); min-width:164px; max-width:calc(100vw - 24px);
+      padding:5px 10px; font-size:9px; letter-spacing:1.5px; z-index:60; background:rgba(5,9,22,.84);
     }
     #round { font-size:12px; letter-spacing:2px; white-space:nowrap; }
     #clock { font-size:12px; letter-spacing:1.5px; }
@@ -192,6 +210,8 @@
       background:rgba(4,8,20,.82); box-shadow:0 8px 22px rgba(0,0,0,.35);
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
+    #controls { right:10px; bottom:calc(79px + env(safe-area-inset-bottom, 0px)); z-index:67; gap:4px; }
+    #controls button { min-width:32px; height:27px; padding:0 8px; font-size:8px; background:rgba(4,8,20,.84); }
     #watermark { display:none; }
   }
   @media (max-width:380px) {
@@ -223,6 +243,7 @@
 <div id="hud">
   <div id="badge"><a id="leaguepill" href="world.html">&#x2b21; WORLD MAP</a><span id="wordmark">CYBERLIGA <em>FIGHT NIGHT</em></span><span id="erapill">EXHIBITION ERA</span></div>
   <div id="roundwrap"><span class="live"></span><span id="round">ROUND 1 / 3</span><span id="clock">1:00</span></div>
+  <div id="playstatus">FIGHTERS WALKING</div>
   <div class="fpanel" id="fpA">
     <div class="fname"><span class="dot" id="dotA"></span><span id="nameA">—</span></div>
     <div class="frec" id="recA"></div>
@@ -249,10 +270,12 @@
   <div id="ticker"><div id="tickerlabel">FIGHT NIGHT</div><div id="tickertext"></div></div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
   <div id="soundpill">&#128266; CLICK ANYWHERE FOR SOUND</div>
+  <div id="controls" aria-label="Fight controls"><button id="pausebtn" type="button" title="Pause or resume (P)">P</button><button id="rematchbtn" type="button" title="Start a new bout (R)">R</button><button id="fullbtn" type="button" title="Toggle fullscreen (F)">F</button></div>
   <div id="vignette"></div><div id="scanlines"></div>
   <div id="watermark">CYBERLIGA FIGHT NIGHT</div>
 </div>
 
+<script src="worlddata.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -280,17 +303,12 @@ const FIGHT_R = 3.9;                     // soft clamp radius for fighters
 const ROUND_LEN = 60, ROUNDS = 3, REST_LEN = 7;
 const FIGHT_DMG = 0.34;                  // global damage scale (pacing knob: ~KO half the cards, judges the rest)
 
-const LEAGUE_TEAMS = [
-  { name:'NEON FC',     css:'#00e5ff', kit:0x00e5ff, glow:0x00e5ff },
-  { name:'VOLT UTD',    css:'#ff2d78', kit:0xff2d9c, glow:0xff45d6 },
-  { name:'GRID ROYALS', css:'#ffc24d', kit:0xffc24d, glow:0xffd24d },
-  { name:'ASTRA NOVA',  css:'#8a5cff', kit:0x8a5cff, glow:0x9a6cff },
-];
-// star fighter + alternate per club, so cards vary
-const CLUB_FIGHTERS = [
-  ['RAZOR','VEKTOR'], ['NOVA','GLITCH'], ['CIRCUIT','DYNAMO'], ['STARFALL','QUASAR'],
-];
-const FIXTURES = [[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]];
+const COMBAT_CONTENT=window.CYBERLIGA_CONTENT;
+const COMBAT_TEAMS=COMBAT_CONTENT.getTeams('combat');
+const LEAGUE_TEAMS=COMBAT_TEAMS.map(team=>{const hex=Number.parseInt(team.colors.primary.slice(1),16);return {name:team.name,css:team.colors.primary,kit:hex,glow:hex};});
+// Star fighter + alternate come from the same world cast as the atlas and World Wire.
+const CLUB_FIGHTERS=COMBAT_TEAMS.map(team=>team.athletes.slice(0,2).map(a=>a.name));
+const FIXTURES=COMBAT_CONTENT.createSeason('combat','arena').rounds.flatMap(round=>round.matches.map(match=>[COMBAT_TEAMS.findIndex(t=>t.id===match.homeId),COMBAT_TEAMS.findIndex(t=>t.id===match.awayId)]));
 let fixtureIdx = (parseInt(localStorage.getItem('cl_fight_fx')) || 0) % FIXTURES.length;
 
 // persistent fight records (W-L, KOs) — careers tracked for life
@@ -552,6 +570,7 @@ function koHorn() {
 // ============ HUD / TICKER / COMMENTARY ============
 const el = id => document.getElementById(id);
 const elRound = el('round'), elClock = el('clock');
+const elPlayStatus=el('playstatus'), elPauseBtn=el('pausebtn'), elRematchBtn=el('rematchbtn'), elFullBtn=el('fullbtn');
 const elFlash = el('flash'), elFlashText = el('flashtext'), elFlashSub = el('flashsub');
 const elCount = el('count'), elBanner = el('banner'), elBannerName = el('bannername'), elBannerSub = el('bannersub');
 const elTicker = el('tickertext'), elCard = el('bigcard'), elPanel = el('cardpanel');
@@ -709,6 +728,7 @@ function mkFighter(side, clubIdx) {
     stanceW: 0.32 + r()*0.12,
     decT: 0.4 + Math.random()*0.6, circ: Math.random() < 0.5 ? 1 : -1, wantDist: 3.2,
     downs: 0, invulnT: 0, comboN: 0, comboT: 0, gasSaid: false,
+    lastStand: false, surgeT: 0,
   };
 }
 const refRig = buildBlobRig({ kitColor: 0x39414f, glowColor: 0xffb13d });
@@ -722,7 +742,10 @@ const S = {
   roundDmg: [], kdRound: [],            // per-round arrays: [ [a,b], ... ]
   walkIdx: 0, count: 0, countT: 0, downF: null, getUpAt: 11, threeKD: false,
   slowmo: 0, noAction: 0, fightT: 0, winner: null, method: '', cardShown: false, clinchT: 0,
+  clipMoment:'', clipT:0, clips:[],
 };
+let paused=false;
+function recordClip(label,dur=3.5){ S.clipMoment=label; S.clipT=dur; S.clips.push({label,round:S.round,clock:+S.clock.toFixed(1)}); if(S.clips.length>10)S.clips.shift(); }
 function setState(s) { S.state = s; S.t = 0; }
 let punchHeat = 0, shake = 0, camCut = false;
 const cut = () => { camCut = true; };
@@ -749,6 +772,7 @@ function setupCard() {
   S.round = 1; S.clock = ROUND_LEN; S.roundDmg = [[0,0]]; S.kdRound = [[0,0]];
   S.walkIdx = 0; S.downF = null; S.slowmo = 0; S.noAction = 0; S.fightT = 0;
   S.winner = null; S.method = ''; S.cardShown = false; S.clinchT = 0; S.threeKD = false;
+  S.clipMoment=''; S.clipT=0; S.clips=[];
   punchHeat = 0;
   applyFighterHUD();
   elCard.classList.remove('show'); elFlash.classList.remove('show'); elCount.classList.remove('show');
@@ -792,6 +816,7 @@ function guardBreak(o, f) {
   o.act = 'stun'; o.actT = 0; o.guard = 38;   // partial reset — no chain-stun spiral
   o.openT = 2.2; o.armJolt = 1;
   flashMsg('GUARD BREAK', `${o.name} IS WIDE OPEN`, f.club.css, 1.2);
+  recordClip(`GUARD BREAK · ${f.name}`,3);
   say(fill(pick(COMM.gbreak), f.name, o.name), true);
   punchThud(0.8); shake = Math.min(1, shake + 0.4); crowdLevel = Math.min(0.42, crowdLevel + 0.1);
 }
@@ -832,6 +857,7 @@ function resolveStrike(f) {
     return;
   }
   let dmg = k.dmg * FIGHT_DMG * f.pow * (0.85 + Math.random()*0.3);
+  if (f.surgeT > 0) dmg *= 1.16;
   dmg *= 0.86 + rangeFit*0.18;                 // short/long shots lose sting at the edge of range
   dmg *= 1 + (1 - o.stam/100)*0.3;          // tired fighters take more
   if (f.stam < 25) dmg *= 0.7;              // gassed punches lose steam
@@ -895,6 +921,11 @@ function resolveStrike(f) {
     f.comboQ = pick([['CROSS'], ['JAB','CROSS'], ['BODY','HOOK'], ['CROSS','BODY'], ['CROSS','HOOK'], ['HOOK'], ['CROSS','UPPER']]).slice();
   // combo bookkeeping
   f.comboN = (f.comboT > 0 ? f.comboN : 0) + 1; f.comboT = 2.2;
+  if ((caughtSlipping || stunned) && k.heavy) {
+    recordClip(`PERFECT COUNTER · ${f.name}`,3.4);
+    flashMsg('PERFECT COUNTER', `${o.name} WALKED INTO IT`, f.club.css, 1.4);
+    flashBurst=Math.max(flashBurst,1.2); shake=Math.max(shake,.78);
+  }
   if (caughtSlipping) say(fill(pick(COMM.caught), f.name, o.name), true);
   else if (f.comboN >= 3) { say(fill(pick(COMM.combo), f.name, o.name, String(f.comboN))); f.comboN = 0; }
   else say(fill(pick(COMM[k.comm]), f.name, o.name));
@@ -927,6 +958,7 @@ function knockdown(att, vic) {
   punchThud(1); flashBurst = Math.max(flashBurst, 1);
   crowdLevel = 0.38; shake = 1;
   S.slowmo = vic.hp <= 0 ? 1.5 : 0.8;   // slow-mo on the big blow
+  recordClip(`KNOCKDOWN · ${att.name}`,4);
   refP.tx = vic.x * 0.5; refP.tz = vic.z * 0.5;
   setState('KNOCKDOWN'); cut();
 }
@@ -967,7 +999,7 @@ function fighterBrain(f, dt) {
     return;
   }
   // urgency: behind on the cards late ⇒ swing for the fences
-  let aggr = f.aggr + (S.round === ROUNDS && f.hp < o.hp ? 0.3 : 0) + (1 - S.clock/ROUND_LEN)*0.12;
+  let aggr = f.aggr + (S.round === ROUNDS && f.hp < o.hp ? 0.3 : 0) + (1 - S.clock/ROUND_LEN)*0.12 + (f.surgeT>0 ? 0.42 : 0);
   if (f.stam < 18) aggr *= 0.4;                       // gassed — buy time
   if (S.noAction > 5) aggr = 1;                       // forced engage: crowd wants blood
   if (d < 2.45 && Math.random() < aggr) {
@@ -997,9 +1029,17 @@ function moveFighter(f, dt) {
   const o = opp(f);
   f.actT += dt; f.invulnT -= dt; f.comboT -= dt;
   f.openT -= dt; f.counterT -= dt; f.recovT -= dt;
+  f.surgeT=Math.max(0,f.surgeT-dt);
   f.bodyShot = Math.max(0, f.bodyShot - dt*2.4);
   f.torsoShock = Math.max(0, f.torsoShock - dt*3.2);
   if (f.comboT <= 0) f.comboN = 0;
+  if (S.state==='FIGHT' && f.hp<28 && !f.lastStand) {
+    f.lastStand=true; f.surgeT=6; f.stam=Math.max(f.stam,55); f.guard=Math.max(f.guard,48);
+    recordClip(`LAST STAND · ${f.name}`,3.5);
+    flashMsg('LAST STAND', `${f.name} REFUSES TO FOLD`, f.club.css, 1.5);
+    say(`${f.name} IS HURT BUT THE ENGINE JUST REDLINED — SIX SECONDS OF PURE SURVIVAL`,true);
+    flashBurst=Math.max(flashBurst,1); crowdLevel=.42;
+  }
   // act phase exits
   if (f.act === 'strike') {
     if (!f.strikeDone && f.actT >= f.strikeDur*0.52) { f.strikeDone = true; resolveStrike(f); }
@@ -1127,7 +1167,9 @@ function winFight(w, method) {
   const rw = recOf(w.name), rl = recOf(l.name);
   rw.w++; if (method === 'KO' || method === 'TKO') rw.ko++;
   rl.l++; saveRecs();
+  recordClip(`${method} · ${w.name}`,8);
   window._results && window._results.push(method);
+  window._bouts && window._bouts.push({fighters:fighters.map(f=>f.name),clubs:fighters.map(f=>f.club.name),winner:w.name,method,round:S.round,clips:S.clips.slice()});
   window._koSrc && window._koSrc.push(S.threeKD ? '3KD' : (l.hp <= 0 ? 'HP0' : 'STAY'));
   elCount.classList.remove('show');
   flashMsg(method === 'TKO' ? 'TKO!' : 'KO!',
@@ -1162,7 +1204,9 @@ function judgeDecision() {
     recOf(w.name).w++; recOf(opp(w).name).l++; saveRecs();
   }
   S.winner = w; S.method = method;
+  recordClip(w ? `${method} · ${w.name}` : 'SPLIT DRAW',8);
   window._results && window._results.push(method);
+  window._bouts && window._bouts.push({fighters:fighters.map(f=>f.name),clubs:fighters.map(f=>f.club.name),winner:w&&w.name,method,round:S.round,clips:S.clips.slice()});
   flashMsg(w ? 'DECISION' : 'DRAW', w ? `${w.name} — ${method}` : 'THE JUDGES CANNOT SPLIT THEM',
     w ? w.club.css : '#ffc24d', 3);
   say(w ? `THE SCORECARDS ARE IN — ${w.name} BY ${method}` : 'SCORECARDS ARE IN — IT IS A DRAW AT THE CYBERDROME', true);
@@ -1191,6 +1235,7 @@ function showResultCard(cards) {
 // ============ STATE MACHINE ============
 function stateStep(dt) {
   S.t += dt;
+  S.clipT=Math.max(0,S.clipT-dt);
   switch (S.state) {
     case 'WALKON': {
       if (S.walkIdx < 2) {
@@ -1588,29 +1633,53 @@ function hudStep() {
   elStB.style.width = `${clamp(fighters[1].stam, 0, 100)}%`;
   elGdA.style.width = `${clamp(fighters[0].guard, 0, 100)}%`;
   elGdB.style.width = `${clamp(fighters[1].guard, 0, 100)}%`;
+  let status='CARD LOADING', hot=false;
+  if (paused) status='PAUSED · P TO RESUME';
+  else if (S.state==='WALKON') status=`WALKOUT · ${fighters[Math.min(S.walkIdx,1)].name}`;
+  else if (S.state==='INTRO') status='STAREDOWN · BELL IMMINENT';
+  else if (S.state==='FIGHT') {
+    const d=Math.hypot(fighters[0].x-fighters[1].x,fighters[0].z-fighters[1].z);
+    const surged=fighters.find(f=>f.surgeT>0);
+    if (surged) { status=`LAST STAND · ${surged.name}`; hot=true; }
+    else if (S.clinchT>.25) status='CLINCH · REF CLOSING';
+    else if (d<1.85) { status='LIVE · IN THE POCKET'; hot=true; }
+    else if (d<2.6) status='LIVE · STRIKING RANGE';
+    else status='LIVE · FOOTWORK BATTLE';
+  }
+  else if (S.state==='KNOCKDOWN') { status=`COUNT ${S.count} · ${S.downF ? S.downF.name : 'FIGHTER'} DOWN`; hot=true; }
+  else if (S.state==='ROUND_END') status='BETWEEN ROUNDS · CORNERS';
+  else if (S.state==='KO_SEQ') { status=`${S.method} · ${S.winner ? S.winner.name : 'WINNER'}`; hot=true; }
+  else if (S.state==='DECISION') status=S.method ? `${S.method} · ${S.winner ? S.winner.name : 'DRAW'}` : 'JUDGES SCORING';
+  if (!paused && S.clipT>0 && S.clipMoment) { status=S.clipMoment; hot=true; }
+  elPlayStatus.textContent=status; elPlayStatus.classList.toggle('hot',hot);
 }
 
 // ============ MAIN LOOP ============
 setupCard();
-window._dbg = () => ({ state: S.state, t: +S.t.toFixed(2), round: S.round, clock: +S.clock.toFixed(1),
-  hp: fighters.map(f => +f.hp.toFixed(1)), stam: fighters.map(f => +f.stam.toFixed(1)),
-  guard: fighters.map(f => +f.guard.toFixed(1)), acts: fighters.map(f => f.act),
-  kd: S.kdRound.map(r => r.join('-')),
-  count: S.count, getUpAt: S.getUpAt, winner: S.winner && S.winner.name, method: S.method,
-  names: fighters.map(f => f.name), pos: fighters.map(f => [+f.x.toFixed(2), +f.z.toFixed(2)]),
-  noAction: +S.noAction.toFixed(1) });
-function renderGameToText() {
-  return JSON.stringify({
-    note: 'Coordinates are ring-space x/z with origin at center canvas; +z is one corner direction.',
+function fightSnapshot() {
+  const [nextA,nextB]=FIXTURES[(fixtureIdx+1)%FIXTURES.length];
+  return {
+    note: 'Coordinates are ring-space x/z meters with origin at center ring; fighters enter from -x/+x tunnels.',
+    paused, fullscreen:!!document.fullscreenElement,
+    controls:{pause:'P',rematch:'R',fullscreen:'F',exit:'Escape'},
+    fixture:{index:fixtureIdx,total:FIXTURES.length,clubs:fighters.map(f=>f.club.name),next:[LEAGUE_TEAMS[nextA].name,LEAGUE_TEAMS[nextB].name]},
+    status:elPlayStatus.textContent, clipMoment:S.clipMoment || null, clipSeconds:+S.clipT.toFixed(1), clipsThisBout:S.clips.slice(),
     state: S.state,
+    elapsedInState:+S.t.toFixed(2),
     round: S.round,
     clock: +S.clock.toFixed(1),
     count: S.count,
+    getUpAt:S.getUpAt,
+    downFighter:S.downF && S.downF.name,
     method: S.method,
     winner: S.winner && S.winner.name,
+    slowMotionSeconds:+S.slowmo.toFixed(2),
+    noActionSeconds:+S.noAction.toFixed(1),
+    clinchSeconds:+S.clinchT.toFixed(2),
     fighters: fighters.map(f => ({
       name: f.name,
       club: f.club.name,
+      record:recStr(f.name),
       hp: +f.hp.toFixed(1),
       stamina: +f.stam.toFixed(1),
       guard: +f.guard.toFixed(1),
@@ -1618,14 +1687,24 @@ function renderGameToText() {
       strike: f.act === 'strike' ? f.strikeK : '',
       target: f.act === 'strike' ? f.targetZone : '',
       position: { x: +f.x.toFixed(2), z: +f.z.toFixed(2) },
-      downs: f.downs
+      velocity:{x:+f.vx.toFixed(2),z:+f.vz.toFixed(2)},
+      desiredRange:+f.wantDist.toFixed(2),
+      openingSeconds:+Math.max(0,f.openT).toFixed(2),
+      counterSeconds:+Math.max(0,f.counterT).toFixed(2),
+      recoverySeconds:+Math.max(0,f.recovT).toFixed(2),
+      comboQueued:f.comboQ ? f.comboQ.slice() : [],
+      downs: f.downs,
+      lastStand:!!f.lastStand,
+      surgeSeconds:+f.surgeT.toFixed(2)
     })),
     roundDamage: S.roundDmg.map(r => r.map(v => +v.toFixed(1))),
     knockdowns: S.kdRound
-  });
+  };
 }
+window._dbg = fightSnapshot;
+function renderGameToText() { return JSON.stringify(fightSnapshot()); }
 window.render_game_to_text = renderGameToText;
-window._results = []; window._koSrc = [];
+window._results = []; window._koSrc = []; window._bouts=[];
 window._ff = secs => { const n = Math.max(1, Math.round(secs/0.05)); for (let i = 0; i < n; i++) tick(0.05, i < n - 1); };
 window.advanceTime = ms => {
   const steps = Math.max(1, Math.round(ms / (1000/60)));
@@ -1633,6 +1712,7 @@ window.advanceTime = ms => {
   return renderGameToText();
 };
 function tick(dt, skipRender = false) {
+  if (paused) { if (!skipRender) { hudStep(); composer.render(); } return; }
   simClockTotal += dt;
   const simDt = S.slowmo > 0 ? dt*0.24 : dt;   // slow-mo on knockdowns / the final blow
   S.slowmo = Math.max(0, S.slowmo - dt);
@@ -1682,16 +1762,33 @@ function startDriver() {
 document.addEventListener('visibilitychange', startDriver);
 startDriver();
 
-addEventListener('resize', () => {
+function resizeScene() {
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
   composer.setSize(innerWidth, innerHeight);
-});
-
-// Escape backs out to the league hub
-addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) location.href = 'world.html';
+}
+function togglePause(){ paused=!paused; elPauseBtn.textContent=paused?'▶':'P'; hudStep(); }
+function rematch(){ paused=false; elPauseBtn.textContent='P'; setupCard(); hudStep(); }
+async function toggleFullscreen(){
+  try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }
+  catch(e) { say('FULLSCREEN IS UNAVAILABLE IN THIS BROWSER',true); }
+}
+elPauseBtn.addEventListener('click',e=>{e.stopPropagation();togglePause();});
+elRematchBtn.addEventListener('click',e=>{e.stopPropagation();rematch();});
+elFullBtn.addEventListener('click',e=>{e.stopPropagation();toggleFullscreen();});
+addEventListener('resize',resizeScene);
+document.addEventListener('fullscreenchange',()=>{ resizeScene(); elFullBtn.textContent=document.fullscreenElement?'×':'F'; });
+addEventListener('keydown',e=>{
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k=e.key.toLowerCase();
+  if (k==='p') { e.preventDefault(); togglePause(); }
+  else if (k==='r') { e.preventDefault(); rematch(); }
+  else if (k==='f') { e.preventDefault(); toggleFullscreen(); }
+  else if (e.key==='Escape') {
+    if (document.fullscreenElement) { e.preventDefault(); document.exitFullscreen(); }
+    else location.href='world.html';
+  }
 });
 </script>
 </body>

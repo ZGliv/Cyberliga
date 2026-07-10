@@ -6,7 +6,7 @@ Last updated: 2026-07-09
 
 Ship a spectator-first web application centered on one canonical soccer league.
 Everyone sees the same fixture, clock, score, standings, player history, and replay.
-Hockey, basketball, baseball, and fighting remain labeled exhibition arenas until they
+American football, hockey, basketball, baseball, and fighting remain labeled exhibition arenas until they
 adopt the same simulation and persistence contracts.
 
 V1 does not require user accounts, multiplayer control, native apps, crypto, betting,
@@ -51,6 +51,10 @@ steps. Two isolated browser pages frozen at the same timestamp produced byte-ide
 scores, clocks, ball coordinates, and all 14 player positions. This validates the product
 experience, but does not replace the renderer-free Node simulation required by this phase.
 
+Expansion checkpoint completed 2026-07-10: the canonical prototype now schedules eight
+soccer clubs across four simultaneous channels and renders 6v6 matches. Two fresh frozen
+browsers again produced byte-identical match, clock, score, ball, and all 12 player records.
+
 Exit gate: the same seed produces the same event sequence and final result in Node and
 the browser, with no match deadlocks across the automated simulation run.
 
@@ -72,8 +76,12 @@ a restarted worker resumes without corrupting or duplicating the match.
 - [ ] Add loading, offline, reconnecting, ended, and unavailable states.
 - [ ] Provide accessible text alternatives for essential canvas information.
 - [ ] Add social metadata, analytics, privacy/terms/contact pages, and admin authentication.
-- [x] Add the first public world route: interactive globe, five-league sports network,
+- [x] Add the first public world route: interactive globe, six-league sports network,
   honest canonical/exhibition status, mobile layout, and a Twitter/X share-card contract.
+- [x] Add durable league-atlas URLs for six sports with 48 clubs, 288 athlete identities,
+  deterministic fixtures, rivalries, and daily narrative hooks.
+- [x] Add a shareable World Wire route with six UTC-synchronized editorial desks,
+  athlete/team focus links, trending clubs, and rivalry coverage.
 
 Exit gate: every important piece of league state has a permanent shareable URL, and the
 core mobile experience works without relying on one browser's local storage.
@@ -82,7 +90,9 @@ core mobile experience works without relying on one browser's local storage.
 
 - [ ] Simulation distribution, invariant, freeze, and recovery tests.
 - [ ] Desktop and mobile browser smoke tests for every public route.
-- [ ] CI for syntax, tests, asset checks, and preview deployments.
+- [x] CI for syntax, invariant/data checks, route smoke tests, asset checks, and previews.
+- [x] Add a dependency-free project preview server, 600+ invariant checks, and a GitHub
+  Actions route/release gate.
 - [ ] Error reporting, worker health checks, database backups, and rollback procedure.
 - [ ] Remove production-critical model/CDN dependencies that lack controlled fallbacks.
 
@@ -92,7 +102,8 @@ sequence, mobile QA passes at 390×844, and production can be rolled back safely
 ## Phase 5 — Content engine and closed beta
 
 - [ ] Select highlight windows from structured match events.
-- [ ] Generate final-score posters, recaps, replay pages, and vertical clip candidates.
+- [x] Generate deterministic 1080x1920 vertical moment posters from permanent query URLs.
+- [ ] Generate final-score recaps, replay pages, and actual vertical video clip candidates.
 - [ ] Add a private review queue before any automated social publishing.
 - [ ] Run a continuous private season and measure load time, watch time, reconnects,
   crashes, shares, and outcome balance.

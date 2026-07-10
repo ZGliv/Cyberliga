@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>CYBERLIGA / OPERATIONS</title>
+<meta name="description" content="Read-only Cyberliga prototype operations console." />
+<meta name="theme-color" content="#080a08" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23080a08'/%3E%3Cpath d='M7 9h18v4H11v6h10v-2h4v6H7z' fill='%23d8ff57'/%3E%3C/svg%3E" />
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #080a08;
+  --panel: #10130f;
+  --panel-2: #151914;
+  --line: #2a3027;
+  --line-soft: #1d221c;
+  --text: #edf2e8;
+  --muted: #8f9889;
+  --lime: #d8ff57;
+  --green: #68f394;
+  --amber: #ffc35b;
+  --red: #ff646b;
+  --cyan: #67d9ff;
+  --pad: clamp(16px, 2.4vw, 34px);
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+* { box-sizing: border-box; }
+html { min-width: 320px; background: var(--bg); }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% -10%, rgba(216, 255, 87, .08), transparent 30%),
+    linear-gradient(rgba(255,255,255,.013) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.013) 1px, transparent 1px),
+    var(--bg);
+  background-size: auto, 28px 28px, 28px 28px, auto;
+}
+button, a { font: inherit; }
+a { color: inherit; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+.topbar {
+  min-height: 72px;
+  padding: 0 var(--pad);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background: rgba(8, 10, 8, .92);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(18px);
+}
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; text-decoration: none; }
+.brand b { font-size: 17px; letter-spacing: -.03em; }
+.brand span { color: var(--lime); font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .14em; }
+.top-actions { display: flex; align-items: center; gap: 8px; }
+.top-actions a, .top-actions button {
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0 13px;
+  background: var(--panel);
+  color: var(--text);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font: 750 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .09em;
+}
+.top-actions a:hover, .top-actions button:hover { border-color: #56604f; background: var(--panel-2); }
+.top-actions .primary { color: #0b0d08; background: var(--lime); border-color: var(--lime); }
+main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
+.mast {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: end;
+  padding: clamp(12px, 2vw, 28px) 0 22px;
+}
+.eyebrow, .micro {
+  margin: 0;
+  color: var(--muted);
+  font: 700 10px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.mast h1 {
+  margin: 10px 0 7px;
+  font-size: clamp(33px, 5.4vw, 78px);
+  line-height: .9;
+  letter-spacing: -.065em;
+  font-weight: 850;
+}
+.mast-copy { margin: 0; max-width: 780px; color: #aeb6a7; font-size: 14px; line-height: 1.55; }
+.system-state {
+  min-width: 232px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+.system-state .label { display: flex; align-items: center; gap: 8px; color: var(--muted); font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; }
+.pulse { width: 7px; height: 7px; background: var(--amber); border-radius: 50%; box-shadow: 0 0 0 4px rgba(255,195,91,.1); }
+.system-state strong { display: block; margin-top: 10px; font: 780 17px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--amber); }
+.system-state small { display: block; margin-top: 6px; color: var(--muted); font: 11px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  background: var(--line);
+  gap: 1px;
+}
+.summary {
+  min-height: 122px;
+  padding: 17px 18px;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.summary .value { font-size: clamp(21px, 2.2vw, 34px); line-height: 1; letter-spacing: -.045em; font-weight: 800; overflow-wrap: anywhere; }
+.summary .sub { color: var(--muted); font: 10px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .05em; text-transform: uppercase; }
+.section-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(300px, .75fr); gap: 14px; margin-top: 14px; align-items: start; }
+.stack { display: grid; gap: 14px; }
+.panel { border: 1px solid var(--line); background: rgba(16, 19, 15, .95); min-width: 0; }
+.panel-head {
+  min-height: 51px;
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.panel-head h2 { margin: 0; font: 760 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+.panel-head p { margin: 0; color: var(--muted); font: 9px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; text-align: right; }
+.channel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.channel {
+  padding: 16px;
+  min-height: 155px;
+  border-right: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+}
+.channel:nth-child(2n) { border-right: 0; }
+.channel:nth-last-child(-n+2) { border-bottom: 0; }
+.channel-top, .route-top, .integrity-row, .boundary-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.channel-no { color: var(--lime); font: 750 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; }
+.match-id { color: var(--muted); font: 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.teams { margin: 17px 0 15px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 9px; align-items: center; }
+.team:last-child { text-align: right; }
+.team b { display: block; font-size: 15px; letter-spacing: -.02em; }
+.team span { display: block; margin-top: 3px; color: var(--muted); font: 9px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+.versus { color: #596153; font: 800 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.progress-meta { display: flex; justify-content: space-between; margin-bottom: 7px; color: var(--muted); font: 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.bar { height: 4px; background: #262c23; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--lime); transition: width .25s linear; }
+.schedule-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.fixture { min-width: 0; padding: 14px; border-right: 1px solid var(--line-soft); }
+.fixture:last-child { border-right: 0; }
+.fixture small { color: var(--muted); font: 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+.fixture div { margin-top: 11px; display: grid; gap: 6px; }
+.fixture b { font-size: 12px; line-height: 1.15; }
+.fixture span { color: var(--muted); font: 9px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.integrity { padding: 3px 15px; }
+.integrity-row { min-height: 47px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+.integrity-row:last-child { border-bottom: 0; }
+.integrity-row .name { min-width: 0; }
+.integrity-row .name b { display: block; font-size: 11px; }
+.integrity-row .name span { color: var(--muted); font: 9px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.check { flex: 0 0 auto; color: var(--green); font: 800 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; }
+.check.fail { color: var(--red); }
+.route-table { width: 100%; border-collapse: collapse; }
+.route-table th { padding: 10px 13px; text-align: left; color: var(--muted); background: #0d100c; border-bottom: 1px solid var(--line); font: 750 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .09em; }
+.route-table th:nth-child(3), .route-table th:nth-child(4), .route-table td:nth-child(3), .route-table td:nth-child(4) { text-align: right; }
+.route-table td { padding: 10px 13px; border-bottom: 1px solid var(--line-soft); font: 10px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.route-table tr:last-child td { border-bottom: 0; }
+.route-name { color: var(--text); font-weight: 750; }
+.route-path { display: block; margin-top: 3px; color: var(--muted); font-size: 8px; }
+.route-status { color: var(--muted); }
+.route-status.ok { color: var(--green); }
+.route-status.fail { color: var(--red); }
+.route-status.optional { color: var(--amber); }
+.route-latency { color: var(--muted); }
+.environment { display: grid; grid-template-columns: 1fr; }
+.env-row { padding: 12px 14px; border-bottom: 1px solid var(--line-soft); display: grid; grid-template-columns: 100px minmax(0,1fr); gap: 12px; align-items: start; }
+.env-row:last-child { border-bottom: 0; }
+.env-row span { color: var(--muted); font: 8px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; }
+.env-row b { font: 10px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+.boundaries { margin-top: 14px; border-color: #5e4922; }
+.boundaries .panel-head { background: rgba(255,195,91,.045); border-bottom-color: #5e4922; }
+.boundary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.boundary { padding: 16px; border-right: 1px solid #342d1d; min-height: 142px; }
+.boundary:last-child { border-right: 0; }
+.boundary .state { color: var(--amber); font: 800 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.boundary h3 { margin: 18px 0 7px; font-size: 13px; }
+.boundary p { margin: 0; color: #a9a58f; font-size: 11px; line-height: 1.45; }
+.boundary.good .state { color: var(--green); }
+.boundary.good { background: rgba(104,243,148,.018); }
+.footer { padding: 16px 0 4px; display: flex; align-items: center; justify-content: space-between; gap: 18px; color: var(--muted); font: 9px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .04em; }
+.footer b { color: var(--text); }
+.toast {
+  position: fixed;
+  left: 50%; bottom: 24px;
+  transform: translate(-50%, 20px);
+  opacity: 0;
+  padding: 10px 14px;
+  border: 1px solid #56604f;
+  background: #11150f;
+  color: var(--text);
+  z-index: 20;
+  font: 750 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  pointer-events: none;
+  transition: opacity .18s, transform .18s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+@media (max-width: 1020px) {
+  .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .section-grid { grid-template-columns: 1fr; }
+  .stack { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .boundary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .boundary:nth-child(2) { border-right: 0; }
+  .boundary:nth-child(-n+2) { border-bottom: 1px solid #342d1d; }
+}
+@media (max-width: 680px) {
+  .topbar { min-height: 60px; padding-top: max(0px, env(safe-area-inset-top)); }
+  .brand span { display: none; }
+  .top-actions a { display: none; }
+  .top-actions button { min-height: 34px; padding: 0 9px; font-size: 9px; }
+  main { padding: 14px; }
+  .mast { grid-template-columns: 1fr; gap: 16px; padding-top: 16px; }
+  .mast h1 { font-size: 40px; }
+  .system-state { min-width: 0; }
+  .summary { min-height: 104px; padding: 14px; }
+  .summary .value { font-size: 22px; }
+  .channel-grid, .schedule-list, .stack, .boundary-grid { grid-template-columns: 1fr; }
+  .channel { border-right: 0; }
+  .channel:nth-last-child(2) { border-bottom: 1px solid var(--line-soft); }
+  .fixture { border-right: 0; border-bottom: 1px solid var(--line-soft); }
+  .fixture:last-child { border-bottom: 0; }
+  .boundary { border-right: 0; border-bottom: 1px solid #342d1d; min-height: 0; }
+  .boundary:nth-child(2) { border-bottom: 1px solid #342d1d; }
+  .boundary:last-child { border-bottom: 0; }
+  .panel-head { align-items: flex-start; }
+  .panel-head p { max-width: 42%; }
+  .route-table th:nth-child(2), .route-table td:nth-child(2) { display: none; }
+  .route-table td, .route-table th { padding-left: 10px; padding-right: 10px; }
+  .env-row { grid-template-columns: 80px minmax(0,1fr); }
+  .footer { align-items: flex-start; flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="world.html"><b>CYBERLIGA</b><span>/ OPERATIONS CONSOLE</span></a>
+  <nav class="top-actions" aria-label="Console actions">
+    <a href="world.html">PUBLIC WORLD ↗</a>
+    <a href="social.html">WORLD WIRE ↗</a>
+    <button type="button" id="copy-snapshot">COPY INCIDENT</button>
+    <button type="button" class="primary" id="refresh">REFRESH</button>
+  </nav>
+</header>
+
+<main>
+  <section class="mast">
+    <div>
+      <p class="eyebrow">READ-ONLY SYSTEM VIEW · BROWSER-SIDE PROBE</p>
+      <h1>WORLD CONTROL</h1>
+      <p class="mast-copy">A truthful view of Cyberliga’s shared UTC prototype: schedule integrity, canonical soccer channels, local route reachability, and the production systems that do not exist yet.</p>
+    </div>
+    <div class="system-state" aria-live="polite">
+      <span class="label"><i class="pulse" id="state-pulse"></i> CURRENT ASSESSMENT</span>
+      <strong id="system-label">PROBING ROUTES</strong>
+      <small id="system-detail">Reachability checks run from this browser only.</small>
+    </div>
+  </section>
+
+  <section class="summary-grid" aria-label="Current edition summary">
+    <article class="summary"><p class="micro">UTC EDITION</p><div class="value" id="edition">—</div><div class="sub" id="utc-now">—</div></article>
+    <article class="summary"><p class="micro">CANONICAL SLOT</p><div class="value" id="slot">—</div><div class="sub" id="round-cycle">—</div></article>
+    <article class="summary"><p class="micro">NEXT ROLLOVER</p><div class="value" id="rollover">—</div><div class="sub" id="rollover-at">—</div></article>
+    <article class="summary"><p class="micro">CONTENT REGISTRY</p><div class="value" id="registry">—</div><div class="sub" id="registry-detail">—</div></article>
+  </section>
+
+  <div class="section-grid">
+    <div class="stack">
+      <section class="panel">
+        <header class="panel-head"><h2>CANONICAL SOCCER CHANNELS</h2><p>SHARED CLOCK · CLIENT DETERMINISTIC</p></header>
+        <div class="channel-grid" id="channels"></div>
+      </section>
+      <section class="panel">
+        <header class="panel-head"><h2 id="schedule-title">EIGHT-CLUB ROUND</h2><p>4 FIXTURES · ALL CLUBS ACTIVE</p></header>
+        <div class="schedule-list" id="schedule"></div>
+      </section>
+      <section class="panel">
+        <header class="panel-head"><h2>ROUTE REACHABILITY</h2><p id="probe-time">NOT YET PROBED</p></header>
+        <table class="route-table">
+          <thead><tr><th>ROUTE</th><th>CLASS</th><th>HTTP</th><th>LATENCY</th></tr></thead>
+          <tbody id="routes"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <section class="panel">
+        <header class="panel-head"><h2>CONTENT INTEGRITY</h2><p id="integrity-total">EVALUATING</p></header>
+        <div class="integrity" id="integrity"></div>
+      </section>
+      <section class="panel">
+        <header class="panel-head"><h2>ENVIRONMENT / LOCATION</h2><p>THIS BROWSER</p></header>
+        <div class="environment" id="environment"></div>
+      </section>
+    </aside>
+  </div>
+
+  <section class="panel boundaries">
+    <header class="panel-head"><h2>EXPLICIT PROTOTYPE BOUNDARIES</h2><p>DO NOT REPRESENT THESE AS SHIPPED SYSTEMS</p></header>
+    <div class="boundary-grid">
+      <article class="boundary good"><div class="boundary-top"><span class="micro">TIMELINE</span><span class="state">PRESENT</span></div><h3>Shared UTC schedule</h3><p>Every browser derives the same slot, fixture IDs, seeds, and elapsed time from the public clock.</p></article>
+      <article class="boundary"><div class="boundary-top"><span class="micro">AUTHORITY</span><span class="state">ABSENT</span></div><h3>Server-authoritative simulation</h3><p>Match state is calculated in each client. There is no canonical event stream, referee process, or signed result.</p></article>
+      <article class="boundary"><div class="boundary-top"><span class="micro">HISTORY</span><span class="state">ABSENT</span></div><h3>Persistent results</h3><p>No database currently stores standings, completed matches, careers, injuries, narratives, or audit history.</p></article>
+      <article class="boundary"><div class="boundary-top"><span class="micro">AUDIENCE</span><span class="state">ABSENT</span></div><h3>Realtime presence</h3><p>No shared audience count, accounts, chat, follows, predictions, notifications, or operator control plane exists.</p></article>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span><b>CYBERLIGA OPS</b> · READ-ONLY · NO MUTATION CONTROLS</span>
+    <span id="last-render">RENDER —</span>
+  </footer>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="worlddata.js"></script>
+<script src="universe.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var C = window.CYBERLIGA_CONTENT;
+  var U = window.CyberligaUniverse;
+  var timeOffset = 0;
+  var health = [];
+  var probing = false;
+  var lastProbeAt = 0;
+  var toastTimer = 0;
+
+  var ROUTES = [
+    { name: 'World', path: 'world.html', kind: 'PUBLIC ENTRY' },
+    { name: 'League Atlas', path: 'league.html', kind: 'CONTENT' },
+    { name: 'World Wire', path: 'social.html', kind: 'SOCIAL' },
+    { name: 'Moment', path: 'moment.html', kind: 'OPTIONAL', optional: true },
+    { name: 'Soccer', path: 'index.html', kind: 'ARENA' },
+    { name: 'American Football', path: 'football.html', kind: 'ARENA' },
+    { name: 'Basketball', path: 'hoops.html', kind: 'ARENA' },
+    { name: 'Hockey', path: 'hockey.html', kind: 'ARENA' },
+    { name: 'Baseball', path: 'baseball.html', kind: 'ARENA' },
+    { name: 'Combat', path: 'fight.html', kind: 'ARENA' }
+  ];
+
+  function el(id) { return document.getElementById(id); }
+  function pad(value) { return String(value).padStart(2, '0'); }
+  function nowMs() { return Date.now() + timeOffset; }
+  function dateKey(now) {
+    var date = new Date(now);
+    return date.getUTCFullYear() + '-' + pad(date.getUTCMonth() + 1) + '-' + pad(date.getUTCDate());
+  }
+  function utcStamp(now) {
+    return new Date(now).toISOString().replace('T', ' ').replace('.000Z', 'Z');
+  }
+  function duration(ms) {
+    var seconds = Math.max(0, Math.ceil(ms / 1000));
+    return pad(Math.floor(seconds / 60)) + ':' + pad(seconds % 60);
+  }
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char];
+    });
+  }
+  function environmentName() {
+    var host = location.hostname;
+    if (host === '127.0.0.1' || host === 'localhost' || host === '::1') return 'LOCAL PREVIEW';
+    if (/\.vercel\.app$/i.test(host)) return 'VERCEL PUBLIC';
+    if (location.protocol === 'file:') return 'LOCAL FILE';
+    return 'WEB HOST';
+  }
+  function showToast(message) {
+    var toast = el('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 1600);
+  }
+
+  function integrityChecks() {
+    var sports = C && Array.isArray(C.sports) ? C.sports : [];
+    var teams = sports.reduce(function (all, sport) { return all.concat(sport.teams || []); }, []);
+    var athletes = teams.reduce(function (count, team) { return count + (team.athletes || []).length; }, 0);
+    var rivalries = teams.filter(function (team) {
+      var rival = teams.find(function (candidate) { return candidate.id === team.rivalryId && candidate.sportId === team.sportId; });
+      return rival && rival.rivalryId === team.id;
+    }).length;
+    var roundsValid = U && U.ROUNDS && U.ROUNDS.length === 14 && U.ROUNDS.every(function (round) {
+      var ids = [];
+      round.forEach(function (pair) { ids.push(pair[0], pair[1]); });
+      return round.length === 4 && new Set(ids).size === 8;
+    });
+    var checks = [
+      { name: 'League registry', detail: sports.length + ' observed / 6 expected', pass: sports.length === 6 },
+      { name: 'Club registry', detail: teams.length + ' observed / 48 expected', pass: teams.length === 48 },
+      { name: 'Athlete registry', detail: athletes + ' observed / 288 expected', pass: athletes === 288 },
+      { name: 'Per-league shape', detail: sports.filter(function (sport) { return sport.teams.length === 8; }).length + '/6 have eight clubs', pass: sports.length === 6 && sports.every(function (sport) { return sport.teams.length === 8; }) },
+      { name: 'Reciprocal rivalries', detail: rivalries + '/' + teams.length + ' clubs resolve both ways', pass: rivalries === teams.length && teams.length === 48 },
+      { name: 'Soccer universe', detail: (U && U.TEAMS ? U.TEAMS.length : 0) + ' clubs / ' + (U && U.ROUNDS ? U.ROUNDS.length : 0) + ' rounds', pass: !!roundsValid }
+    ];
+    return { sports: sports.length, teams: teams.length, athletes: athletes, checks: checks };
+  }
+
+  function renderIntegrity() {
+    var info = integrityChecks();
+    var passed = info.checks.filter(function (check) { return check.pass; }).length;
+    el('integrity-total').textContent = passed + '/' + info.checks.length + ' CHECKS PASS';
+    el('integrity').innerHTML = info.checks.map(function (check) {
+      return '<div class="integrity-row"><div class="name"><b>' + escapeHtml(check.name) + '</b><span>' + escapeHtml(check.detail) + '</span></div><span class="check' + (check.pass ? '' : ' fail') + '">' + (check.pass ? 'PASS' : 'FAIL') + '</span></div>';
+    }).join('');
+    el('registry').textContent = info.sports + ' / ' + info.teams;
+    el('registry-detail').textContent = 'LEAGUES / CLUBS · ' + info.athletes + ' ATHLETES';
+    return info;
+  }
+
+  function renderChannels(matches) {
+    el('channels').innerHTML = matches.map(function (match) {
+      var progress = Math.max(0, Math.min(100, match.elapsedMs / match.durationMs * 100));
+      return '<article class="channel">' +
+        '<div class="channel-top"><span class="channel-no">CHANNEL ' + pad(match.channel + 1) + '</span><span class="match-id">' + escapeHtml(match.id) + '</span></div>' +
+        '<div class="teams"><div class="team"><b>' + escapeHtml(match.home.code) + '</b><span>' + escapeHtml(match.home.city) + '</span></div><span class="versus">VS</span><div class="team"><b>' + escapeHtml(match.away.code) + '</b><span>' + escapeHtml(match.away.city) + '</span></div></div>' +
+        '<div class="progress-meta"><span>' + U.clock(match.elapsedMs) + ' / ' + U.clock(match.durationMs) + '</span><span>' + progress.toFixed(1) + '%</span></div>' +
+        '<div class="bar" aria-label="' + progress.toFixed(1) + '% through slot"><i style="width:' + progress.toFixed(2) + '%"></i></div>' +
+      '</article>';
+    }).join('');
+  }
+
+  function renderSchedule(matches) {
+    var cycleRound = matches.length ? (matches[0].slot % U.ROUNDS.length) + 1 : 0;
+    el('schedule-title').textContent = 'EIGHT-CLUB ROUND ' + pad(cycleRound) + ' / ' + pad(U.ROUNDS.length);
+    el('schedule').innerHTML = matches.map(function (match) {
+      return '<article class="fixture"><small>CHANNEL ' + pad(match.channel + 1) + '</small><div><b>' + escapeHtml(match.home.name) + '</b><span>' + escapeHtml(match.home.city) + ' / ' + escapeHtml(match.home.code) + '</span><b>' + escapeHtml(match.away.name) + '</b><span>' + escapeHtml(match.away.city) + ' / ' + escapeHtml(match.away.code) + '</span></div></article>';
+    }).join('');
+  }
+
+  function renderEnvironment(now) {
+    var rows = [
+      ['Environment', environmentName()],
+      ['Origin', location.origin === 'null' ? location.protocol : location.origin],
+      ['Document', location.pathname || '/ops.html'],
+      ['Protocol', location.protocol.replace(':', '').toUpperCase()],
+      ['Browser state', (navigator.onLine ? 'ONLINE' : 'OFFLINE') + ' / ' + document.visibilityState.toUpperCase()],
+      ['Browser zone', Intl.DateTimeFormat().resolvedOptions().timeZone || 'UNKNOWN'],
+      ['UTC clock', utcStamp(now)]
+    ];
+    el('environment').innerHTML = rows.map(function (row) {
+      return '<div class="env-row"><span>' + escapeHtml(row[0]) + '</span><b>' + escapeHtml(row[1]) + '</b></div>';
+    }).join('');
+  }
+
+  function renderRoutes() {
+    el('routes').innerHTML = ROUTES.map(function (route, index) {
+      var item = health[index] || { state: 'PENDING', status: '—', latency: '—' };
+      var statusClass = item.state === 'OK' ? 'ok' : item.state === 'OPTIONAL ABSENT' ? 'optional' : item.state === 'PENDING' ? '' : 'fail';
+      return '<tr><td><span class="route-name">' + escapeHtml(route.name) + '</span><span class="route-path">/' + escapeHtml(route.path) + '</span></td><td>' + escapeHtml(route.kind) + '</td><td class="route-status ' + statusClass + '">' + escapeHtml(String(item.status)) + ' · ' + escapeHtml(item.state) + '</td><td class="route-latency">' + escapeHtml(String(item.latency)) + '</td></tr>';
+    }).join('');
+    if (lastProbeAt) el('probe-time').textContent = 'PROBED ' + utcStamp(lastProbeAt);
+  }
+
+  function updateAssessment(info) {
+    var required = health.filter(function (_, index) { return !ROUTES[index].optional; });
+    var routePass = required.length === ROUTES.filter(function (route) { return !route.optional; }).length && required.every(function (item) { return item.state === 'OK'; });
+    var integrityPass = info.checks.every(function (check) { return check.pass; });
+    var label = el('system-label');
+    var pulse = el('state-pulse');
+    if (probing || health.length === 0) {
+      label.textContent = 'PROBING ROUTES';
+      label.style.color = 'var(--amber)';
+      pulse.style.background = 'var(--amber)';
+      el('system-detail').textContent = 'Reachability checks run from this browser only.';
+    } else if (routePass && integrityPass) {
+      label.textContent = 'PROTOTYPE SIGNAL PASS';
+      label.style.color = 'var(--green)';
+      pulse.style.background = 'var(--green)';
+      el('system-detail').textContent = 'Static routes reachable; backend authority remains absent.';
+    } else {
+      label.textContent = 'ATTENTION REQUIRED';
+      label.style.color = 'var(--red)';
+      pulse.style.background = 'var(--red)';
+      el('system-detail').textContent = 'One or more local probes or content invariants failed.';
+    }
+  }
+
+  function render() {
+    if (!C || !U) {
+      el('system-label').textContent = 'DATA MODULE FAILURE';
+      el('system-detail').textContent = 'worlddata.js or universe.js did not initialize.';
+      return;
+    }
+    var now = nowMs();
+    var matches = U.liveMatches(now);
+    var primary = matches[0];
+    var info = renderIntegrity();
+    el('edition').textContent = dateKey(now);
+    el('utc-now').textContent = utcStamp(now);
+    el('slot').textContent = '#' + primary.slot;
+    el('round-cycle').textContent = 'ROUND ' + primary.round + ' · CYCLE ' + primary.cycle + ' · 4 CHANNELS';
+    el('rollover').textContent = duration(primary.endsAt - now);
+    el('rollover-at').textContent = 'AT ' + utcStamp(primary.endsAt);
+    el('last-render').textContent = 'RENDER ' + utcStamp(now) + (timeOffset ? ' · TEST OFFSET ' + timeOffset + 'MS' : '');
+    renderChannels(matches);
+    renderSchedule(matches);
+    renderEnvironment(now);
+    renderRoutes();
+    updateAssessment(info);
+  }
+
+  async function probeRoutes() {
+    if (probing) return;
+    probing = true;
+    health = ROUTES.map(function () { return { state: 'PENDING', status: '—', latency: '—' }; });
+    render();
+    await Promise.all(ROUTES.map(async function (route, index) {
+      var started = performance.now();
+      try {
+        var target = new URL(route.path, location.href);
+        target.searchParams.set('_ops_probe', String(Date.now()));
+        var response = await fetch(target.href, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' });
+        var elapsed = Math.max(0, performance.now() - started);
+        var optionalAbsent = route.optional && response.status === 404;
+        health[index] = {
+          state: response.ok ? 'OK' : optionalAbsent ? 'OPTIONAL ABSENT' : 'FAIL',
+          status: response.status,
+          latency: elapsed.toFixed(1) + 'ms'
+        };
+      } catch (error) {
+        health[index] = { state: route.optional ? 'OPTIONAL ABSENT' : 'ERROR', status: 'ERR', latency: Math.max(0, performance.now() - started).toFixed(1) + 'ms' };
+      }
+      renderRoutes();
+    }));
+    lastProbeAt = nowMs();
+    probing = false;
+    render();
+  }
+
+  function snapshot() {
+    var now = nowMs();
+    var matches = U.liveMatches(now);
+    var info = integrityChecks();
+    return [
+      'CYBERLIGA INCIDENT SNAPSHOT',
+      'captured_utc=' + new Date(now).toISOString(),
+      'environment=' + environmentName(),
+      'location=' + location.href,
+      'edition=' + dateKey(now),
+      'slot=' + matches[0].slot,
+      'cycle=' + matches[0].cycle,
+      'rollover_utc=' + new Date(matches[0].endsAt).toISOString(),
+      'channels=' + matches.map(function (match) { return match.id + ':' + (match.elapsedMs / match.durationMs * 100).toFixed(1) + '%'; }).join(','),
+      'content=' + info.sports + '_leagues/' + info.teams + '_clubs/' + info.athletes + '_athletes',
+      'integrity=' + info.checks.map(function (check) { return check.name.replace(/\s+/g, '_').toLowerCase() + ':' + (check.pass ? 'pass' : 'fail'); }).join(','),
+      'routes=' + ROUTES.map(function (route, index) { var item = health[index] || {}; return route.path + ':' + (item.status || 'unprobed') + '/' + (item.latency || '—'); }).join(','),
+      'boundary=client_deterministic;server_authority_absent;persistence_absent;realtime_presence_absent'
+    ].join('\n');
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+    return new Promise(function (resolve, reject) {
+      var area = document.createElement('textarea');
+      area.value = text;
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      try { document.execCommand('copy') ? resolve() : reject(new Error('copy failed')); }
+      catch (error) { reject(error); }
+      area.remove();
+    });
+  }
+
+  el('refresh').addEventListener('click', function () { probeRoutes(); });
+  el('copy-snapshot').addEventListener('click', function () {
+    copyText(snapshot()).then(function () { showToast('INCIDENT SNAPSHOT COPIED'); }).catch(function () { showToast('COPY UNAVAILABLE'); });
+  });
+  window.render_game_to_text = function () {
+    var now = nowMs();
+    var matches = U ? U.liveMatches(now) : [];
+    var info = C && U ? integrityChecks() : { sports: 0, teams: 0, athletes: 0, checks: [] };
+    return JSON.stringify({
+      screen: 'operations-console',
+      readOnly: true,
+      coordinateSystem: 'No game-space coordinates; this is a responsive diagnostic document.',
+      utc: new Date(now).toISOString(),
+      edition: dateKey(now),
+      slot: matches[0] ? matches[0].slot : null,
+      rolloverInMs: matches[0] ? Math.max(0, matches[0].endsAt - now) : null,
+      channels: matches.map(function (match) { return { id: match.id, channel: match.channel + 1, home: match.home.code, away: match.away.code, progress: Number((match.elapsedMs / match.durationMs).toFixed(4)) }; }),
+      content: { leagues: info.sports, clubs: info.teams, athletes: info.athletes, checksPassing: info.checks.filter(function (check) { return check.pass; }).length, checksTotal: info.checks.length },
+      routes: ROUTES.map(function (route, index) { var item = health[index] || {}; return { path: route.path, optional: !!route.optional, status: item.status || null, state: item.state || 'UNPROBED', latency: item.latency || null }; }),
+      boundaries: { clientDeterministic: true, serverAuthoritative: false, persistence: false, realtimePresence: false }
+    });
+  };
+  window.advanceTime = function (ms) {
+    var delta = Number(ms);
+    if (Number.isFinite(delta)) timeOffset += delta;
+    render();
+    return window.render_game_to_text();
+  };
+  addEventListener('online', render);
+  addEventListener('offline', render);
+  document.addEventListener('visibilitychange', render);
+  render();
+  probeRoutes();
+  setInterval(render, 1000);
+})();
+</script>
+</body>
+</html>

@@ -21,6 +21,7 @@
     overflow:hidden; backdrop-filter:blur(6px);
   }
   .team { display:flex; align-items:center; gap:10px; padding:0 16px; font-family:'Orbitron'; font-weight:700; font-size:15px; letter-spacing:2px; }
+  .team span[id^="name"] { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .team .dot { width:10px; height:10px; border-radius:2px; transform:rotate(45deg); }
   #score {
     display:flex; align-items:center; padding:0 18px; font-family:'Orbitron'; font-weight:900; font-size:22px; color:#fff;
@@ -38,6 +39,7 @@
   #qtr { font-size:12px; font-weight:600; color:#ffb066; letter-spacing:2px; }
   #sclock { font-family:'Orbitron'; font-weight:900; font-size:14px; color:#9fffe0; letter-spacing:1px; border-left:1px solid rgba(255,255,255,.14); padding-left:10px; min-width:30px; text-align:center; }
   #sclock.warn { color:#ff4d5e; text-shadow:0 0 10px rgba(255,60,80,.8); animation:pulse .6s infinite; }
+  #playstatus { font-family:'Rajdhani'; font-weight:700; font-size:11px; color:#ffca9c; letter-spacing:1.5px; border-left:1px solid rgba(255,255,255,.14); padding-left:10px; white-space:nowrap; }
   .live { width:7px; height:7px; border-radius:50%; background:#ff2d55; animation:pulse 1.2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1; box-shadow:0 0 8px #ff2d55;} 50%{opacity:.3;} }
 
@@ -62,11 +64,20 @@
   #vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,10,.55) 100%); }
   #scanlines { position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px); mix-blend-mode:overlay; }
   #watermark { position:absolute; bottom:46px; right:18px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(255,170,100,.45); }
+  #controls { position:absolute; left:18px; bottom:46px; display:flex; gap:7px; z-index:75; pointer-events:auto; }
+  #controls button {
+    appearance:none; border:1px solid rgba(255,138,61,.34); border-radius:999px; padding:5px 10px;
+    color:#ffc38e; background:rgba(4,8,20,.76); font:700 11px/1 'Rajdhani',sans-serif; letter-spacing:1.4px;
+    cursor:pointer; box-shadow:0 7px 20px rgba(0,0,0,.3); transition:.15s ease;
+  }
+  #controls button:hover, #controls button:focus-visible { color:#fff; border-color:#ff8a3d; background:rgba(255,138,61,.15); outline:none; }
 
   #badge { position:absolute; top:22px; left:22px; display:flex; gap:12px; align-items:center; z-index:60; }
   #wordmark { font-family:'Orbitron'; font-weight:900; font-size:16px; letter-spacing:3px; color:#ffb87a; text-shadow:0 0 14px rgba(255,138,61,.55); }
   #wordmark em { font-style:normal; color:#fff; }
   #erapill { font-family:'Orbitron'; font-weight:700; font-size:9px; letter-spacing:2px; color:#ffd9b8; border:1px dashed rgba(255,170,100,.45); border-radius:99px; padding:3px 10px; background:rgba(4,8,20,.55); }
+  @media (max-width:1450px) { #erapill { display:none; } }
+  @media (max-width:1350px) { #wordmark { display:none; } }
   @media (max-width:1000px) { #badge { flex-direction:column; align-items:flex-start; gap:7px; } }
   #leaguepill {
     pointer-events:auto; text-decoration:none;
@@ -106,6 +117,7 @@
       background:rgba(5,12,24,.82); box-shadow:0 0 18px rgba(255,138,61,.22), inset 0 1px 0 rgba(255,255,255,.08);
     }
     #wordmark {
+      display:block;
       justify-self:end; min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis;
       white-space:nowrap; text-align:right; font-size:12px; letter-spacing:1.25px;
     }
@@ -130,6 +142,7 @@
     #clock, #sclock { font-size:12px; letter-spacing:1.2px; }
     #qtr { font-size:10px; letter-spacing:1.1px; white-space:nowrap; }
     #sclock { min-width:26px; padding-left:8px; }
+    #playstatus { display:none; }
     #flash { z-index:45; }
     #flashtext { max-width:100vw; font-size:clamp(38px, 13vw, 68px); letter-spacing:5px; line-height:.98; text-align:center; overflow-wrap:anywhere; }
     #flashsub { max-width:calc(100vw - 28px); font-size:14px; letter-spacing:2.6px; line-height:1.15; text-align:center; padding:0 16px; }
@@ -146,6 +159,9 @@
     }
     #tickerlabel { padding:0 10px; font-size:10px; letter-spacing:2px; }
     #tickertext { font-size:13px; letter-spacing:.6px; }
+    #controls { left:10px; bottom:calc(43px + env(safe-area-inset-bottom, 0px)); gap:5px; }
+    #controls button { min-height:29px; padding:5px 9px; font-size:10px; letter-spacing:1px; background:rgba(4,8,20,.88); }
+    #controls .widehint { display:none; }
     #watermark { display:none; }
   }
   @media (max-width:380px) {
@@ -171,14 +187,16 @@
     <div id="score"><span id="sA">0</span>&nbsp;&ndash;&nbsp;<span id="sB">0</span></div>
     <div class="team" id="teamB"><span id="nameB">VOLT UTD</span><span class="dot"></span></div>
   </div>
-  <div id="clockwrap"><span class="live"></span><span id="qtr">Q1</span><span id="clock">01:15</span><span id="sclock">24</span></div>
+  <div id="clockwrap"><span class="live"></span><span id="qtr">Q1</span><span id="clock">01:15</span><span id="sclock">24</span><span id="playstatus">TIP-OFF</span></div>
   <div id="flash"><div id="flashtext"></div><div id="flashsub"></div></div>
   <div id="ticker"><div id="tickerlabel">HOOPS</div><div id="tickertext"></div></div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
+  <div id="controls"><button id="pausebtn" type="button">PAUSE</button><button id="restartbtn" type="button">REMATCH</button><button id="fullbtn" class="widehint" type="button">F FULLSCREEN</button></div>
   <div id="vignette"></div><div id="scanlines"></div>
   <div id="watermark">CYBERLIGA HOOPS</div>
 </div>
 
+<script src="worlddata.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -209,13 +227,10 @@ const BB_X=HL-1.05, RIM_X=BB_X-0.6;        // backboard plane x, rim center x
 const THREE_R=6.75, G=13.5, REST=0.78, PG=30, GD=22;
 const Q_LEN=75, OT_LEN=30;
 
-const TEAMS = [
-  { name:'NEON FC',     css:'#00e5ff', col:0x00e5ff, glow:0x00e5ff, roster:['BYTE','FLUX','PING','CTRL','GLITCH','SYNC'] },
-  { name:'VOLT UTD',    css:'#ff2d78', col:0xff3da0, glow:0xff4dd2, roster:['SURGE','AMP','JOLT','TESLA','DYNAMO','ARC'] },
-  { name:'GRID ROYALS', css:'#ffc24d', col:0xffc24d, glow:0xffc24d, roster:['PIXEL','RASTER','CHROME','CIPHER','MATRIX','VAULT'] },
-  { name:'ASTRA NOVA',  css:'#8a5cff', col:0x8a5cff, glow:0x9a6cff, roster:['ORBIT','COMET','PULSAR','QUASAR','NEBULA','LUMEN'] },
-];
-const FIXTURES = [[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]];
+const HOOPS_CONTENT=window.CYBERLIGA_CONTENT;
+const HOOPS_TEAMS=HOOPS_CONTENT.getTeams('basketball');
+const TEAMS=HOOPS_TEAMS.map(team=>{const hex=Number.parseInt(team.colors.primary.slice(1),16);return {name:team.name,css:team.colors.primary,col:hex,glow:hex,roster:team.athletes.map(a=>a.name)};});
+const FIXTURES=HOOPS_CONTENT.createSeason('basketball','arena').rounds.flatMap(round=>round.matches.map(match=>[HOOPS_TEAMS.findIndex(t=>t.id===match.homeId),HOOPS_TEAMS.findIndex(t=>t.id===match.awayId)]));
 let matchNo = Math.floor(Math.random()*6); // rotate starting matchup per page load
 
 // ---------- renderer / scene ----------
@@ -391,11 +406,19 @@ const seams=new THREE.Mesh(new THREE.IcosahedronGeometry(BALL_R*1.01,1),
   new THREE.MeshBasicMaterial({ color:0x301006, wireframe:true, transparent:true, opacity:0.32 }));
 ballMesh.add(seams); scene.add(ballMesh);
 const ball={ pos:V3(0,1,0), vel:V3(), state:'HELD', holder:null, passTo:null, pending:null, t:0, T:0, vy:0, shot:null, lastTeam:0 };
+const ballShadow=new THREE.Mesh(new THREE.CircleGeometry(0.36,24),
+  new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.34, depthWrite:false }));
+ballShadow.rotation.x=-Math.PI/2; ballShadow.position.y=0.025; scene.add(ballShadow);
+const carrierRing=new THREE.Mesh(new THREE.RingGeometry(0.48,0.67,28),
+  new THREE.MeshBasicMaterial({ color:0xff8a3d, transparent:true, opacity:0.8, side:THREE.DoubleSide,
+    blending:THREE.AdditiveBlending, depthWrite:false }));
+carrierRing.rotation.x=-Math.PI/2; carrierRing.position.y=0.04; scene.add(carrierRing);
 
 // ---------- HUD ----------
 const $=id=>document.getElementById(id);
-const elScore=$('score'), elSA=$('sA'), elSB=$('sB'), elClock=$('clock'), elQtr=$('qtr'), elSclock=$('sclock');
+const elScore=$('score'), elSA=$('sA'), elSB=$('sB'), elClock=$('clock'), elQtr=$('qtr'), elSclock=$('sclock'), elStatus=$('playstatus');
 const elFlash=$('flash'), elFT=$('flashtext'), elFS=$('flashsub'), elTicker=$('tickertext'), elCard=$('bigcard'), elPanel=$('cardpanel');
+const elPause=$('pausebtn'), elRestart=$('restartbtn'), elFull=$('fullbtn');
 let flashTimer=0;
 function flashMsg(big, sub, color){
   elFT.textContent=big; elFS.textContent=sub; elFlash.style.setProperty('--fc', color);
@@ -408,7 +431,7 @@ const IDLE_CHATTER=[
   ()=>`THE HOOPDOME CROWD IS ${pick(['ELECTRIC','VIBRATING','OVERCLOCKED','FERAL'])} TONIGHT`,
   ()=>`${pick(teams).def.name} RUNNING THE ${pick(['NEON MOTION','GRID-AND-ROLL','QUANTUM SPACING','FIREWALL PRESS'])} SCHEME`,
   ()=>`SHOT CLOCK FIRMWARE V2.077 — ZERO MERCY MODE`,
-  ()=>`REMINDER: DUNKING ON A ROBOT IS LEGAL IN ALL 50 GRID SECTORS`,
+  ()=>`SIX CLUBS. ONE SKYLINE. EVERY POSSESSION MATTERS`,
 ];
 function tickerStep(dt){
   tickerX-=dt*130; elTicker.style.transform=`translateX(${tickerX}px)`;
@@ -435,7 +458,7 @@ function makeTeam(def, dir, side){
       jumpY:0, jumpV:0, air:false, squash:0, pts:0, contest:false, ph:Math.random()*6.28,
       target:V3(), sprint:5.2 });
   }
-  return { def, dir, score:0, players };
+  return { def, dir, score:0, steals:0, blocks:0, turnovers:0, players };
 }
 function disposeTeams(){
   for (const t of teams) for (const p of t.players){ scene.remove(p.rig.group); p.rig.dispose(); }
@@ -445,12 +468,13 @@ function disposeTeams(){
 // ---------- match state ----------
 let phase='PLAY', q=1, qClock=Q_LEN, shotClock=24, breakT=0, possArrow=1;
 const play={ state:'BRINGUP', t:0, offense:0, passes:0, passGoal:3, wait:0.8, windKind:'jumper', windDur:0.3,
-  released:false, decided:false, dunk:null, saidReb:false, scorer:null, driveLane:1 };
+  released:false, decided:false, stealChecked:false, dunk:null, saidReb:false, scorer:null, driveLane:1 };
 function setState(s){ play.state=s; play.t=0; }
 const offT=()=>teams[play.offense], defT=()=>teams[1-play.offense];
 const atkRim=t=>V3(t.dir*RIM_X, RIM_Y, 0);
 const carrier=()=>ball.holder;
 let quarterPending=false;
+let paused=false, completedGames=0, lastFinal=null;
 
 // camera
 let camPos=V3(0,11.4,17.6), lookPt=V3(0,1,0), pendingCut=false, lowCam=false, shake=0, crowdHype=0, tGlobal=0;
@@ -477,6 +501,7 @@ function newMatch(){
   say(`MATCHDAY — ${teams[0].def.name} VS ${teams[1].def.name} — TIP-OFF IN THE HOOPDOME`);
   flashMsg('TIP-OFF', `${teams[0].def.name} VS ${teams[1].def.name}`, '#ff8a3d');
   ball.pos.set(0,1.4,0); ball.vel.set(0,0,0); ball.shot=null;
+  paused=false; elPause.textContent='PAUSE';
   outlet(Math.random()<0.5?0:1);
   cut();
 }
@@ -494,7 +519,7 @@ function gainPossession(p, next){
   ball.holder=p; ball.state='HELD'; ball.vel.set(0,0,0); ball.vy=0; ball.shot=null; ball.lastTeam=p.side;
   if (p.side!==play.offense){ play.offense=p.side; shotClock=24; play.passes=0;
     for (const o of allPlayers()) o.contest=false; } // possession flip voids pending contests
-  play.wait=0.5+Math.random()*0.6; play.decided=false;
+  play.wait=0.5+Math.random()*0.6; play.decided=false; play.stealChecked=false;
   setState(next);
 }
 function outlet(toIdx){
@@ -507,14 +532,35 @@ function outlet(toIdx){
   startPass(best,'BRINGUP');
   ball.lastTeam=toIdx;
 }
+function forceTurnover(defender, victim){
+  const oldSide=victim.side;
+  teams[defender.side].steals++;
+  teams[oldSide].turnovers++;
+  ball.pos.set(defender.pos.x,1.05,defender.pos.z);
+  ball.vel.set(0,0,0); ball.holder=defender; ball.state='HELD'; ball.shot=null;
+  crowdHype=0.8; shake=0.2; cut();
+  flashMsg('PICKED!', `${defender.name} • LIVE-BALL STEAL`, defender.td.css);
+  say(`${defender.name} RIPS IT FREE — ${defender.td.name} ARE RUNNING`);
+  gainPossession(defender,'BRINGUP');
+}
 function releaseShot(sh, kind){
   const tm=teams[sh.side], rim=atkRim(tm);
   const from=ball.pos.clone();
   const dist=dxz(from.x,from.z,rim.x,rim.z);
   const three = kind==='jumper' && dist>THREE_R+0.05;
-  let contest=0;
+  let contest=0, blocker=null;
   for (const d of teams[1-sh.side].players){ const dd=dxz(d.pos.x,d.pos.z,sh.pos.x,sh.pos.z);
-    if (dd<2.0) contest=Math.max(contest,(2.0-dd)/2.0*(d.air?1.25:0.7)); }
+    if (dd<2.0){ const pressure=(2.0-dd)/2.0*(d.air?1.25:0.7); if (pressure>contest){ contest=pressure; blocker=d; } } }
+  if (blocker && contest>0.55 && Math.random()<0.16+contest*0.18){
+    teams[blocker.side].blocks++;
+    ball.holder=null; ball.state='LOOSE'; ball.shot=null; ball.lastTeam=sh.side;
+    ball.vel.set(-tm.dir*(4+Math.random()*3), 3.2+Math.random()*2, (Math.random()-.5)*6);
+    play.saidReb=true; setState('REBOUND');
+    blocker.rig.poseHeader(0.8); shake=0.55; crowdHype=1; cut();
+    flashMsg('DENIED!', `${blocker.name} • CLEAN BLOCK`, blocker.td.css);
+    say(`${blocker.name} ERASES ${sh.name} AT THE SUMMIT`);
+    return;
+  }
   // tuned vs RIM_R-0.06 entry window (gauss sd≈0.5): open layup ~95%, contested ~70%,
   // mid-range ~50%, open three ~35-40% — lands teams in the 15-35 pts band per game
   let err = kind==='layup' ? 0.3+contest*0.32 : (0.28+dist*0.075)*(1+contest*1.2);
@@ -780,7 +826,7 @@ function shotMissedToRebound(){
 // ---------- flow state machine ----------
 function flow(dt){
   play.t+=dt;
-  const off=offT(), car=carrier(), rim=atkRim(off);
+  const off=offT(), def=defT(), car=carrier(), rim=atkRim(off);
   // clocks
   qClock-=dt;
   if (['BRINGUP','SET','PASSING','DRIVE','WINDUP'].includes(play.state)){
@@ -800,6 +846,12 @@ function flow(dt){
       break;
     case 'SET':
       if (!car) break;
+      if (!play.stealChecked && play.t>0.32){
+        play.stealChecked=true;
+        let thief=null, td=99;
+        for (const d of def.players){ const dd=dxz(d.pos.x,d.pos.z,car.pos.x,car.pos.z); if(dd<td){td=dd;thief=d;} }
+        if (thief && td<1.35 && Math.random()<0.17){ forceTurnover(thief,car); break; }
+      }
       if (play.t>play.wait){
         if (play.passes<play.passGoal){
           const mates=off.players.filter(p=>p!==car);
@@ -818,6 +870,12 @@ function flow(dt){
       break;
     case 'DRIVE': {
       if (!car) break;
+      if (!play.stealChecked && play.t>0.22){
+        play.stealChecked=true;
+        let thief=null, td=99;
+        for (const d of def.players){ const dd=dxz(d.pos.x,d.pos.z,car.pos.x,car.pos.z); if(dd<td){td=dd;thief=d;} }
+        if (thief && td<1.15 && Math.random()<0.12){ forceTurnover(thief,car); break; }
+      }
       const d=dxz(car.pos.x,car.pos.z,rim.x,rim.z);
       if (d<1.9 && !play.decided){
         play.decided=true;
@@ -897,10 +955,14 @@ function enterBreak(){
   phase = last ? 'FINAL' : 'BREAK'; breakT=0; cut();
   const line=`${teams[0].def.name} ${teams[0].score} — ${teams[1].score} ${teams[1].def.name}`;
   if (phase==='FINAL'){
+    completedGames++;
+    lastFinal={home:teams[0].def.name,away:teams[1].def.name,homeScore:teams[0].score,awayScore:teams[1].score};
     const all=[...allPlayers()].sort((a,b)=>b.pts-a.pts).slice(0,3);
     showCard(`<h1>FINAL</h1><h2>${line}</h2>
       <table><tr><th>TOP SCORERS</th><th>PTS</th></tr>
       ${all.map(p=>`<tr><td class="n" style="color:${p.td.css}">${p.name} — ${p.td.name}</td><td>${p.pts}</td></tr>`).join('')}</table>
+      <table><tr><th>CLUB</th><th>STL</th><th>BLK</th><th>TO</th></tr>
+      ${teams.map(t=>`<tr><td class="n" style="color:${t.def.css}">${t.def.name}</td><td>${t.steals}</td><td>${t.blocks}</td><td>${t.turnovers}</td></tr>`).join('')}</table>
       <div class="sub" id="countd" style="margin-top:14px">NEXT TIP-OFF IN 7</div>`);
     say(`FINAL BUZZER IN THE HOOPDOME — ${line}`);
     flashMsg('FINAL','', '#ff8a3d');
@@ -974,11 +1036,29 @@ function fxStep(dt){
   const sc=Math.max(0,Math.ceil(shotClock));
   elSclock.textContent=sc;
   elSclock.classList.toggle('warn', sc<=5 && phase==='PLAY');
+  const car=carrier();
+  carrierRing.visible=!!car && phase==='PLAY';
+  if (car){
+    carrierRing.position.set(car.pos.x,0.04,car.pos.z);
+    carrierRing.material.color.setHex(car.td.glow);
+    carrierRing.rotation.z+=dt*0.9;
+  }
+  ballShadow.position.x=ball.pos.x; ballShadow.position.z=ball.pos.z;
+  const shadowScale=clamp(1-ball.pos.y/12,0.25,1);
+  ballShadow.scale.setScalar(shadowScale); ballShadow.material.opacity=0.12+shadowScale*0.24;
+  const status = paused ? 'PAUSED' : phase==='FINAL' ? 'FINAL' : phase==='BREAK' ? 'INTERMISSION' :
+    play.state==='REBOUND' ? 'LOOSE BALL' : play.state==='DUNK' ? 'AT THE RIM' :
+    play.state==='SHOT' ? 'SHOT IN FLIGHT' : car ? `${car.name} • ${car.td.name}` : play.state.replace('_',' ');
+  elStatus.textContent=status;
 }
 
 // ---------- main loop ----------
 newMatch();
 function tick(dt, skipRender=false){
+  if (paused){
+    if (!skipRender){ updateCamera(Math.min(dt,.016)); fxStep(0); composer.render(); }
+    return;
+  }
   tGlobal+=dt;
   if (phase==='PLAY') flow(dt); else breakFlow(dt);
   setTargets(dt);
@@ -1018,14 +1098,54 @@ function startDriver(){
 }
 document.addEventListener('visibilitychange', startDriver);
 startDriver();
+
+function togglePause(){
+  paused=!paused;
+  elPause.textContent=paused?'RESUME':'PAUSE';
+  elStatus.textContent=paused?'PAUSED':play.state.replace('_',' ');
+}
+function restartMatch(){
+  matchNo=Math.max(0,matchNo-1);
+  newMatch();
+}
+async function toggleFullscreen(){
+  if (document.fullscreenElement) await document.exitFullscreen();
+  else await document.documentElement.requestFullscreen();
+}
+elPause.addEventListener('click', togglePause);
+elRestart.addEventListener('click', restartMatch);
+elFull.addEventListener('click', toggleFullscreen);
+window.render_game_to_text=()=>JSON.stringify({
+  coordinateSystem:'court meters; origin center court; +x right basket, +z far sideline, +y up',
+  mode:paused?'PAUSED':phase,
+  completedGames,
+  lastFinal,
+  quarter:q,
+  gameClock:+Math.max(0,qClock).toFixed(2),
+  shotClock:+Math.max(0,shotClock).toFixed(2),
+  play:play.state,
+  offense:teams[play.offense]?.def.name||null,
+  teams:teams.map(t=>({name:t.def.name,score:t.score,steals:t.steals,blocks:t.blocks,turnovers:t.turnovers})),
+  ball:{state:ball.state,x:+ball.pos.x.toFixed(2),y:+ball.pos.y.toFixed(2),z:+ball.pos.z.toFixed(2),holder:ball.holder?.name||null},
+  players:allPlayers().map(p=>({name:p.name,team:p.td.name,x:+p.pos.x.toFixed(2),z:+p.pos.z.toFixed(2),points:p.pts,hasBall:ball.holder===p}))
+});
+window.advanceTime=(ms)=>{
+  const wasPaused=paused; paused=false;
+  const steps=Math.max(1,Math.round(ms/(1000/60)));
+  for(let i=0;i<steps;i++) tick(1/60,i<steps-1);
+  paused=wasPaused;
+  if(paused){ elPause.textContent='RESUME'; elStatus.textContent='PAUSED'; }
+};
 addEventListener('resize', ()=>{
   camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight); composer.setSize(innerWidth,innerHeight);
 });
 
-// Escape backs out to the league hub
 addEventListener('keydown', e=>{
-  if (e.key==='Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) location.href='world.html';
+  if (e.key.toLowerCase()==='f'){ e.preventDefault(); toggleFullscreen(); }
+  else if (e.key.toLowerCase()==='p' || e.code==='Space'){ e.preventDefault(); togglePause(); }
+  else if (e.key.toLowerCase()==='r'){ e.preventDefault(); restartMatch(); }
+  else if (e.key==='Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && !document.fullscreenElement) location.href='world.html';
 });
 </script>
 </body>

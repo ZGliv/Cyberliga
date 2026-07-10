@@ -35,6 +35,14 @@
     display:flex; align-items:center; gap:14px;
     background:rgba(4,6,16,.82); border:1px solid rgba(255,255,255,.1); border-radius:6px; padding:4px 16px;
   }
+  #playstatus {
+    position:absolute; top:116px; left:50%; transform:translateX(-50%);
+    min-width:190px; padding:5px 14px; border-radius:999px; text-align:center;
+    font-family:'Orbitron'; font-weight:900; font-size:10px; letter-spacing:2.4px; color:#dffff0;
+    background:rgba(3,8,17,.78); border:1px solid rgba(88,255,180,.22);
+    box-shadow:0 0 18px rgba(88,255,180,.12); transition:color .15s, border-color .15s, box-shadow .15s;
+  }
+  #playstatus.hot { color:#fff3a8; border-color:rgba(255,211,77,.7); box-shadow:0 0 25px rgba(255,211,77,.32); }
   .live { width:7px; height:7px; border-radius:50%; background:#ff2d55; animation:pulse 1.2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1; box-shadow:0 0 8px #ff2d55;} 50%{opacity:.3;} }
   #inn { font-family:'Orbitron'; font-weight:700; font-size:14px; color:#9dffd0; letter-spacing:2px; }
@@ -68,7 +76,7 @@
 
   #vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,10,.55) 100%); }
   #scanlines { position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px); mix-blend-mode:overlay; }
-  #watermark { position:absolute; bottom:46px; right:18px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(142,255,200,.42); }
+  #watermark { position:absolute; bottom:50px; right:162px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(142,255,200,.42); }
 
   #badge { position:absolute; top:22px; left:22px; display:flex; gap:12px; align-items:center; z-index:60; }
   #wordmark { font-family:'Orbitron'; font-weight:900; font-size:16px; letter-spacing:3px; color:#8effc8; text-shadow:0 0 14px rgba(88,255,180,.55); }
@@ -83,6 +91,10 @@
     transition:color .15s, border-color .15s, box-shadow .15s;
   }
   #leaguepill:hover { color:#fff; background:rgba(88,255,180,.16); border-color:rgba(88,255,180,.7); box-shadow:0 0 18px rgba(88,255,180,.5); }
+  @media (max-width:1320px) and (min-width:701px) {
+    #erapill { display:none; }
+    #wordmark { font-size:14px; letter-spacing:2px; }
+  }
 
   #bigcard { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(2,3,10,.45); backdrop-filter:blur(3px); }
   #bigcard.show { display:flex; }
@@ -96,6 +108,13 @@
   #bigcard td.n { text-align:left; font-weight:700; }
 
   #soundpill { position:absolute; bottom:46px; left:18px; font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px; color:#8effc8; border:1px solid rgba(88,255,180,.35); padding:4px 12px; border-radius:99px; background:rgba(4,8,20,.7); }
+  #controls { position:absolute; bottom:44px; right:18px; display:flex; gap:6px; pointer-events:auto; }
+  #controls button {
+    min-width:36px; height:28px; padding:0 9px; border-radius:999px; cursor:pointer;
+    font-family:'Orbitron'; font-weight:700; font-size:9px; letter-spacing:1px; color:#bfffe0;
+    border:1px solid rgba(88,255,180,.32); background:rgba(4,8,20,.76);
+  }
+  #controls button:hover, #controls button:focus-visible { color:#fff; border-color:#58ffb4; outline:none; box-shadow:0 0 14px rgba(88,255,180,.35); }
   @media (max-width:700px) {
     #hud { isolation:isolate; min-height:100dvh; }
     #vignette {
@@ -137,6 +156,10 @@
       max-width:calc(100vw - 20px); z-index:60;
       background:rgba(5,9,22,.82); border-color:rgba(88,255,180,.16); box-shadow:0 8px 22px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06);
     }
+    #playstatus {
+      top:calc(env(safe-area-inset-top, 0px) + 145px); min-width:168px; max-width:calc(100vw - 24px);
+      padding:5px 11px; font-size:9px; letter-spacing:1.7px; z-index:60; background:rgba(5,9,22,.82);
+    }
     #inn, #count { font-size:12px; letter-spacing:1.2px; white-space:nowrap; }
     #count em { font-size:9px; }
     #outs i { width:8px; height:8px; }
@@ -164,6 +187,8 @@
       background:rgba(4,8,20,.82); box-shadow:0 8px 22px rgba(0,0,0,.35);
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
+    #controls { right:10px; bottom:calc(79px + env(safe-area-inset-bottom, 0px)); z-index:67; gap:4px; }
+    #controls button { min-width:32px; height:27px; padding:0 8px; font-size:8px; background:rgba(4,8,20,.84); }
     #watermark { display:none; }
   }
   @media (max-width:380px) {
@@ -196,14 +221,17 @@
     <span id="outs"><i></i><i></i><i></i></span>
     <span id="minibases"><b id="mb3"></b><b id="mb2"></b><b id="mb1"></b></span>
   </div>
+  <div id="playstatus">FIRST PITCH LOADING</div>
   <div id="flash"><div id="flashtext"></div><div id="flashsub"></div></div>
   <div id="ticker"><div id="tickerlabel">DIAMOND</div><div id="tickertext"></div></div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
   <div id="soundpill">&#128266; CLICK ANYWHERE FOR SOUND</div>
+  <div id="controls" aria-label="Game controls"><button id="pausebtn" type="button" title="Pause or resume (P)">P</button><button id="rematchbtn" type="button" title="Start a new fixture (R)">R</button><button id="fullbtn" type="button" title="Toggle fullscreen (F)">F</button></div>
   <div id="vignette"></div><div id="scanlines"></div>
   <div id="watermark">CYBERLIGA DIAMOND</div>
 </div>
 
+<script src="worlddata.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -238,18 +266,15 @@ const RUNSPD = 7.2;                  // base-running speed
 const INNINGS = 3, MAX_INN = 7;      // scheduled / hard cap (extras use a runner on second)
 const BASES = [ {x:DIAG/2, z:DIAG/2}, {x:DIAG, z:0}, {x:DIAG/2, z:-DIAG/2}, {x:0, z:0} ]; // 1B 2B 3B HOME
 
-const TEAMS = [
-  { name:'NEON NINES',  css:'#00e5ff', col:0x00e5ff, glow:0x00e5ff,
-    roster:['VEKTOR','STROBE','BYTEBAT','PHOSPHOR','RAZOR','SYNTH','HALCYON','PRISM','OKAFOR-9'] },
-  // VOLT pink shifted toward magenta for 3D emissives so ACES doesn't crush it to red
-  { name:'VOLT BATTERY',css:'#ff2d78', col:0xff3da0, glow:0xff4dd2,
-    roster:['TESLA JR','BLITZ','CIPHER','GLITCH','SURGE','AMPERE','NOVA','PULSE','KAOS'] },
-  { name:'GRID ROYALS', css:'#ffc24d', col:0xffc24d, glow:0xffd24d,
-    roster:['KILOWATT','MAINFRAME','TURBINE','DYNAMO','CIRCUIT','HELIX','RASTER','CHROME','VAULT'] },
-  { name:'ASTRA NOVA',  css:'#8a5cff', col:0x8a5cff, glow:0x9a6cff,
-    roster:['ORBIT','QUASAR','ZENITH','NEBULA','COMET','LUMEN','PULSAR','ECLIPSE','ION'] },
-];
-const FIXTURES = [[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]];
+const BASEBALL_CONTENT=window.CYBERLIGA_CONTENT;
+const BASEBALL_TEAMS=BASEBALL_CONTENT.getTeams('baseball');
+const TEAMS=BASEBALL_TEAMS.map(team=>{
+  const hex=Number.parseInt(team.colors.primary.slice(1),16);
+  const motif=team.motif.replace(/\b\w/g,c=>c.toUpperCase());
+  const roster=team.athletes.map(a=>a.name).concat([`${motif} Nine`,`${team.city} Relay`,`${team.code} Longball`]);
+  return {name:team.name,css:team.colors.primary,col:hex,glow:hex,roster};
+});
+const FIXTURES=BASEBALL_CONTENT.createSeason('baseball','arena').rounds.flatMap(round=>round.matches.map(match=>[BASEBALL_TEAMS.findIndex(t=>t.id===match.homeId),BASEBALL_TEAMS.findIndex(t=>t.id===match.awayId)]));
 let fixtureIdx = (parseInt(localStorage.getItem('cl_dia_fx')) || 0) % FIXTURES.length;
 
 // fielding spots: P C 1B 2B SS 3B LF CF RF
@@ -620,7 +645,8 @@ const elSA=$('sA'), elSB=$('sB'), elScore=$('score'), elInn=$('inn'), elCount=$(
 const elOuts=[...document.querySelectorAll('#outs i')];
 const elMB=[$('mb1'),$('mb2'),$('mb3')];
 const elFlash=$('flash'), elFT=$('flashtext'), elFS=$('flashsub'), elTicker=$('tickertext');
-const elCard=$('bigcard'), elPanel=$('cardpanel');
+const elCard=$('bigcard'), elPanel=$('cardpanel'), elPlayStatus=$('playstatus');
+const elPauseBtn=$('pausebtn'), elRematchBtn=$('rematchbtn'), elFullBtn=$('fullbtn');
 let flashTimer=0;
 function flashMsg(big, sub, color){
   elFT.textContent=big; elFS.textContent=sub; elFlash.style.setProperty('--fc',color);
@@ -672,7 +698,9 @@ ump.group.position.set(-2.7,0,0.7); ump.group.rotation.y=Math.PI/2+0.5;
 const S={ state:'SETUP', t:0, inning:1, half:0, outs:0, balls:0, strikes:0,
   bases:[null,null,null],      // runner refs at 1B/2B/3B
   batter:null, pitchPlan:null, play:null, throwPlan:null, runnersDone:false,
-  scoreFlash:0, camMode:'plate', camCut:true, homerPan:0, lastState:'' };
+  scoreFlash:0, camMode:'plate', camCut:true, homerPan:0, lastState:'', clipMoment:'', clipT:0, clips:[] };
+let paused=false;
+function recordClip(label,dur=3.5){ S.clipMoment=label; S.clipT=dur; S.clips.push({label,inning:S.inning,half:S.half}); if(S.clips.length>8)S.clips.shift(); }
 function setState(s){ S.state=s; S.t=0; }
 const batTeam=()=>teams[S.half];        // half 0 = top = away bats
 const fldTeam=()=>teams[1-S.half];
@@ -694,6 +722,19 @@ function hudStep(){
   elOuts.forEach((o,i)=>o.classList.toggle('on', i<S.outs));
   elMB.forEach((b,i)=>b.classList.toggle('on', !!S.bases[i]));
   for (let i=0;i<3;i++) baseMats[i].emissiveIntensity = S.bases[i] ? 1.5+Math.sin(tGlobal*6)*0.5 : 0.3;
+  let status='RESETTING THE DIAMOND', hot=false;
+  if (paused) status='PAUSED · P TO RESUME';
+  else if (S.state==='SETUP') status=`${S.batter ? S.batter.name : 'NEXT BATTER'} AT BAT`;
+  else if (S.state==='WINDUP') status=`${pitcherP().name} DEALING`;
+  else if (S.state==='PITCH') status=`PITCH LIVE · ${S.pitchPlan ? Math.round(S.pitchPlan.speed*4) : '--'} MPH`;
+  else if (S.state==='LIVE' || S.state==='THROW') { status=`BALL IN PLAY · ${S.play ? S.play.type : 'LIVE'}`; hot=true; }
+  else if (S.state==='HOMER') { status=S.play && S.play.grandSlam ? 'GRAND SLAM IN FLIGHT' : S.play && S.play.moonshot ? 'MOONSHOT IN FLIGHT' : 'HOME RUN IN FLIGHT'; hot=true; }
+  else if (S.state==='RESOLVE') status=S.play && S.play.type==='WALK' ? 'BALL FOUR · RUNNERS ADVANCING' : 'DEAD BALL';
+  else if (S.state==='SIDECHG') status='SIDE RETIRED · FIELD FLIP';
+  else if (S.state==='FINAL') status='FINAL · NEXT FIXTURE LOADING';
+  if (!paused && S.clipT>0 && S.clipMoment) { status=S.clipMoment; hot=true; }
+  elPlayStatus.textContent=status;
+  elPlayStatus.classList.toggle('hot',hot);
 }
 
 function setupMatch(){
@@ -705,6 +746,7 @@ function setupMatch(){
   ledMat.color.setHex(TEAM_B.glow); // home club lights the wall
   S.inning=1; S.half=0; S.outs=0; S.balls=0; S.strikes=0; S.bases=[null,null,null];
   S.batter=null; S.play=null; S.halfRuns=0; S.stuckT=0; S.lastState='';
+  S.clipMoment=''; S.clipT=0; S.clips=[];
   applyTeamHUD(); hideCard();
   say(`FIRST PITCH AT THE DIAMOND DOME — ${TEAM_A.name} VS ${TEAM_B.name} — ${INNINGS} INNINGS OF FULLY AUTONOMOUS BASEBALL`);
   flashMsg('PLAY BALL', `${TEAM_A.name} VS ${TEAM_B.name}`, '#58ffb4');
@@ -949,9 +991,11 @@ function inPlay(plan) {
   const canCatch = type === 'GROUND' ? false :
     Math.random() < clamp((type === 'FLY' ? 0.92 : 0.64) - quality*0.43 - routePressure*0.2, type === 'FLY' ? 0.28 : 0.12, 0.9);
   const fieldClean = type !== 'GROUND' || Math.random() > clamp(quality*0.22 + 0.08, 0.08, 0.26);
+  const aboard=S.bases.filter(Boolean).length;
   S.play = { type, quality, chaser, lx, lz, resolved:false, bounced:false, fielded:false,
              fielder:null, bobbleT:0, thrown:false, throwT:0, tt:0, cleared:false, fwT:0, collect:false, caught:false,
-             canCatch, fieldClean, routePressure:+routePressure.toFixed(2) };
+             canCatch, fieldClean, routePressure:+routePressure.toFixed(2),
+             grandSlam:type==='HOMER' && aboard===3, moonshot:type==='HOMER' && quality>0.9 };
   if (type === 'HOMER') {
     bt.hits++; bt.hrs++;
     advanceOnHit(4, S.batter);                      // everyone trots while it flies
@@ -1008,12 +1052,20 @@ function catchOut(pl) {
   const c = pl.chaser;
   c.jumpV = 4.6; c.air = true;                        // the hop
   ball.mode = 'CARRY'; pl.carrier = c;
-  glovePop(); callBeep(false); swellCrowd(0.28);
+  const wallRobbery=Math.hypot(ball.pos.x,ball.pos.z)>28.5;
+  glovePop(); callBeep(false); swellCrowd(wallRobbery ? 0.82 : 0.28);
   S.outs++;
   if (S.bases[0] === S.batter) S.bases[0] = null;
   S.batter.path = null; S.batter.duty = 'dugout'; S.batter.baseIdx = -1;
-  flashMsg('OUT', `${c.name} SNAGS IT`, '#ff4d5e');
-  say(`${c.name} CAMPS UNDER IT — ${pl.type === 'LINER' ? 'LINE DRIVE SPEARED' : 'FLY BALL SECURED'} — OUT NUMBER ${S.outs}`);
+  if (wallRobbery) {
+    recordClip(`WALL ROBBERY · ${c.name}`,3.2);
+    flashMsg('WALL ROBBERY', `${c.name} STEALS EXTRA BASES`, c.side===0 ? TEAM_A.css : TEAM_B.css);
+    burst(ball.pos.x,Math.max(2.2,ball.pos.y),ball.pos.z,c.side===0 ? TEAM_A.glow : TEAM_B.glow,34,8);
+    say(`${c.name} CLIMBS THE NEON WALL AND ROBS IT — A SEASON-SAVING CATCH`);
+  } else {
+    flashMsg('OUT', `${c.name} SNAGS IT`, '#ff4d5e');
+    say(`${c.name} CAMPS UNDER IT — ${pl.type === 'LINER' ? 'LINE DRIVE SPEARED' : 'FLY BALL SECURED'} — OUT NUMBER ${S.outs}`);
+  }
   cut('chase');
 }
 function creditHit(pl) {
@@ -1094,7 +1146,8 @@ function showFinal() {
   horn(); swellCrowd(0.85);
   flashMsg('FINAL', w ? `${w.def.name} TAKE IT` : 'ALL SQUARE', w ? w.def.css : '#58ffb4');
   say(w ? `THAT IS THE BALLGAME — ${w.def.name} WIN IT ${Math.max(a.runs,b.runs)}-${Math.min(a.runs,b.runs)}` : 'A DRAW AT THE DIAMOND DOME — THE LEAGUE LOGS IT AND MOVES ON');
-  window._games && window._games.push({ a:a.runs, b:b.runs, inn:S.inning, dur:+(tGlobal - lastGameT).toFixed(0) });
+  window._games && window._games.push({ teams:[TEAM_A.name,TEAM_B.name], score:[a.runs,b.runs], inn:S.inning,
+    dur:+(tGlobal-lastGameT).toFixed(0), clips:S.clips.slice() });
   lastGameT = tGlobal;
   const [ni, nj] = FIXTURES[(fixtureIdx + 1) % FIXTURES.length];
   showCard(`<h1>FINAL</h1><h2>${TEAM_A.name} ${a.runs} — ${b.runs} ${TEAM_B.name}</h2>
@@ -1251,8 +1304,11 @@ function stateStep(dt) {
         pl.cleared = true;
         burst(ball.pos.x, Math.max(3.2, ball.pos.y), ball.pos.z, batTeam().def.glow, 44, 11);
         horn(); ledPulse = 1; swellCrowd(1);
-        flashMsg('HOME RUN', `${S.batter.name} GOES YARD`, batTeam().def.css);
-        say(`THAT BALL IS GONE — ${S.batter.name} SENDS IT OVER THE WALL AND INTO LOW ORBIT`);
+        const moment=pl.grandSlam ? 'GRAND SLAM' : pl.moonshot ? 'MOONSHOT' : 'HOME RUN';
+        recordClip(`${moment} · ${S.batter.name}`,4);
+        flashMsg(moment, pl.grandSlam ? `${S.batter.name} CLEARS THE BASES` : `${S.batter.name} GOES YARD`, batTeam().def.css);
+        say(pl.grandSlam ? `GRAND SLAM — ${S.batter.name} EMPTIES THE DIAMOND AND THE DOME ERUPTS`
+                         : `THAT BALL IS GONE — ${S.batter.name} SENDS IT OVER THE WALL AND INTO LOW ORBIT`);
       }
       if (pl.cleared) {
         pl.fwT += dt;
@@ -1389,6 +1445,7 @@ function timerStep(dt, touchDom){
   zoneT = Math.max(0, zoneT - dt*1.6);
   ledPulse = Math.max(0, ledPulse - dt*0.5);
   crowdPulse = Math.max(0, crowdPulse - dt*0.72);
+  S.clipT=Math.max(0,S.clipT-dt);
   if (flashTimer > 0) {
     flashTimer -= dt;
     if (flashTimer <= 0 && touchDom) elFlash.classList.remove('show');
@@ -1446,16 +1503,26 @@ function cameraStep(dt) {
 setupMatch();
 function gameSnapshot(){
   const pl=S.play;
+  const activeRunners=allPlayers().filter(p=>p.duty==='runner' || p.duty==='batter').map(p=>({
+    name:p.name, duty:p.duty, base:p.baseIdx, position:{x:+p.x.toFixed(2),z:+p.z.toFixed(2)},
+    target:p.path && p.path[p.pathI] ? {x:+p.path[p.pathI].x.toFixed(2),z:+p.path[p.pathI].z.toFixed(2)} : null
+  }));
+  const [nextA,nextB]=FIXTURES[(fixtureIdx+1)%FIXTURES.length];
   return {
-    note:'Cyberliga baseball autonomous sim',
+    note:'Coordinates are diamond-space x/z meters: home plate is (0,0), center field is +x, first base is +z, third base is -z.',
+    paused, fullscreen:!!document.fullscreenElement,
+    controls:{pause:'P',rematch:'R',fullscreen:'F',exit:'Escape'},
+    fixture:{index:fixtureIdx,total:FIXTURES.length,teams:teams.map(t=>t.def.name),next:[TEAMS[nextA].name,TEAMS[nextB].name]},
+    status:elPlayStatus.textContent, clipMoment:S.clipMoment || null, clipSeconds:+S.clipT.toFixed(1), clipsThisGame:S.clips.slice(),
     state:S.state, t:+S.t.toFixed(2), inning:S.inning, half:S.half,
     outs:S.outs, balls:S.balls, strikes:S.strikes,
     score:teams.length ? [teams[0].runs, teams[1].runs] : [0,0],
     hits:teams.length ? [teams[0].hits, teams[1].hits] : [0,0],
     hrs:teams.length ? [teams[0].hrs, teams[1].hrs] : [0,0],
-    bases:S.bases.map(b => b ? b.name : null),
+    bases:S.bases.map(b => b ? b.name : null), activeRunners,
     batter:S.batter && S.batter.name,
-    ball:{ mode:ball.mode, pos:[+ball.pos.x.toFixed(1), +ball.pos.y.toFixed(1), +ball.pos.z.toFixed(1)] },
+    pitch:S.pitchPlan ? {speedMph:Math.round(S.pitchPlan.speed*4),inZone:!!S.pitchPlan.inZone,curve:+S.pitchPlan.curve.toFixed(2),swing:!!S.pitchPlan.swing} : null,
+    ball:{ mode:ball.mode, pos:[+ball.pos.x.toFixed(1), +ball.pos.y.toFixed(1), +ball.pos.z.toFixed(1)], vel:[+ball.vel.x.toFixed(1),+ball.vel.y.toFixed(1),+ball.vel.z.toFixed(1)] },
     play:pl ? {
       type:pl.type, quality:pl.quality == null ? null : +pl.quality.toFixed(2),
       resolved:!!pl.resolved, bounced:!!pl.bounced, fielded:!!pl.fielded,
@@ -1463,9 +1530,11 @@ function gameSnapshot(){
       fieldClean:pl.fieldClean == null ? null : !!pl.fieldClean,
       routePressure:pl.routePressure == null ? null : pl.routePressure,
       chaser:pl.chaser && pl.chaser.name,
+      fielder:pl.fielder && pl.fielder.name,
+      grandSlam:!!pl.grandSlam, moonshot:!!pl.moonshot,
       target:[+(pl.lx || 0).toFixed(1), +(pl.lz || 0).toFixed(1)]
     } : null,
-    teams:teams.map(t => t.def.name),
+    teams:teams.map(t => ({name:t.def.name,runs:t.runs,hits:t.hits,homeRuns:t.hrs,nextBatter:t.players[t.batIdx%t.players.length].name})),
     crowd:{ members:crowdMembers.length, pulse:+crowdPulse.toFixed(2) }
   };
 }
@@ -1475,6 +1544,7 @@ window._dbg = gameSnapshot;
 window._ff = secs => { const n = Math.max(1, Math.round(secs/0.05)); for (let i = 0; i < n; i++) tick(0.05, i < n - 1); };
 window._games = [];
 function tick(dt, skipRender = false) {
+  if (paused) { if (!skipRender) { hudStep(); composer.render(); } return; }
   tGlobal += dt;
   steerIdle();          // duty stations first; live-play steering overrides below
   stateStep(dt);
@@ -1528,16 +1598,33 @@ function startDriver() {
 document.addEventListener('visibilitychange', startDriver);
 startDriver();
 
-addEventListener('resize', () => {
+function resizeScene() {
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
   composer.setSize(innerWidth, innerHeight);
-});
-
-// Escape backs out to the league hub
-addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) location.href = 'world.html';
+}
+function togglePause(){ paused=!paused; elPauseBtn.textContent=paused?'▶':'P'; hudStep(); }
+function rematch(){ paused=false; elPauseBtn.textContent='P'; setupMatch(); hudStep(); }
+async function toggleFullscreen(){
+  try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }
+  catch(e) { say('FULLSCREEN IS UNAVAILABLE IN THIS BROWSER'); }
+}
+elPauseBtn.addEventListener('click',e=>{e.stopPropagation();togglePause();});
+elRematchBtn.addEventListener('click',e=>{e.stopPropagation();rematch();});
+elFullBtn.addEventListener('click',e=>{e.stopPropagation();toggleFullscreen();});
+addEventListener('resize',resizeScene);
+document.addEventListener('fullscreenchange',()=>{ resizeScene(); elFullBtn.textContent=document.fullscreenElement?'×':'F'; });
+addEventListener('keydown',e=>{
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k=e.key.toLowerCase();
+  if (k==='p') { e.preventDefault(); togglePause(); }
+  else if (k==='r') { e.preventDefault(); rematch(); }
+  else if (k==='f') { e.preventDefault(); toggleFullscreen(); }
+  else if (e.key==='Escape') {
+    if (document.fullscreenElement) { e.preventDefault(); document.exitFullscreen(); }
+    else location.href='world.html';
+  }
 });
 </script>
 </body>

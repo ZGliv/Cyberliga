@@ -34,6 +34,7 @@
   }
   #clock { font-family:'Orbitron'; font-weight:700; font-size:14px; color:#e8faff; letter-spacing:2px; }
   #period { font-size:12px; font-weight:600; color:#6fe3ff; letter-spacing:2px; }
+  #playstatus { font-family:'Rajdhani'; font-weight:700; font-size:11px; color:#a8f5ff; letter-spacing:1.4px; border-left:1px solid rgba(255,255,255,.14); padding-left:9px; white-space:nowrap; }
   .live { width:7px; height:7px; border-radius:50%; background:#ff2d55; animation: pulse 1.2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1; box-shadow:0 0 8px #ff2d55;} 50%{opacity:.3;} }
 
@@ -58,11 +59,19 @@
   #vignette { position:absolute; inset:0; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,10,.55) 100%); }
   #scanlines { position:absolute; inset:0; background: repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px); mix-blend-mode: overlay; }
   #watermark { position:absolute; bottom:46px; right:18px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(126,240,255,.4); }
+  #controls { position:absolute; right:18px; bottom:46px; display:flex; gap:7px; z-index:75; pointer-events:auto; }
+  #controls button {
+    appearance:none; border:1px solid rgba(0,229,255,.34); border-radius:999px; padding:5px 10px;
+    color:#8df4ff; background:rgba(4,8,20,.76); font:700 11px/1 'Rajdhani',sans-serif; letter-spacing:1.4px;
+    cursor:pointer; box-shadow:0 7px 20px rgba(0,0,0,.3); transition:.15s ease;
+  }
+  #controls button:hover, #controls button:focus-visible { color:#fff; border-color:#00e5ff; background:rgba(0,229,255,.14); outline:none; }
 
   #badge { position:absolute; top:22px; left:22px; display:flex; gap:12px; align-items:center; z-index:60; }
   #wordmark { font-family:'Orbitron'; font-weight:900; font-size:16px; letter-spacing:3px; color:#7ef0ff; text-shadow:0 0 14px rgba(0,229,255,.55); }
   #wordmark em { font-style:normal; color:#fff; }
   #erapill { font-family:'Orbitron'; font-weight:700; font-size:9px; letter-spacing:2px; color:#9fdcff; border:1px dashed rgba(126,240,255,.45); border-radius:99px; padding:3px 10px; background:rgba(4,8,20,.55); }
+  @media (max-width:1450px) { #erapill { display:none; } }
   @media (max-width:1000px) { #badge { flex-direction:column; align-items:flex-start; gap:7px; } }
   #leaguepill {
     pointer-events:auto; font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px;
@@ -126,6 +135,7 @@
     }
     #clock { font-size:12px; letter-spacing:1.4px; }
     #period { font-size:10px; letter-spacing:1.1px; white-space:nowrap; }
+    #playstatus { display:none; }
     #goalflash { z-index:45; }
     #goaltext { max-width:100vw; font-size:clamp(42px, 15vw, 74px); letter-spacing:7px; line-height:.98; text-align:center; overflow-wrap:anywhere; }
     #goalsub { max-width:calc(100vw - 28px); font-size:15px; letter-spacing:2.6px; line-height:1.15; text-align:center; padding:0 16px; }
@@ -149,6 +159,9 @@
       background:rgba(4,8,20,.82); box-shadow:0 8px 22px rgba(0,0,0,.35);
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
+    #controls { right:10px; bottom:calc(78px + env(safe-area-inset-bottom, 0px)); gap:5px; }
+    #controls button { min-height:29px; padding:5px 9px; font-size:10px; letter-spacing:1px; background:rgba(4,8,20,.88); }
+    #controls .widehint { display:none; }
     #watermark { display:none; }
   }
   @media (max-width:380px) {
@@ -175,15 +188,17 @@
     <div id="score"><span id="sA">0</span>&nbsp;&ndash;&nbsp;<span id="sB">0</span></div>
     <div class="team" id="teamB"><span class="tn">VOLT UTD</span><span class="dot"></span></div>
   </div>
-  <div id="clockwrap"><span class="live"></span><span id="clock">01:30</span><span id="period">1ST PERIOD</span></div>
+  <div id="clockwrap"><span class="live"></span><span id="clock">01:30</span><span id="period">1ST PERIOD</span><span id="playstatus">FACEOFF</span></div>
   <div id="goalflash"><div id="goaltext">GOAL</div><div id="goalsub"></div></div>
   <div id="ticker"><div id="tickerlabel">CYBERLIGA</div><div id="tickertext"></div></div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
   <div id="soundpill">&#128266; CLICK ANYWHERE FOR SOUND</div>
+  <div id="controls"><button id="pausebtn" type="button">PAUSE</button><button id="restartbtn" type="button">REMATCH</button><button id="fullbtn" class="widehint" type="button">F FULLSCREEN</button></div>
   <div id="vignette"></div><div id="scanlines"></div>
   <div id="watermark">CYBERLIGA ICE</div>
 </div>
 
+<script src="worlddata.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -209,20 +224,11 @@ const PY = 0.1;                           // puck rest height
 const dampK = (k, dt) => 1 - Math.exp(-k * dt);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-const LEAGUE_TEAMS = [
-  { name:'NEON FC',     css:'#00e5ff', kit:0x00e5ff, glow:0x00e5ff },
-  // VOLT pink shifted toward magenta for 3D emissives so ACES doesn't crush it to red
-  { name:'VOLT UTD',    css:'#ff2d78', kit:0xff2d9c, glow:0xff45d6 },
-  { name:'GRID ROYALS', css:'#ffc24d', kit:0xffc24d, glow:0xffd24d },
-  { name:'ASTRA NOVA',  css:'#8a5cff', kit:0x8a5cff, glow:0x9a6cff },
-];
-const FIXTURES = [[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]];
-const ROSTERS = { // [goalie, C, W, W, D, D]
-  'NEON FC':     ['OKAFOR-9','VEKTOR','SYNTH','RAZOR','PRISM','HALCYON'],
-  'VOLT UTD':    ['TESLA JR','CIPHER','GLITCH','BLITZ','NOVA','PULSE'],
-  'GRID ROYALS': ['KILOWATT','MAINFRAME','TURBINE','DYNAMO','CIRCUIT','HELIX'],
-  'ASTRA NOVA':  ['ORBIT','QUASAR','ZENITH','NEBULA','COMET','LUMEN'],
-};
+const HOCKEY_CONTENT=window.CYBERLIGA_CONTENT;
+const HOCKEY_TEAMS=HOCKEY_CONTENT.getTeams('hockey');
+const LEAGUE_TEAMS=HOCKEY_TEAMS.map(team=>{const hex=Number.parseInt(team.colors.primary.slice(1),16);return {name:team.name,css:team.colors.primary,kit:hex,glow:hex};});
+const FIXTURES=HOCKEY_CONTENT.createSeason('hockey','arena').rounds.flatMap(round=>round.matches.map(match=>[HOCKEY_TEAMS.findIndex(t=>t.id===match.homeId),HOCKEY_TEAMS.findIndex(t=>t.id===match.awayId)]));
+const ROSTERS=Object.fromEntries(HOCKEY_TEAMS.map(team=>[team.name,team.athletes.map(a=>a.name)])); // [goalie, C, W, W, D, D]
 let fixtureIdx = (parseInt(localStorage.getItem('cl_ice_fx')) || 0) % FIXTURES.length;
 let TEAM_A, TEAM_B;
 const ATT = [1, -1]; // team 0 attacks +x, team 1 attacks -x
@@ -422,7 +428,7 @@ led.position.set(0, 8.2, -BZ - 6.2); scene.add(led);
 
 // ============ PUCK + TRAIL ============
 const puck = { x: 0, z: 0, y: PY, vx: 0, vz: 0, vy: 0, carrier: null, lastTouch: null,
-  saveChecked: false, prevX: 0, held: true };
+  passTarget: null, saveChecked: false, prevX: 0, held: true };
 const puckMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.16, 18),
   new THREE.MeshStandardMaterial({ color: 0x0b0e16, roughness: 0.35, emissive: 0x66f0ff, emissiveIntensity: 0.55 }));
 scene.add(puckMesh);
@@ -513,6 +519,7 @@ const el = id => document.getElementById(id);
 const elClock = el('clock'), elPeriod = el('period'), elSA = el('sA'), elSB = el('sB');
 const elTicker = el('tickertext'), elCard = el('bigcard'), elPanel = el('cardpanel');
 const elFlash = el('goalflash'), elGoalSub = el('goalsub');
+const elStatus = el('playstatus'), elPause = el('pausebtn'), elRestart = el('restartbtn'), elFull = el('fullbtn');
 const PERIOD_NAMES = ['1ST PERIOD', '2ND PERIOD', '3RD PERIOD', 'OVERTIME'];
 const tickerLines = [];
 let tickerDirty = true, tickerX = innerWidth, tickerW = 0, lastSayT = -10, simClockTotal = 0;
@@ -541,6 +548,7 @@ const COMM = {
   check: ['CRUNCH! {a} FLATTENS {b}', '{a} ERASES {b} — HUGE HIT', '{b} GETS WELDED TO THE GLASS BY {a}'],
   goal:  ['{a} ROOFS IT — GOAL!', '{a} BURIES IT — LAMP LIT!', 'GOAL! {a} FROM POINT-BLANK RANGE'],
   steal: ['{a} PICKS THE POCKET', 'TURNOVER — {a} TAKES IT AWAY'],
+  onetimer: ['ONE-TIMER! {a} HAMMERS THE FEED', '{a} UNLOADS WITHOUT SETTLING IT', 'CROSS-SEAM TO {a} — ONE-TIME BLAST'],
 };
 const fill = (t, a, b, g) => t.replace('{a}', a || '').replace('{b}', b || '').replace('{g}', g || '');
 
@@ -552,7 +560,7 @@ function mkPlayer(team, idx, name, teamDef) {
   scene.add(rig.group);
   return { team, idx, name, isGK, rig, x: 0, z: 0, vx: 0, vz: 0, heading: 0, turn: 0,
     tx: 0, tz: 0, sprint: 1, fallT: 0, checkCd: 0, touchCd: 0, puffCd: 0, recvT: 0, decT: 1 + Math.random(),
-    fox: 0, foz: 0, holdT: 0, butterT: 0 };
+    fox: 0, foz: 0, holdT: 0, butterT: 0, breakaway: false };
 }
 function buildSquads() {
   for (const p of players) { scene.remove(p.rig.group); p.rig.dispose(); }
@@ -569,8 +577,9 @@ const gkOfSide = s => players.find(p => p.isGK && p.team === (s === 1 ? 1 : 0));
 
 // ============ MATCH STATE ============
 const S = { state: 'FACEOFF', t: 0, period: 1, clock: PERIOD_LEN, score: [0, 0],
-  shots: [0, 0], hits: [0, 0], faceX: 0, faceZ: 0, dropped: false,
+  shots: [0, 0], hits: [0, 0], saves: [0, 0], oneTimers: [0, 0], faceX: 0, faceZ: 0, dropped: false,
   scorerName: '', scoredSide: 1, scoringTeam: 0, noTouchT: 0, push: 0 };
+let paused = false, completedGames = 0, lastFinal = null;
 function setState(s) { S.state = s; S.t = 0; }
 
 function applyTeamHUD() {
@@ -588,7 +597,8 @@ function setupMatch(firstLoad) {
   localStorage.setItem('cl_ice_fx', String((fixtureIdx + 1) % FIXTURES.length));
   buildSquads();
   S.period = 1; S.clock = PERIOD_LEN;
-  S.score = [0, 0]; S.shots = [0, 0]; S.hits = [0, 0]; S.noTouchT = 0;
+  S.score = [0, 0]; S.shots = [0, 0]; S.hits = [0, 0]; S.saves = [0, 0]; S.oneTimers = [0, 0]; S.noTouchT = 0;
+  paused = false; elPause.textContent = 'PAUSE';
   applyTeamHUD();
   elSA.textContent = '0'; elSB.textContent = '0';
   elCard.classList.remove('show'); elFlash.classList.remove('show');
@@ -599,6 +609,7 @@ function setupMatch(firstLoad) {
 function setFaceoff(fx, fz, snap = false) {
   S.faceX = fx; S.faceZ = fz; S.dropped = false;
   puck.carrier = null; puck.held = true;
+  puck.passTarget = null;
   puck.x = fx; puck.z = fz; puck.y = 1.1; puck.vx = puck.vz = puck.vy = 0;
   for (const p of players) {
     const d = ATT[p.team];
@@ -632,22 +643,22 @@ function nearestOpp(p) {
   if (best) best.dd = bd;
   return best;
 }
-function releasePuck(p, txx, tzz, spd) {
+function releasePuck(p, txx, tzz, spd, passTarget = null) {
   const dx = txx - puck.x, dz = tzz - puck.z, l = Math.hypot(dx, dz) || 1e-6;
   puck.vx = dx/l*spd; puck.vz = dz/l*spd;
-  puck.carrier = null; puck.lastTouch = p; p.touchCd = 0.45;
+  puck.carrier = null; puck.lastTouch = p; puck.passTarget = passTarget; p.touchCd = 0.45;
   clack();
 }
 function shoot(p) {
   const d = ATT[p.team];
   const aimZ = (Math.random()*2 - 1)*(NW/2 - 0.3) + (Math.random()*2 - 1)*1.15;
-  releasePuck(p, d*(GLX + 0.4), aimZ, 25 + Math.random()*6);
+  releasePuck(p, d*(GLX + 0.4), aimZ, 25 + Math.random()*6, null);
   const gk = gkOfSide(d); if (gk) gk.butterT = 0.9;
   say(fill(pick(COMM.shot), p.name));
   p.rig.poseKick(0.4);
 }
 function pass(p, m) {
-  releasePuck(p, m.x + m.vx*0.35, m.z + m.vz*0.35, clamp(12 + Math.hypot(m.x-p.x, m.z-p.z)*0.6, 13, 19));
+  releasePuck(p, m.x + m.vx*0.35, m.z + m.vz*0.35, clamp(12 + Math.hypot(m.x-p.x, m.z-p.z)*0.6, 13, 19), m);
   m.recvT = 1.2;
   if (Math.random() < 0.3) say(fill(pick(COMM.pass), p.name, m.name));
 }
@@ -668,8 +679,9 @@ function steerCarrier(p) {
   const d = ATT[p.team], gx = d*GLX;
   if (d*p.x > GLX - 1.2) { p.tx = d*(GLX - 4.5); p.tz = (p.z > 0 ? -1 : 1)*1.5; } // wraparound
   else { p.tx = gx - d*2.0; p.tz = p.z*0.5 + Math.sin(simClockTotal*1.3 + p.idx)*1.5; }
-  p.sprint = 1;
   const o = nearestOpp(p), pressured = o && o.dd < 2.3;
+  p.breakaway = !!o && ATT[p.team]*p.x > 0 && o.dd > 5.5;
+  p.sprint = p.breakaway ? 1.14 : 1;
   const distGoal = Math.hypot(gx - p.x, p.z);
   // decisions tick on a timer (pressure just shortens it) — never per-frame
   // random rolls, so behavior is identical at any frame rate / catch-up step
@@ -706,6 +718,7 @@ function steerPlay() {
     }
   }
   for (const p of players) {
+    p.breakaway = false;
     if (p.isGK) { steerGK(p); continue; }
     if (p.fallT > 0) continue;
     const d = ATT[p.team];
@@ -836,9 +849,17 @@ function integratePuck(dt) {
       if (p.fallT > 0 || p.touchCd > 0) continue;
       if (Math.hypot(p.x - puck.x, p.z - puck.z) < 0.95 && spd < 19) {
         const stolen = puck.lastTouch && puck.lastTouch.team !== p.team && spd < 6;
+        const oneTime = puck.passTarget === p && !p.isGK && ATT[p.team]*p.x > BLX - 1 && Math.random() < 0.62;
         puck.carrier = p; puck.lastTouch = p; S.noTouchT = 0;
         if (p.isGK) p.holdT = 0.4; // goalie gathers, then clears
+        else if (oneTime) {
+          S.oneTimers[p.team]++;
+          say(fill(pick(COMM.onetimer), p.name), true);
+          puck.passTarget = null;
+          shoot(p);
+        }
         else if (stolen && Math.random() < 0.35) say(fill(pick(COMM.steal), p.name));
+        if (!oneTime) puck.passTarget = null;
         break;
       }
     }
@@ -869,6 +890,7 @@ function goalChecks() {
       const off = Math.abs(puck.z - gk.z);
       const pSave = off < 1.0 ? 0.96 : off < 2.0 ? 0.85 : 0.4;
       if (Math.random() < pSave) {
+        S.saves[gk.team]++;
         puck.vx = -s*(5 + Math.random()*7); puck.vz = (Math.random()-0.5)*11;
         spawnPuff(gk.x, gk.z, 5, 3);
         say(fill(pick(COMM.save), '', '', gk.name));
@@ -920,9 +942,9 @@ function refStep(dt) {
 
 // ============ CARDS ============
 function statsTable() {
-  return `<table><tr><th></th><th>SOG</th><th>HITS</th></tr>
-    <tr><td class="tname" style="color:${TEAM_A.css}">${TEAM_A.name}</td><td>${S.shots[0]}</td><td>${S.hits[0]}</td></tr>
-    <tr><td class="tname" style="color:${TEAM_B.css}">${TEAM_B.name}</td><td>${S.shots[1]}</td><td>${S.hits[1]}</td></tr></table>`;
+  return `<table><tr><th></th><th>SOG</th><th>SAVES</th><th>HITS</th><th>1T</th></tr>
+    <tr><td class="tname" style="color:${TEAM_A.css}">${TEAM_A.name}</td><td>${S.shots[0]}</td><td>${S.saves[0]}</td><td>${S.hits[0]}</td><td>${S.oneTimers[0]}</td></tr>
+    <tr><td class="tname" style="color:${TEAM_B.css}">${TEAM_B.name}</td><td>${S.shots[1]}</td><td>${S.saves[1]}</td><td>${S.hits[1]}</td><td>${S.oneTimers[1]}</td></tr></table>`;
 }
 function showPeriodCard() {
   const ot = S.period === 3 && S.score[0] === S.score[1];
@@ -932,6 +954,8 @@ function showPeriodCard() {
   elCard.classList.add('show');
 }
 function showFinalCard() {
+  completedGames++;
+  lastFinal = { home: TEAM_A.name, away: TEAM_B.name, homeScore: S.score[0], awayScore: S.score[1] };
   const [na, nb] = FIXTURES[(fixtureIdx + 1) % FIXTURES.length]; // the fixture we rotate to, not the one just played
   elPanel.innerHTML = `<h1>FINAL</h1>
     <h2>${TEAM_A.name} ${S.score[0]} — ${S.score[1]} ${TEAM_B.name}</h2>${statsTable()}
@@ -1132,6 +1156,11 @@ function fmtClock(s) {
 function hudStep() {
   elClock.textContent = fmtClock(Math.max(0, S.clock));
   elPeriod.textContent = PERIOD_NAMES[S.period - 1] || 'OVERTIME';
+  const carrier = puck.carrier;
+  const breakaway = players.find(p => p.breakaway && puck.carrier === p);
+  elStatus.textContent = paused ? 'PAUSED' : S.state === 'PLAY' && breakaway ? `BREAKAWAY • ${breakaway.name}` :
+    S.state === 'PLAY' && carrier ? `${carrier.name} • ${(carrier.team === 0 ? TEAM_A : TEAM_B).name}` :
+    S.state === 'PLAY' ? 'LOOSE PUCK' : S.state.replace('_', ' ');
 }
 
 // ============ MAIN LOOP ============
@@ -1140,6 +1169,10 @@ window._dbg = () => ({ state: S.state, t: S.t, dropped: S.dropped, clock: S.cloc
   py: puck.y, px: puck.x, pz: puck.z, carrier: puck.carrier && puck.carrier.name,
   ref: [refP.x, refP.z, refP.tx, refP.tz], c0: players.filter(p => p.idx === 1).map(c => [c.x, c.z, c.fox, c.foz]) });
 function tick(dt, skipRender = false) {
+  if (paused) {
+    if (!skipRender) { hudStep(); cameraStep(Math.min(dt, .016)); composer.render(); }
+    return;
+  }
   dtg = dt; simClockTotal += dt;
   stateStep(dt);
   refStep(dt); // sim-relevant: faceoff drop waits on the ref's position
@@ -1183,6 +1216,41 @@ function startDriver() {
 document.addEventListener('visibilitychange', startDriver);
 startDriver();
 
+function togglePause() {
+  paused = !paused;
+  elPause.textContent = paused ? 'RESUME' : 'PAUSE';
+  hudStep();
+}
+function restartMatch() { setupMatch(true); lastCamMode = 'x'; }
+async function toggleFullscreen() {
+  if (document.fullscreenElement) await document.exitFullscreen();
+  else await document.documentElement.requestFullscreen();
+}
+elPause.addEventListener('click', togglePause);
+elRestart.addEventListener('click', restartMatch);
+elFull.addEventListener('click', toggleFullscreen);
+window.render_game_to_text = () => JSON.stringify({
+  coordinateSystem: 'rink meters; origin center ice; +x right goal, +z far boards, +y up',
+  mode: paused ? 'PAUSED' : S.state,
+  completedGames,
+  lastFinal,
+  period: S.period,
+  clock: +Math.max(0, S.clock).toFixed(2),
+  teams: [
+    { name: TEAM_A.name, score: S.score[0], shots: S.shots[0], saves: S.saves[0], hits: S.hits[0], oneTimers: S.oneTimers[0] },
+    { name: TEAM_B.name, score: S.score[1], shots: S.shots[1], saves: S.saves[1], hits: S.hits[1], oneTimers: S.oneTimers[1] }
+  ],
+  puck: { x: +puck.x.toFixed(2), y: +puck.y.toFixed(2), z: +puck.z.toFixed(2), held: puck.held, carrier: puck.carrier?.name || null, speed: +Math.hypot(puck.vx, puck.vz).toFixed(2) },
+  players: players.map(p => ({ name: p.name, team: p.team === 0 ? TEAM_A.name : TEAM_B.name, role: p.isGK ? 'GK' : p.idx === 1 ? 'C' : p.idx < 4 ? 'W' : 'D', x: +p.x.toFixed(2), z: +p.z.toFixed(2), fallen: p.fallT > 0, breakaway: p.breakaway }))
+});
+window.advanceTime = (ms) => {
+  const wasPaused = paused; paused = false;
+  const steps = Math.max(1, Math.round(ms / (1000 / 60)));
+  for (let i = 0; i < steps; i++) tick(1/60, i < steps - 1);
+  paused = wasPaused;
+  if (paused) { elPause.textContent = 'RESUME'; hudStep(); }
+};
+
 addEventListener('resize', () => {
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
@@ -1190,9 +1258,11 @@ addEventListener('resize', () => {
   composer.setSize(innerWidth, innerHeight);
 });
 
-// Escape backs out to the league hub
 addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) location.href = 'world.html';
+  if (e.key.toLowerCase() === 'f') { e.preventDefault(); toggleFullscreen(); }
+  else if (e.key.toLowerCase() === 'p' || e.code === 'Space') { e.preventDefault(); togglePause(); }
+  else if (e.key.toLowerCase() === 'r') { e.preventDefault(); restartMatch(); }
+  else if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && !document.fullscreenElement) location.href = 'world.html';
 });
 </script>
 </body>

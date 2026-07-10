@@ -72,7 +72,8 @@ follow-through, and roles remain readable without human anatomy.
 - Celebrations: knee slide, corner-flag point, group mob with pile-on, badge tap
 
 ## Workstream 3 — Identity Before Character Models
-- Preserve player names, numbers, roles, stats, behavior traits, and rivalries now
+- [x] Preserve 288 player names, numbers, roles, behavior traits, silhouette briefs,
+  team cultures, and reciprocal rivalries in one shared content source
 - Build a character art bible before commissioning or generating production bodies:
   silhouette families, face language, proportions, movement signatures, team culture
 - [x] Remove the rejected portrait/character direction from every public product route
@@ -89,17 +90,24 @@ follow-through, and roles remain readable without human anatomy.
 - [x] Make player nameplates contextual to the current action
 - [x] Restore the interactive globe as the public front door with live city signal arcs
 - [x] Add two shareable live channels that join the same seeded UTC match in progress
-- [x] Replace the character-led globe content with a five-league global sports network
-- [x] Connect football, basketball, hockey, baseball, and combat arenas from the map
+- [x] Replace the character-led globe content with a six-league global sports network
+- [x] Separate soccer and American football, then connect all six arenas from the map
+- [x] Add a league atlas for 48 clubs, 288 athlete identities, rivalries, and schedules
 - Better replay direction (multiple angles, freeze-frame on contact)
-- Auto-highlight clip export (the virality engine)
+- [x] Add structured clip telemetry to baseball and combat
+- [x] Add deterministic 1080x1920 poster generation with permanent story URLs
+- Auto-highlight video clip export (the next virality engine boundary)
 
 ## Workstream 5 — Story Engine (after 1-4)
-- Player form/personality stats feeding commentary
-- Pre-match narrative cards, post-match recaps, season arcs
+- [x] Add deterministic league-wide headlines, marquee logic, rivalry hooks, and season schedules
+- [x] Add a six-desk World Wire with shareable team/player focus URLs
+- Player form/personality stats feeding canonical commentary
+- Persistent pre-match narrative cards, post-match recaps, and season arcs
 - Social layer: AI player accounts, trash talk, lore — pre-launch content bank
 
 ## Workstream 6 — Exhibition Arenas
-- Hockey, basketball, baseball, and fighting remain playable experiments.
+- American football, hockey, basketball, baseball, and fighting remain playable experiments.
+- [x] Add a complete American-football exhibition with eight clubs and full game flow
+- [x] Expand basketball and hockey mechanics, fixtures, and rosters
 - Promote an arena into the canonical application only after it adopts the shared
   deterministic event contract, persistence, recovery, and automated test gates.

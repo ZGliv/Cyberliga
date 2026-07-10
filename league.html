@@ -1,91 +1,167 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CYBERLIGA — THE AUTONOMOUS SPORTS UNIVERSE</title>
-<meta name="description" content="CYBERLIGA: the fully autonomous AI sports universe. Standings, fixtures, players and storylines from the league that never sleeps." />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>CYBERLIGA LEAGUE ATLAS</title>
+<meta name="description" content="Explore all six Cyberliga leagues, 48 clubs, 288 athletes, rivalries, fixtures, and live arenas." />
+<meta name="theme-color" content="#050607" />
+<link rel="icon" href="data:," />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="league.css" />
+<style>.page-links{display:flex;gap:7px}</style>
 </head>
 <body>
-
-<header id="topbar">
-  <a class="brand" href="league.html">CYBERLIGA</a>
-  <nav aria-label="Sections">
-    <a href="#sports">SPORTS</a>
-    <a href="#standings">STANDINGS</a>
-    <a href="#fixtures">FIXTURES</a>
-    <a href="#players">PLAYERS</a>
-    <a href="#stories">STORYLINES</a>
-  </nav>
-  <a class="btn-live" href="index.html"><span class="live-dot"></span>WATCH SOCCER</a>
+<div class="grain" aria-hidden="true"></div>
+<header class="topbar">
+  <a class="brand" href="world.html">CYBERLIGA <span>/ LEAGUE ATLAS</span></a>
+  <div class="network-proof"><b>6</b> LEAGUES <i></i><b>48</b> CLUBS <i></i><b>288</b> ATHLETES</div>
+  <div class="page-links"><a class="world-link" href="social.html">WORLD WIRE</a><a class="world-link" href="world.html">WORLD MAP ↗</a></div>
 </header>
 
 <main>
-  <!-- ============ ARENA STRIP ============ -->
-  <section id="sports" aria-label="Arena channel guide">
-    <div id="sportsrail" class="sportsrail"></div>
-  </section>
+  <nav class="sport-switcher" id="sport-switcher" aria-label="Choose a league"></nav>
 
-  <!-- ============ CAST STRIP ============ -->
-  <section id="cast" aria-label="The cast — all 28 players">
-    <div class="caststrip"><div class="casttrack" id="casttrack"></div></div>
-  </section>
-
-  <!-- ============ HERO ============ -->
-  <section id="hero">
+  <section class="hero" id="hero">
     <div class="hero-copy">
-      <p class="kicker">SEASON 2077 — THE AUTONOMOUS SPORTS UNIVERSE</p>
-      <h1 class="masthead">CYBERLIGA</h1>
-      <p class="standfirst">Four clubs. Every arena. Zero humans. The league that never sleeps.</p>
+      <p class="eyebrow" id="sport-label"></p>
+      <h1 id="league-name"></h1>
+      <p class="thesis" id="league-thesis"></p>
       <div class="hero-actions">
-        <a class="btn" href="index.html">WATCH SOCCER — LIVE</a>
-        <a class="textlink" href="#standings">League table &darr;</a>
+        <a class="arena-link" id="arena-link" href="index.html">ENTER THE ARENA <span>↗</span></a>
+        <button id="share" type="button">COPY LEAGUE LINK</button>
       </div>
     </div>
-    <div id="billboard" class="billboard"></div>
+    <aside class="marquee" id="marquee">
+      <p class="micro">TODAY'S MARQUEE SIGNAL</p>
+      <div class="matchup"><div><span id="home-code"></span><b id="home-name"></b></div><em>VS</em><div><span id="away-code"></span><b id="away-name"></b></div></div>
+      <p class="headline" id="headline"></p>
+      <div class="marquee-meta"><span id="match-id"></span><span>SIM-SEEDED · PUBLIC</span></div>
+    </aside>
   </section>
 
-  <!-- ============ WIRE ============ -->
-  <div id="tickerbar"><div class="tlabel">WIRE</div><div class="ttext" id="tickertext">CYBERLIGA UNIVERSE HUB ONLINE — ALL ARENAS REPORTING —</div></div>
+  <div class="wire"><b>WORLD WIRE</b><div id="wire-track"></div></div>
 
-  <!-- ============ STANDINGS ============ -->
-  <section id="standings" class="section">
-    <header class="sechead"><span class="idx">01 —</span><h2>STANDINGS</h2><span class="divchip">SOCCER DIVISION</span><span class="rule"></span><span class="sub" id="standings-sub"></span></header>
-    <div class="table-scroll"><table id="league-table" aria-label="League standings"></table></div>
+  <section class="section clubs-section">
+    <header class="section-head"><div><span>01 //</span><h2>THE CLUBS</h2></div><p>Eight distinct cultures. Select a club to meet its cast.</p></header>
+    <div class="club-grid" id="club-grid"></div>
   </section>
 
-  <!-- ============ FIXTURES & RESULTS ============ -->
-  <section id="fixtures" class="section">
-    <header class="sechead"><span class="idx">02 —</span><h2>FIXTURES &amp; RESULTS</h2><span class="divchip">SOCCER DIVISION</span><span class="rule"></span><span class="sub">ENDLESS ROUND-ROBIN &middot; ALL SIMULATIONS FINAL</span></header>
-    <div class="fixture-cols">
-      <div class="fixcol" id="results-panel"></div>
-      <div class="fixcol" id="upcoming-panel"></div>
-    </div>
+  <section class="section roster-section" id="roster-section">
+    <header class="roster-head">
+      <div class="club-ident"><span class="club-code" id="club-code"></span><div><p id="club-location"></p><h2 id="club-name"></h2></div></div>
+      <div class="club-dna"><span id="club-motif"></span><span id="club-motion"></span><span id="club-rivalry"></span></div>
+    </header>
+    <div class="cast-grid" id="cast-grid"></div>
   </section>
 
-  <!-- ============ PLAYERS ============ -->
-  <section id="players" class="section">
-    <header class="sechead"><span class="idx">03 —</span><h2>PLAYERS</h2><span class="divchip">SOCCER DIVISION</span><span class="rule"></span><span class="sub">28 SOCCER PLAYERS &middot; CAREERS TRACKED FOR LIFE</span></header>
-    <div id="rosters"></div>
-  </section>
-
-  <!-- ============ STORYLINES ============ -->
-  <section id="stories" class="section">
-    <header class="sechead"><span class="idx">04 —</span><h2>STORYLINES</h2><span class="divchip">SOCCER DIVISION</span><span class="rule"></span><span class="sub">WRITTEN BY THE SIM &middot; EDITED BY NOBODY</span></header>
-    <div id="storyfeed" class="storyfeed"></div>
+  <section class="section schedule-section">
+    <header class="section-head"><div><span>03 //</span><h2>NEXT ROUND</h2></div><p>One deterministic schedule. The same fixtures on every screen.</p></header>
+    <div class="fixture-grid" id="fixture-grid"></div>
   </section>
 </main>
 
-<footer>
-  <div class="fmark">CYBERLIGA</div>
-  <p>Fully autonomous. No humans were substituted in the making of this broadcast.</p>
-  <p class="legal">Season 2077 &middot; All simulations final &middot; The algorithm is the only referee.</p>
-</footer>
+<footer><b>CYBERLIGA</b><p>Every club is a culture. Every athlete is a silhouette. Every result becomes history.</p><a href="world.html">RETURN TO EARTH ↑</a></footer>
 
-<script src="league.js" defer></script>
+<script src="worlddata.js"></script>
+<script>
+(function () {
+  'use strict';
+  var C = window.CYBERLIGA_CONTENT;
+  if (!C) { document.body.innerHTML = '<p class="fatal">LEAGUE SIGNAL UNAVAILABLE</p>'; return; }
+
+  var arenaBySport = {
+    soccer:'index.html', 'american-football':'football.html', basketball:'hoops.html',
+    hockey:'hockey.html', baseball:'baseball.html', combat:'fight.html'
+  };
+  var copyBySport = {
+    soccer:'Continuous-flow pressure, tiny bodies, impossible rebounds, and rivalries that can turn in a single touch.',
+    'american-football':'Route geometry, pocket panic, broken tackles, and one full-field decision on every snap.',
+    basketball:'Vertical speed and violent transitions in a league where every possession threatens the rim.',
+    hockey:'Cold speed, compressed space, open-ice collisions, and arenas built around sudden death.',
+    baseball:'A nocturnal duel league where one pitch can hold an entire city still.',
+    combat:'Style against style. Visible fatigue, scorecards, knockdowns, and nowhere to hide.'
+  };
+  var shapeNames = ['totem','ribbon','orb','wedge','stack','spring'];
+  var params = new URLSearchParams(location.search);
+  var sportId = params.get('sport');
+  if (!C.getSport(sportId)) sportId = 'soccer';
+  var sport = C.getSport(sportId);
+  var teams = C.getTeams(sportId);
+  var selectedTeam = teams[0];
+  var daySeed = Math.floor(Date.now() / 86400000);
+  var season = C.createSeason(sportId, daySeed);
+  var round = season.rounds[daySeed % season.rounds.length];
+  var marquee = C.getMarqueeMatchup(sportId, daySeed, round.number);
+
+  function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function team(id) { return C.getTeam(id, sportId) || teams.find(function (item) { return item.id === id; }) || teams[0]; }
+  function colorStyle(item) { return '--team:' + item.colors.primary + ';--team2:' + item.colors.secondary + ';--accent:' + item.colors.accent; }
+  function athleteShape(athlete) { return shapeNames[C.hash(athlete.id) % shapeNames.length]; }
+  function avatar(athlete, index, labelled) {
+    return '<div class="avatar ' + athleteShape(athlete) + ' a' + (index % 6) + '"' + (labelled ? ' role="img" aria-label="' + esc(athlete.name) + ': ' + esc(athlete.silhouette) + '"' : '') + '><i></i><b></b><span></span></div>';
+  }
+
+  document.getElementById('sport-switcher').innerHTML = C.sports.map(function (item) {
+    return '<a class="sport-tab' + (item.id === sportId ? ' active' : '') + '" href="league.html?sport=' + encodeURIComponent(item.id) + '" style="--tab:' + item.teams[0].colors.primary + '"><span>' + esc(item.code) + '</span><b>' + esc(item.name) + '</b></a>';
+  }).join('');
+  document.getElementById('sport-label').textContent = sport.name.toUpperCase() + ' · ' + teams.length + ' CLUBS · ' + (teams.length * teams[0].athletes.length) + ' ATHLETES';
+  document.getElementById('league-name').textContent = sport.league;
+  document.getElementById('league-thesis').textContent = copyBySport[sportId];
+  document.getElementById('arena-link').href = arenaBySport[sportId];
+  document.documentElement.style.setProperty('--league', teams[0].colors.primary);
+
+  var home = team(marquee.homeId || marquee.home);
+  var away = team(marquee.awayId || marquee.away);
+  document.getElementById('home-code').textContent = home.code;
+  document.getElementById('home-name').textContent = home.name;
+  document.getElementById('away-code').textContent = away.code;
+  document.getElementById('away-name').textContent = away.name;
+  document.getElementById('match-id').textContent = marquee.id || ('ROUND ' + round.number);
+  var headlines = C.getHeadlines({sportId:sportId, homeId:home.id, awayId:away.id, round:round.number}, 4, daySeed);
+  document.getElementById('headline').textContent = headlines[0];
+  document.getElementById('wire-track').innerHTML = '<span>' + headlines.concat(headlines).map(esc).join(' &nbsp; ◆ &nbsp; ') + '</span>';
+
+  function renderClubs() {
+    document.getElementById('club-grid').innerHTML = teams.map(function (item, teamIndex) {
+      var faces = item.athletes.map(function (athlete, i) { return avatar(athlete, i, false); }).join('');
+      return '<button class="club-card' + (item.id === selectedTeam.id ? ' selected' : '') + '" data-team="' + esc(item.id) + '" style="' + colorStyle(item) + '"><div class="club-top"><span>' + esc(item.code) + '</span><small>' + String(teamIndex + 1).padStart(2,'0') + '</small></div><h3>' + esc(item.name) + '</h3><p>' + esc(item.city) + ' · ' + esc(item.region) + '</p><div class="mini-cast">' + faces + '</div><div class="club-rule"><i></i><span>' + esc(item.motif) + '</span></div></button>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('.club-card'), function (button) {
+      button.addEventListener('click', function () { selectedTeam = team(button.dataset.team); renderClubs(); renderRoster(); document.getElementById('roster-section').scrollIntoView({behavior:'smooth',block:'start'}); });
+    });
+  }
+
+  function renderRoster() {
+    var t = selectedTeam;
+    document.getElementById('club-code').textContent = t.code;
+    document.getElementById('club-code').style.cssText = colorStyle(t);
+    document.getElementById('club-location').textContent = t.city.toUpperCase() + ' · ' + t.region.toUpperCase();
+    document.getElementById('club-name').textContent = t.name;
+    document.getElementById('club-motif').textContent = 'MOTIF / ' + t.motif;
+    document.getElementById('club-motion').textContent = 'MOTION / ' + t.motion;
+    var rival = team(t.rivalryId);
+    document.getElementById('club-rivalry').textContent = 'RIVAL / ' + rival.name;
+    document.getElementById('cast-grid').innerHTML = t.athletes.map(function (athlete, i) {
+      return '<article class="athlete-card" style="' + colorStyle(t) + '"><div class="athlete-stage">' + avatar(athlete, i, true) + '<span class="number">' + esc(athlete.number) + '</span></div><div class="athlete-copy"><p>' + esc(athlete.role) + ' · ' + esc(athlete.archetype) + '</p><h3>' + esc(athlete.name) + '</h3><span>' + esc(athlete.temperament) + '</span><em>' + esc(athlete.signature) + '</em><small>' + esc(athlete.silhouette) + '</small></div></article>';
+    }).join('');
+  }
+
+  document.getElementById('fixture-grid').innerHTML = round.matches.map(function (match, i) {
+    var h = team(match.homeId), a = team(match.awayId);
+    return '<article class="fixture"><span>CHANNEL ' + String(i + 1).padStart(2,'0') + (match.rivalry ? ' · RIVALRY' : '') + '</span><div><b>' + esc(h.code) + '</b><i>VS</i><b>' + esc(a.code) + '</b></div><p>' + esc(h.city) + ' ↔ ' + esc(a.city) + '</p></article>';
+  }).join('');
+
+  document.getElementById('share').addEventListener('click', function () {
+    navigator.clipboard.writeText(location.href).then(function () { var button=document.getElementById('share');button.textContent='COPIED';setTimeout(function(){button.textContent='COPY LEAGUE LINK';},1200); }).catch(function(){});
+  });
+  addEventListener('keydown', function (event) { if (event.key === 'Escape') location.href = 'world.html'; });
+  window.render_game_to_text = function () { return JSON.stringify({screen:'league-atlas',sport:{id:sport.id,name:sport.name,league:sport.league},selectedTeam:{id:selectedTeam.id,name:selectedTeam.name,city:selectedTeam.city,rivalry:selectedTeam.rivalryId,athletes:selectedTeam.athletes.map(function(a){return {name:a.name,role:a.role,archetype:a.archetype};})},marquee:{home:home.name,away:away.name,headline:headlines[0]},round:round.number,fixtures:round.matches.length,totalTeams:teams.length,totalAthletes:teams.reduce(function(n,t){return n+t.athletes.length;},0)}); };
+  window.advanceTime = function () {};
+  renderClubs(); renderRoster();
+})();
+</script>
 </body>
 </html>

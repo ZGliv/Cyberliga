@@ -68,3 +68,45 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - All arena back links and Escape behavior now return to the world map.
 - The prior four-player GPT Image prompt batch was deleted. Fresh generated concepts are
   an off-product art-direction lab until the user explicitly approves a visual language.
+
+## Six-League 100x Expansion — 2026-07-10
+- Current user goal: use parallel agents to expand every product workstream, add American
+  football, and materially increase teams, characters, content, and sport quality.
+- Split soccer from American football in the public information architecture. Soccer keeps
+  the canonical live Global Premiership; American football is a distinct sixth league,
+  Continental Crush, with its own arena route.
+- Rebuilt the retired league route as a responsive league atlas designed for six sports,
+  eight clubs per sport, six athletes per club, daily marquee matchups, deterministic
+  fixtures, rivalry metadata, story headlines, and visibly varied procedural silhouettes.
+- Expanded the world proof from five leagues / ten hosts to six leagues / 48 clubs / 288
+  athletes and restored the atlas as a first-class route from the globe.
+- Parallel work in progress: American football arena, reusable world content module, and
+  basketball/hockey quality passes. Full browser verification follows integration.
+- Added `worlddata.js` as the shared identity source: six sports, 48 unique clubs in 48
+  cities, 288 named tactile athletes, reciprocal rivalries, deterministic 14-round
+  seasons, marquee selections, headlines, and storyline helpers.
+- Expanded canonical soccer to eight clubs, four simultaneous live channels, and 6v6
+  open-field matches. The atlas rosters now feed the actual match names and colors.
+- Re-ran the canonical sync gate with two independent browsers frozen at the same UTC
+  instant: match ID, clock, score, ball, and all 12 player records were byte-identical.
+- Added the American-football arena (`football.html`): 6v6 downs/quarters/OT, run and pass
+  calls, catches, interceptions, tackles, punts, field goals, touchdowns, touch controls,
+  full final/rotation flow, and eight shared-world clubs.
+- Basketball and hockey now have steals/blocks and one-timers/breakaways respectively,
+  complete match rotation, pause/rematch/fullscreen controls, eight shared-world clubs,
+  and named athletes from the same atlas data.
+- Added `social.html`, a responsive deterministic World Wire with six simultaneous desks,
+  trending clubs, rivalry watch, athlete focus URLs, story sharing, and a shared UTC edition.
+- Desktop and 390x844 mobile visual QA passed for the six-league globe, league atlas, World
+  Wire, soccer, American football, basketball, and hockey with clean console output.
+- Expanded baseball and combat to eight shared-world clubs and 56 rotating fixtures while
+  preserving their new clip moments: grand slams/moonshots/wall robberies and guard
+  breaks/counters/knockdowns/last stands. Both passed desktop/mobile QA after integration.
+- Added `moment.html`, a deterministic 1080x1920 poster maker with canonical query URLs,
+  six-sport art direction, athlete/headline/score inputs, PNG export, and direct World Wire
+  story-to-poster flow.
+- Replaced the temporary preview process with the dependency-free project server (`npm run
+  dev`) and added `npm run verify` (652 current static/data/route/schedule checks).
+- Added a GitHub Actions release gate and `ops.html`, an honest read-only world-control view
+  covering canonical channels, rollover, content integrity, route latency, and the explicit
+  server-authority/persistence/presence gaps that remain after this expansion.
