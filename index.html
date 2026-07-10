@@ -359,7 +359,16 @@ import { createReplaySystem, SKILL_MOVES } from './replaysys.js';
 import { buildBlobRig } from './blobrig.js';
 import { createStoryEngine } from './story.js';
 const UNIVERSE = window.CyberligaUniverse;
-const LIVE_BROADCAST = UNIVERSE ? UNIVERSE.selected(location.search, Date.now()) : null;
+const QUERY = new URLSearchParams(location.search);
+// `?exhibition=1&seed=...` is the deterministic rehearsal room used by the release gate.
+// The public selector still always joins the canonical UTC broadcast; this opt-in route
+// merely lets us run complete matches without a six-minute channel rollover navigating
+// the page halfway through a test.
+const LIVE_BROADCAST = UNIVERSE && !QUERY.has('exhibition')
+  ? UNIVERSE.selected(location.search, Date.now()) : null;
+if (!LIVE_BROADCAST && UNIVERSE && QUERY.has('seed')) {
+  Math.random = UNIVERSE.seededRandom(UNIVERSE.hash(`soccer-exhibition|${QUERY.get('seed')}`));
+}
 if (window.CyberligaLiveBridge) {
   window.CyberligaLiveBridge.start({
     leagueId: 'soccer',
@@ -374,8 +383,14 @@ const story = createStoryEngine();
 // The rejected humanoid experiments remain in Git history, not in the product surface.
 const buildRig = buildBlobRig;
 addEventListener('keydown', e => {
-  // Escape backs out to the league hub
+  if ((e.key === 'f' || e.key === 'F') && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen?.();
+    return;
+  }
+  // Escape exits fullscreen first, then backs out to the league hub.
   if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+    if (document.fullscreenElement) { document.exitFullscreen(); return; }
     location.href = 'world.html';
     return;
   }
@@ -949,6 +964,21 @@ const trailLine = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 
 scene.add(trailLine);
 const trailCol = new THREE.Color(0x7ef0ff); // scratch — trail eases toward the in-possession team's glow
 const trailPts = Array.from({length: TRAIL_N}, () => ball.pos.clone());
+// A restrained, pitch-level locator keeps the tiny ball readable in the wide OG camera.
+// It lives on the grass (never on the HUD), inherits the team in possession, and only
+// blooms on a transition or a fast strike.
+const ballLocator = new THREE.Mesh(
+  new THREE.RingGeometry(.52, .61, 32),
+  new THREE.MeshBasicMaterial({ color:0x7ef0ff, transparent:true, opacity:.42,
+    depthWrite:false, side:THREE.DoubleSide, blending:THREE.AdditiveBlending })
+);
+ballLocator.rotation.x = -Math.PI/2; ballLocator.position.y = .035; ballLocator.renderOrder = 5;
+scene.add(ballLocator);
+const passGuideGeo = new THREE.BufferGeometry();
+passGuideGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+const passGuide = new THREE.Line(passGuideGeo,
+  new THREE.LineBasicMaterial({ color:0xffffff, transparent:true, opacity:0, depthWrite:false }));
+passGuide.renderOrder = 4; scene.add(passGuide);
 // collapse the trail onto the ball and hide it — ballStep stops running in theater modes,
 // so without this a high-opacity streak hangs frozen in the goalmouth through every replay
 function resetTrail() {
@@ -980,6 +1010,13 @@ const state = {
   spectacleCooldown: 0,
   cameraBeat: null,
   departures: [],
+  // Match-flow memory turns individual decisions into recognizable passages of play:
+  // build-up, progression, final-third pressure, counterattack, then recovery.
+  flow: {
+    phase:'KICKOFF', possessionTeam:null, carrier:null, candidateTeam:null, candidateT:0, sequence:0, completedPasses:0,
+    turnovers:0, transitionT:0, winner:null, loser:null, counterPressers:[], oneTwo:null,
+    pressure:0, chancesA:0, chancesB:0, xgA:0, xgB:0, lastPass:null,
+  },
 };
 const HALF_LEN = 120; // seconds of sim per half
 
@@ -1022,8 +1059,11 @@ function contextStep() {
     if (home !== state.tactical.home || away !== state.tactical.away) {
       state.tactical.home = home; state.tactical.away = away;
     }
-    elContextPhase.textContent = 'MATCH PLANS';
-    elContextPlans.textContent = `${TEAM_A.name} ${home} · ${TEAM_B.name} ${away}`;
+    const livePhase=state.flow.transitionT>0?'TRANSITION':state.flow.phase;
+    elContextPhase.textContent = livePhase;
+    const owner=state.flow.possessionTeam?state.flow.possessionTeam.name:'LOOSE BALL';
+    const press=state.flow.pressure>1?` · ${state.flow.pressure}-PLAYER PRESS`:'';
+    elContextPlans.textContent = `${owner} · ${state.flow.sequence} PASS MOVE${press} · ${TEAM_A.name} ${home} · ${TEAM_B.name} ${away}`;
   }
 }
 function triggerTacticalSwitch(team, reason='ENERGY ROTATION') {
@@ -1131,6 +1171,68 @@ function closestToBall(team) {
   return best;
 }
 
+function laneOpen(from, to, team, clearance=1.05) {
+  const dx=to.x-from.x,dz=to.z-from.z,l2=dx*dx+dz*dz||1;
+  for (const q of players) {
+    if (q.team===team || q.fallT>0) continue;
+    const u=THREE.MathUtils.clamp(((q.pos.x-from.x)*dx+(q.pos.z-from.z)*dz)/l2,0,1);
+    if (u<.08 || u>.94) continue;
+    if (Math.hypot(q.pos.x-(from.x+dx*u),q.pos.z-(from.z+dz*u))<clearance) return false;
+  }
+  return true;
+}
+
+function updateMatchFlow(carrier, dt) {
+  const f=state.flow;
+  f.transitionT=Math.max(0,f.transitionT-dt);
+  if (f.oneTwo && (state.clock>f.oneTwo.until || !players.includes(f.oneTwo.passer)
+      || !players.includes(f.oneTwo.receiver))) f.oneTwo=null;
+  if (!carrier) { f.pressure=0; return; }
+  let pressure=0;
+  for (const q of players) if (q.team!==carrier.team && q.role!=='GK'
+      && q.fallT<=0 && q.pos.distanceTo(carrier.pos)<4.5) pressure++;
+  f.pressure=pressure;
+  const ax=-carrier.dir*carrier.pos.x;
+  f.phase=ax<-10?'BUILD-UP':ax>11?'FINAL THIRD':'PROGRESSION';
+  if (f.possessionTeam && f.possessionTeam!==carrier.team) {
+    if (f.candidateTeam!==carrier.team) { f.candidateTeam=carrier.team; f.candidateT=0; }
+    f.candidateT+=dt;
+    // A ricochet or toe poke is not possession. Require a controlled half-second before
+    // declaring the turnover and unleashing the transition shapes.
+    if (f.candidateT<.42) return;
+    f.turnovers++;
+    f.transitionT=3.2;
+    f.winner=carrier.team; f.loser=f.possessionTeam;
+    f.sequence=0; f.oneTwo=null;
+    f.counterPressers=players.filter(p=>p.team===f.loser&&p.role!=='GK'&&p.fallT<=0)
+      .sort((a,b)=>a.pos.distanceTo(carrier.pos)-b.pos.distanceTo(carrier.pos)).slice(0,2);
+    setContextEvent('TURNOVER', `${carrier.team.name} BREAK · ${f.loser.name} COUNTERPRESS`, 2.6);
+    crowdExcitement=Math.max(crowdExcitement,.24);
+  } else if (f.carrier && f.carrier!==carrier && f.carrier.team===carrier.team) {
+    f.sequence++; f.completedPasses++;
+    if (f.sequence===4) setContextEvent('POSSESSION LOCK', `${carrier.team.name} · FOUR-PASS MOVE`, 2.4);
+  }
+  f.candidateTeam=null; f.candidateT=0;
+  f.possessionTeam=carrier.team; f.carrier=carrier;
+}
+
+function matchFlowVisualStep(t) {
+  const f=state.flow, speed=Math.hypot(ball.vel.x,ball.vel.z);
+  ballLocator.visible=state.mode!=='replay'&&state.mode!=='fulltime';
+  ballLocator.position.x=ball.pos.x; ballLocator.position.z=ball.pos.z;
+  const pulse=1+Math.sin(t*(f.transitionT>0?10:5))*.08+(speed>13?.16:0);
+  ballLocator.scale.setScalar(pulse);
+  ballLocator.material.opacity=THREE.MathUtils.clamp(.22+speed/55+(f.transitionT>0?.18:0),.2,.62);
+  if (state.lastTouchTeam) ballLocator.material.color.setHex(glow3(state.lastTouchTeam));
+  const lp=f.lastPass;
+  if (lp && state.clock<lp.until && state.mode==='play') {
+    const a=passGuideGeo.attributes.position;
+    a.setXYZ(0,lp.from.x,.08,lp.from.z); a.setXYZ(1,ball.pos.x,.08,ball.pos.z); a.needsUpdate=true;
+    passGuide.material.color.setHex(glow3(lp.team));
+    passGuide.material.opacity=Math.max(0,(lp.until-state.clock)/1.15)*.25;
+  } else passGuide.material.opacity=0;
+}
+
 function applyDribbleAction(p, act) {
   // only 'skill' is ever applied (call site filters) — touch/shield/knockon belong to
   // ballcontrol and their dead branches here carried frame-rate-dependent snaps
@@ -1164,9 +1266,28 @@ function scheduleKick(p, plan, dirV) {
   const toBallN = new THREE.Vector3(ball.pos.x - p.pos.x, 0, ball.pos.z - p.pos.z).normalize();
   const facingN = new THREE.Vector3(Math.sin(p.yaw), 0, Math.cos(p.yaw));
   const sideY = toBallN.clone().cross(facingN).y;
-  const ang = Math.atan2(dirV.x, dirV.z) + (Math.random()-0.5) * (plan.type === 'shoot' ? 0.12 : 0.07);
+  let aimDir=dirV.clone(), kickPower=plan.power ?? .6;
+  let technique = plan.type === 'clear' ? 'clearance' : (plan.technique || 'pass');
+  // Wide players in the final third now recognize an occupied box and bend a delivery
+  // into it. The loft is physical (`cross` in ballflight), not a commentary-only event.
+  if (plan.type==='pass' && plan.mate && Math.abs(p.pos.z)>9 && -p.dir*p.pos.x>10
+      && Math.abs(plan.mate.pos.z)<9 && -p.dir*plan.mate.pos.x>12) {
+    technique='cross'; kickPower=THREE.MathUtils.clamp(plan.mate.pos.distanceTo(p.pos)/20,.58,.88);
+    aimDir.copy(plan.mate.pos).addScaledVector(plan.mate.vel,.45).sub(ball.pos).setY(0).normalize();
+    state.flow.chancesA+=p.team===TEAM_A?1:0; state.flow.chancesB+=p.team===TEAM_B?1:0;
+    setContextEvent('DANGER BALL', `${p.name} · CROSS INTO THE SIX`, 2.4);
+  }
+  // Technique, distance, fatigue and nearby pressure determine execution error. Close,
+  // balanced finishes are crisp; rushed long shots and passes through a press can miss.
+  let nearest=99;
+  for (const q of players) if (q.team!==p.team) nearest=Math.min(nearest,q.pos.distanceTo(p.pos));
+  const pressure=THREE.MathUtils.clamp((3-nearest)/3,0,1);
+  const distGoal=Math.hypot(-p.dir*HALF_W-p.pos.x,p.pos.z);
+  const scatter=plan.type==='shoot'
+    ? THREE.MathUtils.clamp(.025+distGoal*.0023+pressure*.07+(1-p.stamina)*.055,.025,.145)
+    : THREE.MathUtils.clamp(.025+pressure*.045+(1-p.stamina)*.035,.025,.095);
+  const ang = Math.atan2(aimDir.x, aimDir.z) + (Math.random()-0.5) * scatter;
   const dir = new THREE.Vector3(Math.sin(ang), 0, Math.cos(ang));
-  const technique = plan.type === 'clear' ? 'clearance' : (plan.technique || 'pass');
   let visualType = technique;
   const underPressure = players.some(q => q.team !== p.team && q.pos.distanceTo(p.pos) < 2.25);
   const behind = facingN.dot(dir) < -0.12;
@@ -1183,7 +1304,7 @@ function scheduleKick(p, plan, dirV) {
   }
   p.kickAnim = {
     t: 0, struck: false, type: visualType,
-    flight: { dir, power: plan.power ?? 0.6, technique, curve: plan.curve || 0 },
+    flight: { dir, power: kickPower, technique, curve: plan.curve || 0 },
     // strike fires at pose k = windup/(windup+follow) = 0.45 — poseKick's visual contact frame
     leg: sideY > 0 ? 0 : 1, windup: 0.207, follow: 0.253,
   };
@@ -1191,9 +1312,25 @@ function scheduleKick(p, plan, dirV) {
   p._kiPlan = null; p._carryPlan = null; // committed — drop cached fallback plans
   poss.release(p); // possession ends with the strike commitment
   // the intended receiver RUNS TO MEET THE BALL — no more passes rolling past statues
-  if (plan.mate) state.passTarget = { player: plan.mate, until: state.clock + 2.5 };
+  if (plan.mate) {
+    state.passTarget = { player: plan.mate, until: state.clock + 2.5 };
+    state.flow.lastPass={from:p.pos.clone(),to:plan.mate.pos.clone(),team:p.team,until:state.clock+1.15};
+    if (state.flow.oneTwo?.returning && state.flow.oneTwo.passer===plan.mate) {
+      setContextEvent('ONE-TWO', `${p.name} RETURNS IT TO ${plan.mate.name}`, 2.2);
+      state.flow.oneTwo=null;
+    } else {
+      const gain=-p.dir*(plan.mate.pos.x-p.pos.x),d=plan.mate.pos.distanceTo(p.pos);
+      if (gain>2 && d>4 && d<17 && Math.random()<.38) {
+        state.flow.oneTwo={passer:p,receiver:plan.mate,readyAt:state.clock+.35,until:state.clock+3.1,returning:false};
+      }
+    }
+  }
   if (plan.type === 'shoot') {
     if (p.team === TEAM_A) stats.shotsA++; else stats.shotsB++;
+    const angle=Math.atan2(GOAL_WIDTH,Math.max(2,Math.abs(-p.dir*HALF_W-p.pos.x)));
+    const xg=THREE.MathUtils.clamp((1-distGoal/30)*(angle/.65)*(1-pressure*.55)*.38,.01,.35);
+    if (p.team===TEAM_A) { state.flow.chancesA++; state.flow.xgA+=xg; }
+    else { state.flow.chancesB++; state.flow.xgB+=xg; }
     story.event('shot', { player: p.name, team: p.team.name });
     if (technique === 'screamer') {
       crowdExcitement = Math.max(crowdExcitement, 0.6);
@@ -1390,8 +1527,25 @@ function aiStep(dt) {
     if (cur !== state.carrier) state.carrierHold = 0;
     state.carrier = cur;
     carrier = cur;
+    updateMatchFlow(carrier,dt);
     const out = tactics.update(dt, { players, ball, possessionTeam: state.lastTouchTeam, carrier, mode: state.mode });
     intents = out.intents; plan = out.plan;
+
+    // Give-and-go: once the receiver has secured the first pass, reward the original
+    // passer's continued run if the return lane is genuinely open. This makes a visible
+    // two-player combination instead of twelve independent target changes.
+    const ot=state.flow.oneTwo;
+    if (carrier && ot && carrier===ot.receiver && state.clock>ot.readyAt
+        && ot.passer.fallT<=0 && ot.passer.pos.distanceTo(carrier.pos)>3
+        && ot.passer.pos.distanceTo(carrier.pos)<18
+        && laneOpen(carrier.pos,ot.passer.pos,carrier.team,1.15)) {
+      const progress=-carrier.dir*(ot.passer.pos.x-carrier.pos.x);
+      if (progress>1.5) {
+        plan={type:'pass',mate:ot.passer,aimPoint:ot.passer.pos.clone().addScaledVector(ot.passer.vel,.32),
+          technique:'pass',power:THREE.MathUtils.clamp(carrier.pos.distanceTo(ot.passer.pos)/18,.42,.78),curve:0};
+        ot.returning=true;
+      }
+    }
 
     // KILLER INSTINCT: in range with sight of goal → SHOOT. Overrides hesitant plans.
     if (carrier && (!plan || plan.type !== 'shoot')) {
@@ -1808,6 +1962,29 @@ function aiStep(dt) {
         target.copy(aiStep._rescue.point);
         p._urg = 1;
         if (aiStep._rescue.urgent) p.stamina = Math.max(p.stamina, 0.6);
+      } else if (state.flow.oneTwo && p===state.flow.oneTwo.passer
+          && state.clock<state.flow.oneTwo.until && state.mode==='play') {
+        // The first passer does not admire the pass: burst past the receiver into the
+        // next lane, slightly inside so the return ball creates a real triangle.
+        target.copy(p.pos);
+        target.x+=(-p.dir)*7.5;
+        target.z+=THREE.MathUtils.clamp(-p.pos.z*.35,-3.5,3.5);
+        p._urg=1;
+      } else if (state.flow.transitionT>0 && state.flow.counterPressers.includes(p)
+          && state.mode==='play') {
+        // Two nearest losers close the ball from different shoulders for three seconds;
+        // everyone else keeps the block. This produces a readable counterpress instead
+        // of the whole team swarming into a scrum.
+        const i=state.flow.counterPressers.indexOf(p),side=i===0?-1:1;
+        target.copy(ball.pos).add(new THREE.Vector3(p.dir*1.1,0,side*1.2));
+        p._urg=1;
+      } else if (state.flow.transitionT>0 && p.team===state.flow.winner && p.role==='FWD'
+          && p!==state.carrier && state.mode==='play') {
+        // Counterattack runners separate vertically: one threatens the channel while the
+        // other holds the far lane. Their geometry is deterministic from shirt number.
+        const lane=(p.number%2?1:-1)*8;
+        target.set(THREE.MathUtils.clamp(ball.pos.x+(-p.dir)*10,-HALF_W+4,HALF_W-4),0,lane);
+        p._urg=1;
       } else if (state.passTarget && p === state.passTarget.player && state.mode === 'play') {
         // I'm the intended receiver: attack the ball's future position
         target.copy(ball.pos).addScaledVector(ball.vel, 0.45);
@@ -1963,20 +2140,29 @@ function aiStep(dt) {
       if (p.role === 'GK') {
         state.lastTouchTeam = p.team; state.lastTouchPlayer = p;
         let aim, technique, power;
-        if (Math.random() < 0.5) {
-          // short distribution to the nearest defender
-          let def = null, dd = 1e9;
-          for (const q of players) {
-            if (q.team !== p.team || q.role !== 'DEF') continue;
-            const d2 = q.pos.distanceTo(p.pos);
-            if (d2 < dd) { dd = d2; def = q; }
-          }
-          aim = def ? def.pos.clone() : new THREE.Vector3(p.pos.x + attackDir*10, 0, p.pos.z);
-          technique = 'pass'; power = THREE.MathUtils.clamp(aim.distanceTo(ball.pos)/18, 0.35, 0.8);
+        // Scan the two center-backs for pressure and an open lane. A keeper builds short
+        // when one is free, and goes long only when the press has actually locked both.
+        let def = null, bestSafety = -1e9;
+        for (const q of players) {
+          if (q.team !== p.team || q.role !== 'DEF') continue;
+          let opp=99;
+          for (const o of players) if (o.team!==p.team) opp=Math.min(opp,o.pos.distanceTo(q.pos));
+          const safety=opp+(laneOpen(p.pos,q.pos,p.team,1.2)?4:-5)-q.pos.distanceTo(p.pos)*.05;
+          if (safety>bestSafety) { bestSafety=safety; def=q; }
+        }
+        if (def && bestSafety>3.2) {
+          // short distribution into the safer half-space
+          aim=def.pos.clone().addScaledVector(def.vel,.3);
+          technique='pass'; power=THREE.MathUtils.clamp(aim.distanceTo(ball.pos)/18,.35,.75);
+          state.flow.lastPass={from:p.pos.clone(),to:def.pos.clone(),team:p.team,until:state.clock+1.15};
+          state.passTarget={player:def,until:state.clock+2.8};
         } else {
-          aim = new THREE.Vector3(attackDir*14, 0, (Math.random()-0.5)*20);
-          technique = 'clearance'; power = 0.7 + Math.random()*0.3;
-          commentate(`${p.name} LAUNCHES IT CLEAR FOR ${p.team.name}`);
+          // Press beaten only by a purposeful outlet toward the less occupied flank.
+          const left=players.filter(q=>q.team!==p.team&&q.pos.z<0).length;
+          const right=players.filter(q=>q.team!==p.team&&q.pos.z>=0).length;
+          aim = new THREE.Vector3(attackDir*14, 0, (left<=right?-1:1)*(8+Math.random()*8));
+          technique = 'clearance'; power = 0.74 + Math.random()*0.24;
+          commentate(`${p.name} GOES OVER THE PRESS FOR ${p.team.name}`);
         }
         const dv0 = aim.sub(ball.pos).setY(0);
         const dir = dv0.lengthSq() > 1e-6 ? dv0.normalize() : new THREE.Vector3(attackDir, 0, 0); // NaN guard
@@ -2869,11 +3055,17 @@ const CAM_FOV = 42;
 // The earliest version stayed wide enough to read the formation and let the blobs'
 // movement create tension. Follow the ball, but never turn open play into a close-up.
 function ogLiveFrame(outPos, outTgt, t) {
-  const fx = THREE.MathUtils.clamp(ball.pos.x * 0.78, -HALF_W * 0.7, HALF_W * 0.7);
-  const fz = THREE.MathUtils.clamp(ball.pos.z * 0.3, -8, 8);
+  // Lead the ball by a fraction of a second so switches and counterattacks run into
+  // visible grass rather than dragging the camera behind them. Portrait keeps the
+  // original higher/wider grammar; desktop earns a slightly closer broadcast frame.
+  const leadX=THREE.MathUtils.clamp(ball.pos.x+ball.vel.x*.22,-HALF_W,HALF_W);
+  const leadZ=THREE.MathUtils.clamp(ball.pos.z+ball.vel.z*.16,-HALF_H,HALF_H);
+  const fx = THREE.MathUtils.clamp(leadX * 0.78, -HALF_W * 0.7, HALF_W * 0.7);
+  const fz = THREE.MathUtils.clamp(leadZ * 0.3, -8, 8);
   const bob = t === undefined ? 0 : Math.sin(t * 0.1) * 0.6;
-  outPos.set(fx, 21 + bob, 44 + fz * 0.4);
-  outTgt.set(ball.pos.x * 0.85, 1.2, ball.pos.z * 0.55);
+  const portrait=innerWidth<700;
+  outPos.set(fx, (portrait?23:19.5) + bob, (portrait?47:41) + fz * 0.4);
+  outTgt.set(leadX * 0.85, 1.2, leadZ * 0.55);
 }
 
 function cameraStep(dt, t) {
@@ -2882,6 +3074,12 @@ function cameraStep(dt, t) {
     camShakeOff.set(0, 0, 0);
     camera.position.copy(replayCam.camPos);
     camTarget.copy(replayCam.camTarget);
+    // Recorded clips sometimes hand back an extreme shoulder camera when bodies converge
+    // in the six-yard box. Preserve the replay path, but pull it to a broadcast-readable
+    // minimum distance so the ball, goal line and at least two players stay in frame.
+    const rv=camera.position.clone().sub(camTarget),rd=rv.length();
+    if (rd<15) camera.position.copy(camTarget).add(rv.lengthSq()>1e-4?rv.normalize().multiplyScalar(15):new THREE.Vector3(0,7,15));
+    camera.position.y=Math.max(camera.position.y,4.8);
     camera.lookAt(camTarget);
     if (camera.fov !== CAM_FOV) { camera.fov = CAM_FOV; camera.updateProjectionMatrix(); }
     return;
@@ -3682,6 +3880,10 @@ function startMatch() {
   state.ritual='opening'; state.contextEvent=null; state.lastTechnique=null;
   state.goalTechnique=null;
   state.spectacleLog=[]; state.spectacleCooldown=0; state.cameraBeat=null;
+  state.carrier=null; state.carrierHold=0; state.passTarget=null;
+  state.flow={phase:'KICKOFF',possessionTeam:null,carrier:null,candidateTeam:null,candidateT:0,sequence:0,completedPasses:0,
+    turnovers:0,transitionT:0,winner:null,loser:null,counterPressers:[],oneTwo:null,
+    pressure:0,chancesA:0,chancesB:0,xgA:0,xgB:0,lastPass:null};
   state.tactical={ home:'BALANCED 2-1-2',away:'BALANCED 2-1-2',reason:'OPENING SHAPES',switches:0 };
   state._halfSwitchDone=false; state._lateSwitchA=false; state._lateSwitchB=false;
   for (const d of state.departures) {
@@ -3863,7 +4065,7 @@ function tick(forcedDt, skipRender) {
   } else if (state.mode === 'fulltime') {
     state.modeT += dt;
     ritualMovementStep(dt);
-    if (!LIVE_BROADCAST && state.modeT > 11) { hideCard(); startMatch(); }
+    if (!LIVE_BROADCAST && !QUERY.has('hold') && state.modeT > 11) { hideCard(); startMatch(); }
   } else if (state.mode === 'foul') {
     state.modeT += dt;
     const f = state.foul;
@@ -4006,6 +4208,7 @@ function tick(forcedDt, skipRender) {
   updateFlashes(dt);
   confettiStep(dt);
   crowdStep(t, dt);
+  matchFlowVisualStep(t);
   technicalAreaStep(t,dt);
   updateDepartures(dt,t);
   contextStep();
@@ -4184,8 +4387,10 @@ function startDriver() {
     }, 50);
   } else rafLoop();
 }
-document.addEventListener('visibilitychange', startDriver);
-startDriver();
+if (!QUERY.has('manual')) {
+  document.addEventListener('visibilitychange', startDriver);
+  startDriver();
+}
 
 // debug hook (harmless in prod, lets devtools poke the sim)
 function forceSoccerMoment(type) {
@@ -4232,9 +4437,20 @@ window.render_game_to_text = () => JSON.stringify({
   half: state.half,
   score: { home: state.scoreA, away: state.scoreB },
   teams: { home: TEAM_A.name, away: TEAM_B.name },
-  ball: { x: +ball.pos.x.toFixed(2), y: +ball.pos.y.toFixed(2), z: +ball.pos.z.toFixed(2) },
+  ball: { x: +ball.pos.x.toFixed(2), y: +ball.pos.y.toFixed(2), z: +ball.pos.z.toFixed(2),
+    vx:+ball.vel.x.toFixed(2),vy:+ball.vel.y.toFixed(2),vz:+ball.vel.z.toFixed(2) },
   tacticalContext: { ...state.tactical, ritual:state.ritual,
     event:state.contextEvent?{label:state.contextEvent.label,detail:state.contextEvent.detail}:null },
+  matchFlow: {
+    phase:state.flow.phase, possession:state.flow.possessionTeam?.name||null,
+    sequence:state.flow.sequence, completedPasses:state.flow.completedPasses,
+    turnovers:state.flow.turnovers, transitionSeconds:+state.flow.transitionT.toFixed(1),
+    pressure:state.flow.pressure,
+    oneTwo:state.flow.oneTwo?{passer:state.flow.oneTwo.passer.name,receiver:state.flow.oneTwo.receiver.name,
+      returning:state.flow.oneTwo.returning}:null,
+    chances:{home:state.flow.chancesA,away:state.flow.chancesB},
+    xg:{home:+state.flow.xgA.toFixed(2),away:+state.flow.xgB.toFixed(2)},
+  },
   spectacle: { last:state.lastTechnique, goalTechnique:state.goalTechnique,
     cooldown:+state.spectacleCooldown.toFixed(1), stats:{backheels:stats.backheels,volleys:stats.volleys,bicycles:stats.bicycles} },
   cameraBeat: state.cameraBeat?state.cameraBeat.type:null,
