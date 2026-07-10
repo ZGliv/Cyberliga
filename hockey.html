@@ -79,6 +79,32 @@
   }
   #controls button:hover, #controls button:focus-visible { color:#fff; border-color:#00e5ff; background:rgba(0,229,255,.14); outline:none; }
 
+  #gameplan {
+    position:absolute; top:22px; right:18px; width:min(330px, calc(100vw - 36px)); z-index:88;
+    border:1px solid rgba(126,240,255,.28); border-radius:16px; overflow:hidden;
+    background:linear-gradient(160deg, rgba(7,15,34,.96), rgba(2,5,16,.94));
+    box-shadow:0 24px 70px rgba(0,0,0,.48), 0 0 30px rgba(0,229,255,.12);
+    backdrop-filter:blur(14px); pointer-events:auto; color:#dffaff;
+    transform:translateX(calc(100% + 30px)); opacity:0; transition:transform .22s ease, opacity .18s ease;
+  }
+  #gameplan.open { transform:translateX(0); opacity:1; }
+  .gp-head { display:flex; align-items:center; justify-content:space-between; padding:13px 14px 10px; border-bottom:1px solid rgba(255,255,255,.08); }
+  .gp-kicker { font:900 9px/1 'Orbitron',sans-serif; letter-spacing:2.2px; color:#71edff; }
+  .gp-head strong { display:block; margin-top:5px; font:900 16px/1 'Orbitron',sans-serif; letter-spacing:1.6px; color:#fff; }
+  #gpclose { appearance:none; width:30px; height:30px; border-radius:50%; border:1px solid rgba(126,240,255,.26); background:rgba(126,240,255,.07); color:#9ff5ff; font:700 17px/1 sans-serif; cursor:pointer; }
+  .gp-team { padding:12px 14px 11px; border-bottom:1px solid rgba(255,255,255,.07); }
+  .gp-team:last-of-type { border-bottom:0; }
+  .gp-teamline { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .gp-code { font:900 12px/1 'Orbitron',sans-serif; letter-spacing:1.8px; }
+  .gp-strength { font:800 10px/1 'Rajdhani',sans-serif; letter-spacing:1.3px; padding:3px 7px; border:1px solid currentColor; border-radius:99px; opacity:.88; }
+  .gp-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+  .gp-cell { min-width:0; padding:8px 9px; border-radius:9px; background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.055); }
+  .gp-cell span { display:block; font:800 8px/1 'Orbitron',sans-serif; letter-spacing:1.25px; color:#6f8fa8; margin-bottom:5px; }
+  .gp-cell b { display:block; font:800 11px/1.12 'Rajdhani',sans-serif; color:#eefcff; letter-spacing:.7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .gp-meter { height:4px; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden; margin-top:6px; }
+  .gp-meter i { display:block; height:100%; border-radius:inherit; transition:width .25s ease; }
+  .gp-note { padding:10px 14px 12px; font:700 10px/1.35 'Rajdhani',sans-serif; letter-spacing:.7px; color:#8eafc2; }
+
   #badge { position:absolute; top:22px; left:22px; display:flex; gap:12px; align-items:center; z-index:60; }
   #wordmark { font-family:'Orbitron'; font-weight:900; font-size:16px; letter-spacing:3px; color:#7ef0ff; text-shadow:0 0 14px rgba(0,229,255,.55); }
   #wordmark em { font-style:normal; color:#fff; }
@@ -178,6 +204,15 @@
     #controls button { min-height:29px; padding:5px 9px; font-size:10px; letter-spacing:1px; background:rgba(4,8,20,.88); }
     #controls .widehint { display:none; }
     #watermark { display:none; }
+    #gameplan {
+      position:fixed; top:auto; left:8px; right:8px; bottom:calc(43px + env(safe-area-inset-bottom, 0px)); width:auto;
+      max-height:min(72dvh, 610px); overflow:auto; border-radius:16px 16px 12px 12px;
+      transform:translateY(calc(100% + 56px));
+    }
+    #gameplan.open { transform:translateY(0); }
+    .gp-head { position:sticky; top:0; z-index:2; background:rgba(5,11,27,.97); }
+    .gp-grid { gap:6px; }
+    .gp-cell { padding:7px 8px; }
   }
   @media (max-width:380px) {
     #badge { left:8px; right:8px; }
@@ -211,7 +246,12 @@
   <div id="ticker"><div id="tickerlabel">CYBERLIGA</div><div id="tickertext"></div></div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
   <div id="soundpill">&#128266; CLICK ANYWHERE FOR SOUND</div>
-  <div id="controls"><button id="pausebtn" type="button">PAUSE</button><button id="restartbtn" type="button">REMATCH</button><button id="fullbtn" class="widehint" type="button">F FULLSCREEN</button></div>
+  <div id="controls"><button id="planbtn" type="button">GAME PLAN</button><button id="pausebtn" type="button">PAUSE</button><button id="restartbtn" type="button">REMATCH</button><button id="fullbtn" class="widehint" type="button">F FULLSCREEN</button></div>
+  <section id="gameplan" aria-label="Hockey game plan" aria-hidden="true">
+    <div class="gp-head"><div><span class="gp-kicker">BENCH TABLET · LIVE</span><strong>GAME PLAN</strong></div><button id="gpclose" type="button" aria-label="Close game plan">×</button></div>
+    <div id="gpbody"></div>
+    <div class="gp-note">Systems adapt at each faceoff. Fatigue drives rolling changes; penalties automatically load the special-teams units. Press Q to toggle.</div>
+  </section>
   <div id="vignette"></div><div id="scanlines"></div>
   <div id="watermark">CYBERLIGA ICE</div>
 </div>
@@ -250,6 +290,13 @@ const ROSTERS=Object.fromEntries(HOCKEY_TEAMS.map(team=>[team.name,team.athletes
 let fixtureIdx = (parseInt(localStorage.getItem('cl_ice_fx')) || 0) % FIXTURES.length;
 let TEAM_A, TEAM_B;
 const ATT = [1, -1]; // team 0 attacks +x, team 1 attacks -x
+const ROLES = ['G','C','LW','RW','LD','RD'];
+const SYSTEMS = [
+  { offense:'LOW-TO-HIGH CYCLE', entry:'WIDE DRIVE', forecheck:'2–1–2 HUNT', neutral:'1–2–2 RED', coverage:'BOX + ONE', pace:1.02 },
+  { offense:'OVERLOAD + SEAM', entry:'DROP ENTRY', forecheck:'1–2–2 ANGLE', neutral:'1–3–1 TRAP', coverage:'COLLAPSE', pace:.94 },
+  { offense:'BEHIND-NET ROTATION', entry:'CHIP + CHASE', forecheck:'2–3 LOCK', neutral:'2–1–2 PRESS', coverage:'MAN + SWITCH', pace:1.08 },
+  { offense:'POINT SHOT + SCREEN', entry:'MIDDLE-LANE DRIVE', forecheck:'1–1–3 CONTAIN', neutral:'1–1–3 WALL', coverage:'LAYERED SLOT', pace:.98 }
+];
 
 // ============ RENDERER / SCENE ============
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -445,6 +492,41 @@ const ledMat = new THREE.MeshBasicMaterial({ color: 0x123048 });
 const led = new THREE.Mesh(new THREE.BoxGeometry(RINK_W + 14, 0.5, 0.3), ledMat);
 led.position.set(0, 8.2, -BZ - 6.2); scene.add(led);
 
+// Near-side benches and a true dimensional lower bowl make the rink read as a
+// broadcast venue instead of a texture behind the ice. Spectators use one
+// instanced mesh, so the added depth is cheap even on mobile GPUs.
+const crowdGeo = new THREE.SphereGeometry(0.26, 6, 5);
+const crowdMat = new THREE.MeshBasicMaterial({ color:0x7393b5 });
+const crowdBodies = new THREE.InstancedMesh(crowdGeo, crowdMat, 220);
+const crowdDummy = new THREE.Object3D();
+for (let i=0; i<220; i++) {
+  const row = i % 6, col = Math.floor(i/6), side = col % 3;
+  let x, z;
+  if (side === 0) { x = -32 + (col*2.17)%64; z = -BZ-3.1-row*.78; }
+  else if (side === 1) { x = -BX-3.1-row*.75; z = -12 + (col*1.91)%24; }
+  else { x = BX+3.1+row*.75; z = -12 + (col*1.73)%24; }
+  crowdDummy.position.set(x, 1.45+row*.52+(i%4)*.06, z);
+  const s=.72+(i%7)*.055; crowdDummy.scale.set(s,1.05+(i%5)*.08,s);
+  crowdDummy.updateMatrix(); crowdBodies.setMatrixAt(i,crowdDummy.matrix);
+}
+scene.add(crowdBodies);
+const benchMat = new THREE.MeshStandardMaterial({ color:0x10243a, roughness:.58, metalness:.2 });
+const benchTrim = new THREE.MeshBasicMaterial({ color:0x35dff5 });
+for (const x of [-12,12]) {
+  const shell = new THREE.Mesh(new THREE.BoxGeometry(15,.7,2.5),benchMat);
+  shell.position.set(x,.35,BZ+1.45); scene.add(shell);
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(15,.1,.12),benchTrim);
+  rail.position.set(x,1.18,BZ+.24); scene.add(rail);
+  for(let i=0;i<5;i++) {
+    const helmet = new THREE.Mesh(new THREE.SphereGeometry(.3,8,6),new THREE.MeshBasicMaterial({color:i%2?0xd5effa:0x55738c}));
+    helmet.position.set(x-5.2+i*2.55,1.08,BZ+1.35); scene.add(helmet);
+  }
+}
+for (const x of [-3.4,3.4]) {
+  const box = new THREE.Mesh(new THREE.BoxGeometry(5.4,.62,2.1),new THREE.MeshStandardMaterial({color:0x1d2130,roughness:.7}));
+  box.position.set(x,.31,BZ+1.38); scene.add(box);
+}
+
 // ============ PUCK + TRAIL ============
 const puck = { x: 0, z: 0, y: PY, vx: 0, vz: 0, vy: 0, carrier: null, lastTouch: null,
   passTarget: null, saveChecked: false, prevX: 0, held: true };
@@ -468,6 +550,13 @@ const receiverRing = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.92, 28),
   new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0, side:THREE.DoubleSide,
     blending:THREE.AdditiveBlending, depthWrite:false }));
 receiverRing.rotation.x = -Math.PI/2; receiverRing.position.y = 0.045; scene.add(receiverRing);
+
+const laneLines = [];
+for (let i=0;i<2;i++) {
+  const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
+  const line = new THREE.Line(geo,new THREE.LineBasicMaterial({color:0x66f0ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+  scene.add(line); laneLines.push(line);
+}
 
 const impactRings = [];
 for (let i = 0; i < 5; i++) {
@@ -569,6 +658,7 @@ const elTicker = el('tickertext'), elCard = el('bigcard'), elPanel = el('cardpan
 const elFlash = el('goalflash'), elGoalSub = el('goalsub');
 const elStatus = el('playstatus'), elPause = el('pausebtn'), elRestart = el('restartbtn'), elFull = el('fullbtn');
 const elEvent = el('eventbug');
+const elPlan=el('gameplan'), elPlanBody=el('gpbody'), elPlanBtn=el('planbtn'), elPlanClose=el('gpclose');
 const PERIOD_NAMES = ['1ST PERIOD', '2ND PERIOD', '3RD PERIOD', 'OVERTIME'];
 const tickerLines = [];
 let tickerDirty = true, tickerX = innerWidth, tickerW = 0, lastSayT = -10, simClockTotal = 0;
@@ -599,6 +689,27 @@ function tickerStep(dt) {
   tickerX -= 90 * dt;
   elTicker.style.transform = `translateX(${tickerX}px)`;
 }
+let gamePlanOpen=false, gamePlanHash='';
+function toggleGamePlan(force) {
+  gamePlanOpen=typeof force==='boolean'?force:!gamePlanOpen;
+  elPlan.classList.toggle('open',gamePlanOpen); elPlan.setAttribute('aria-hidden',String(!gamePlanOpen));
+  elPlanBtn.textContent=gamePlanOpen?'CLOSE PLAN':'GAME PLAN';
+}
+function renderGamePlan() {
+  const teamBlock=(team,def)=>{
+    const sys=currentSystem(team), skaters=activeSkaters(team), avg=skaters.length?skaters.reduce((n,p)=>n+p.energy,0)/skaters.length:0;
+    const power=skaters.length>activeSkaters(1-team).length, kill=skaters.length<activeSkaters(1-team).length;
+    const primary=def.css, special=power?'UMBRELLA · NET FRONT':kill?'DIAMOND PK · CLEAR':'EVEN STRENGTH';
+    return `<article class="gp-team"><div class="gp-teamline"><span class="gp-code" style="color:${primary}">${def.code} · LINE ${S.shift[team]}</span><span class="gp-strength" style="color:${primary}">${strengthLabel(team)}</span></div>
+      <div class="gp-grid"><div class="gp-cell"><span>O-ZONE</span><b>${sys.offense}</b></div><div class="gp-cell"><span>ENTRY</span><b>${sys.entry}</b></div>
+      <div class="gp-cell"><span>FORECHECK</span><b>${sys.forecheck}</b></div><div class="gp-cell"><span>NEUTRAL</span><b>${sys.neutral}</b></div>
+      <div class="gp-cell"><span>D-ZONE</span><b>${sys.coverage}</b></div><div class="gp-cell"><span>SPECIAL TEAMS</span><b>${special}</b></div></div>
+      <div class="gp-cell" style="margin-top:8px"><span>UNIT ENERGY · NEXT CHANGE ${Math.ceil(S.shiftClock[team])}s</span><div class="gp-meter"><i style="width:${Math.round(avg*100)}%;background:${primary}"></i></div></div></article>`;
+  };
+  const hash=[S.systems.join(),S.shift.join(),S.shiftClock.map(Math.ceil).join(),players.map(p=>`${p.penaltyT>0?1:0}${Math.round(p.energy*10)}`).join('')].join('|');
+  if(hash===gamePlanHash)return; gamePlanHash=hash;
+  elPlanBody.innerHTML=teamBlock(0,TEAM_A)+teamBlock(1,TEAM_B);
+}
 const pick = a => a[Math.random()*a.length | 0];
 const COMM = {
   drop:  ['PUCK DOWN — {a} WINS THE DRAW', '{a} SNAPS IT BACK OFF THE FACEOFF'],
@@ -614,14 +725,27 @@ const fill = (t, a, b, g) => t.replace('{a}', a || '').replace('{b}', b || '').r
 
 // ============ SQUADS ============
 let players = [];
+const roleTextureCache = new Map();
+function roleTexture(role, color) {
+  const key=`${role}-${color}`; if(roleTextureCache.has(key)) return roleTextureCache.get(key);
+  const c=document.createElement('canvas'); c.width=192; c.height=64; const g=c.getContext('2d');
+  g.fillStyle='rgba(2,7,18,.82)'; g.beginPath(); g.roundRect(15,7,162,50,23); g.fill();
+  g.strokeStyle=color; g.lineWidth=4; g.stroke();
+  g.font='900 28px Orbitron, sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillStyle='#efffff'; g.fillText(role,96,33);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; roleTextureCache.set(key,t); return t;
+}
 function mkPlayer(team, idx, name, teamDef) {
   const isGK = idx === 0;
   const rig = buildBlobRig({ kitColor: teamDef.kit, glowColor: teamDef.glow, isGK, captain: idx === 1 });
+  const role=ROLES[idx]||`L${idx}`;
+  const badge=new THREE.Sprite(new THREE.SpriteMaterial({map:roleTexture(role,teamDef.css),transparent:true,depthTest:false,depthWrite:false}));
+  badge.position.set(0,isGK?2.8:2.55,0); badge.scale.set(1.55,.52,1); rig.group.add(badge);
   scene.add(rig.group);
-  return { team, idx, name, isGK, rig, x: 0, z: 0, vx: 0, vz: 0, heading: 0, turn: 0,
+  return { team, idx, name, role, isGK, rig, badge, x: 0, z: 0, vx: 0, vz: 0, heading: 0, turn: 0,
     tx: 0, tz: 0, sprint: 1, fallT: 0, checkCd: 0, touchCd: 0, puffCd: 0, recvT: 0, decT: 1 + Math.random(),
     fox: 0, foz: 0, holdT: 0, butterT: 0, breakaway: false, wasBreakaway:false,
-    action:null, checkReady:0, hitT:0, saveT:0, saveKind:'', saveSide:1, edge:0, motionAccel:0 };
+    action:null, checkReady:0, hitT:0, saveT:0, saveKind:'', saveSide:1, edge:0, motionAccel:0,
+    energy:1, shiftT:0, penaltyT:0, penaltyReason:'', zoneRole:'' };
 }
 function buildSquads() {
   for (const p of players) { scene.remove(p.rig.group); p.rig.dispose(); }
@@ -634,14 +758,17 @@ const ref = buildBlobRig({ kitColor: 0x39414f, glowColor: 0xffb13d });
 scene.add(ref.group);
 const refP = { x: 0, z: BZ - 2, vx: 0, vz: 0, heading: 0, tx: 0, tz: BZ - 2 };
 const teamPlayers = t => players.filter(p => p.team === t);
+const activeSkaters = t => players.filter(p => p.team===t && !p.isGK && p.penaltyT<=0);
 const gkOfSide = s => players.find(p => p.isGK && p.team === (s === 1 ? 1 : 0));
 
 // ============ MATCH STATE ============
 const S = { state: 'FACEOFF', t: 0, period: 1, clock: PERIOD_LEN, score: [0, 0],
-  shots: [0, 0], hits: [0, 0], saves: [0, 0], rebounds:[0,0], oneTimers: [0, 0], faceX: 0, faceZ: 0, dropped: false,
+  shots: [0, 0], hits: [0, 0], saves: [0, 0], rebounds:[0,0], oneTimers: [0, 0], screens:[0,0], faceX: 0, faceZ: 0, dropped: false,
+  faceoffs:[0,0], penalties:[0,0], powerPlayGoals:[0,0], shift:[1,1], shiftClock:[26,26], systems:[0,1], possessionTeam:null,
+  zoneTime:[0,0], entries:[0,0], cycles:[0,0], lastZone:[0,0],
   scorerName: '', scoredSide: 1, scoringTeam: 0, noTouchT: 0, push: 0,
   eventText:'', eventKind:'', eventTTL:0, cameraBeat:0, cameraKind:'', cameraX:0, cameraZ:0, ledBeat:0, ledColor:0x66f0ff,
-  forceSave:'', forceCheck:false, forceOneTimer:false };
+  forceSave:'', forceCheck:false, forceOneTimer:false, forcePenalty:false };
 let paused = false, completedGames = 0, lastFinal = null;
 function setState(s) { S.state = s; S.t = 0; }
 
@@ -660,10 +787,14 @@ function setupMatch(firstLoad) {
   TEAM_A = LEAGUE_TEAMS[ia]; TEAM_B = LEAGUE_TEAMS[ib];
   localStorage.setItem('cl_ice_fx', String((fixtureIdx + 1) % FIXTURES.length));
   buildSquads();
+  simClockTotal=0; lastSayT=-10;
   S.period = 1; S.clock = PERIOD_LEN;
-  S.score = [0, 0]; S.shots = [0, 0]; S.hits = [0, 0]; S.saves = [0, 0]; S.rebounds = [0, 0]; S.oneTimers = [0, 0]; S.noTouchT = 0;
+  S.score = [0, 0]; S.shots = [0, 0]; S.hits = [0, 0]; S.saves = [0, 0]; S.rebounds = [0, 0]; S.oneTimers = [0, 0]; S.screens=[0,0]; S.noTouchT = 0;
+  S.faceoffs=[0,0]; S.penalties=[0,0]; S.powerPlayGoals=[0,0]; S.shift=[1,1]; S.shiftClock=[26,29];
+  S.systems=[(fixtureIdx+ia)%SYSTEMS.length,(fixtureIdx+ib+1)%SYSTEMS.length]; S.possessionTeam=null;
+  S.zoneTime=[0,0]; S.entries=[0,0]; S.cycles=[0,0]; S.lastZone=[0,0];
   S.eventTTL = S.cameraBeat = S.ledBeat = 0; S.push = 0; elEvent.className = '';
-  S.forceSave = ''; S.forceCheck = false; S.forceOneTimer = false;
+  S.forceSave = ''; S.forceCheck = false; S.forceOneTimer = false; S.forcePenalty=false;
   paused = false; elPause.textContent = 'PAUSE';
   applyTeamHUD();
   elSA.textContent = '0'; elSB.textContent = '0';
@@ -672,17 +803,34 @@ function setupMatch(firstLoad) {
   setFaceoff(0, 0, firstLoad);
   setState('FACEOFF');
 }
+function currentSystem(team) { return SYSTEMS[S.systems[team]%SYSTEMS.length]; }
+function strengthLabel(team) {
+  const us=activeSkaters(team).length, them=activeSkaters(1-team).length;
+  return us===them ? `${us}v${them}` : us>them ? `POWER PLAY ${us}v${them}` : `PENALTY KILL ${us}v${them}`;
+}
+function adaptSystems() {
+  for (const team of [0,1]) {
+    const trailing=S.score[team]<S.score[1-team], late=S.period>=3 && S.clock<42;
+    const pp=activeSkaters(team).length>activeSkaters(1-team).length;
+    if(pp) S.systems[team]=3;
+    else if(trailing&&late) S.systems[team]=2;
+    else S.systems[team]=(fixtureIdx+team+S.period+S.shift[team])%SYSTEMS.length;
+  }
+}
 function setFaceoff(fx, fz, snap = false) {
+  adaptSystems();
   S.faceX = fx; S.faceZ = fz; S.dropped = false;
   puck.carrier = null; puck.held = true;
   puck.passTarget = null;
   puck.x = fx; puck.z = fz; puck.y = 1.1; puck.vx = puck.vz = puck.vy = 0;
+  const faceCenters=[0,1].map(team=>activeSkaters(team).find(p=>p.idx===1)||activeSkaters(team)[0]);
   for (const p of players) {
     p.action = null; p.checkReady = 0; p.hitT = 0; p.wasBreakaway = false;
     const d = ATT[p.team];
     let t;
-    if (p.isGK) t = { x: -d*(GLX - 0.9), z: 0 };
-    else if (p.idx === 1) t = { x: fx - d*1.1, z: fz };
+    if(p.penaltyT>0) t={x:0,z:(p.team===0?1:-1)*(BZ+2.2)};
+    else if (p.isGK) t = { x: -d*(GLX - 0.9), z: 0 };
+    else if (p===faceCenters[p.team]) t = { x: fx - d*1.1, z: fz };
     else if (p.idx === 2) t = { x: fx - d*2.4, z: clamp(fz + 3.4, -BZ+2, BZ-2) };
     else if (p.idx === 3) t = { x: fx - d*2.4, z: clamp(fz - 3.4, -BZ+2, BZ-2) };
     else if (p.idx === 4) t = { x: clamp(fx - d*7.5, -GLX+2, GLX-2), z: clamp(fz + 2.8, -BZ+2, BZ-2) };
@@ -700,11 +848,57 @@ function nearestSpot(x, z) {
   return best;
 }
 
+function segmentClearance(ax,az,bx,bz,defTeam) {
+  const vx=bx-ax,vz=bz-az,l2=vx*vx+vz*vz||1; let best=99;
+  for(const q of activeSkaters(defTeam)) {
+    const t=clamp(((q.x-ax)*vx+(q.z-az)*vz)/l2,0,1);
+    best=Math.min(best,Math.hypot(q.x-(ax+vx*t),q.z-(az+vz*t)));
+  }
+  return best;
+}
+function startLineChange(team) {
+  S.shift[team]=S.shift[team]%3+1; S.shiftClock[team]=24+((fixtureIdx+team+S.shift[team]*3)%8);
+  for(const p of activeSkaters(team)) { p.energy=1; p.shiftT=0; }
+  cueEvent(`${(team===0?TEAM_A:TEAM_B).code} · LINE ${S.shift[team]} OVER THE BOARDS`,'',1.15);
+  say(`${(team===0?TEAM_A:TEAM_B).name} COMPLETE A CLEAN FIVE-MAN CHANGE`,true);
+}
+function assessPenalty(player, reason='INTERFERENCE') {
+  if(!player || player.isGK || player.penaltyT>0) return false;
+  player.penaltyT=20; player.penaltyReason=reason; player.action=null;
+  if(puck.carrier===player) { puck.carrier=null; puck.vx=player.vx*.4; puck.vz=player.vz*.4; }
+  S.penalties[player.team]++;
+  cueEvent(`PENALTY · ${player.name} · ${reason}`,'danger',2);
+  say(`${reason} — ${player.name} GETS TWO. ${(1-player.team===0?TEAM_A:TEAM_B).name} TO THE POWER PLAY`,true);
+  whistle(); crowdLevel=Math.max(crowdLevel,.2); adaptSystems(); return true;
+}
+function stepBenchAndSpecialTeams(dt) {
+  if(S.state!=='PLAY') return;
+  for(const team of [0,1]) {
+    S.shiftClock[team]-=dt;
+    if(S.shiftClock[team]<=0 && !(puck.carrier&&puck.carrier.team===team&&ATT[team]*puck.carrier.x>BLX)) startLineChange(team);
+    for(const p of teamPlayers(team)) {
+      if(p.isGK) continue;
+      if(p.penaltyT>0) {
+        p.penaltyT=Math.max(0,p.penaltyT-dt);
+        if(p.penaltyT===0) { p.energy=.9; p.x=0; p.z=(team===0?1:-1)*(BZ-1); cueEvent(`${p.name} RETURNS · EVEN STRENGTH`,'',1.2); say(`${p.name} STEPS OUT OF THE BOX`,true); adaptSystems(); }
+      } else {
+        const work=clamp(Math.hypot(p.vx,p.vz)/MAXS,0,1);
+        p.shiftT+=dt; p.energy=clamp(p.energy-dt*(.0022+work*.0034),.46,1);
+      }
+    }
+  }
+  const carrier=puck.carrier;
+  if(carrier) {
+    S.possessionTeam=carrier.team;
+    if(ATT[carrier.team]*carrier.x>BLX) S.zoneTime[carrier.team]+=dt;
+  }
+}
+
 // ============ AI ============
 let dtg = 0.016; // current frame dt for decision timers
 function nearestOpp(p) {
   let best = null, bd = 1e9;
-  for (const q of players) if (q.team !== p.team && !q.isGK) {
+  for (const q of players) if (q.team !== p.team && !q.isGK && q.penaltyT<=0) {
     const d = Math.hypot(q.x - p.x, q.z - p.z); if (d < bd) { bd = d; best = q; }
   }
   if (best) best.dd = bd;
@@ -728,6 +922,7 @@ function beginShot(p, oneTimer = false) {
 }
 function pass(p, m) {
   if (puck.carrier !== p || p.action) return false;
+  if(ATT[p.team]*p.x>BLX && ATT[p.team]*m.x>BLX) S.cycles[p.team]++;
   p.action = { type:'pass', t:0, duration:0.30, contact:0.36, released:false, target:m };
   p.tx = p.x; p.tz = p.z; p.sprint = 0.68;
   return true;
@@ -770,16 +965,29 @@ function pickPassMate(p) {
     if (m === p || m.isGK || m.fallT > 0) continue;
     const dist = Math.hypot(m.x - p.x, m.z - p.z);
     if (dist < 3.5) continue;
-    let sc = d*(m.x - p.x)*0.45 - dist*0.08 + Math.random()*1.6;
+    const lane=segmentClearance(p.x,p.z,m.x,m.z,1-p.team);
+    let sc = d*(m.x - p.x)*0.34 - dist*0.06 + clamp(lane,0,4)*.52 + Math.random()*.75;
+    if(m.idx>=4 && d*p.x>BLX) sc+=.8; // low-to-high option at the point
+    if(m.idx===2||m.idx===3) sc+=Math.abs(m.z)>4?.35:0;
     const o = nearestOpp(m); if (o && o.dd < 1.8) sc -= 2.5;
     if (sc > bs) { bs = sc; best = m; }
   }
   return bs > -1.5 ? best : null;
 }
 function steerCarrier(p) {
-  const d = ATT[p.team], gx = d*GLX;
+  const d = ATT[p.team], gx = d*GLX, sys=currentSystem(p.team);
   if (p.action) { p.tx = p.x + p.vx*0.08; p.tz = p.z + p.vz*0.08; return; }
+  const zone=d*p.x>BLX;
+  if(zone && !S.lastZone[p.team]) { S.entries[p.team]++; cueEvent(`${sys.entry} · CLEAN ENTRY`,'',1); }
+  S.lastZone[p.team]=zone?1:0;
   if (d*p.x > GLX - 1.2) { p.tx = d*(GLX - 4.5); p.tz = (p.z > 0 ? -1 : 1)*1.5; } // wraparound
+  else if(!zone) {
+    if(sys.entry==='WIDE DRIVE') { p.tx=gx-d*2; p.tz=(p.z>=0?1:-1)*7.4; }
+    else if(sys.entry==='MIDDLE-LANE DRIVE') { p.tx=gx-d*2; p.tz=p.z*.18; }
+    else if(sys.entry==='DROP ENTRY') { p.tx=d*(BLX+2); p.tz=clamp(p.z*.45,-4.8,4.8); }
+    else { p.tx=d*(BLX+4); p.tz=(p.z>=0?1:-1)*8.2; }
+  } else if(sys.offense==='BEHIND-NET ROTATION') { p.tx=d*(GLX-1.7); p.tz=(p.z>0?-1:1)*4.1; }
+  else if(sys.offense==='POINT SHOT + SCREEN') { p.tx=d*(GLX-7.5); p.tz=clamp(p.z*.3,-3.2,3.2); }
   else { p.tx = gx - d*2.0; p.tz = p.z*0.5 + Math.sin(simClockTotal*1.3 + p.idx)*1.5; }
   const o = nearestOpp(p), pressured = o && o.dd < 2.3;
   p.breakaway = !!o && ATT[p.team]*p.x > 0 && o.dd > 5.5;
@@ -791,7 +999,7 @@ function steerCarrier(p) {
     S.ledBeat = 0.7; S.ledColor = (p.team === 0 ? TEAM_A : TEAM_B).glow;
   }
   p.wasBreakaway = p.breakaway;
-  p.sprint = p.breakaway ? 1.14 : 1;
+  p.sprint = (p.breakaway ? 1.14 : sys.pace) * (.72+.28*p.energy);
   const distGoal = Math.hypot(gx - p.x, p.z);
   // decisions tick on a timer (pressure just shortens it) — never per-frame
   // random rolls, so behavior is identical at any frame rate / catch-up step
@@ -800,14 +1008,21 @@ function steerCarrier(p) {
     p.decT = 0.7 + Math.random()*1.2;
     if (d*p.x > BLX - 1 && distGoal < 17 &&
         Math.random() < (pressured ? 0.5 : 0.4)*(1.25 - distGoal/20)) { beginShot(p); return; }
-    if (Math.random() < (pressured ? 0.8 : 0.35)) { const m = pickPassMate(p); if (m) pass(p, m); }
+    if(sys.entry==='CHIP + CHASE' && !zone && d*p.x>BLX-3 && Math.random()<.28) {
+      releasePuck(p,d*(GLX-2),(p.z>=0?1:-1)*8.5,20); cueEvent('CHIP BEHIND THE DEFENSE','',.9); return;
+    }
+    if (Math.random() < (pressured ? 0.86 : sys.offense.includes('CYCLE') ? .54 : .42)) { const m = pickPassMate(p); if (m) pass(p, m); }
   }
 }
 function steerGK(p) {
   const d = ATT[p.team], hx = -d*(GLX - 0.9);
   const distPuck = Math.hypot(puck.x - hx, puck.z);
-  const f = distPuck < 12 ? 0.85 : 0.45;
-  p.tx = hx; p.tz = clamp(puck.z*f, -2.5, 2.5); p.sprint = 0.85;
+  const threat=puck.carrier&&puck.carrier.team!==p.team;
+  const screened=threat&&activeSkaters(1-p.team).some(q=>Math.abs(q.x-hx)<3&&Math.abs(q.z-p.z)<1.2);
+  const f = distPuck < 12 ? 0.82 : 0.42;
+  const challenge=threat&&!screened?clamp((15-distPuck)*.09,0,1.05):0;
+  p.tx = hx+d*challenge; p.tz = clamp(puck.z*f, -2.5, 2.5); p.sprint = 0.85;
+  p.zoneRole=screened?'FIGHTING SCREEN':threat?'SQUARE TO PUCK':'CREASE SET';
   if (p.butterT > 0) p.butterT -= dtg;
 }
 function steerPlay() {
@@ -815,42 +1030,72 @@ function steerPlay() {
   const chasers = [[], []];
   if (!carrier) {
     for (const t of [0, 1]) {
-      chasers[t] = teamPlayers(t).filter(p => !p.isGK && p.fallT <= 0)
+      chasers[t] = activeSkaters(t).filter(p => p.fallT <= 0)
         .sort((a, b) => (Math.hypot(a.x-puck.x, a.z-puck.z)) - (Math.hypot(b.x-puck.x, b.z-puck.z)))
         .slice(0, 2);
     }
   }
-  let defChaser = null;
+  let defChaser = null, defChasers=[];
   if (carrier) {
-    let bd = 1e9;
-    for (const q of teamPlayers(1 - carrier.team)) if (!q.isGK && q.fallT <= 0) {
-      const d = Math.hypot(q.x - carrier.x, q.z - carrier.z); if (d < bd) { bd = d; defChaser = q; }
-    }
+    const defense=1-carrier.team, count=currentSystem(defense).forecheck.startsWith('2')?2:1;
+    defChasers=activeSkaters(defense).filter(q=>q.fallT<=0).sort((a,b)=>Math.hypot(a.x-carrier.x,a.z-carrier.z)-Math.hypot(b.x-carrier.x,b.z-carrier.z)).slice(0,count);
+    defChaser=defChasers[0]||null;
   }
   for (const p of players) {
     p.breakaway = false;
     p.checkReady = 0;
     if (carrier !== p) p.wasBreakaway = false;
     if (p.isGK) { steerGK(p); continue; }
+    if(p.penaltyT>0) { p.tx=0; p.tz=(p.team===0?1:-1)*(BZ+2.1); p.sprint=.5; continue; }
     if (p.fallT > 0) continue;
-    const d = ATT[p.team];
-    p.sprint = 0.82;
+    const d = ATT[p.team], sys=currentSystem(p.team);
+    p.sprint = 0.82*sys.pace*(.72+.28*p.energy);
     if (carrier === p) { steerCarrier(p); continue; }
     if (p.recvT > 0) { p.recvT -= dtg; p.tx = puck.x + puck.vx*0.3; p.tz = puck.z + puck.vz*0.3; p.sprint = 1; continue; }
     if (!carrier && chasers[p.team].includes(p)) {
       p.tx = puck.x + puck.vx*0.22; p.tz = puck.z + puck.vz*0.22; p.sprint = 1; continue;
     }
-    if (carrier && carrier.team !== p.team && p === defChaser) {
-      p.tx = carrier.x + carrier.vx*0.25; p.tz = carrier.z + carrier.vz*0.25; p.sprint = 1; continue;
+    if (carrier && carrier.team !== p.team && defChasers.includes(p)) {
+      const angle=defChasers.indexOf(p);
+      p.tx = carrier.x + carrier.vx*0.25 - ATT[p.team]*(angle?1.8:0);
+      p.tz = carrier.z + carrier.vz*0.25 + (angle?(carrier.z>0?-1:1)*2.4:0); p.sprint = 1; p.zoneRole=angle?'F2 ANGLE':'F1 PRESS'; continue;
     }
-    // role lanes
+    // Role lanes are a five-man shape, not five independent puck chasers. The
+    // shape changes by zone and by the current bench-selected system.
     const ax = carrier && carrier.team === p.team ? carrier.x : puck.x;
-    if (p.idx === 1)      { p.tx = clamp(ax*0.65 + d*4, -GLX+2, GLX-2); p.tz = puck.z*0.35; }
-    else if (p.idx === 2) { p.tx = clamp(ax*0.55 + d*7, -GLX+2, GLX-2); p.tz = 6.5; }
-    else if (p.idx === 3) { p.tx = clamp(ax*0.55 + d*7, -GLX+2, GLX-2); p.tz = -6.5; }
-    else if (p.idx === 4) { p.tx = clamp(ax*0.5 - d*9, -GLX+1.5, GLX-1.5); p.tz = 3.2; }
-    else                  { p.tx = clamp(ax*0.5 - d*9, -GLX+1.5, GLX-1.5); p.tz = -3.2; }
-    if (carrier && carrier.team !== p.team) p.tx = clamp(p.tx - d*5, -GLX+1.5, GLX-1.5); // sag defensively
+    const attacking=carrier&&carrier.team===p.team, defending=carrier&&carrier.team!==p.team;
+    const offensiveZone=attacking&&d*carrier.x>BLX;
+    const defensiveZone=defending&&d*carrier.x< -BLX;
+    if(offensiveZone) {
+      if(sys.offense==='LOW-TO-HIGH CYCLE') {
+        if(p.idx===1){p.tx=d*(GLX-5.2);p.tz=0;} else if(p.idx===2){p.tx=d*(GLX-2.3);p.tz=7.4;} else if(p.idx===3){p.tx=d*(GLX-2.3);p.tz=-7.4;} else {p.tx=d*(BLX+1.4);p.tz=p.idx===4?4.2:-4.2;}
+      } else if(sys.offense==='OVERLOAD + SEAM') {
+        if(p.idx===1){p.tx=d*(GLX-4);p.tz=-1;} else if(p.idx===2){p.tx=d*(GLX-2.3);p.tz=6.7;} else if(p.idx===3){p.tx=d*(GLX-7.5);p.tz=-5.5;} else {p.tx=d*(BLX+2);p.tz=p.idx===4?2.8:-5.8;}
+      } else if(sys.offense==='BEHIND-NET ROTATION') {
+        if(p.idx===1){p.tx=d*(GLX-1.5);p.tz=-3;} else if(p.idx===2){p.tx=d*(GLX-5);p.tz=5.6;} else if(p.idx===3){p.tx=d*(GLX-6);p.tz=-1.3;} else {p.tx=d*(BLX+1.5);p.tz=p.idx===4?4.5:-4.5;}
+      } else {
+        if(p.idx===1){p.tx=d*(GLX-3);p.tz=0;} else if(p.idx<4){p.tx=d*(GLX-6);p.tz=p.idx===2?6.2:-6.2;} else {p.tx=d*(BLX+2.8);p.tz=p.idx===4?3.1:-3.1;}
+      }
+    } else if(defensiveZone) {
+      const hx=-d*GLX, side=p.idx%2?1:-1;
+      if(sys.coverage==='MAN + SWITCH') {
+        const mark=activeSkaters(1-p.team)[(p.idx-1)%Math.max(1,activeSkaters(1-p.team).length)];
+        p.tx=mark?mark.x-d*1.2:hx+d*5; p.tz=mark?mark.z*.9:side*4;
+      } else if(p.idx===1) {p.tx=hx+d*5.8;p.tz=clamp(puck.z*.45,-2.4,2.4);}
+      else if(p.idx<4) {p.tx=hx+d*(sys.coverage==='COLLAPSE'?4.2:6.6);p.tz=side*(sys.coverage==='COLLAPSE'?3.5:6.3);}
+      else {p.tx=hx+d*3;p.tz=side*2.2;}
+    } else if(defending && Math.abs(carrier.x)<BLX+2) {
+      const nx=sys.neutral.includes('1–3–1')?[0,4.5,-4.5,0,7,-7]:[0,5.8,-5.8,2.7,4.3,-4.3];
+      p.tx=clamp(carrier.x-d*(p.idx<4?4.5:8.5),-GLX+2,GLX-2);p.tz=nx[p.idx]||0;
+    } else {
+      if (p.idx === 1)      { p.tx = clamp(ax*0.65 + d*4, -GLX+2, GLX-2); p.tz = puck.z*0.35; }
+      else if (p.idx === 2) { p.tx = clamp(ax*0.55 + d*7, -GLX+2, GLX-2); p.tz = 6.5; }
+      else if (p.idx === 3) { p.tx = clamp(ax*0.55 + d*7, -GLX+2, GLX-2); p.tz = -6.5; }
+      else if (p.idx === 4) { p.tx = clamp(ax*0.5 - d*9, -GLX+1.5, GLX-1.5); p.tz = 3.2; }
+      else                  { p.tx = clamp(ax*0.5 - d*9, -GLX+1.5, GLX-1.5); p.tz = -3.2; }
+      if (defending) p.tx = clamp(p.tx - d*5, -GLX+1.5, GLX-1.5);
+    }
+    p.zoneRole=offensiveZone?'O-ZONE':defensiveZone?'D-ZONE':defending?'NEUTRAL DEFENSE':'SUPPORT';
   }
 
   // The nearest forechecker visibly braces before contact. This is visual intent
@@ -870,7 +1115,8 @@ function integratePlayers(dt) {
   for (const p of players) {
     p.checkCd -= dt; p.touchCd -= dt; p.puffCd -= dt;
     p.hitT = Math.max(0, p.hitT - dt); p.saveT = Math.max(0, p.saveT - dt);
-    const maxs = MAXS * (p.isGK ? 0.78 : p.sprint);
+    if(p.penaltyT>0) { p.x=0; p.z=(p.team===0?1:-1)*(BZ+2.1); p.vx=p.vz=0; continue; }
+    const maxs = MAXS * (p.isGK ? 0.78 : p.sprint) * (p.isGK?1:.78+.22*p.energy);
     const oldSp = Math.hypot(p.vx, p.vz), oldVx = p.vx, oldVz = p.vz;
     if (p.fallT > 0) {
       p.fallT -= dt;
@@ -908,6 +1154,7 @@ function integratePlayers(dt) {
   // separation + body checks
   for (let i = 0; i < players.length; i++) for (let j = i + 1; j < players.length; j++) {
     const a = players[i], b = players[j];
+    if(a.penaltyT>0||b.penaltyT>0) continue;
     const dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz);
     if (d < 1.25 && d > 1e-4) {
       const push = (1.25 - d)/2, nx = dx/d, nz = dz/d;
@@ -917,7 +1164,7 @@ function integratePlayers(dt) {
       if (carrier && (a === carrier || b === carrier) && a.team !== b.team) {
         const hitter = a === carrier ? b : a;
         const relSp = Math.hypot(a.vx - b.vx, a.vz - b.vz);
-        if (!hitter.isGK && hitter.fallT <= 0 && hitter.checkCd <= 0 && relSp > 3.5) {
+          if (!hitter.isGK && hitter.fallT <= 0 && hitter.checkCd <= 0 && relSp > 3.5) {
           hitter.checkCd = 1.4;
           hitter.hitT = 0.72;
           S.hits[hitter.team]++;
@@ -936,6 +1183,9 @@ function integratePlayers(dt) {
             S.cameraBeat = 0.46; S.cameraKind = 'hit'; S.cameraX = carrier.x; S.cameraZ = carrier.z;
             S.ledBeat = 0.52; S.ledColor = hitColor;
             say(fill(pick(COMM.check), hitter.name, carrier.name));
+            if(S.forcePenalty || (relSp>7.25 && Math.random()<.075)) {
+              S.forcePenalty=false; assessPenalty(hitter,Math.abs(carrier.z)>BZ-3?'BOARDING':'INTERFERENCE');
+            }
           } else {
             carrier.vx *= 0.6; carrier.vz *= 0.6; hitter.vx *= 0.5; hitter.vz *= 0.5;
             spawnImpactRing((carrier.x+hitter.x)*0.5, (carrier.z+hitter.z)*0.5,
@@ -989,7 +1239,7 @@ function integratePuck(dt) {
   if (puck.y < 0.35) {
     const spd = Math.hypot(puck.vx, puck.vz);
     for (const p of players) {
-      if (p.fallT > 0 || p.touchCd > 0) continue;
+      if (p.fallT > 0 || p.touchCd > 0 || p.penaltyT>0) continue;
       if (Math.hypot(p.x - puck.x, p.z - puck.z) < 0.95 && spd < 19) {
         const stolen = puck.lastTouch && puck.lastTouch.team !== p.team && spd < 6;
         const oneTime = puck.passTarget === p && !p.isGK && ATT[p.team]*p.x > BLX - 1 && (S.forceOneTimer || Math.random() < 0.62);
@@ -1024,15 +1274,17 @@ function goalChecks() {
   // shot speed) can never jump clean over the check while the tab is hidden
   if (!puck.saveChecked && s*puck.x > GLX - 2.6 && s*puck.x < GLX && Math.abs(puck.z) < NW/2 + 0.6 && Math.abs(puck.vx) > 9) {
     puck.saveChecked = true;
-    const shooter = puck.lastTouch;
-    if (shooter && shooter.team === (s === 1 ? 0 : 1)) S.shots[shooter.team]++;
-    const gk = gkOfSide(s);
-    if (gk) {
+      const shooter = puck.lastTouch;
+      if (shooter && shooter.team === (s === 1 ? 0 : 1)) S.shots[shooter.team]++;
+      const gk = gkOfSide(s);
+      if (gk) {
       gk.butterT = Math.max(gk.butterT || 0, 0.7);
       // save odds by how far the shot is from the goalie's body: most rubber
       // gets stopped, clean beats need placement. Tuned for ~2-8 goals/game.
       const off = Math.abs(puck.z - gk.z);
-      const pSave = off < 1.0 ? 0.96 : off < 2.0 ? 0.85 : 0.4;
+      const screened=!!(shooter&&activeSkaters(shooter.team).some(p=>p!==shooter&&Math.abs(p.x-gk.x)<3&&Math.abs(p.z-gk.z)<1.15));
+      if(screened) S.screens[shooter.team]++;
+      const pSave = (off < 1.0 ? 0.96 : off < 2.0 ? 0.85 : 0.4)*(screened ? .7 : 1);
       if (S.forceSave || Math.random() < pSave) {
         S.saves[gk.team]++;
         const forcedSave = S.forceSave;
@@ -1054,7 +1306,7 @@ function goalChecks() {
         spawnPuff(gk.x, gk.z, catchIt ? 6 : 9, catchIt ? 2.4 : 3.8);
         spawnImpactRing(gk.x, gk.z, (gk.team === 0 ? TEAM_A : TEAM_B).glow, catchIt ? 0.9 : 1.25);
         padSlap(clamp(Math.abs(puck.vx)/28,0.3,1));
-        cueEvent(`${catchIt ? 'COVERED' : 'BIG SAVE · REBOUND'} • ${gk.name}`, 'save', 1.35);
+        cueEvent(`${screened?'THROUGH TRAFFIC · ':''}${catchIt ? 'COVERED' : 'BIG SAVE · REBOUND'} • ${gk.name}`, 'save', 1.35);
         crowdLevel = Math.max(crowdLevel, catchIt ? 0.14 : 0.21);
         S.cameraBeat = 0.5; S.cameraKind = 'save'; S.cameraX = gk.x; S.cameraZ = gk.z;
         S.ledBeat = 0.55; S.ledColor = (gk.team === 0 ? TEAM_A : TEAM_B).glow;
@@ -1072,6 +1324,11 @@ function goalChecks() {
 function scoreGoal(s) {
   const team = s === 1 ? 0 : 1;
   S.score[team]++;
+  if(activeSkaters(team).length>activeSkaters(1-team).length) {
+    S.powerPlayGoals[team]++;
+    const serving=teamPlayers(1-team).filter(p=>p.penaltyT>0).sort((a,b)=>a.penaltyT-b.penaltyT)[0];
+    if(serving) { serving.penaltyT=0; serving.energy=.92; cueEvent(`POWER-PLAY GOAL · ${serving.name} RELEASED`,'danger',1.7); }
+  }
   S.scoredSide = s; S.scoringTeam = team;
   const scorer = (puck.lastTouch && puck.lastTouch.team === team) ? puck.lastTouch : teamPlayers(team)[1];
   S.scorerName = scorer.name; S.scorer = scorer;
@@ -1108,9 +1365,9 @@ function refStep(dt) {
 
 // ============ CARDS ============
 function statsTable() {
-  return `<table><tr><th></th><th>SOG</th><th>SAVES</th><th>RBDS</th><th>HITS</th><th>1T</th></tr>
-    <tr><td class="tname" style="color:${TEAM_A.css}">${TEAM_A.name}</td><td>${S.shots[0]}</td><td>${S.saves[0]}</td><td>${S.rebounds[0]}</td><td>${S.hits[0]}</td><td>${S.oneTimers[0]}</td></tr>
-    <tr><td class="tname" style="color:${TEAM_B.css}">${TEAM_B.name}</td><td>${S.shots[1]}</td><td>${S.saves[1]}</td><td>${S.rebounds[1]}</td><td>${S.hits[1]}</td><td>${S.oneTimers[1]}</td></tr></table>`;
+  return `<table><tr><th></th><th>SOG</th><th>FO</th><th>HITS</th><th>1T</th><th>PP</th></tr>
+    <tr><td class="tname" style="color:${TEAM_A.css}">${TEAM_A.name}</td><td>${S.shots[0]}</td><td>${S.faceoffs[0]}</td><td>${S.hits[0]}</td><td>${S.oneTimers[0]}</td><td>${S.powerPlayGoals[0]}/${S.penalties[1]}</td></tr>
+    <tr><td class="tname" style="color:${TEAM_B.css}">${TEAM_B.name}</td><td>${S.shots[1]}</td><td>${S.faceoffs[1]}</td><td>${S.hits[1]}</td><td>${S.oneTimers[1]}</td><td>${S.powerPlayGoals[1]}/${S.penalties[0]}</td></tr></table>`;
 }
 function showPeriodCard() {
   const ot = S.period === 3 && S.score[0] === S.score[1];
@@ -1173,6 +1430,9 @@ function cameraStep(dt) {
 // ============ VISUAL UPDATE ============
 function updateRigs(dt) {
   for (const p of players) {
+    p.rig.group.visible=p.penaltyT<=0;
+    if(p.penaltyT>0) continue;
+    p.badge.material.opacity=(puck.carrier===p||p.action||p.isGK) ? .96 : .62;
     const sp = Math.hypot(p.vx, p.vz);
     const want = sp > 1.1 ? Math.atan2(p.vx, p.vz) : Math.atan2(puck.x - p.x, puck.z - p.z);
     let dh = want - p.heading;
@@ -1229,6 +1489,15 @@ function updateFX(dt) {
     receiverRing.material.opacity = 0.38+Math.sin(simClockTotal*13)*0.2;
     const rr = 1+Math.sin(simClockTotal*13)*0.1; receiverRing.scale.set(rr,rr,1);
   } else receiverRing.material.opacity = 0;
+  if(puck.carrier && !puck.carrier.isGK && S.state==='PLAY') {
+    const c=puck.carrier;
+    const opts=activeSkaters(c.team).filter(p=>p!==c).map(p=>({p,clear:segmentClearance(c.x,c.z,p.x,p.z,1-c.team)})).sort((a,b)=>b.clear-a.clear).slice(0,2);
+    laneLines.forEach((line,i)=>{
+      const o=opts[i]; if(!o){line.material.opacity=0;return;}
+      const a=line.geometry.attributes.position; a.setXYZ(0,c.x,.17,c.z); a.setXYZ(1,o.p.x,.17,o.p.z); a.needsUpdate=true;
+      line.material.color.setHex((c.team===0?TEAM_A:TEAM_B).glow); line.material.opacity=clamp((o.clear-.45)/3.2,.06,.42);
+    });
+  } else laneLines.forEach(line=>line.material.opacity=0);
   trailHist.push({ x: puck.x, z: puck.z });
   if (trailHist.length > TRAIL_N) trailHist.shift();
   const tCol = puckColor;
@@ -1277,6 +1546,8 @@ function updateFX(dt) {
       m.color.setHex(0x8e9ab3);
       if (pulse > 0) m.color.lerp(crowdTint.setHex(S.ledColor),pulse*0.28);
     }
+    crowdMat.color.setHex(0x7393b5);
+    if(pulse>0) crowdMat.color.lerp(crowdTint.setHex(S.ledColor),pulse*.5);
   }
   thudCd -= dt; skateCd -= dt;
   crowdLevel += (0.05 + 0.012*Math.sin(simClockTotal*0.7) - crowdLevel)*dampK(0.58, dt);
@@ -1305,7 +1576,7 @@ function stateStep(dt) {
       integratePlayers(dt);
       netCollide();
       if (!S.dropped) {
-        const centers = players.filter(p => p.idx === 1);
+        const centers = [0,1].map(team=>activeSkaters(team).find(p=>p.idx===1)||activeSkaters(team)[0]).filter(Boolean);
         const ready = centers.every(c => Math.hypot(c.x - c.fox, c.z - c.foz) < 2.6)
           && Math.hypot(refP.x - S.faceX, refP.z - refP.tz) < 1.2;
         if ((S.t > 0.8 && ready) || S.t > 4.5) {
@@ -1316,7 +1587,8 @@ function stateStep(dt) {
         integratePuck(dt);
         if (puck.y <= PY + 0.001) { // puck on ice — battle won
           const w = Math.random() < 0.5 ? 0 : 1;
-          const c = teamPlayers(w).find(p => p.idx === 1);
+          const c = activeSkaters(w).find(p => p.idx === 1)||activeSkaters(w)[0];
+          S.faceoffs[w]++;
           puck.vx = -ATT[w]*(3 + Math.random()*3); puck.vz = (Math.random()-0.5)*5;
           puck.lastTouch = c;
           say(fill(pick(COMM.drop), c.name));
@@ -1329,6 +1601,7 @@ function stateStep(dt) {
     }
     case 'PLAY': {
       S.clock -= dt;
+      stepBenchAndSpecialTeams(dt);
       stepPlayerActions(dt);
       steerPlay();
       integratePlayers(dt);
@@ -1388,10 +1661,13 @@ function hudStep() {
   const carrier = puck.carrier;
   const breakaway = players.find(p => p.breakaway && puck.carrier === p);
   const action = players.find(p => p.action && !p.action.released);
+  const special=[0,1].find(team=>activeSkaters(team).length!==activeSkaters(1-team).length);
   elStatus.textContent = paused ? 'PAUSED' : S.state === 'PLAY' && breakaway ? `BREAKAWAY • ${breakaway.name}` :
     S.state === 'PLAY' && action ? `${action.action.type === 'oneTimer' ? 'ONE-TIMER' : action.action.type === 'shot' ? 'WINDING UP' : 'PASS LOADING'} • ${action.name}` :
+    S.state === 'PLAY' && special!==undefined ? `${strengthLabel(special)} • ${currentSystem(special).offense}` :
     S.state === 'PLAY' && carrier ? `${carrier.name} • ${(carrier.team === 0 ? TEAM_A : TEAM_B).name}` :
     S.state === 'PLAY' ? 'LOOSE PUCK' : S.state.replace('_', ' ');
+  renderGamePlan();
 }
 
 // ============ MAIN LOOP ============
@@ -1460,6 +1736,8 @@ async function toggleFullscreen() {
 elPause.addEventListener('click', togglePause);
 elRestart.addEventListener('click', restartMatch);
 elFull.addEventListener('click', toggleFullscreen);
+elPlanBtn.addEventListener('click',()=>toggleGamePlan());
+elPlanClose.addEventListener('click',()=>toggleGamePlan(false));
 function forceIceMoment(kind) {
   if (kind === 'reset') { restartMatch(); return true; }
   if (kind === 'rotation') {
@@ -1471,7 +1749,7 @@ function forceIceMoment(kind) {
   paused = false; elPause.textContent = 'PAUSE'; elCard.classList.remove('show'); elFlash.classList.remove('show');
   setState('PLAY'); S.clock = Math.max(S.clock,20); puck.held = false; puck.carrier = null;
   puck.passTarget = null; puck.saveChecked = false; puck.y = PY; puck.vx = puck.vz = puck.vy = 0;
-  for (const p of players) { p.action=null; p.fallT=0; p.hitT=0; p.touchCd=0; p.recvT=0; p.wasBreakaway=false; }
+  for (const p of players) { p.action=null; p.fallT=0; p.hitT=0; p.touchCd=0; p.recvT=0; p.wasBreakaway=false; p.penaltyT=0; p.energy=1; }
   const shooter = teamPlayers(0).find(p=>p.idx===2), passer = teamPlayers(0).find(p=>p.idx===1);
   const receiver = teamPlayers(0).find(p=>p.idx===3), hitter = teamPlayers(1).find(p=>p.idx===2);
   if (kind === 'goal') {
@@ -1497,8 +1775,20 @@ function forceIceMoment(kind) {
     players.filter(p=>p!==passer&&p!==receiver&& !p.isGK).forEach((p,i)=>{p.x=-16+(i%4)*2;p.z=-9+(i%5)*4;p.vx=p.vz=0;});
     puck.carrier=passer; puck.lastTouch=passer; puck.x=passer.x; puck.z=passer.z;
     S.forceOneTimer=true; pass(passer,receiver);
+  } else if(kind==='penalty') {
+    shooter.x=0; shooter.z=0; shooter.vx=2; shooter.vz=0;
+    hitter.x=-.9; hitter.z=0; hitter.vx=9; hitter.vz=0;
+    puck.carrier=shooter; puck.lastTouch=shooter; puck.x=shooter.x; puck.z=shooter.z; S.forceCheck=true; S.forcePenalty=true;
+  } else if(kind==='shift') {
+    S.shiftClock[0]=.02; puck.carrier=teamPlayers(1)[1]; puck.lastTouch=puck.carrier;
+  } else if(kind==='powerplay') {
+    assessPenalty(teamPlayers(1).find(p=>p.idx===3),'HOOKING');
+  } else if(kind==='cycle') {
+    S.systems[0]=0; passer.x=13;passer.z=6;receiver.x=18;receiver.z=-6;puck.carrier=passer;puck.lastTouch=passer;puck.x=passer.x;puck.z=passer.z;pass(passer,receiver);
   } else if (kind === 'period') {
     S.period=1; S.clock=.08;
+  } else if(kind==='overtime') {
+    S.period=3; S.score=[2,2]; elSA.textContent='2'; elSB.textContent='2'; S.clock=.08;
   } else if (kind === 'final') {
     S.period=3; S.score=[2,1]; elSA.textContent='2'; elSB.textContent='1'; S.clock=.08;
   } else return false;
@@ -1513,15 +1803,15 @@ window.render_game_to_text = () => JSON.stringify({
   period: S.period,
   clock: +Math.max(0, S.clock).toFixed(2),
   teams: [
-    { name: TEAM_A.name, code:TEAM_A.code, score: S.score[0], shots: S.shots[0], saves: S.saves[0], rebounds:S.rebounds[0], hits: S.hits[0], oneTimers: S.oneTimers[0] },
-    { name: TEAM_B.name, code:TEAM_B.code, score: S.score[1], shots: S.shots[1], saves: S.saves[1], rebounds:S.rebounds[1], hits: S.hits[1], oneTimers: S.oneTimers[1] }
+    { name: TEAM_A.name, code:TEAM_A.code, score: S.score[0], shots: S.shots[0], saves: S.saves[0], rebounds:S.rebounds[0], hits: S.hits[0], oneTimers: S.oneTimers[0], faceoffs:S.faceoffs[0], penalties:S.penalties[0], ppGoals:S.powerPlayGoals[0], entries:S.entries[0], cycles:S.cycles[0], zoneTime:+S.zoneTime[0].toFixed(1), strength:strengthLabel(0), shift:S.shift[0], system:currentSystem(0) },
+    { name: TEAM_B.name, code:TEAM_B.code, score: S.score[1], shots: S.shots[1], saves: S.saves[1], rebounds:S.rebounds[1], hits: S.hits[1], oneTimers: S.oneTimers[1], faceoffs:S.faceoffs[1], penalties:S.penalties[1], ppGoals:S.powerPlayGoals[1], entries:S.entries[1], cycles:S.cycles[1], zoneTime:+S.zoneTime[1].toFixed(1), strength:strengthLabel(1), shift:S.shift[1], system:currentSystem(1) }
   ],
   broadcast:{ event:S.eventTTL>0?S.eventText:null, eventKind:S.eventTTL>0?S.eventKind:null, camera:S.cameraBeat>0?S.cameraKind:'broadcast' },
   puck: { x: +puck.x.toFixed(2), y: +puck.y.toFixed(2), z: +puck.z.toFixed(2), held: puck.held, carrier: puck.carrier?.name || null,
     passTarget:puck.passTarget?.name||null, speed: +Math.hypot(puck.vx, puck.vz).toFixed(2) },
-  players: players.map(p => ({ name: p.name, team: p.team === 0 ? TEAM_A.name : TEAM_B.name, role: p.isGK ? 'GK' : p.idx === 1 ? 'C' : p.idx < 4 ? 'W' : 'D',
+  players: players.map(p => ({ name: p.name, team: p.team === 0 ? TEAM_A.name : TEAM_B.name, role:p.role,
     x: +p.x.toFixed(2), z: +p.z.toFixed(2), speed:+Math.hypot(p.vx,p.vz).toFixed(2), fallen: p.fallT > 0, breakaway: p.breakaway,
-    action:p.action?.type||null, bracing:p.checkReady>.1, save:p.saveT>0?p.saveKind:null }))
+    action:p.action?.type||null, bracing:p.checkReady>.1, save:p.saveT>0?p.saveKind:null, energy:+p.energy.toFixed(2), shiftSeconds:+p.shiftT.toFixed(1), penalty:+p.penaltyT.toFixed(1), assignment:p.zoneRole }))
 });
 window.advanceTime = (ms) => {
   const wasPaused = paused; paused = false;
@@ -1540,6 +1830,7 @@ addEventListener('resize', () => {
 
 addEventListener('keydown', e => {
   if (e.key.toLowerCase() === 'f') { e.preventDefault(); toggleFullscreen(); }
+  else if (e.key.toLowerCase() === 'q') { e.preventDefault(); toggleGamePlan(); }
   else if (e.key.toLowerCase() === 'p' || e.code === 'Space') { e.preventDefault(); togglePause(); }
   else if (e.key.toLowerCase() === 'r') { e.preventDefault(); restartMatch(); }
   else if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && !document.fullscreenElement) location.href = 'world.html';

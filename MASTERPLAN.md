@@ -125,9 +125,17 @@ pose vocabulary without changing simulation decisions or adding humanoid anatomy
   play outcomes, three-beat tackles, stronger scoring/turnover broadcasts, and mobile controls
 - [x] Rebuild American football as full 11v11 with 22 named roles, 13 offensive calls, six
   defensive calls, complete drive logic, game plans, special teams, and richer sidelines
+- [x] Add a pre-snap Coach Mode with three situational calls, number-key/card selection,
+  cadence, matchup totals, user-call tracking, and a readable burst meter
 - [x] Rebuild basketball as full 5v5 with seven offenses, five defenses, screens, help,
   shot quality, rebounding, fouls/free throws, full stats, reactive crowd, and mobile game plan
 - [x] Give hockey authored pass/shot/one-timer timing, readable checks, goalie cover/rebound
   logic, puck trails, reactive crowd/camera/audio, and mobile-safe broadcast state
+- [x] Expand hockey with adaptive entries/cycles/forechecks/coverages, fatigue and rolling
+  lines, penalties, power plays, screened goalies, faceoffs, benches, and penalty boxes
+- [x] Expand baseball with nine fielders, pitch sequencing, batter/defense plans, batted-ball
+  physics, force/relay/error/double-play logic, tag-ups, and sacrifice flies
+- [x] Expand combat with seeded style archetypes, coherent plans/range/guard/footwork,
+  combinations/counters/clinch, damage/cuts/corners, and deterministic scorecards
 - Promote an arena into the canonical application only after it adopts the shared
   deterministic event contract, persistence, recovery, and automated test gates.

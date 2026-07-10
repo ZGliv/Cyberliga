@@ -106,8 +106,16 @@ const momentSource = await text('moment.html');
 const clipSource = await text('clip.html');
 const menuSource = await text('menu.html');
 const menuScript = await text('menu.js');
+const footballSource = await text('football.html');
+const baseballSource = await text('baseball.html');
+const hockeySource = await text('hockey.html');
+const fightSource = await text('fight.html');
 check(/football\.html/.test(worldSource), 'World map does not route to American football');
 check(/['"]american-football['"]\s*:\s*['"]football\.html['"]/.test(atlasSource), 'League atlas does not route American football to football.html');
+check(/id=["']standings-section["']/.test(atlasSource), 'League atlas is missing its standings table');
+check(/api\/league\?sport=/.test(atlasSource), 'League atlas does not load the shared league-state API');
+check(/id=["']roster-filters["']/.test(atlasSource), 'League atlas is missing football offense/defense roster filters');
+check(/class=["']athlete-wire["']/.test(atlasSource) && /social\.html\?sport=/.test(atlasSource), 'League atlas does not connect athletes to durable World Wire focus URLs');
 for (const arena of arenas) {
   check(worldSource.includes(arena.id), `World map does not expose ${arena.id}`);
   check(worldSource.includes(arena.file), `World map does not link the ${arena.id} arena`, arena.file);
@@ -129,6 +137,12 @@ check(/id=["']sport-grid["']/.test(menuSource), 'Broadcast Guide must expose eve
 check(/UNIVERSE\.liveMatches/.test(menuScript), 'Broadcast Guide must use the shared UTC match schedule');
 check(/\^\[1-4\]\$/.test(menuScript), 'Broadcast Guide must keep keyboard tuning for the four soccer channels');
 for (const arena of arenas) check(menuScript.includes(arena.file), `Broadcast Guide does not link ${arena.id}`, arena.file);
+check(/id=["']coachPanel["']/.test(footballSource) && /aria-pressed/.test(footballSource), 'Football must expose an accessible pre-snap coach mode');
+check(/window\._footballTest\s*=/.test(footballSource) && /callPlay[\s\S]*getPlayOptions[\s\S]*forceCatch/.test(footballSource), 'Football must expose deterministic coach-call and catch branch helpers');
+check(/window\._baseballTest\s*=/.test(baseballSource) && /double_play|sac_fly/.test(baseballSource), 'Baseball must expose deterministic force-play branch helpers');
+check(/id=["']pitchtrail["']/.test(baseballSource) && /pitchHistory/.test(baseballSource), 'Baseball must expose an accessible pitch sequence and structured pitch history');
+check(/window\.__CYBERLIGA_HOCKEY_TEST__\s*=/.test(hockeySource) && /penalty[\s\S]*powerplay[\s\S]*overtime[\s\S]*final/.test(hockeySource), 'Hockey must expose penalty, power-play, overtime, and final branch helpers');
+check(/window\._fightTest\s*=/.test(fightSource) && /forceDecision[\s\S]*forceStoppage/.test(fightSource), 'Combat must expose deterministic decision and stoppage branch helpers');
 check(await exists('gamehub.js'), 'Missing shared in-game navigation hub');
 for (const arena of arenas) {
   const arenaSource = await text(arena.file);

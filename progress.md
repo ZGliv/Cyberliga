@@ -166,3 +166,25 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   completed a 41-possession game and exercised every play/coverage. Same-seed twin-browser
   gates were byte-identical for both upgraded arenas.
 - Release gate now passes 8 API tests plus 933 static/data/route/schedule/navigation checks.
+
+## Remaining Arenas / Living League Table — 2026-07-10
+- Baseball now fields nine readable defensive roles and models six pitch types, count and
+  fatigue-aware sequencing, batter/defense plans, launch angle and exit velocity, force plays,
+  relay throws, throwing errors, double plays, tag-ups, sacrifice flies, and pitch workloads.
+- Hockey now exposes G/C/LW/RW/LD/RD per side with four adaptive systems, controlled entries,
+  offensive cycles, forechecks, neutral-zone coverages, fatigue/rolling lines, penalties,
+  5v4 power plays, screened goalies, faceoffs, benches, boxes, and a responsive Game Plan.
+- Combat now has four seeded archetypes with stance/guard/range/footwork identities, authored
+  plans, combinations, feints, counters, clinches, targeting, stamina/guard/damage/cuts,
+  knockdowns, corner adjustments, visible corner crews, and deterministic 10-point cards.
+- League Atlas now loads the shared `/api/league` standings for every sport, lets users select
+  clubs directly from the table, splits football rosters into all/offense/defense views, and
+  gives every athlete a permanent World Wire story link.
+- Football now adds a real pre-snap Coach Mode: three situational play cards/number-key calls,
+  a visible cadence clock, matchup totals, user-call tracking, burst fuel, and deterministic
+  complete/incomplete/interception catch helpers without changing its 11v11 contract.
+- Baseball completed a 900-second three-game soak and a byte-identical 240-second twin run.
+  Hockey passed forced penalty/PP/shift/one-timer/OT/final/rotation branches and a twin PP run.
+  Combat passed a unanimous decision, forced TKO, three autonomous stoppages, and a byte-
+  identical 30-second twin run. Desktop and 390x844 gates were clean across all three.
+- Release gate now passes 8 API tests plus 943 application/data/route/navigation checks.

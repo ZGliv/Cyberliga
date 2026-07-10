@@ -101,6 +101,8 @@ labeled deterministic fallback until a dedicated project is chosen and provision
   `1 WATCHING · LOCAL` state until realtime credentials are configured.
 - [x] Add a responsive Broadcast Guide and a shared in-game navigation hub across all six
   arenas so live channels, leagues, stories, media tools, and operations never dead-end.
+- [x] Add backend-fed standings to every league atlas, selectable club rows, football unit
+  filters, and permanent athlete-to-World-Wire focus URLs.
 
 Exit gate: every important piece of league state has a permanent shareable URL, and the
 core mobile experience works without relying on one browser's local storage.
