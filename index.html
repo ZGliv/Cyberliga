@@ -145,6 +145,22 @@
     box-shadow:0 0 8px rgba(120,200,255,.25);
   }
 
+  /* One quiet layer of tactical context. It changes only on authored phase shifts,
+     so it reads like a broadcast analyst caption rather than permanent game UI. */
+  #matchcontext {
+    position:absolute; top:108px; left:50%; transform:translateX(-50%);
+    display:flex; align-items:center; gap:9px; max-width:min(760px,calc(100vw - 44px));
+    padding:5px 11px; border:1px solid rgba(255,255,255,.11); border-radius:999px;
+    background:rgba(3,6,16,.64); backdrop-filter:blur(8px);
+    color:rgba(224,244,255,.72); font:700 10px/1.2 'Orbitron',sans-serif;
+    letter-spacing:1.2px; white-space:nowrap; overflow:hidden;
+    opacity:.72; transition:opacity .25s, border-color .25s;
+  }
+  #matchcontext.event { opacity:1; border-color:rgba(255,225,77,.45); }
+  #matchcontext .phase { color:#fff; flex:0 0 auto; }
+  #matchcontext .sep { color:rgba(255,255,255,.25); }
+  #matchcontext .plans { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+
   /* Lineup intro lower third (match start, kickoff hold) */
   #lineup { position:absolute; left:26px; bottom:64px; transform:translateY(24px); opacity:0; transition:opacity .35s, transform .35s ease-out; }
   #lineup.show { opacity:1; transform:translateY(0); }
@@ -249,6 +265,11 @@
     }
     #lineup h3 { font-size:12px; letter-spacing:2px; }
     #lineup .lrow { font-size:13px; gap:9px; }
+    #matchcontext {
+      top:calc(env(safe-area-inset-top, 0px) + 134px);
+      max-width:calc(100vw - 20px); padding:5px 9px; gap:6px;
+      font-size:8px; letter-spacing:.75px;
+    }
     #ticker { height:34px; }
     #tickerlabel { padding:0 10px; font-size:10px; letter-spacing:2px; }
     #tickertext { font-size:13px; letter-spacing:.6px; }
@@ -294,7 +315,8 @@
   <div id="momentum"></div>
   <div id="feed"></div>
   <div id="clockwrap"><span class="live"></span><span id="clock">00:00</span><span id="half">1ST HALF</span></div>
-  <div id="badge"><a id="leaguepill" href="world.html" aria-label="Back to Cyberliga world"><span aria-hidden="true">←</span><span class="pill-full">CYBERLIGA WORLD</span><span class="pill-short">WORLD</span></a><span id="wordmark">CYBERLIGA <em>SOCCER</em></span></div>
+  <div id="matchcontext"><span class="phase">KICKOFF RITUAL</span><span class="sep">◆</span><span class="plans">CLUB ANTHEMS · OPENING SHAPES</span></div>
+  <div id="badge"><a id="leaguepill" href="world.html" aria-label="Back to Cyberliga home"><span aria-hidden="true">←</span><span class="pill-full">CYBERLIGA HOME</span><span class="pill-short">HOME</span></a><span id="wordmark">CYBERLIGA <em>SOCCER</em></span></div>
   <div id="broadcasttag"><span data-cyberliga-presence>1 WATCHING · LOCAL</span><b id="broadcastid">SYNCING</b></div>
   <div id="goalflash"><div id="goaltext">GOAL</div><div id="goalsub"></div></div>
   <div id="penstinger"><div class="pflash"></div><div class="ptext">PENALTY!</div><div class="psub" id="pensub"></div></div>
@@ -553,6 +575,62 @@ stand(-(HALF_W+8), 0, -Math.PI/2, FIELD_H+30);
 
 // reactive crowd (crowd.js module — sections, mexican wave, goal eruptions)
 const crowd = createCrowd(scene, { teamA: TEAM_A, teamB: TEAM_B });
+
+// Technical areas: deliberately anonymous classic blobs, not a second character system.
+// They make the touchline feel inhabited and give goals/cards/near misses a second ring
+// of reaction without changing the canonical twelve-player match contract.
+const technicalAreas = [];
+function buildTechnicalArea(side, team) {
+  const group = new THREE.Group();
+  const kit = new THREE.MeshStandardMaterial({ color:team.color, emissive:glow3(team), emissiveIntensity:.18, roughness:.72 });
+  const dark = new THREE.MeshStandardMaterial({ color:0x111827, roughness:.9 });
+  const bench = new THREE.Mesh(new THREE.BoxGeometry(9,.22,1.25), dark);
+  bench.position.y = .45; group.add(bench);
+  const actors = [];
+  for (let i = 0; i < 5; i++) {
+    const actor = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.SphereGeometry(.42,12,10), kit);
+    body.scale.set(1.08,1.22,.92); body.position.y = 1.04;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.25,12,10), kit);
+    head.position.y = 1.64;
+    actor.add(body,head); actor.position.x = -3.3 + i*1.65;
+    actor.userData.phase = i*.9; group.add(actor); actors.push(actor);
+  }
+  group.position.set(side * 8, 0, HALF_H + 4.2);
+  group.rotation.y = Math.PI;
+  scene.add(group);
+  const area = { side, team, group, actors, kit, reaction:'idle', reactionT:0 };
+  technicalAreas.push(area);
+  return area;
+}
+buildTechnicalArea(-1, TEAM_A); buildTechnicalArea(1, TEAM_B);
+function setTechnicalTeams(a, b) {
+  const teams = [a,b];
+  technicalAreas.forEach((area,i) => {
+    area.team = teams[i]; area.kit.color.setHex(teams[i].color);
+    area.kit.emissive.setHex(glow3(teams[i]));
+  });
+}
+function benchReaction(kind, team, duration=2.8) {
+  for (const area of technicalAreas) if (!team || area.team === team) {
+    area.reaction = kind; area.reactionT = Math.max(area.reactionT,duration);
+  }
+}
+function technicalAreaStep(t, dt) {
+  for (const area of technicalAreas) {
+    area.reactionT = Math.max(0,area.reactionT-dt);
+    if (!area.reactionT) area.reaction = 'idle';
+    area.actors.forEach((actor,i) => {
+      const phase = t*4.6 + actor.userData.phase;
+      const cheer = area.reaction === 'goal' ? Math.max(0,Math.sin(phase))*0.52
+        : area.reaction === 'appeal' ? Math.max(0,Math.sin(phase*.72))*0.24
+        : area.reaction === 'chance' ? Math.max(0,Math.sin(phase*.55))*0.14 : 0;
+      actor.position.y += (cheer-actor.position.y)*(1-Math.exp(-9*dt));
+      actor.rotation.z = area.reaction === 'appeal' ? Math.sin(phase*.5)*.22 : Math.sin(phase)*.035;
+      actor.scale.y = 1 + cheer*.2;
+    });
+  }
+}
 
 // referee (referee.js module — positioning AI, foul judgment, cards)
 const ref = createReferee(scene);
@@ -837,6 +915,7 @@ function makeTeam(team, dir) { // dir: -1 defends left goal, +1 defends right go
       stagger: 0, fallT: 0, fallDir: 1, stamina: 1,
       tgtSm: new THREE.Vector3(dir * slot.x * HALF_W, 0, slot.z * HALF_H * 1.6), // smoothed steering target
       slideT: 0, slideCd: 0, // slide tackle state + cooldown
+      injuryT: 0, injuryKind: null, // short, visible knocks; 6v6 has no invented reserve roster
       // flair drives skill-move frequency/success (dribbling module)
       flair: (slot.role === 'FWD' ? 0.75 : slot.role === 'MID' ? 0.55 : slot.role === 'DEF' ? 0.3 : 0.1) + (Math.random()-0.5)*0.15,
       skillAnim: null,
@@ -892,8 +971,123 @@ const state = {
   celebT: 0,                     // continuous celebration clock (goal + aftermath)
   lineupIntro: false,            // match-start lineup cards play through an extended kickoff hold
   goalLog: [],                   // per-goal record {name, team, minute} — feeds the FT share poster
+  ritual: 'opening',             // opening | restart | halftime | final; presentation only
+  tactical: { home:'BALANCED 2-1-2', away:'BALANCED 2-1-2', reason:'OPENING SHAPES', switches:0 },
+  contextEvent: null,
+  lastTechnique: null,
+  goalTechnique: null,
+  spectacleLog: [],
+  spectacleCooldown: 0,
+  cameraBeat: null,
+  departures: [],
 };
 const HALF_LEN = 120; // seconds of sim per half
+
+const elMatchContext = document.getElementById('matchcontext');
+const elContextPhase = elMatchContext.querySelector('.phase');
+const elContextPlans = elMatchContext.querySelector('.plans');
+function setContextEvent(label, detail, duration=3.2) {
+  state.contextEvent = { label, detail, until:simT + duration };
+  elMatchContext.classList.add('event');
+}
+function tacticalPlan(team) {
+  const isA = team === TEAM_A;
+  const own = isA ? state.scoreA : state.scoreB, opp = isA ? state.scoreB : state.scoreA;
+  const territory = isA ? momentum : -momentum;
+  const minute = state.clock / (HALF_LEN * 2);
+  if (opp > own && minute > .68) return 'ALL-OUT 1-1-3';
+  if (own > opp && minute > .72) return 'LOCKDOWN 3-1-1';
+  if (territory < -.42) return 'MID-BLOCK 2-2-1';
+  if (territory > .46) return 'COUNTERPRESS 2-1-2';
+  if (state.half === 2 && minute > .55) return 'DIRECT 2-1-2';
+  return 'BALANCED 2-1-2';
+}
+function contextStep() {
+  if (state.contextEvent && state.contextEvent.until > simT) {
+    elContextPhase.textContent = state.contextEvent.label;
+    elContextPlans.textContent = state.contextEvent.detail;
+    return;
+  }
+  if (state.contextEvent) state.contextEvent = null;
+  elMatchContext.classList.remove('event');
+  if (state.mode === 'kickoff') {
+    elContextPhase.textContent = state.ritual === 'opening' ? 'KICKOFF RITUAL' : 'RESTART RITUAL';
+    elContextPlans.textContent = state.ritual === 'opening' ? 'CLUB ANTHEMS · CAPTAINS SET' : 'SCORERS ACKNOWLEDGED · SHAPES RESET';
+  } else if (state.mode === 'halftime') {
+    elContextPhase.textContent = 'HALF-TIME HUDDLES'; elContextPlans.textContent = 'BREATH · WATER · SHAPE RESET';
+  } else if (state.mode === 'fulltime') {
+    elContextPhase.textContent = 'FINAL RITUAL'; elContextPlans.textContent = 'HANDSHAKES · AWAY END SALUTE';
+  } else {
+    const home = tacticalPlan(TEAM_A), away = tacticalPlan(TEAM_B);
+    if (home !== state.tactical.home || away !== state.tactical.away) {
+      state.tactical.home = home; state.tactical.away = away;
+    }
+    elContextPhase.textContent = 'MATCH PLANS';
+    elContextPlans.textContent = `${TEAM_A.name} ${home} · ${TEAM_B.name} ${away}`;
+  }
+}
+function triggerTacticalSwitch(team, reason='ENERGY ROTATION') {
+  const mids = players.filter(p => p.team === team && p.role === 'MID');
+  const forwards = players.filter(p => p.team === team && p.role === 'FWD').sort((a,b) => a.stamina-b.stamina);
+  const a = mids[0], b = forwards[0];
+  if (!a || !b) return false;
+  const role = a.role; a.role = b.role; b.role = role;
+  const hx = a.home.x; a.home.x = b.home.x; b.home.x = hx;
+  state.tactical.switches++;
+  setContextEvent('TACTICAL INTERCHANGE', `${team.name} · ${b.name} DROPS · ${a.name} GOES HIGH · ${reason}`, 4.4);
+  commentate(`${team.name} ROTATE THE FRONT LINE — ${a.name} GOES HIGH, ${b.name} DROPS`, true);
+  benchReaction('appeal', team, 2.4);
+  return true;
+}
+function markInjury(p, kind='ANKLE KNOCK', duration=6) {
+  if (!p || !players.includes(p) || p.role === 'GK') return false;
+  p.injuryT = Math.max(p.injuryT || 0, duration); p.injuryKind = kind;
+  stats.injuries++;
+  setContextEvent('MEDICAL WATCH', `${p.name} · ${kind} · PLAYING THROUGH IT`, 4.2);
+  commentate(`${p.name} IS LIMPING AFTER ${kind} — NO BENCH RESERVE IN THIS 6v6 UNIT`, true);
+  benchReaction('appeal', p.team, 3.5);
+  crowdExcitement = Math.max(crowdExcitement,.55);
+  return true;
+}
+function triggerCameraBeat(type, focus, duration=1.4) {
+  state.cameraBeat = { type, focus:focus || null, t:0, duration };
+}
+function updateDepartures(dt, t) {
+  for (let i=state.departures.length-1;i>=0;i--) {
+    const d = state.departures[i]; d.t += dt;
+    const targetZ = HALF_H + 5.1, targetX = d.side * 9;
+    const dx = targetX-d.p.pos.x, dz = targetZ-d.p.pos.z, len = Math.hypot(dx,dz)||1;
+    const speed = Math.min(3.2,len*1.6);
+    d.p.pos.x += dx/len*speed*dt; d.p.pos.z += dz/len*speed*dt;
+    d.p.yaw += THREE.MathUtils.clamp(shortestAngle(Math.atan2(dx,dz)-d.p.yaw),-4*dt,4*dt);
+    d.p.mesh.position.set(d.p.pos.x,0,d.p.pos.z); d.p.mesh.rotation.y=d.p.yaw;
+    const rig = d.p.mesh.userData.rig;
+    if (rig.poseTrudge) rig.poseTrudge(t+d.p.phase); else rig.poseExhausted(t+d.p.phase);
+    rig.update(dt,Math.min(speed/d.p.speed,1));
+    if (d.t > 4.6 || len < .5) {
+      scene.remove(d.p.mesh);
+      d.p.mesh.traverse(o => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) (Array.isArray(o.material)?o.material:[o.material]).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); });
+      });
+      state.departures.splice(i,1);
+    }
+  }
+}
+function ritualMovementStep(dt) {
+  if (state.mode !== 'halftime' && state.mode !== 'fulltime') return;
+  for (let i=0;i<players.length;i++) {
+    const p=players[i], mates=players.filter(q=>q.team===p.team), mi=mates.indexOf(p);
+    const ang=(mi/Math.max(mates.length,1))*Math.PI*2;
+    const cx=state.mode==='halftime'?(p.team===TEAM_A?-5:5):0;
+    const cz=state.mode==='halftime'?(p.team===TEAM_A?-3:3):(p.team===TEAM_A?-1.4:1.4);
+    const radius=state.mode==='halftime'?2.0:3.1;
+    const tx=cx+Math.cos(ang)*radius, tz=cz+Math.sin(ang)*radius;
+    const dx=tx-p.pos.x,dz=tz-p.pos.z,len=Math.hypot(dx,dz)||1;
+    const speed=Math.min(state.mode==='halftime'?2.4:1.8,len*1.5);
+    p.vel.set(dx/len*speed,0,dz/len*speed); p.pos.addScaledVector(p.vel,dt);
+  }
+}
 
 function resetPositions(kickoffFor) {
   for (const p of players) {
@@ -973,8 +1167,22 @@ function scheduleKick(p, plan, dirV) {
   const ang = Math.atan2(dirV.x, dirV.z) + (Math.random()-0.5) * (plan.type === 'shoot' ? 0.12 : 0.07);
   const dir = new THREE.Vector3(Math.sin(ang), 0, Math.cos(ang));
   const technique = plan.type === 'clear' ? 'clearance' : (plan.technique || 'pass');
+  let visualType = technique;
+  const underPressure = players.some(q => q.team !== p.team && q.pos.distanceTo(p.pos) < 2.25);
+  const behind = facingN.dot(dir) < -0.12;
+  const forceBackheel = state._forceTechnique === 'backheel';
+  if (plan.type !== 'shoot' && (forceBackheel || (behind && underPressure && state.spectacleCooldown <= 0 && Math.random() < .16))) {
+    visualType = 'backheel'; state._forceTechnique = null;
+    state.spectacleCooldown = 8;
+    state.lastTechnique = { type:'backheel', player:p.name, team:p.team.name, clock:state.clock };
+    state.spectacleLog.push({ ...state.lastTechnique }); stats.backheels++;
+    setContextEvent('FLASH OF GENIUS', `${p.name} · BACKHEEL RELEASE`, 3.2);
+    commentate(`${p.name} RELEASES THE PRESS WITH A BACKHEEL`, true);
+    benchReaction('chance', p.team, 2.2); crowdExcitement = Math.max(crowdExcitement,.45);
+    triggerCameraBeat('backheel', p, .9);
+  }
   p.kickAnim = {
-    t: 0, struck: false, type: technique,
+    t: 0, struck: false, type: visualType,
     flight: { dir, power: plan.power ?? 0.6, technique, curve: plan.curve || 0 },
     // strike fires at pose k = windup/(windup+follow) = 0.45 — poseKick's visual contact frame
     leg: sideY > 0 ? 0 : 1, windup: 0.207, follow: 0.253,
@@ -995,6 +1203,35 @@ function scheduleKick(p, plan, dirV) {
       commentate(`${p.name} TRIES THE AUDACIOUS CHIP`);
     }
   }
+}
+
+function attemptAerialFinish(p, type) {
+  if (!p || !players.includes(p) || state.mode !== 'play' || p.role === 'GK'
+      || p.kickAnim || p.kickCooldown > 0 || state.spectacleCooldown > 0) return false;
+  const goalX = -p.dir * HALF_W;
+  const distGoal = Math.hypot(goalX-p.pos.x,p.pos.z);
+  const bd = p.pos.distanceTo(ball.pos);
+  const minY = type === 'bicycle' ? 1.02 : .62, maxY = type === 'bicycle' ? 1.62 : 1.72;
+  if (bd > 1.62 || ball.pos.y < minY || ball.pos.y > maxY || distGoal > (type === 'bicycle' ? 15 : 22)) return false;
+  const targetZ = THREE.MathUtils.clamp(-ball.pos.z*.16 + (Math.random()-.5)*2.4,-GOAL_WIDTH*.38,GOAL_WIDTH*.38);
+  const dir = new THREE.Vector3(goalX-ball.pos.x,0,targetZ-ball.pos.z).normalize();
+  p.kickAnim = { t:0, struck:false, type,
+    flight:{ dir, power:type === 'bicycle' ? .88 : .78, technique:type === 'bicycle' ? 'screamer' : 'driven', curve:0 },
+    leg:Math.random()<.5?0:1, windup:type === 'bicycle' ? .34 : .22, follow:type === 'bicycle' ? .52 : .30 };
+  p.kickCooldown = type === 'bicycle' ? 1.4 : 1.0;
+  state.lastTouchTeam=p.team; state.lastTouchPlayer=p;
+  if (p.team === TEAM_A) stats.shotsA++; else stats.shotsB++;
+  stats[type === 'bicycle' ? 'bicycles' : 'volleys']++;
+  state.spectacleCooldown = type === 'bicycle' ? 14 : 9;
+  state.lastTechnique = { type, player:p.name, team:p.team.name, clock:state.clock };
+  state.spectacleLog.push({ ...state.lastTechnique });
+  if (state.spectacleLog.length > 8) state.spectacleLog.shift();
+  const label = type === 'bicycle' ? 'BICYCLE ATTEMPT' : 'FIRST-TIME VOLLEY';
+  setContextEvent(label, `${p.name} · ${p.team.name}`, type === 'bicycle' ? 4.2 : 3.1);
+  commentate(type === 'bicycle' ? `${p.name} GOES OVERHEAD!` : `${p.name} MEETS IT ON THE VOLLEY!`, true);
+  benchReaction('chance', p.team,3); crowd.onBigKick(); crowdExcitement=Math.max(crowdExcitement,.8);
+  triggerCameraBeat(type,p,type === 'bicycle' ? 1.6 : 1.1);
+  return true;
 }
 
 // ===== PENALTY CHOREOGRAPHY =====
@@ -1473,6 +1710,7 @@ function aiStep(dt) {
             ball.vel.copy(gkAct.save.deflect).multiplyScalar(0.45 * inSpeed + 6);
             ball.spin.multiplyScalar(0.2);
             crowd.onNearMiss();
+            benchReaction('chance', p.team,2.4);
             crowdExcitement = Math.max(crowdExcitement, 0.7);
             present.post({ kind: 'save', simTime: simT, title: present.feedLines.save(p.name, 'parry'),
               team: p.team.name, color: css, clock: clk });
@@ -1624,7 +1862,7 @@ function aiStep(dt) {
     const desired = p.tgtSm.clone().sub(p.pos);
     const dist = desired.length();
     // stamina: sprinting drains it, easy jogging recovers it; tired legs are slower
-    const effSpeed = p.speed * (0.72 + 0.28 * p.stamina);
+    const effSpeed = p.speed * (0.72 + 0.28 * p.stamina) * (p.injuryT > 0 ? .54 : 1);
     const spNow = p.vel.length();
     if (spNow > 0.7 * p.speed) p.stamina = Math.max(0.25, p.stamina - dt * 0.02);
     else if (spNow < 3) p.stamina = Math.min(1, p.stamina + dt * 0.03);
@@ -1677,10 +1915,23 @@ function aiStep(dt) {
       continue;
     }
 
+    // Aerial finishes are genuinely rare and context-gated: descending ball, close to
+    // goal, player already under it. They never fire from arbitrary midfield bounces.
+    let spectacleStarted = false;
+    if (state.mode === 'play' && state.spectacleCooldown <= 0 && p.role !== 'GK'
+        && !p.kickAnim && p.kickCooldown <= 0 && ball.vel.y < 2.5 && ball.pos.y > .62
+        && ball.pos.y < 1.72 && bd < 1.62) {
+      const dg = Math.hypot(goalX-p.pos.x,p.pos.z);
+      if (dg < 22 && Math.random() < dt*.055) {
+        const overhead = dg < 15 && ball.pos.y > 1.02 && Math.random() < .18;
+        spectacleStarted = attemptAerialFinish(p,overhead?'bicycle':'volley');
+      }
+    }
+
     // HEADER: ball at head height in reach — rise and meet it. Commit only if the ball
     // will STILL be meetable at contact time (predict the windup ahead — fast/falling
     // balls used to schedule headers that whiffed at thin air)
-    if (state.mode === 'play' && bd < 1.3 && p.kickCooldown <= 0 && !p.kickAnim && p.role !== 'GK'
+    if (!spectacleStarted && state.mode === 'play' && bd < 1.3 && p.kickCooldown <= 0 && !p.kickAnim && p.role !== 'GK'
         && ball.pos.y > 1.1 && ball.pos.y < 2.3 && facingN.dot(toBallN) > 0.1) {
       const wu = 0.325; // head snap lands at pose k=0.65
       const hx2 = ball.pos.x + ball.vel.x * wu, hz2 = ball.pos.z + ball.vel.z * wu;
@@ -1791,6 +2042,7 @@ function aiStep(dt) {
             victim.fallT = 1.15; victim.fallDir = 1;
             camShake = Math.max(camShake, 0.45);
             crowd.onBigKick();
+            if (-vn > 11 && Math.random() < .18) markInjury(victim,'SHOULDER IMPACT',6.5);
             commentate(`HUGE COLLISION! ${victim.name} GOES DOWN`);
             if (offender.team !== victim.team && Math.random() < 0.4 && !pendingFoul) {
               const ruling = ref.judgeChallenge({
@@ -1885,7 +2137,9 @@ function updateKicks(dt) {
         } else {
           p.kickCooldown = Math.min(p.kickCooldown, 0.25); // whiffed — free to play the drop
         }
-      } else if (state.mode === 'play' && p.pos.distanceTo(ball.pos) < 1.45) {
+      } else if (state.mode === 'play' && ((k.type === 'bicycle' || k.type === 'volley')
+          ? Math.hypot(p.pos.x-ball.pos.x,p.pos.z-ball.pos.z)<1.15 && ball.pos.y<1.85
+          : p.pos.distanceTo(ball.pos)<1.45)) {
         ballTrap = 0;
         if (k.type === 'throwin') { ball.pos.y = 1.95; ball.pinned = false; } // released — unpin so it flies THIS frame
         // hard speed caps per technique — capped INSIDE flight.kick so pace, loft and spin
@@ -2229,6 +2483,7 @@ function ballStep(dt) {
     if (Math.abs(ball.pos.x) > HALF_W && Math.abs(ball.vel.x) > 9
         && Math.abs(ball.pos.z) > GOAL_WIDTH/2 && Math.abs(ball.pos.z) < GOAL_WIDTH/2 + 4) {
       crowd.onNearMiss();
+      benchReaction('chance', state.lastTouchTeam,2.2);
       crowdExcitement = Math.max(crowdExcitement, 0.45);
       // feed caption, host-debounced — the detector can re-fire on consecutive frames
       // and the random line bank would defeat presentation's exact-title dupe collapse
@@ -2308,6 +2563,8 @@ function goalScored(side) {
   state.mode = 'goal'; state.modeT = 0; state.goalTeam = scoringTeam;
   const lt = state.lastTouchPlayer;
   state.scorer = (lt && lt.team === scoringTeam) ? lt : null;
+  state.goalTechnique = state.lastTechnique && state.clock-state.lastTechnique.clock < 5
+    && (!state.scorer || state.lastTechnique.player===state.scorer.name) ? state.lastTechnique.type : null;
   state.celebT = 0;
   state.celebSpot = (state.scorer ? state.scorer.pos : ball.pos).clone();
   state.celebSpot.x = THREE.MathUtils.clamp(state.celebSpot.x, -HALF_W+4, HALF_W-4);
@@ -2324,6 +2581,7 @@ function goalScored(side) {
   crowdExcitement = 1.6;
   // stands are retinted per fixture via crowd.setTeams in startMatch — pass the live team
   crowd.onGoal(scoringTeam === TEAM_A ? TEAM_A : TEAM_B);
+  benchReaction('goal', scoringTeam,5.2);
   roar(); whistle(1);
   burstConfetti(side * (HALF_W - 6), ball.pos.z * 0.5, glow3(scoringTeam));
   commentate(state.scorer
@@ -2446,17 +2704,19 @@ function beginFoul(ruling, offender, victim) {
   commentate(present.lines.foul(victim.name, offender.name), true);
   crowdExcitement = Math.max(crowdExcitement,
     ruling.penalty ? 1.0 : ruling.verdict === 'foul' ? 0.35 : 0.85);
+  benchReaction('appeal', ruling.penalty ? victim.team : null,3.5);
+  if ((ruling.force || 0) > 8.5 && Math.random() < .26) markInjury(victim,'HEAVY CHALLENGE',7);
 }
 
 function sendOff(p) {
-  scene.remove(p.mesh);
-  p.mesh.traverse(o => {
-    if (o.geometry) o.geometry.dispose();
-    if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); });
-  });
-  players.splice(players.indexOf(p), 1);
+  if (!p || !players.includes(p)) return;
+  players.splice(players.indexOf(p), 1); // gameplay is immediately a player down
+  p.kickAnim=null; p.skillAnim=null; p.pendingSkillExit=null; p.vel.set(0,0,0);
+  state.departures.push({ p,t:0,side:p.team===TEAM_A?-1:1 }); // body remains for the walk of shame
   const left = players.filter(q => q.team === p.team).length;
   commentate(`${p.name} IS OFF! ${p.team.name} DOWN TO ${left} MEN`, true);
+  setContextEvent('DISMISSED', `${p.name} · LONG WALK TO THE TUNNEL · ${left} REMAIN`,4.8);
+  triggerCameraBeat('dismissal',p,2.2); benchReaction('appeal',p.team,4.6);
   crowdExcitement = Math.max(crowdExcitement, 1);
 }
 
@@ -2629,8 +2889,22 @@ function cameraStep(dt, t) {
   // remove the previous shake offset so noise never compounds into the follow damping
   camera.position.sub(camShakeOff);
   ogLiveFrame(camPosD, camTgtD, t);
-  camera.position.lerp(camPosD, 1 - Math.exp(-1.6 * dt));
-  camTarget.lerp(camTgtD, 1 - Math.exp(-2.2 * dt));
+  const beat = state.cameraBeat;
+  if (beat && beat.t < beat.duration) {
+    const focus = beat.focus && beat.focus.pos ? beat.focus.pos : ball.pos;
+    const u = THREE.MathUtils.clamp(beat.t/beat.duration,0,1);
+    const arc = Math.sin(u*Math.PI);
+    if (beat.type === 'dismissal') {
+      camPosD.set(focus.x+8,5.2,focus.z+10); camTgtD.set(focus.x,1.1,focus.z);
+    } else {
+      const side = focus.z >= 0 ? 1 : -1;
+      camPosD.set(focus.x-6+arc*3,6.8,focus.z+side*12);
+      camTgtD.set(focus.x,1.05,focus.z);
+    }
+  }
+  const beatCut = !!beat && innerWidth < 700; // portrait broadcasts need the subject centered now, not after a wide-frame drift
+  camera.position.lerp(camPosD, beatCut ? 1 : 1 - Math.exp(-(beat ? 5.6 : 1.6) * dt));
+  camTarget.lerp(camTgtD, beatCut ? 1 : 1 - Math.exp(-(beat ? 7.2 : 2.2) * dt));
   if (state.mode === 'goal') {
     // Goals earn the one deliberate push-in; everything else stays readable and wide.
     camera.position.lerp(camPosD.set(ball.pos.x * 0.8, 8, ball.pos.z + 18), 1 - Math.exp(-1.2 * dt));
@@ -2736,6 +3010,7 @@ function animatePlayers(dt, t) {
     const rig = p.mesh.userData.rig;
     p._poseDesc = null;
     p.mesh.position.set(p.pos.x, 0, p.pos.z);
+    p.mesh.rotation.x = 0;
     const sp = p.vel.length();
 
     // yaw: face travel direction when moving; square up to the ball when slow or striking.
@@ -2833,9 +3108,18 @@ function animatePlayers(dt, t) {
       else if (k.type === 'header' && rig.poseHeader) rig.poseHeader(kk);
       else if (k.type === 'header') rig.poseCelebrate(0.3 + kk * 0.4, 0);   // jump fallback
       else rig.poseKick(kk, k.leg, 1);
+      if (k.type === 'bicycle') {
+        const air = Math.sin(Math.PI*kk);
+        p.mesh.position.y = air*.58;
+        p.mesh.rotation.x = -air*1.34;
+      } else if (k.type === 'volley') {
+        p.mesh.position.y = Math.sin(Math.PI*kk)*.12;
+      }
       p._poseDesc = k.type === 'throwin' ? { kind: 3, k: kk, a: 0, b: 0 }
         : k.type === 'header' ? { kind: 2, k: kk, a: 0, b: 0 }
         : { kind: 1, k: kk, a: k.leg, b: 1 };
+    } else if (state.mode === 'play' && p.injuryT > 0 && rig.poseLimp) {
+      rig.poseLimp(t+p.phase);
     } else if ((state.mode === 'goal' || state.mode === 'aftermath') && p === state.scorer && state.celebT < 1.4 && rig.poseKneeSlide) {
       // driven by the continuous celebration clock (pauses through the replay) — modeT
       // resets at aftermath entry and made the knee slide play TWICE per goal
@@ -2846,7 +3130,15 @@ function animatePlayers(dt, t) {
       // only celebrate-pose when nearly stationary — runners RUN to the scorer
       rig.poseCelebrate(t + p.phase, p.number % 4);
       p._poseDesc = { kind: 9, k: t + p.phase, a: p.number % 4, b: 0 };
-    } else if ((state.mode === 'halftime' || state.mode === 'fulltime') && rig.poseExhausted) {
+    } else if (state.mode === 'kickoff' && state.ritual === 'opening') {
+      if (p.role === 'GK' && rig.poseGKSet) rig.poseGKSet(t+p.phase);
+      else rig.poseCelebrate(t*.42+p.phase,p.number%4);
+    } else if (state.mode === 'fulltime' && state.scoreA !== state.scoreB
+               && p.team === (state.scoreA>state.scoreB?TEAM_A:TEAM_B)) {
+      rig.poseCelebrate(t*.72+p.phase,p.number%4);
+    } else if (state.mode === 'fulltime' && rig.poseTrudge) {
+      rig.poseTrudge(t*.7+p.phase);
+    } else if (state.mode === 'halftime' && rig.poseExhausted) {
       rig.poseExhausted(t * 0.8 + p.phase); // hands on knees at the whistle
     } else if ((state.mode === 'foul'
                 || (state.mode === 'setpiece' && state.setpiece && state.setpiece.kind === 'penalty'))
@@ -3002,7 +3294,11 @@ function roar() { // goal eruption swells over the crowd bed, decays for ~5s
 // ============ MATCH STATS ============
 const stats = {
   posA: 0, posB: 0, shotsA: 0, shotsB: 0, duelsA: 0, duelsB: 0,
-  reset() { this.posA = this.posB = this.shotsA = this.shotsB = this.duelsA = this.duelsB = 0; },
+  backheels:0, volleys:0, bicycles:0, injuries:0,
+  reset() {
+    this.posA=this.posB=this.shotsA=this.shotsB=this.duelsA=this.duelsB=0;
+    this.backheels=this.volleys=this.bicycles=this.injuries=0;
+  },
 };
 
 // ============ JUMBOTRON ============
@@ -3045,8 +3341,9 @@ scene.add(ballShadow);
 // (the legacy frame-ring replay system that lived here is gone — replaysys.js is the
 // one true replay path; only this return-to-kickoff handoff was still live)
 function backToKickoff() {
-  document.getElementById('replaytag').classList.remove('show');
+  const rt=document.getElementById('replaytag'); rt.classList.remove('show'); rt.textContent='◉ REPLAY';
   state.mode = 'kickoff'; state.modeT = 0;
+  state.ritual = 'restart';
   resetPositions(state.goalTeam ? (state.goalTeam === TEAM_A ? TEAM_B : TEAM_A) : TEAM_A);
 }
 
@@ -3354,7 +3651,8 @@ function finishMatch() {
   showCard('FULL TIME', `${TEAM_A.name} ${state.scoreA} — ${state.scoreB} ${TEAM_B.name}`, true);
   attachPosterButton(posterSnapshot()); // ⤓ SAVE MATCH POSTER — the share artifact (lazy render on click)
   commentate(`FULL TIME: ${TEAM_A.name} ${state.scoreA}-${state.scoreB} ${TEAM_B.name}`, true);
-  state.mode = 'fulltime'; state.modeT = 0;
+  state.mode = 'fulltime'; state.modeT = 0; state.ritual='final';
+  benchReaction('goal',state.scoreA===state.scoreB?null:(state.scoreA>state.scoreB?TEAM_A:TEAM_B),5.5);
 }
 
 function clearTeams() {
@@ -3373,6 +3671,7 @@ function startMatch() {
     : FIXTURES[league.fixture % FIXTURES.length];
   TEAM_A = LEAGUE_TEAMS[ia]; TEAM_B = LEAGUE_TEAMS[ib];
   crowd.setTeams(TEAM_A, TEAM_B);   // retint stands/flags/scarves for the fixture
+  setTechnicalTeams(TEAM_A,TEAM_B);
   present.clear();                  // never let a queued card from last match slide in
   clearTeams();
   ref.reset(); // fresh book for the new fixture
@@ -3380,6 +3679,19 @@ function startMatch() {
   state.scoreA = 0; state.scoreB = 0; state.clock = 0; state.half = 1;
   state.lastTouchTeam = null; state.lastTouchPlayer = null; state.goalTeam = null; state.scorer = null;
   state.goalLog = []; // fresh scorer ledger for the FT share poster
+  state.ritual='opening'; state.contextEvent=null; state.lastTechnique=null;
+  state.goalTechnique=null;
+  state.spectacleLog=[]; state.spectacleCooldown=0; state.cameraBeat=null;
+  state.tactical={ home:'BALANCED 2-1-2',away:'BALANCED 2-1-2',reason:'OPENING SHAPES',switches:0 };
+  state._halfSwitchDone=false; state._lateSwitchA=false; state._lateSwitchB=false;
+  for (const d of state.departures) {
+    scene.remove(d.p.mesh);
+    d.p.mesh.traverse(o=>{
+      if(o.geometry)o.geometry.dispose();
+      if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m.map)m.map.dispose();m.dispose();});
+    });
+  }
+  state.departures=[];
   stats.reset(); replaySys.reset();
   elSA.textContent = '0'; elSB.textContent = '0'; elHalf.textContent = '1ST HALF';
   const cA = hex6(TEAM_A.glow), cB = hex6(TEAM_B.glow);
@@ -3460,16 +3772,33 @@ function tick(forcedDt, skipRender) {
   const dt = typeof forcedDt === 'number' ? forcedDt : Math.min(clock3.getDelta(), 0.05);
   simT += dt;
   const t = simT;
+  state.spectacleCooldown = Math.max(0,state.spectacleCooldown-dt);
+  if (state.cameraBeat) {
+    state.cameraBeat.t += dt;
+    if (state.cameraBeat.t >= state.cameraBeat.duration) state.cameraBeat=null;
+  }
+  for (const p of players) {
+    p.injuryT=Math.max(0,(p.injuryT||0)-dt);
+    if (!p.injuryT) p.injuryKind=null;
+  }
 
   if (state.mode === 'kickoff') {
     state.modeT += dt;
     if (state.lineupIntro) lineupIntroStep(state.modeT); // match-start lineup cards
     if (state.modeT > (state.lineupIntro ? LINEUP_HOLD : 1.4)) {
       if (state.lineupIntro) { state.lineupIntro = false; hideLineup(); }
-      state.mode = 'play'; state.koClock = state.clock; whistle(1); // koClock feeds the early-shot damper
+      state.mode = 'play'; state.koClock = state.clock; state.ritual=null; whistle(1); // koClock feeds the early-shot damper
     }
   } else if (state.mode === 'play') {
     state.clock += dt;
+    if (state.half===2 && state.clock>HALF_LEN*1.55) {
+      if (!state._lateSwitchA && players.some(p=>p.team===TEAM_A&&p.stamina<.72)) {
+        state._lateSwitchA=true; triggerTacticalSwitch(TEAM_A,'FRESH ANGLE');
+      }
+      if (!state._lateSwitchB && players.some(p=>p.team===TEAM_B&&p.stamina<.72)) {
+        state._lateSwitchB=true; triggerTacticalSwitch(TEAM_B,'FRESH ANGLE');
+      }
+    }
     if (state.lastTouchTeam === TEAM_A) stats.posA += dt;
     else if (state.lastTouchTeam === TEAM_B) stats.posB += dt;
     replaySys.record(state.clock, ball, players);
@@ -3477,7 +3806,12 @@ function tick(forcedDt, skipRender) {
       whistle(2);
       stopForBreak(); // and skip the trailing aiStep — it would steer velocity right back in
       showCard('HALF TIME', `${TEAM_A.name} ${state.scoreA} — ${state.scoreB} ${TEAM_B.name}`, false);
-      state.mode = 'halftime'; state.modeT = 0;
+      state.mode = 'halftime'; state.modeT = 0; state.ritual='halftime';
+      if (!state._halfSwitchDone) {
+        state._halfSwitchDone=true;
+        triggerTacticalSwitch(TEAM_A,'HALF-TIME ADJUSTMENT');
+        triggerTacticalSwitch(TEAM_B,'HALF-TIME ADJUSTMENT');
+      }
     } else if (state.half === 2 && state.clock >= HALF_LEN*2) {
       finishMatch();
     } else {
@@ -3497,7 +3831,10 @@ function tick(forcedDt, skipRender) {
         replayCam.camPos.copy(camera.position);
         replayCam.camTarget.copy(camTarget);
         state.mode = 'replay';
-        document.getElementById('replaytag').classList.add('show');
+        const replayTag=document.getElementById('replaytag');
+        replayTag.textContent=state.goalTechnique
+          ? `◉ REPLAY · ${state.goalTechnique==='bicycle'?'OVERHEAD':state.goalTechnique.toUpperCase()}` : '◉ REPLAY';
+        replayTag.classList.add('show');
       } else {
         backToKickoff();
       }
@@ -3516,14 +3853,16 @@ function tick(forcedDt, skipRender) {
     if (a.done) backToKickoff();
   } else if (state.mode === 'halftime') {
     state.modeT += dt;
+    ritualMovementStep(dt);
     if (state.modeT > 6.5) {
       hideCard();
       state.half = 2; elHalf.textContent = '2ND HALF';
       resetPositions(Math.random() < 0.5 ? TEAM_A : TEAM_B);
-      state.mode = 'kickoff'; state.modeT = 0;
+      state.mode = 'kickoff'; state.modeT = 0; state.ritual='restart';
     }
   } else if (state.mode === 'fulltime') {
     state.modeT += dt;
+    ritualMovementStep(dt);
     if (!LIVE_BROADCAST && state.modeT > 11) { hideCard(); startMatch(); }
   } else if (state.mode === 'foul') {
     state.modeT += dt;
@@ -3667,10 +4006,14 @@ function tick(forcedDt, skipRender) {
   updateFlashes(dt);
   confettiStep(dt);
   crowdStep(t, dt);
+  technicalAreaStep(t,dt);
+  updateDepartures(dt,t);
+  contextStep();
   // the live ref and ball kids are anachronisms inside a recorded clip — freeze them and
   // hide the ref rig while the replay plays (he was never recorded)
   if (state.mode !== 'replay') {
     ref.update(t, dt, ball, players);
+    refereeProximityStep(dt);
     refRigStep(dt, t);
     boundary.update(t, dt, ball);
   }
@@ -3728,6 +4071,17 @@ refRig.group.scale.setScalar(0.97);
 scene.add(refRig.group);
 const refPrev = new THREE.Vector3().copy(ref.pos);
 let refYaw = 0, refFaceMove = false, refRunSm = 0;
+function refereeProximityStep(dt) {
+  if (state.mode !== 'play') return;
+  const dx=ball.pos.x-ref.pos.x,dz=ball.pos.z-ref.pos.z,d=Math.hypot(dx,dz);
+  if (d <= 11.5) return;
+  const attack = state.lastTouchTeam === TEAM_A ? 1 : state.lastTouchTeam === TEAM_B ? -1 : Math.sign(ball.vel.x||1);
+  const tx=THREE.MathUtils.clamp(ball.pos.x-attack*6,-HALF_W+4,HALF_W-4);
+  const tz=THREE.MathUtils.clamp(ball.pos.z+(ball.pos.z>=0?-4:4),-HALF_H+4,HALF_H-4);
+  const rx=tx-ref.pos.x,rz=tz-ref.pos.z,rl=Math.hypot(rx,rz)||1;
+  const step=Math.min(4.8*dt,Math.max(0,rl-5.5));
+  ref.pos.x+=rx/rl*step; ref.pos.z+=rz/rl*step;
+}
 function refRigStep(dt, t) {
   refRig.group.position.set(ref.pos.x, 0, ref.pos.z);
   const rvx = (ref.pos.x - refPrev.x) / Math.max(dt, 1e-4), rvz = (ref.pos.z - refPrev.z) / Math.max(dt, 1e-4);
@@ -3834,7 +4188,42 @@ document.addEventListener('visibilitychange', startDriver);
 startDriver();
 
 // debug hook (harmless in prod, lets devtools poke the sim)
-window.CL = { state, ball, players, goalScored, ref, beginFoul, flight, present, tactics, keeperAI, stats, replaySys, buildMatchPoster, posterSnapshot };
+function forceSoccerMoment(type) {
+  state.cameraBeat=null;
+  if (type === 'tactical-switch') return triggerTacticalSwitch(TEAM_A,'FORCED QA BRANCH');
+  if (type === 'injury') return markInjury(players.find(p=>p.role==='FWD'),'ANKLE KNOCK',8);
+  if (type === 'red-walk') {
+    const p=players.find(p=>p.role!=='GK'); if (!p) return false; sendOff(p); return true;
+  }
+  if (type === 'halftime-ritual') {
+    stopForBreak(); showCard('HALF TIME',`${TEAM_A.name} ${state.scoreA} — ${state.scoreB} ${TEAM_B.name}`,false);
+    state.mode='halftime'; state.modeT=0; state.ritual='halftime'; return true;
+  }
+  if (type === 'final-ritual') {
+    stopForBreak(); showCard('FULL TIME',`${TEAM_A.name} ${state.scoreA} — ${state.scoreB} ${TEAM_B.name}`,true);
+    state.mode='fulltime'; state.modeT=0; state.ritual='final'; return true;
+  }
+  const p=players.find(q=>q.role==='FWD'&&q.team===TEAM_A)||players.find(q=>q.role!=='GK');
+  if (!p) return false;
+  state.mode='play'; state.spectacleCooldown=0; p.kickAnim=null; p.kickCooldown=0; p.fallT=0;
+  p.pos.set(18,0,0); p.vel.set(0,0,0); p.yaw=Math.PI/2; p.tgtSm.copy(p.pos);
+  if (type==='backheel') {
+    ball.pos.set(p.pos.x+.28,.24,p.pos.z); ball.vel.set(0,0,0);
+    state._forceTechnique='backheel';
+    scheduleKick(p,{ type:'pass',power:.58,mate:players.find(q=>q.team===p.team&&q!==p) },new THREE.Vector3(-1,0,.08));
+    return p.kickAnim?.type==='backheel';
+  }
+  if (type==='volley'||type==='bicycle') {
+    p.pos.x=type==='bicycle'?21:15; p.tgtSm.copy(p.pos);
+    ball.pos.set(p.pos.x+.18,type==='bicycle'?1.28:.92,p.pos.z+.1);
+    ball.vel.set(1,-1.2,0); ball.mesh.position.copy(ball.pos);
+    return attemptAerialFinish(p,type);
+  }
+  return false;
+}
+window.CL = { state, ball, players, goalScored, ref, beginFoul, sendOff, markInjury,
+  triggerTacticalSwitch, forceMoment:forceSoccerMoment, flight, present, tactics, keeperAI,
+  stats, replaySys, buildMatchPoster, posterSnapshot };
 window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'pitch center is 0,0; +x attacks toward the right goal; +z points toward the near touchline',
   broadcast: LIVE_BROADCAST ? { id: LIVE_BROADCAST.id, round: LIVE_BROADCAST.round, channel: LIVE_BROADCAST.channel } : null,
@@ -3844,7 +4233,18 @@ window.render_game_to_text = () => JSON.stringify({
   score: { home: state.scoreA, away: state.scoreB },
   teams: { home: TEAM_A.name, away: TEAM_B.name },
   ball: { x: +ball.pos.x.toFixed(2), y: +ball.pos.y.toFixed(2), z: +ball.pos.z.toFixed(2) },
-  players: players.map(p => ({ name: p.name, team: p.team.name, role: p.role, x: +p.pos.x.toFixed(1), z: +p.pos.z.toFixed(1) }))
+  tacticalContext: { ...state.tactical, ritual:state.ritual,
+    event:state.contextEvent?{label:state.contextEvent.label,detail:state.contextEvent.detail}:null },
+  spectacle: { last:state.lastTechnique, goalTechnique:state.goalTechnique,
+    cooldown:+state.spectacleCooldown.toFixed(1), stats:{backheels:stats.backheels,volleys:stats.volleys,bicycles:stats.bicycles} },
+  cameraBeat: state.cameraBeat?state.cameraBeat.type:null,
+  refereeDistance:+Math.hypot(ref.pos.x-ball.pos.x,ref.pos.z-ball.pos.z).toFixed(1),
+  technicalAreas:technicalAreas.map(a=>({team:a.team.name,reaction:a.reaction})),
+  departures:state.departures.map(d=>({name:d.p.name,team:d.p.team.name,seconds:+d.t.toFixed(1)})),
+  players: players.map(p => ({ name: p.name, team: p.team.name, role: p.role,
+    x: +p.pos.x.toFixed(1), z: +p.pos.z.toFixed(1), stamina:+p.stamina.toFixed(2),
+    injury:p.injuryT>0?{kind:p.injuryKind,seconds:+p.injuryT.toFixed(1)}:null,
+    action:p.kickAnim?.type||p.skillAnim?.move||null }))
 });
 window.advanceTime = ms => {
   const steps = Math.max(1, Math.round(ms / 50));

@@ -234,7 +234,7 @@
 </head>
 <body>
 <div id="hud">
-  <div id="badge"><a id="leaguepill" href="world.html">&#x2b21; WORLD MAP</a><span id="wordmark">CYBERLIGA <em>ICE</em></span><span id="erapill">EXHIBITION ERA</span></div>
+  <div id="badge"><a id="leaguepill" href="world.html">← HOME</a><span id="wordmark">CYBERLIGA <em>ICE</em></span><span id="erapill">EXHIBITION ERA</span></div>
   <div id="scoreboard">
     <div class="team" id="teamA"><span class="dot"></span><span class="tn">NEON FC</span><span class="tc">NEO</span></div>
     <div id="score"><span id="sA">0</span>&nbsp;&ndash;&nbsp;<span id="sB">0</span></div>
@@ -457,7 +457,7 @@ for (const s of [-1, 1]) {
 const goalLight = new THREE.PointLight(0xff2030, 0, 26, 1.8);
 goalLight.position.set(GLX + 2, 2.4, 0); scene.add(goalLight);
 
-// ============ CROWD (silhouette strips) + LED FLASH STRIP ============
+// ============ CROWD + LOWER BOWL + LED FLASH STRIP ============
 function crowdTexture() {
   const c = document.createElement('canvas'); c.width = 1024; c.height = 160;
   const g = c.getContext('2d');
@@ -495,21 +495,49 @@ led.position.set(0, 8.2, -BZ - 6.2); scene.add(led);
 // Near-side benches and a true dimensional lower bowl make the rink read as a
 // broadcast venue instead of a texture behind the ice. Spectators use one
 // instanced mesh, so the added depth is cheap even on mobile GPUs.
-const crowdGeo = new THREE.SphereGeometry(0.26, 6, 5);
-const crowdMat = new THREE.MeshBasicMaterial({ color:0x7393b5 });
-const crowdBodies = new THREE.InstancedMesh(crowdGeo, crowdMat, 220);
+// A real lower bowl: individual torsos + heads, club-colour pockets, visible
+// seating risers and all four sides populated. Keeping it instanced makes the
+// fuller arena cheaper than a few dozen normal meshes.
+const crowdCount = 520;
+const crowdGeo = new THREE.CapsuleGeometry(0.24, .36, 3, 6);
+const crowdHeadGeo = new THREE.SphereGeometry(0.22, 6, 5);
+const crowdMat = new THREE.MeshBasicMaterial({ color:0xffffff });
+const crowdHeadMat = new THREE.MeshBasicMaterial({ color:0x8293a5 });
+const crowdBodies = new THREE.InstancedMesh(crowdGeo, crowdMat, crowdCount);
+const crowdHeads = new THREE.InstancedMesh(crowdHeadGeo, crowdHeadMat, crowdCount);
 const crowdDummy = new THREE.Object3D();
-for (let i=0; i<220; i++) {
-  const row = i % 6, col = Math.floor(i/6), side = col % 3;
+const crowdHeadDummy = new THREE.Object3D();
+const crowdColors = [0x1e3857,0x2d5476,0x386d89,0x6b7890,0xdcecf4,0x00b9de,0xd93d9d,0xf2c94c];
+for (let i=0; i<crowdCount; i++) {
+  const side=Math.floor(i/130), local=i%130, row=local%5, seat=Math.floor(local/5);
+  const lane=(seat/25)*2-1, stagger=(row%2)*1.05;
   let x, z;
-  if (side === 0) { x = -32 + (col*2.17)%64; z = -BZ-3.1-row*.78; }
-  else if (side === 1) { x = -BX-3.1-row*.75; z = -12 + (col*1.91)%24; }
-  else { x = BX+3.1+row*.75; z = -12 + (col*1.73)%24; }
-  crowdDummy.position.set(x, 1.45+row*.52+(i%4)*.06, z);
-  const s=.72+(i%7)*.055; crowdDummy.scale.set(s,1.05+(i%5)*.08,s);
+  if (side === 0) { x = lane*32+stagger; z = -BZ-2.2-row*.74; }
+  else if (side === 1) { x = -BX-2.2-row*.72; z = lane*12+stagger; }
+  else if (side === 2) { x = BX+2.2+row*.72; z = lane*12+stagger; }
+  else { x = lane*31+stagger; z = BZ+3.35+row*.78; }
+  const baseY = 1.35+row*.54+(i%4)*.035;
+  crowdDummy.position.set(x, baseY, z);
+  const s=(side===3?.66:.72)+(i%7)*.038; crowdDummy.scale.set(s,.92+(i%5)*.045,s);
   crowdDummy.updateMatrix(); crowdBodies.setMatrixAt(i,crowdDummy.matrix);
+  crowdHeadDummy.position.set(x,baseY+.63*s,z); crowdHeadDummy.scale.setScalar(.9+(i%4)*.045);
+  crowdHeadDummy.updateMatrix(); crowdHeads.setMatrixAt(i,crowdHeadDummy.matrix);
+  const clubPocket=(i%17<3) ? (i%2?0x00d9ff:0xff45bd) : crowdColors[(i*7+row*3)%crowdColors.length];
+  crowdBodies.setColorAt(i,new THREE.Color(clubPocket));
 }
-scene.add(crowdBodies);
+crowdBodies.instanceColor.needsUpdate=true;
+scene.add(crowdBodies,crowdHeads);
+const riserMat=new THREE.MeshStandardMaterial({color:0x081326,roughness:.9,metalness:.1});
+for(let row=0;row<5;row++) {
+  const far=new THREE.Mesh(new THREE.BoxGeometry(RINK_W+18,.18,1.35),riserMat);
+  far.position.set(0,.35+row*.48,-BZ-2.35-row*.74); scene.add(far);
+  const near=far.clone(); near.position.z=BZ+3.2+row*.72; scene.add(near);
+}
+const bannerMat=new THREE.MeshBasicMaterial({color:0x29d8f3});
+for(const x of [-23,-8,8,23]) {
+  const banner=new THREE.Mesh(new THREE.BoxGeometry(12,.16,.08),bannerMat.clone());
+  banner.material.color.setHex(x<0?0x00d9ff:0xff45bd); banner.position.set(x,7.55,-BZ-6.05); scene.add(banner);
+}
 const benchMat = new THREE.MeshStandardMaterial({ color:0x10243a, roughness:.58, metalness:.2 });
 const benchTrim = new THREE.MeshBasicMaterial({ color:0x35dff5 });
 for (const x of [-12,12]) {
@@ -740,11 +768,33 @@ function mkPlayer(team, idx, name, teamDef) {
   const role=ROLES[idx]||`L${idx}`;
   const badge=new THREE.Sprite(new THREE.SpriteMaterial({map:roleTexture(role,teamDef.css),transparent:true,depthTest:false,depthWrite:false}));
   badge.position.set(0,isGK?2.8:2.55,0); badge.scale.set(1.55,.52,1); rig.group.add(badge);
+  // Hockey equipment is page-local so the shared athlete rig remains usable by
+  // every other sport. The blade sits beside the actual carried puck and the
+  // pivot sells pass/shot load, contact and follow-through.
+  const gear=new THREE.Group();
+  const shaftMat=new THREE.MeshStandardMaterial({color:isGK?0xf2f7fb:0x151b25,roughness:.38,metalness:.15});
+  const tapeMat=new THREE.MeshStandardMaterial({color:teamDef.kit,emissive:teamDef.glow,emissiveIntensity:.22,roughness:.5});
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.045,.06,1.62,7),shaftMat);
+  shaft.position.set(.43,.88,.29); shaft.rotation.set(.45,0,.12); gear.add(shaft);
+  const blade=new THREE.Mesh(new THREE.BoxGeometry(isGK?.72:.62,.10,isGK?.28:.18),tapeMat);
+  blade.position.set(.58,.13,.96); blade.rotation.y=-.18; gear.add(blade);
+  const glove=new THREE.Mesh(new THREE.SphereGeometry(.13,7,5),tapeMat);
+  glove.position.set(.33,1.48,-.02); gear.add(glove);
+  if(isGK) {
+    const padMat=new THREE.MeshStandardMaterial({color:0xeaf6fb,emissive:teamDef.glow,emissiveIntensity:.10,roughness:.65});
+    for(const side of [-1,1]) {
+      const pad=new THREE.Mesh(new THREE.BoxGeometry(.32,.68,.22),padMat);
+      pad.position.set(side*.29,.43,.08); pad.rotation.z=side*.05; rig.group.add(pad);
+    }
+    const blocker=new THREE.Mesh(new THREE.BoxGeometry(.34,.34,.18),tapeMat);
+    blocker.position.set(-.46,1.15,.2); rig.group.add(blocker);
+  }
+  rig.group.add(gear);
   scene.add(rig.group);
   return { team, idx, name, role, isGK, rig, badge, x: 0, z: 0, vx: 0, vz: 0, heading: 0, turn: 0,
     tx: 0, tz: 0, sprint: 1, fallT: 0, checkCd: 0, touchCd: 0, puffCd: 0, recvT: 0, decT: 1 + Math.random(),
     fox: 0, foz: 0, holdT: 0, butterT: 0, breakaway: false, wasBreakaway:false,
-    action:null, checkReady:0, hitT:0, saveT:0, saveKind:'', saveSide:1, edge:0, motionAccel:0,
+    action:null, gear, checkReady:0, hitT:0, saveT:0, saveKind:'', saveSide:1, edge:0, motionAccel:0,
     energy:1, shiftT:0, penaltyT:0, penaltyReason:'', zoneRole:'' };
 }
 function buildSquads() {
@@ -1020,7 +1070,9 @@ function steerGK(p) {
   const threat=puck.carrier&&puck.carrier.team!==p.team;
   const screened=threat&&activeSkaters(1-p.team).some(q=>Math.abs(q.x-hx)<3&&Math.abs(q.z-p.z)<1.2);
   const f = distPuck < 12 ? 0.82 : 0.42;
-  const challenge=threat&&!screened?clamp((15-distPuck)*.09,0,1.05):0;
+  // Hold the crease. Goalies may take a compact half-step to cut the angle but
+  // never wander into the slot or chase a loose puck like another skater.
+  const challenge=threat&&!screened?clamp((13-distPuck)*.055,0,.62):0;
   p.tx = hx+d*challenge; p.tz = clamp(puck.z*f, -2.5, 2.5); p.sprint = 0.85;
   p.zoneRole=screened?'FIGHTING SCREEN':threat?'SQUARE TO PUCK':'CREASE SET';
   if (p.butterT > 0) p.butterT -= dtg;
@@ -1111,6 +1163,14 @@ function steerFaceoff() {
 }
 
 // ============ PHYSICS ============
+function holdGoalieInCrease(p) {
+  const d=ATT[p.team], ownX=-d*GLX;
+  const depth=clamp(d*(p.x-ownX),.58,1.68);
+  const oldX=p.x, oldZ=p.z;
+  p.x=ownX+d*depth; p.z=clamp(p.z,-2.28,2.28);
+  if(Math.abs(p.x-oldX)>.001) p.vx*=.12;
+  if(Math.abs(p.z-oldZ)>.001) p.vz*=.12;
+}
 function integratePlayers(dt) {
   for (const p of players) {
     p.checkCd -= dt; p.touchCd -= dt; p.puffCd -= dt;
@@ -1149,6 +1209,7 @@ function integratePlayers(dt) {
     }
     p.x += p.vx*dt; p.z += p.vz*dt;
     boardResolve(p, 0.55, 0.15, 0.92);
+    if(p.isGK) holdGoalieInCrease(p);
     if (!isFinite(p.x) || !isFinite(p.z)) { p.x = 0; p.z = 0; p.vx = p.vz = 0; }
   }
   // separation + body checks
@@ -1196,6 +1257,9 @@ function integratePlayers(dt) {
       }
     }
   }
+  // Net-front traffic can separate bodies, but it must never dislodge the
+  // goaltender from the crease after the collision pass.
+  for(const p of players) if(p.isGK) holdGoalieInCrease(p);
 }
 function netCollide() { // keep free puck + players out of the net cages (from behind/side)
   for (const s of [-1, 1]) {
@@ -1441,6 +1505,13 @@ function updateRigs(dt) {
     p.heading += dh*dampK(8, dt);
     p.rig.group.position.set(p.x, 0, p.z);
     p.rig.group.rotation.y = p.heading;
+    const gearLoad=p.action?clamp(p.action.t/p.action.duration,0,1):0;
+    const wind=p.action ? Math.sin(gearLoad*Math.PI) : 0;
+    const carry=puck.carrier===p ? Math.sin(simClockTotal*8+p.idx)*.08 : 0;
+    p.gear.position.y=p.isGK&&p.butterT>.25?-.10:0;
+    p.gear.rotation.x=(p.isGK?.02:-.08)+wind*(p.action?.type==='pass'?.18:.42);
+    p.gear.rotation.y=carry+wind*(p.idx%2?.32:-.32);
+    p.gear.rotation.z=(p.isGK?-.08:.02)+wind*(p.idx%2?.18:-.18);
     if (p.fallT > 0) {
       if (p.fallT > 0.5) p.rig.poseFall(clamp((1.12 - p.fallT)/0.62, 0, 1));
       else p.rig.poseGetUp(1 - p.fallT*2);
@@ -1537,6 +1608,8 @@ function updateFX(dt) {
     const tdef = S.scoringTeam === 0 ? TEAM_A : TEAM_B;
     ledMat.color.setHex(strobe ? tdef.glow : 0x123048);
     for (const m of standMats) m.color.setHex(strobe ? 0xe8f2ff : 0x99a5be);
+    crowdMat.color.setHex(strobe ? tdef.glow : 0xffffff);
+    crowdHeadMat.color.setHex(strobe ? 0xf4fbff : 0x8293a5);
   } else {
     goalLight.intensity = Math.max(0, goalLight.intensity - dt*120);
     lampMats[0].color.setHex(0x320a10); lampMats[1].color.setHex(0x320a10);
@@ -1546,8 +1619,12 @@ function updateFX(dt) {
       m.color.setHex(0x8e9ab3);
       if (pulse > 0) m.color.lerp(crowdTint.setHex(S.ledColor),pulse*0.28);
     }
-    crowdMat.color.setHex(0x7393b5);
-    if(pulse>0) crowdMat.color.lerp(crowdTint.setHex(S.ledColor),pulse*.5);
+    crowdMat.color.setHex(0xffffff);
+    crowdHeadMat.color.setHex(0x8293a5);
+    if(pulse>0) {
+      crowdMat.color.lerp(crowdTint.setHex(S.ledColor),pulse*.38);
+      crowdHeadMat.color.lerp(crowdTint.setHex(S.ledColor),pulse*.45);
+    }
   }
   thudCd -= dt; skateCd -= dt;
   crowdLevel += (0.05 + 0.012*Math.sin(simClockTotal*0.7) - crowdLevel)*dampK(0.58, dt);

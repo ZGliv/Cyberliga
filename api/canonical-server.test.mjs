@@ -126,6 +126,24 @@ test('fallback network covers six sports and American football content', () => {
   assert.ok(football.teams.every((team) => team.athletes.length === 22));
   assert.equal(football.standings.length, 8);
   assert.equal(football.live.length, 4);
+  assert.equal(football.fixtures.length, 12);
+  assert.ok(football.fixtures.every((fixture) => fixture.seasonPublicId && fixture.roundNumber >= 1 && fixture.channel >= 0));
+  assert.equal(football.summary.gamesPerRound, 4);
+  assert.ok(football.standings.every((row) => /^\d+-\d+-\d+$/.test(row.record)));
+  assert.ok(football.standings.every((row) => row.played === row.wins + row.draws + row.losses));
+  assert.deepEqual(football.standings.map((row) => row.rank), [1, 2, 3, 4, 5, 6, 7, 8]);
+});
+
+test('fallback league fixture windows retain season identity at rollover', () => {
+  const observedAt = CANONICAL_EPOCH_MS + DEFAULT_SLOT_MS * 14 + 1_000;
+  const football = buildFallbackLeague('american-football', observedAt);
+  assert.equal(football.season.publicId, 'american-football-2026-s2');
+  assert.equal(football.standings.every((row) => row.played === 0), true);
+  assert.deepEqual(new Set(football.fixtures.map((fixture) => fixture.seasonPublicId)), new Set([
+    'american-football-2026-s1',
+    'american-football-2026-s2'
+  ]));
+  assert.equal(football.fixtures.filter((fixture) => fixture.seasonPublicId === football.season.publicId).length, 8);
 });
 
 test('public handlers use deterministic fallback without Supabase environment', async () => {

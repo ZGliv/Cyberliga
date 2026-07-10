@@ -86,6 +86,8 @@ const supportingPages = [
   { file: 'moment.html', screen: /screen\s*:\s*['"](?:moment|moment-maker)['"]/ },
   { file: 'clip.html', screen: /screen\s*:\s*['"]animated-clip-director['"]/ },
   { file: 'menu.html', scriptFile: 'menu.js', screen: /screen\s*:\s*['"]broadcast-guide['"]/ },
+  { file: 'replay.html', scriptFile: 'replay.js', screen: /screen\s*:\s*['"]replay-center['"]/ },
+  { file: 'player.html', scriptFile: 'player.js', screen: /screen\s*:\s*['"]athlete-profile['"]/ },
   { file: 'characterlab.html', scriptFile: 'characterlab.js', screen: /screen\s*:\s*['"]character-laboratory['"]/ },
   { file: 'ops.html', screen: /screen\s*:\s*['"](?:ops|operations-console)['"]/ }
 ];
@@ -106,6 +108,10 @@ const momentSource = await text('moment.html');
 const clipSource = await text('clip.html');
 const menuSource = await text('menu.html');
 const menuScript = await text('menu.js');
+const replaySource = await text('replay.html');
+const replayScript = await text('replay.js');
+const playerSource = await text('player.html');
+const playerScript = await text('player.js');
 const footballSource = await text('football.html');
 const baseballSource = await text('baseball.html');
 const hockeySource = await text('hockey.html');
@@ -115,7 +121,7 @@ check(/['"]american-football['"]\s*:\s*['"]football\.html['"]/.test(atlasSource)
 check(/id=["']standings-section["']/.test(atlasSource), 'League atlas is missing its standings table');
 check(/api\/league\?sport=/.test(atlasSource), 'League atlas does not load the shared league-state API');
 check(/id=["']roster-filters["']/.test(atlasSource), 'League atlas is missing football offense/defense roster filters');
-check(/class=["']athlete-wire["']/.test(atlasSource) && /social\.html\?sport=/.test(atlasSource), 'League atlas does not connect athletes to durable World Wire focus URLs');
+check(/class=["']athlete-actions["']/.test(atlasSource) && /player\.html\?sport=/.test(atlasSource) && /social\.html\?sport=/.test(atlasSource), 'League atlas does not connect athletes to permanent profile and World Wire URLs');
 for (const arena of arenas) {
   check(worldSource.includes(arena.id), `World map does not expose ${arena.id}`);
   check(worldSource.includes(arena.file), `World map does not link the ${arena.id} arena`, arena.file);
@@ -137,8 +143,16 @@ check(/id=["']sport-grid["']/.test(menuSource), 'Broadcast Guide must expose eve
 check(/UNIVERSE\.liveMatches/.test(menuScript), 'Broadcast Guide must use the shared UTC match schedule');
 check(/\^\[1-4\]\$/.test(menuScript), 'Broadcast Guide must keep keyboard tuning for the four soccer channels');
 for (const arena of arenas) check(menuScript.includes(arena.file), `Broadcast Guide does not link ${arena.id}`, arena.file);
-check(/id=["']coachPanel["']/.test(footballSource) && /aria-pressed/.test(footballSource), 'Football must expose an accessible pre-snap coach mode');
-check(/window\._footballTest\s*=/.test(footballSource) && /callPlay[\s\S]*getPlayOptions[\s\S]*forceCatch/.test(footballSource), 'Football must expose deterministic coach-call and catch branch helpers');
+check(menuSource.includes('replay.html') && menuSource.includes('player.html'), 'Broadcast Guide does not expose Replay Center and Athlete Files');
+check(/U\.liveMatches/.test(replayScript) && /selectionURL/.test(replayScript), 'Replay Center must use shared UTC matches and permanent selection URLs');
+check(/CANONICAL BOUNDARY/.test(replayScript) && /EXHIBITION BOUNDARY/.test(replayScript), 'Replay Center must label canonical and exhibition provenance');
+check(/player\.html\?sport=/.test(replayScript), 'Replay Center does not hand highlights into Athlete Files');
+check(/416/.test(playerScript) || (/C\.getSport/.test(playerScript) && /C\.getTeam/.test(playerScript) && /C\.getAthlete/.test(playerScript)), 'Athlete Files must resolve the shared world roster');
+check(/player\.html\?/.test(playerScript) && /canonical/.test(playerScript), 'Athlete Files must expose permanent canonical profile URLs');
+check(/id=["']playPanel["']/.test(footballSource) && /aria-pressed/.test(footballSource), 'Football must expose an accessible pre-snap play-call panel');
+check(/window\._footballTest\s*=/.test(footballSource) && /select[\s\S]*snap[\s\S]*forceSituation[\s\S]*forceOutcome[\s\S]*finishPlay/.test(footballSource), 'Football must expose deterministic play-call, situation, snap, outcome, and finish helpers');
+check(/chooseAutonomousPlay/.test(footballSource) && /AUTO_CADENCE/.test(footballSource) && /state\.phase===['"]preplay['"][\s\S]*snap\(\)/.test(footballSource), 'Football must choose and snap plays autonomously');
+check(/visibilitychange/.test(footballSource) && /hiddenTimer/.test(footballSource), 'Football must keep simulating autonomously in hidden tabs');
 check(/window\._baseballTest\s*=/.test(baseballSource) && /double_play|sac_fly/.test(baseballSource), 'Baseball must expose deterministic force-play branch helpers');
 check(/id=["']pitchtrail["']/.test(baseballSource) && /pitchHistory/.test(baseballSource), 'Baseball must expose an accessible pitch sequence and structured pitch history');
 check(/window\.__CYBERLIGA_HOCKEY_TEST__\s*=/.test(hockeySource) && /penalty[\s\S]*powerplay[\s\S]*overtime[\s\S]*final/.test(hockeySource), 'Hockey must expose penalty, power-play, overtime, and final branch helpers');

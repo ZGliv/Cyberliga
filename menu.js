@@ -171,7 +171,7 @@
         upcoming: state.upcoming.map(function (match) { return { channel: match.channel + 1, round: match.round, home: match.home.name, away: match.away.name, startsAt: new Date(match.startsAt).toISOString() }; })
       },
       arenas: ROUTES.map(function (route) { var sport = CONTENT && CONTENT.getSport(route.id); return { id: route.id, name: sport ? sport.name : route.id, href: route.href, mode: route.label.toLowerCase() }; }),
-      destinations: ['world.html', 'league.html', 'social.html', 'moment.html', 'clip.html', 'characterlab.html', 'ops.html'],
+      destinations: ['world.html', 'league.html', 'social.html', 'moment.html', 'clip.html', 'replay.html', 'player.html', 'characterlab.html', 'ops.html'],
       controls: ['links and Tab navigation', 'number keys 1–4 tune to soccer channel']
     });
   };

@@ -284,6 +284,8 @@
   function relative(ms, current) { var minutes=Math.max(0,Math.floor((current-ms)/60000)); return minutes<1?'NOW':minutes<60?minutes+'M AGO':Math.floor(minutes/60)+'H AGO'; }
   function queryFor(values, anchor) { var q=new URLSearchParams(); Object.keys(values).forEach(function(key){if(values[key])q.set(key,values[key]);}); return 'social.html?'+q.toString()+(anchor?'#'+anchor:''); }
   function teamUrl(team, athlete) { return queryFor({sport:team.sportId,team:team.id,player:athlete&&athlete.id},athlete?'player-'+athlete.id:'team-'+team.id); }
+  function playerUrl(team, athlete) { var q=new URLSearchParams({sport:team.sportId,team:team.id,player:athlete.id});return 'player.html?'+q.toString(); }
+  function replayUrl(story) { var q=new URLSearchParams({sport:story.sport.id,match:story.id});return 'replay.html?'+q.toString(); }
   function momentUrl(story) { var q=new URLSearchParams();q.set('sport',story.sport.id);q.set('home',story.home.id);q.set('away',story.away.id);q.set('score',story.score.join('-'));q.set('athlete',story.athlete.id);q.set('headline',story.headline);q.set('match',story.id);q.set('story','wire-'+state.cycle);return 'moment.html?'+q.toString(); }
   function clipUrl(story) { return momentUrl(story).replace(/^moment\.html/, 'clip.html'); }
   function copyText(value) {
@@ -342,7 +344,7 @@
     document.documentElement.style.setProperty('--club',story.color);
     var lead=document.getElementById('lead');
     lead.style.setProperty('--club',story.color);
-    lead.innerHTML='<div class="kicker"><i></i>'+esc(story.status)+' · '+esc(story.sport.name)+' · '+clock(story.publishedAt)+'</div><h1>'+esc(story.headline)+'</h1><p class="deck">'+esc(story.hook)+' '+esc(story.athlete.name)+' is the name moving fastest across the wire.</p><div class="scoreline"><div class="score"><b>'+esc(story.home.code)+'</b><strong>'+story.score[0]+'</strong><em>—</em><strong>'+story.score[1]+'</strong><b>'+esc(story.away.code)+'</b></div><a href="'+esc(clipUrl(story))+'">ANIMATE CLIP ↗</a><a href="'+esc(momentUrl(story))+'">MAKE POSTER ↗</a><button type="button" data-share="'+esc(story.id)+'">COPY STORY</button></div>';
+    lead.innerHTML='<div class="kicker"><i></i>'+esc(story.status)+' · '+esc(story.sport.name)+' · '+clock(story.publishedAt)+'</div><h1>'+esc(story.headline)+'</h1><p class="deck">'+esc(story.hook)+' '+esc(story.athlete.name)+' is the name moving fastest across the wire.</p><div class="scoreline"><div class="score"><b>'+esc(story.home.code)+'</b><strong>'+story.score[0]+'</strong><em>—</em><strong>'+story.score[1]+'</strong><b>'+esc(story.away.code)+'</b></div><a href="'+esc(replayUrl(story))+'">WATCH REPLAY ↗</a><a href="'+esc(clipUrl(story))+'">ANIMATE CLIP ↗</a><a href="'+esc(momentUrl(story))+'">MAKE POSTER ↗</a><button type="button" data-share="'+esc(story.id)+'">COPY STORY</button></div>';
   }
 
   function renderSignals() {
@@ -355,7 +357,7 @@
   }
 
   function storyHTML(story) {
-    return '<article class="story" id="story-'+esc(story.id)+'" style="--story:'+story.color+'"><div class="story-time"><b>'+relative(story.publishedAt,state.current)+'</b><span>'+clock(story.publishedAt)+'</span></div><div class="story-copy"><div class="meta"><span>'+esc(story.sport.name)+'</span><span>/</span><span>'+esc(story.status)+'</span><span>/</span><span>'+(story.rivalry?'RIVALRY':'WORLD DESK')+'</span></div><h3>'+esc(story.headline)+'</h3><p class="hook">'+esc(story.hook)+'</p><div class="byline"><a id="team-'+esc(story.team.id)+'" href="'+teamUrl(story.team)+'">'+esc(story.team.name)+'</a><i>×</i><a id="player-'+esc(story.athlete.id)+'" href="'+teamUrl(story.team,story.athlete)+'">'+esc(story.athlete.name)+' · #'+story.athlete.number+' '+esc(story.athlete.role)+'</a><i>×</i><a href="league.html?sport='+encodeURIComponent(story.sport.id)+'">FULL LEAGUE ↗</a></div></div>'+scoreCard(story)+'</article>';
+    return '<article class="story" id="story-'+esc(story.id)+'" style="--story:'+story.color+'"><div class="story-time"><b>'+relative(story.publishedAt,state.current)+'</b><span>'+clock(story.publishedAt)+'</span></div><div class="story-copy"><div class="meta"><span>'+esc(story.sport.name)+'</span><span>/</span><span>'+esc(story.status)+'</span><span>/</span><span>'+(story.rivalry?'RIVALRY':'WORLD DESK')+'</span></div><h3>'+esc(story.headline)+'</h3><p class="hook">'+esc(story.hook)+'</p><div class="byline"><a id="team-'+esc(story.team.id)+'" href="'+teamUrl(story.team)+'">'+esc(story.team.name)+'</a><i>×</i><a id="player-'+esc(story.athlete.id)+'" href="'+playerUrl(story.team,story.athlete)+'">'+esc(story.athlete.name)+' · #'+story.athlete.number+' '+esc(story.athlete.role)+'</a><i>×</i><a href="'+esc(replayUrl(story))+'">REPLAY ↗</a><i>×</i><a href="league.html?sport='+encodeURIComponent(story.sport.id)+'">FULL LEAGUE ↗</a></div></div>'+scoreCard(story)+'</article>';
   }
 
   function renderStories() {
@@ -381,7 +383,7 @@
     var title=athlete?athlete.name:team.name;
     var description=athlete?(athlete.role+' · '+athlete.archetype+'. '+athlete.temperament+'. Signature: '+athlete.signature+'.'):(team.city+' · '+team.region+'. '+team.motif+' culture; '+team.motion+'.');
     box.className='focus-file visible'; box.style.setProperty('--club',team.colors.primary);
-    box.innerHTML='<div class="focus-code">'+esc(athlete?'#'+athlete.number:team.code)+'</div><div class="focus-copy"><small>SHARED FOCUS FILE · '+esc(C.getSport(team.sportId).name).toUpperCase()+'</small><h2>'+esc(title)+'</h2><p>'+esc(description)+'</p></div><div class="focus-actions"><a href="league.html?sport='+encodeURIComponent(team.sportId)+'">OPEN LEAGUE ↗</a><a href="social.html?sport='+encodeURIComponent(team.sportId)+'">CLEAR FOCUS</a></div>';
+    box.innerHTML='<div class="focus-code">'+esc(athlete?'#'+athlete.number:team.code)+'</div><div class="focus-copy"><small>SHARED FOCUS FILE · '+esc(C.getSport(team.sportId).name).toUpperCase()+'</small><h2>'+esc(title)+'</h2><p>'+esc(description)+'</p></div><div class="focus-actions">'+(athlete?'<a href="'+playerUrl(team,athlete)+'">ATHLETE FILE ↗</a>':'')+'<a href="league.html?sport='+encodeURIComponent(team.sportId)+'">OPEN LEAGUE ↗</a><a href="social.html?sport='+encodeURIComponent(team.sportId)+'">CLEAR FOCUS</a></div>';
     var expectedHash='#'+(athlete?'player-'+athlete.id:'team-'+team.id);
     if (!focusScrolled&&location.hash===expectedHash) { focusScrolled=true; setTimeout(function(){box.scrollIntoView({block:'center',behavior:'instant'});},0); }
   }

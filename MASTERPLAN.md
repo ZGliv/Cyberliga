@@ -54,9 +54,9 @@ and team culture. The durable IP lives in names, behavior, stats, rivalries, and
 - [x] Slide tackles (timed, can win ball clean or give away fouls)
 - [x] Headers (jump + head crosses/corners/long balls)
 - [x] GK catch-and-hold + punch-clears (uses keeper brain's catch/parry)
-- [ ] Sent-off walk to the tunnel; injured limp after big fouls
-- [ ] Kickoff huddle; halftime/fulltime exhausted poses; lineup handshake (later)
-- [ ] Bicycle kick (rare), backheel passes (flair-gated)
+- [x] Sent-off walk to the tunnel; injured limp after big fouls
+- [x] Kickoff huddle; halftime/fulltime exhausted poses; lineup handshake
+- [x] Bicycle kick (rare), backheel passes (flair-gated)
 - [ ] Substitutions (needs bench) — later, pairs with coaches
 
 ## Workstream 2 — Blob Motion Language
@@ -106,6 +106,8 @@ pose vocabulary without changing simulation decisions or adding humanoid anatomy
 - [x] Add deterministic 1080x1920 poster generation with permanent story URLs
 - [x] Add a deterministic 12-second 9:16 Clip Director with six sport-specific plays,
   permanent story parameters, timeline scrubbing, fullscreen, and real VP9/VP8 WebM export
+- [x] Add a deterministic six-sport Replay Center with permanent event URLs, canonical soccer
+  channels, honest exhibition boundaries, animated previews, scrubber, and media handoffs
 - [x] Add a Broadcast Guide for the four canonical soccer channels, all six arenas, upcoming
   fixtures, and creative tools, plus a consistent in-game navigation hub on every sport
 - Auto-select highlight windows and queue finished clips for private editorial review
@@ -113,6 +115,8 @@ pose vocabulary without changing simulation decisions or adding humanoid anatomy
 ## Workstream 5 — Story Engine (after 1-4)
 - [x] Add deterministic league-wide headlines, marquee logic, rivalry hooks, and season schedules
 - [x] Add a six-desk World Wire with shareable team/player focus URLs
+- [x] Add permanent Athlete Files for all 416 named athletes with form, career, rivalry,
+  teammate, story, live, replay, poster, and clip destinations
 - Player form/personality stats feeding canonical commentary
 - Persistent pre-match narrative cards, post-match recaps, and season arcs
 - Social layer: AI player accounts, trash talk, lore — pre-launch content bank

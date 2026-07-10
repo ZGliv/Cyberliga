@@ -418,6 +418,51 @@ create trigger heartbeat_aggregates_touch_updated_at before update on public.hea
 create trigger runtime_heartbeats_touch_updated_at before update on private.runtime_heartbeats
   for each row execute function private.touch_updated_at();
 
+-- A result is not fully applied until the public table has a current rank.
+-- Restricting the UPDATE trigger to competitive columns prevents the rank
+-- refresh itself from recursively firing this function.
+create or replace function private.refresh_season_ranks()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  with ranked as (
+    select
+      standing.team_id,
+      row_number() over (
+        order by
+          standing.points desc,
+          (standing.score_for - standing.score_against) desc,
+          standing.score_for desc,
+          team.name asc
+      )::integer as next_rank
+    from public.standings as standing
+    join public.teams as team on team.id = standing.team_id
+    where standing.season_id = new.season_id
+  )
+  update public.standings as standing
+  set rank = ranked.next_rank
+  from ranked
+  where standing.season_id = new.season_id
+    and standing.team_id = ranked.team_id
+    and standing.rank is distinct from ranked.next_rank;
+  return null;
+end;
+$$;
+
+revoke all on function private.refresh_season_ranks()
+  from public, anon, authenticated, service_role;
+
+create trigger standings_refresh_ranks_after_insert
+  after insert on public.standings
+  for each row execute function private.refresh_season_ranks();
+create trigger standings_refresh_ranks_after_result
+  after update of played, wins, draws, losses, points, score_for, score_against
+  on public.standings
+  for each row execute function private.refresh_season_ranks();
+
 -- All exposed tables are protected by RLS. Policies are SELECT-only and
 -- require rows to be explicitly marked public; no public write policy exists.
 alter table public.seasons enable row level security;

@@ -82,6 +82,7 @@ function publicFixture(row) {
   const match = one(row.match);
   return {
     fixtureId: row.public_id,
+    seasonPublicId: row.season?.public_id ?? null,
     roundNumber: row.round_number,
     channel: row.channel,
     startsAt: row.starts_at,
@@ -90,23 +91,35 @@ function publicFixture(row) {
     phase: match?.phase ?? 'pregame',
     homeScore: match?.home_score ?? 0,
     awayScore: match?.away_score ?? 0,
-    homeTeam: row.home_team ? { publicId: row.home_team.public_id, name: row.home_team.name, code: row.home_team.code } : null,
-    awayTeam: row.away_team ? { publicId: row.away_team.public_id, name: row.away_team.name, code: row.away_team.code } : null
+    homeTeam: row.home_team ? { publicId: row.home_team.public_id, name: row.home_team.name, code: row.home_team.code, city: row.home_team.city } : null,
+    awayTeam: row.away_team ? { publicId: row.away_team.public_id, name: row.away_team.name, code: row.away_team.code, city: row.away_team.city } : null
   };
 }
 
 function publicStanding(row) {
+  const played = Number(row.played) || 0;
+  const wins = Number(row.wins) || 0;
+  const draws = Number(row.draws) || 0;
+  const losses = Number(row.losses) || 0;
+  const points = Number(row.points) || 0;
+  const scoreFor = Number(row.score_for) || 0;
+  const scoreAgainst = Number(row.score_against) || 0;
+  const streakLength = (row.form ?? []).slice().reverse().findIndex((result) => result !== row.streak);
   return {
     rank: row.rank,
     team: row.team ? { publicId: row.team.public_id, name: row.team.name, code: row.team.code, color: row.team.primary_color } : null,
-    played: row.played,
-    wins: row.wins,
-    draws: row.draws,
-    losses: row.losses,
-    points: row.points,
-    scoreFor: row.score_for,
-    scoreAgainst: row.score_against,
-    streak: row.streak,
+    played,
+    wins,
+    draws,
+    losses,
+    points,
+    scoreFor,
+    scoreAgainst,
+    record: `${wins}-${draws}-${losses}`,
+    winPercentage: played ? Number((wins / played).toFixed(3)) : 0,
+    pointsPerGame: played ? Number((points / played).toFixed(2)) : 0,
+    scoreDifference: scoreFor - scoreAgainst,
+    streak: row.streak ? `${row.streak}${streakLength < 0 ? (row.form ?? []).length : streakLength}` : '',
     form: row.form
   };
 }
@@ -179,7 +192,7 @@ export default async function handler(request, response) {
         order: 'rank.asc.nullslast,points.desc,score_for.desc'
       }),
       restGet(config, 'fixtures', {
-        select: 'public_id,round_number,channel,starts_at,scheduled_end_at,status,home_team:teams!fixtures_home_team_id_fkey(public_id,name,code),away_team:teams!fixtures_away_team_id_fkey(public_id,name,code),match:matches!matches_fixture_id_fkey(status,phase,home_score,away_score)',
+        select: 'public_id,round_number,channel,starts_at,scheduled_end_at,status,season:seasons!fixtures_season_id_fkey(public_id),home_team:teams!fixtures_home_team_id_fkey(public_id,name,code,city),away_team:teams!fixtures_away_team_id_fkey(public_id,name,code,city),match:matches!matches_fixture_id_fkey(status,phase,home_score,away_score)',
         season_id: `eq.${season.id}`,
         is_public: 'eq.true',
         order: 'starts_at.desc',
@@ -203,7 +216,15 @@ export default async function handler(request, response) {
       },
       teams: teams.map(publicTeam),
       standings: standings.map(publicStanding),
-      fixtures: fixtures.map(publicFixture)
+      fixtures: fixtures.map(publicFixture),
+      live: fixtures.map(publicFixture).filter((fixture) => fixture.status === 'live'),
+      summary: {
+        roundNumber: Math.max(0, ...fixtures.map((fixture) => Number(fixture.round_number) || 0)),
+        gamesPerRound: Math.max(1, Math.floor(teams.length / 2)),
+        completedGames: standings.reduce((total, row) => total + (Number(row.played) || 0), 0) / 2,
+        liveGames: fixtures.filter((fixture) => one(fixture.match)?.status === 'live' || fixture.status === 'live').length,
+        scheduledGames: fixtures.filter((fixture) => !one(fixture.match) && fixture.status === 'scheduled').length
+      }
     }, method);
   } catch (error) {
     console.error('[cyberliga/api/league]', error);

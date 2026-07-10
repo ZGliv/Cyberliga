@@ -103,6 +103,8 @@ labeled deterministic fallback until a dedicated project is chosen and provision
   arenas so live channels, leagues, stories, media tools, and operations never dead-end.
 - [x] Add backend-fed standings to every league atlas, selectable club rows, football unit
   filters, and permanent athlete-to-World-Wire focus URLs.
+- [x] Add permanent Athlete File and Replay Center routes with deterministic state, social
+  metadata, canonical/exhibition provenance, mobile layouts, and complete app cross-links.
 
 Exit gate: every important piece of league state has a permanent shareable URL, and the
 core mobile experience works without relying on one browser's local storage.

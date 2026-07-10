@@ -188,3 +188,70 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   Combat passed a unanimous decision, forced TKO, three autonomous stoppages, and a byte-
   identical 30-second twin run. Desktop and 390x844 gates were clean across all three.
 - Release gate now passes 8 API tests plus 943 application/data/route/navigation checks.
+
+## American Football Ground-Up Reset
+- User rejected the previous football arena as incoherent and asked for a near-total restart.
+- Replaced the Three.js football implementation rather than extending its overlapping camera,
+  manual-carrier controls, Coach Mode, and dense broadcast overlays.
+- New foundation is a dependency-free 2D broadcast simulation: offense always travels
+  left-to-right, the camera holds one field view, and line of scrimmage / line to gain /
+  assignments / routes are visible before every snap.
+- Rebuilt football state around possession, legal downs, distance, field position, quarters,
+  first downs, turnover on downs, interceptions, fumbles, punts, field goals, touchdowns,
+  halftime possession, drives, and finals.
+- Rebuilt 11v11 role selection from the shared 22-player rosters and reduced interaction to
+  one coherent loop: choose one of three situational calls, then snap and watch assignments.
+- Added a fast synchronous time-step hook and compact text state for deterministic gameplay QA.
+- Remaining gate: automated action bursts, screenshot inspection, desktop/mobile layout checks,
+  complete-drive branch testing, and production deployment after corrections.
+- Required web-game client completed three successive plays with coherent down/distance state:
+  1-yard run to 2nd-and-9, a first down, then 6 yards to 2nd-and-4. No error artifact.
+- Gameplay screenshot review confirmed clear field direction, scrimmage, line to gain, routes,
+  and 22 distinct players; reduced trench-player radius and removed overlapping line-role tags.
+- Full-page 1440x900 and 390x844 screenshots passed: scoreboard, situation, field, play cards,
+  snap control, navigation, and mobile safe areas remain readable with no console warnings.
+- Forced branches passed for a 47-yard field goal, 45-yard punt and field flip, interception,
+  and goal-line completion / touchdown. Possession, field position, score, and events reconciled.
+
+## Hockey Equipment / Crease / Arena Pass — 2026-07-10
+- User request: hockey needs a comprehensive quality pass, specifically visible sticks,
+  goalies who stay in net, and a much better crowd.
+- Audit found the hockey simulation was already deep, but its page-local presentation still
+  used unequipped shared blob rigs and a mostly flat 220-head audience treatment.
+- Added page-local sticks, taped blades, gloves, goalie leg pads and blockers without changing
+  the shared multi-sport rig contract. Stick pivots now sell carrying, passing and shooting.
+- Rebuilt the lower bowl with 520 instanced torso/head spectators, team-colour pockets, seating
+  risers and arena banners while retaining the reactive crowd-light behavior.
+- Tightened goalie angle challenges and added a post-collision crease invariant so traffic can
+  never push either goalie out into the slot or behind the net.
+- Corrected the initial crowd column clustering into a continuous five-row bowl and reduced
+  near-side spectator scale/contrast after inspecting the first desktop capture.
+- Forced save, cover, breakaway, one-timer, check and goal branches all passed with no console
+  errors; the one-timer produced the intended save/rebound chain and the goal entered GOAL_SEQ.
+- A 100-second live-play goalie soak recorded zero crease violations (maximum depth 1.40m,
+  maximum lateral position 2.28m), while the match produced normal shots, saves and goals.
+- Desktop 1280x720 and mobile 390x844 visual checks passed; mobile had no horizontal overflow.
+- Final release gate passed 8 API tests and 964 application/data/route/navigation checks.
+
+## Soccer Spectacle / Athlete Files / Replay Center — 2026-07-10
+- Canonical soccer now includes gated backheels, first-time volleys and bicycle attempts;
+  authored replay/camera beats; injury limps; red-card tunnel walks; opening, restart,
+  halftime and full-time rituals; tactical positional interchanges; technical areas; tighter
+  referee positioning; and a compact match-plan context without replacing the classic blobs.
+- Added permanent `player.html` Athlete Files for all 416 athletes with deterministic identity
+  art, form, career ledgers, rivalry pressure, story headlines, teammate rails, social metadata,
+  invalid-link recovery, and direct live/Atlas/Wire/Replay/poster/clip destinations.
+- Added `replay.html`, a six-sport Replay Center with four current canonical soccer channels,
+  deterministic exhibition recaps for the other sports, three selectable events, animated
+  12-second previews, scrub/play/restart controls, permanent URLs, and explicit provenance.
+- Integrated Replay Center and Athlete Files across Broadcast Guide, GameHub, League Atlas,
+  World Wire, Moment Maker, Clip Director, Operations, CI route smoke tests, and verification.
+- Fixed Replay Center query normalization so bare routes use the current UTC edition and
+  fractional event indices safely truncate/canonicalize instead of yielding undefined events.
+- Expanded league fixture responses with season/round/channel identity, form, streaks, records,
+  summaries and adjacent fixture windows. A rollover regression test proves prior-season finals
+  remain distinguishable from the eight current-season fixtures after standings reset.
+- Three seeded soccer games reached full time (3-4, 3-3, 2-2); spectacle twin states matched.
+  All 416 profiles, all six replay sports, the 2D 11v11 football reset, hockey crease/equipment,
+  rank triggers, desktop/mobile routes, and navigation passed independent browser/runtime QA.
+- Release candidate passes 9 API tests plus 989 application/data/route/navigation checks.

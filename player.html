@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#ece7d8" />
+  <title>Athlete File / Cyberliga</title>
+  <meta name="description" content="Meet a Cyberliga athlete: form, folklore, rivalries, and the moments that made the world watch." />
+  <meta property="og:type" content="profile" />
+  <meta property="og:site_name" content="Cyberliga" />
+  <meta property="og:url" content="https://cyberliga-ten.vercel.app/player.html" />
+  <meta property="og:title" content="Cyberliga Athlete File" />
+  <meta property="og:description" content="A permanent character destination from the living Cyberliga sports world." />
+  <meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-world-og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Cyberliga Athlete File" />
+  <meta name="twitter:description" content="Form, folklore, rivalries, and the moments that made the world watch." />
+  <link rel="canonical" href="https://cyberliga-ten.vercel.app/player.html" />
+  <link rel="stylesheet" href="player.css" />
+</head>
+<body>
+  <a class="skip-link" href="#athlete-main">Skip to athlete file</a>
+  <header class="masthead">
+    <a class="brand" href="world.html" aria-label="Cyberliga world home"><b>CYBERLIGA</b><span>ATHLETE FILES</span></a>
+    <div class="issue"><span id="issue-sport">WORLD SPORT</span><b id="issue-code">FILE 000</b></div>
+    <nav aria-label="Primary navigation">
+      <a href="menu.html">Guide</a><a href="replay.html">Replays</a><a href="league.html" id="top-league">Leagues</a><a href="social.html" id="top-wire">World Wire</a><a href="world.html">World</a>
+    </nav>
+  </header>
+
+  <main id="athlete-main" tabindex="-1">
+    <section class="hero" id="hero" aria-labelledby="player-name">
+      <div class="hero-copy">
+        <p class="kicker"><span id="league-name">CYBERLIGA</span><i></i><span id="team-city">WORLD</span></p>
+        <h1 id="player-name">Loading athlete…</h1>
+        <p class="dek" id="player-dek">Opening a permanent file from the living league.</p>
+        <div class="identity-line" aria-label="Athlete identity">
+          <strong id="player-number">#00</strong>
+          <span><b id="player-role">ATHLETE</b><small id="player-archetype">WORLD-BUILDER</small></span>
+        </div>
+        <div class="hero-actions">
+          <a class="primary-action" id="arena-link" href="index.html">WATCH THE ARENA <span>↗</span></a>
+          <button id="share-button" type="button">COPY THIS FILE <span aria-hidden="true">⎘</span></button>
+        </div>
+        <p class="share-status" id="share-status" role="status" aria-live="polite"></p>
+      </div>
+
+      <figure class="portrait" id="portrait" aria-labelledby="portrait-caption">
+        <div class="portrait-sun" aria-hidden="true"></div>
+        <div class="portrait-noise" aria-hidden="true"></div>
+        <div class="figure-shadow" aria-hidden="true"></div>
+        <div class="player-figure" id="player-figure" aria-hidden="true">
+          <i class="accent accent-a"></i><i class="accent accent-b"></i>
+          <i class="leg leg-a"></i><i class="leg leg-b"></i>
+          <i class="body"></i><i class="arm arm-a"></i><i class="arm arm-b"></i>
+          <i class="head"></i><i class="crest"></i><i class="eye"></i>
+        </div>
+        <figcaption id="portrait-caption"><b id="portrait-team">CLUB</b><span id="portrait-motion">A body built for its own strange physics.</span></figcaption>
+      </figure>
+
+      <aside class="hero-index" aria-label="File index">
+        <span>EST.</span><b id="debut-year">2024</b><span>CLUB</span><b id="team-code">CLG</b><span>FORM</span><b id="form-grade">A</b>
+      </aside>
+    </section>
+
+    <section class="ticker" aria-label="Athlete bulletin"><div><b id="ticker-name">ATHLETE</b><span id="ticker-copy">THE WORLD IS STILL WRITING THIS FILE</span><b aria-hidden="true">✦</b><span id="ticker-rivalry">A NEW RIVALRY WAITS</span></div></section>
+
+    <section class="story-grid" aria-label="Athlete story">
+      <article class="manifesto">
+        <p class="section-number">01 / THE PERSON</p>
+        <h2 id="temperament-title">Pressure reveals the silhouette.</h2>
+        <p class="big-copy" id="temperament-copy"></p>
+        <dl class="traits">
+          <div><dt>Signature</dt><dd id="signature"></dd></div>
+          <div><dt>Complication</dt><dd id="flaw"></dd></div>
+          <div><dt>Built like</dt><dd id="silhouette"></dd></div>
+          <div><dt>Club language</dt><dd id="club-motion"></dd></div>
+        </dl>
+      </article>
+
+      <article class="form-card">
+        <div class="section-head"><p class="section-number">02 / CURRENT FORM</p><span id="form-label">LAST 5</span></div>
+        <div class="form-score"><strong id="rating">00</strong><span>FORM<br />INDEX</span><i id="trend-arrow">↗</i></div>
+        <div class="form-chart" id="form-chart" role="img" aria-label="Five-match form chart"></div>
+        <div class="stat-grid" id="season-stats" aria-label="Season statistics"></div>
+      </article>
+    </section>
+
+    <section class="career" aria-labelledby="career-title">
+      <div class="career-lead">
+        <p class="section-number">03 / THE LEDGER</p>
+        <h2 id="career-title">A career measured in useful trouble.</h2>
+        <p id="career-copy"></p>
+      </div>
+      <div class="career-numbers" id="career-numbers"></div>
+      <blockquote><p id="quote"></p><footer id="quote-credit"></footer></blockquote>
+    </section>
+
+    <section class="pressure" aria-labelledby="pressure-title">
+      <div class="pressure-art" aria-hidden="true"><span id="pressure-home">HOME</span><i>×</i><span id="pressure-away">AWAY</span></div>
+      <div class="pressure-copy">
+        <p class="section-number">04 / RIVALRY PRESSURE</p>
+        <h2 id="pressure-title">The old argument has a new face.</h2>
+        <p id="pressure-text"></p>
+        <a id="rivalry-link" href="league.html">READ THE LEAGUE TABLE <span>↗</span></a>
+      </div>
+    </section>
+
+    <section class="headlines" aria-labelledby="headlines-title">
+      <div class="section-head"><div><p class="section-number">05 / RECENT SIGNAL</p><h2 id="headlines-title">The world is talking.</h2></div><a id="wire-link" href="social.html">OPEN FOCUSED WORLD WIRE ↗</a></div>
+      <ol id="headline-list"></ol>
+    </section>
+
+    <section class="teammates" aria-labelledby="teammates-title">
+      <div class="section-head"><div><p class="section-number">06 / SAME COLORS</p><h2 id="teammates-title">The supporting cast.</h2></div><a id="team-link" href="league.html">FULL CLUB FILE ↗</a></div>
+      <div class="teammate-rail" id="teammate-rail"></div>
+    </section>
+
+    <section class="destinations" aria-labelledby="destinations-title">
+      <p class="section-number">KEEP MOVING</p><h2 id="destinations-title">This story has doors.</h2>
+      <nav id="destination-grid" aria-label="Athlete story destinations"></nav>
+    </section>
+  </main>
+
+  <footer class="page-footer"><a href="world.html"><b>CYBERLIGA</b><span>A FULL SPORTS WORLD, ALWAYS IN MOTION.</span></a><p id="footer-file">PERMANENT ATHLETE FILE</p></footer>
+  <script src="worlddata.js"></script>
+  <script src="player.js"></script>
+</body>
+</html>

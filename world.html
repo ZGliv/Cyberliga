@@ -37,9 +37,13 @@
   .frame { position:fixed; inset:13px; z-index:20; pointer-events:none; border:1px solid rgba(255,255,255,.07); }
   .topbar { position:fixed; z-index:40; top:0; left:0; right:0; height:78px; padding:0 30px; display:flex; align-items:center; justify-content:space-between; background:linear-gradient(180deg,rgba(2,3,4,.78),transparent); }
   .brand { display:flex; align-items:center; gap:12px; font-weight:900; letter-spacing:-.03em; }
+  .brand strong { white-space:nowrap; font-size:14px; letter-spacing:.02em; }
   .brand i { width:1px; height:20px; background:rgba(255,255,255,.3); transform:rotate(15deg); }
   .brand span { color:var(--muted); font:700 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.22em; }
-  .nav { display:flex; align-items:center; gap:22px; font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.17em; }
+  .nav { display:flex; align-items:center; gap:8px; font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; }
+  .nav a { min-height:38px; display:inline-flex; align-items:center; padding:0 12px; border:1px solid transparent; }
+  .nav a:hover,.nav a:focus-visible { border-color:rgba(255,255,255,.24); background:rgba(255,255,255,.06); }
+  .nav .active { color:var(--club); }
   .nav .live { display:flex; align-items:center; gap:8px; }
   .dot { width:7px; height:7px; border-radius:50%; background:var(--live); box-shadow:0 0 12px var(--live); animation:pulse 1.3s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity:.35; transform:scale(.72); } }
@@ -53,6 +57,10 @@
   .intro .proof div { padding-left:10px; border-left:1px solid var(--line); }
   .intro .proof b { display:block; color:#fff; font:800 18px/1 'Barlow Condensed',sans-serif; }
   .intro .proof span { display:block; margin-top:4px; color:var(--muted); font:700 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.17em; }
+  .intro-actions { display:flex; gap:9px; margin-top:25px; pointer-events:auto; }
+  .intro-actions a { min-height:44px; display:inline-flex; align-items:center; justify-content:center; padding:0 17px; border:1px solid rgba(255,255,255,.28); font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.15em; }
+  .intro-actions .primary { border-color:var(--club); background:var(--club); color:#020304; }
+  .intro-actions a:hover,.intro-actions a:focus-visible { border-color:#fff; }
 
   #labels { position:fixed; inset:0; z-index:16; pointer-events:none; }
   .marker { position:absolute; transform:translate(-50%,-100%); pointer-events:auto; display:flex; align-items:center; gap:6px; padding:6px 8px; cursor:pointer; border:1px solid rgba(255,255,255,.14); background:rgba(2,3,4,.8); backdrop-filter:blur(8px); opacity:0; transition:opacity .18s,background .18s; font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
@@ -64,13 +72,13 @@
   .panel-label { display:flex; align-items:center; justify-content:space-between; color:var(--muted); font:700 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.19em; }
   .panel-label strong { color:#fff; }
   .league-list { margin-top:10px; display:grid; gap:1px; background:var(--line); }
-  .league-row { width:100%; min-width:0; display:grid; grid-template-columns:48px 1fr auto; align-items:center; gap:11px; padding:10px 12px; cursor:pointer; color:#fff; background:rgba(4,6,8,.88); text-align:left; transition:background .18s; }
+  .league-row { width:100%; min-width:0; display:grid; grid-template-columns:48px 1fr auto; align-items:center; gap:11px; padding:10px 12px; cursor:pointer; color:#fff; background:rgba(4,6,8,.88); text-align:left; transition:background .18s,transform .18s; }
   .league-row:hover,.league-row.active { background:#121619; }
-  .league-row.active { box-shadow:inset 2px 0 var(--c); }
+  .league-row:hover { box-shadow:inset 3px 0 var(--c); transform:translateX(-3px); }
   .league-code { display:grid; place-items:center; height:31px; border:1px solid color-mix(in srgb,var(--c) 58%,transparent); color:var(--c); font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.14em; }
   .league-row b { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:800 12px/1 'Barlow Condensed',sans-serif; letter-spacing:.07em; }
   .league-row small { display:block; margin-top:5px; color:var(--muted); font:700 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; }
-  .league-state { color:var(--muted); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; text-align:right; }
+  .league-state { color:var(--muted); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; text-align:right; white-space:nowrap; }
   .league-row[data-live="true"] .league-state { color:#fff; }
   .signal-card { margin-top:14px; border-top:1px solid var(--club); padding:17px; background:linear-gradient(135deg,rgba(4,6,8,.94),rgba(4,6,8,.68)); backdrop-filter:blur(18px); }
   .signal-card .sport { color:var(--club); font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.2em; }
@@ -83,11 +91,11 @@
   .signal-actions #signal-explore { color:#fff; border:1px solid var(--line); background:transparent; }
   .signal-actions button { color:var(--muted); border:1px solid var(--line); background:transparent; }
   .sportbar { position:fixed; z-index:28; left:30px; right:30px; bottom:28px; display:grid; grid-template-columns:auto repeat(6,1fr); gap:1px; background:var(--line); }
-  .sportbar > span,.sportbar button { min-width:0; min-height:50px; display:flex; align-items:center; padding:0 13px; background:rgba(4,6,8,.84); backdrop-filter:blur(12px); }
+  .sportbar > span,.sportbar a { min-width:0; min-height:50px; display:flex; align-items:center; padding:0 13px; background:rgba(4,6,8,.84); backdrop-filter:blur(12px); }
   .sportbar > span { color:var(--muted); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
-  .sportbar button { position:relative; gap:9px; cursor:pointer; color:#fff; text-align:left; }
-  .sportbar button::before { content:''; width:5px; height:22px; background:var(--c); }
-  .sportbar button:hover,.sportbar button.active { background:#121619; }
+  .sportbar a { position:relative; gap:9px; cursor:pointer; color:#fff; text-align:left; }
+  .sportbar a::before { content:''; width:5px; height:22px; background:var(--c); }
+  .sportbar a:hover,.sportbar a.active { background:#121619; }
   .sportbar b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.1em; }
 
   .loading { position:fixed; inset:0; z-index:100; display:grid; place-items:center; background:#020304; transition:opacity .55s,visibility .55s; }
@@ -98,18 +106,22 @@
     body::before { background:linear-gradient(180deg,rgba(2,3,4,.8),transparent 42%,rgba(2,3,4,.82)); }
     .topbar { height:70px; padding:0 18px; }
     .brand span,.brand i { display:none; }
-    .nav { gap:12px; }
+    .nav { gap:3px; }
+    .nav a { min-height:34px; padding:0 8px; font-size:9px; }
+    .nav .secondary,.nav .live { display:none; }
     .intro { top:90px; left:18px; width:calc(100vw - 36px); transform:none; }
     .intro h1 { font-size:49px; width:270px; }
     .intro .lede,.intro .proof { display:none; }
-    .liveboard { top:auto; left:18px; right:18px; bottom:95px; width:auto; }
-    .liveboard { bottom:22px; }
+    .intro-actions { margin-top:17px; }
+    .intro-actions a { min-height:39px; padding:0 12px; font-size:8px; }
+    .liveboard { top:440px; left:18px; right:18px; bottom:auto; width:auto; }
     .signal-card { display:none; }
     .league-list { grid-template-columns:repeat(3,1fr); }
-    .league-row { display:block; min-height:61px; padding:8px 6px; text-align:center; }
+    .league-row { display:block; min-height:67px; padding:8px 6px; text-align:center; }
     .league-code { height:24px; border:0; }
     .league-row b { margin-top:4px; font-size:9px; }
-    .league-row small,.league-state { display:none; }
+    .league-row small { display:none; }
+    .league-state { display:block; margin-top:6px; text-align:center; font-size:7px; color:var(--c); }
     .sportbar { display:none; }
     .frame { inset:7px; }
   }
@@ -127,18 +139,19 @@
 
 <header class="topbar">
   <a class="brand" href="world.html"><strong>CYBERLIGA</strong><i></i><span>THE AUTONOMOUS SPORTS WORLD</span></a>
-  <nav class="nav"><a href="menu.html">GUIDE</a><a href="league.html?sport=soccer">ATLAS</a><a href="social.html">WORLD WIRE</a><a class="live" id="watch-primary" href="index.html"><span class="dot"></span>LIVE SOCCER</a></nav>
+  <nav class="nav" aria-label="Primary navigation"><a class="active" href="world.html" aria-current="page">HOME</a><a href="menu.html">WATCH</a><a class="secondary" href="league.html?sport=soccer">LEAGUES</a><a class="secondary" href="social.html">COMMUNITY</a><a class="live" id="watch-primary" href="index.html"><span class="dot"></span>LIVE NOW</a></nav>
 </header>
 
 <section class="intro">
-  <p class="eyebrow">THE AUTONOMOUS SPORTS NETWORK · SEASON ZERO</p>
-  <h1>ONE PLANET. <span>SIX LEAGUES.</span></h1>
-  <p class="lede">Soccer, American football, basketball, hockey, baseball, and fight circuits broadcasting from one physical world. Pick a signal and drop in.</p>
+  <p class="eyebrow">WELCOME TO CYBERLIGA · SIX PLAYABLE SPORTS</p>
+  <h1>CHOOSE A SPORT. <span>ENTER THE ACTION.</span></h1>
+  <p class="lede">Watch a match, explore clubs and players, or switch sports at any time. Start with live soccer or choose any playable arena.</p>
+  <div class="intro-actions"><a class="primary" id="hero-watch" href="index.html">WATCH LIVE SOCCER →</a><a href="#network">CHOOSE A SPORT ↓</a></div>
   <div class="proof"><div><b>6</b><span>SPORTS LEAGUES</span></div><div><b>48</b><span>CLUBS</span></div><div><b>416</b><span>ATHLETES</span></div></div>
 </section>
 
 <aside class="liveboard" id="network">
-  <div class="panel-label"><span><strong>● WORLD ROUTER</strong> · <span data-cyberliga-presence>1 WATCHING · LOCAL</span></span><span id="round-label">6 SIGNALS</span></div>
+  <div class="panel-label"><span><strong>CHOOSE A SPORT</strong> · <span data-cyberliga-presence>1 WATCHING · LOCAL</span></span><span id="round-label">6 SPORTS</span></div>
   <div class="league-list" id="league-list"></div>
   <section class="signal-card" id="signal-card">
     <p class="sport" id="signal-sport"></p><h2 id="signal-name"></h2><p class="route" id="signal-route"></p><p class="copy" id="signal-copy"></p>
@@ -187,13 +200,13 @@ function routeText(league) {
 }
 
 function makeLeagueButton(league, compact=false) {
-  const button=document.createElement('button');button.type='button';button.style.setProperty('--c',league.color);
-  if(compact){button.innerHTML=`<b>${league.code}</b>`;}
-  else {button.className='league-row';button.dataset.live=String(league.live);button.innerHTML=`<span class="league-code">${league.code}</span><span><b>${league.name}</b><small>${league.sport} · ${league.hosts[0].city} / ${league.hosts[1].city}</small></span><span class="league-state">${league.state}</span>`;}
-  button.addEventListener('click',()=>{
-    if(!compact&&innerWidth<=900)location.href=league.href();
-    else selectLeague(league,true);
-  });return button;
+  const link=document.createElement('a');link.href=league.href();link.style.setProperty('--c',league.color);
+  link.setAttribute('aria-label',`${league.sport}: enter ${league.live?'live match':'playable arena'}`);
+  if(compact){link.innerHTML=`<b>${league.code}</b>`;}
+  else {link.className='league-row';link.dataset.live=String(league.live);link.innerHTML=`<span class="league-code">${league.code}</span><span><b>${league.sport}</b><small>${league.name} · ${league.hosts[0].city} / ${league.hosts[1].city}</small></span><span class="league-state">${league.live?'WATCH LIVE →':'PLAY →'}</span>`;}
+  link.addEventListener('pointerenter',()=>selectLeague(league,false));
+  link.addEventListener('focus',()=>selectLeague(league,false));
+  return link;
 }
 
 document.getElementById('league-list').replaceChildren(...LEAGUES.map(league=>makeLeagueButton(league)));
@@ -209,7 +222,7 @@ function selectLeague(league, fly) {
   document.getElementById('signal-watch').textContent=league.live?'JOIN THE LIVE MATCH ↗':'ENTER THE EXHIBITION ↗';
   document.getElementById('signal-explore').href=`league.html?sport=${encodeURIComponent(league.contentId)}`;
   document.querySelectorAll('.league-row').forEach((button,i)=>button.classList.toggle('active',LEAGUES[i]===league));
-  document.querySelectorAll('#sportbar button').forEach((button,i)=>button.classList.toggle('active',LEAGUES[i]===league));
+  document.querySelectorAll('#sportbar a').forEach((button,i)=>button.classList.toggle('active',LEAGUES[i]===league));
   document.querySelectorAll('.marker').forEach(button=>button.classList.toggle('selected',button.dataset.league===league.id));
   if(fly)flyTo(league.hosts[0]);
 }
@@ -217,6 +230,7 @@ function selectLeague(league, fly) {
 function tickNetwork() {
   matches=U.liveMatches(Date.now());document.getElementById('round-label').textContent=`6 LEAGUES · ROUND ${matches[0].round}`;
   document.getElementById('watch-primary').href=U.sharePath(matches[0]);
+  document.getElementById('hero-watch').href=U.sharePath(matches[0]);
   if(selected.live){document.getElementById('signal-route').textContent=routeText(selected);document.getElementById('signal-watch').href=selected.href();}
 }
 
@@ -272,7 +286,7 @@ LEAGUES.forEach(league => league.hosts.forEach((host,hostIndex) => {
   const head=new THREE.Mesh(new THREE.SphereGeometry(.045,14,10),new THREE.MeshBasicMaterial({color}));head.position.y=.18;group.add(head);
   const halo=new THREE.Mesh(new THREE.RingGeometry(.06,.085,28),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.7,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.008;group.add(halo);
   planet.add(group);
-  const label=document.createElement('button');label.type='button';label.className='marker';label.dataset.league=league.id;label.style.setProperty('--c',league.color);label.textContent=`${league.code} · ${host.city.toUpperCase()}`;label.addEventListener('click',()=>selectLeague(league,true));labelRoot.appendChild(label);
+  const label=document.createElement('a');label.href=league.href();label.className='marker';label.dataset.league=league.id;label.style.setProperty('--c',league.color);label.textContent=`${league.code} · ${host.city.toUpperCase()}`;label.setAttribute('aria-label',`Open ${league.sport} arena from ${host.city}`);label.addEventListener('pointerenter',()=>selectLeague(league,true));labelRoot.appendChild(label);
   markers.push({league,host,hostIndex,group,halo,label});
 }));
 
