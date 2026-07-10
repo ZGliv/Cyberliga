@@ -62,7 +62,8 @@ try {
 }
 if (packageManifest) {
   check(packageManifest.scripts?.dev === 'node server.mjs', 'npm run dev must use the project-owned dependency-free server');
-  check(packageManifest.scripts?.verify === 'node scripts/verify.mjs', 'npm run verify must use the project-owned invariant checker');
+  check(packageManifest.scripts?.['test:api'] === 'node --test api/canonical-server.test.mjs', 'npm run test:api must cover the canonical API boundary');
+  check(packageManifest.scripts?.verify === 'npm run test:api && node scripts/verify.mjs', 'npm run verify must cover APIs before static/data invariants');
   check(Object.keys(packageManifest.dependencies || {}).length === 0, 'Runtime dependencies must remain empty');
   check(Object.keys(packageManifest.devDependencies || {}).length === 0, 'Development dependencies must remain empty');
 }
@@ -83,13 +84,15 @@ const supportingPages = [
   { file: 'league.html', screen: /screen\s*:\s*['"]league-atlas['"]/ },
   { file: 'social.html', screen: /screen\s*:\s*['"](?:social|world-wire)['"]/ },
   { file: 'moment.html', screen: /screen\s*:\s*['"](?:moment|moment-maker)['"]/ },
+  { file: 'clip.html', screen: /screen\s*:\s*['"]animated-clip-director['"]/ },
+  { file: 'characterlab.html', scriptFile: 'characterlab.js', screen: /screen\s*:\s*['"]character-laboratory['"]/ },
   { file: 'ops.html', screen: /screen\s*:\s*['"](?:ops|operations-console)['"]/ }
 ];
 for (const page of supportingPages) {
   const present = await exists(page.file);
   check(present, `Missing public supporting page`, page.file);
   if (!present) continue;
-  const source = await text(page.file);
+  const source = (await text(page.file)) + (page.scriptFile ? `\n${await text(page.scriptFile)}` : '');
   check(/window\.render_game_to_text\s*=/.test(source), `${page.file} is missing window.render_game_to_text`);
   check(/window\.advanceTime\s*=/.test(source), `${page.file} is missing window.advanceTime`);
   check(page.screen.test(source), `${page.file} render state does not identify its screen`);
@@ -97,6 +100,9 @@ for (const page of supportingPages) {
 
 const worldSource = await text('world.html');
 const atlasSource = await text('league.html');
+const socialSource = await text('social.html');
+const momentSource = await text('moment.html');
+const clipSource = await text('clip.html');
 check(/football\.html/.test(worldSource), 'World map does not route to American football');
 check(/['"]american-football['"]\s*:\s*['"]football\.html['"]/.test(atlasSource), 'League atlas does not route American football to football.html');
 for (const arena of arenas) {
@@ -104,6 +110,54 @@ for (const arena of arenas) {
   check(worldSource.includes(arena.file), `World map does not link the ${arena.id} arena`, arena.file);
   check(atlasSource.includes(arena.file), `League atlas does not link the ${arena.id} arena`, arena.file);
 }
+for (const page of ['world.html', 'index.html', 'social.html', 'moment.html', 'clip.html']) {
+  const source = await text(page);
+  check(source.includes('presence.js'), `${page} does not load the shared spectator presence client`);
+  check(source.includes('livebridge.js'), `${page} does not load the shared spectator live bridge`);
+  check(source.includes('data-cyberliga-presence'), `${page} has no visible honest spectator status`);
+}
+check(socialSource.includes('ANIMATE CLIP'), 'World Wire does not expose animated clip creation');
+check(momentSource.includes('clip.html?'), 'Moment Maker does not preserve its canonical state into Clip Director');
+check(/canvas\.captureStream\(30\)/.test(clipSource), 'Clip Director must capture a real 30fps canvas stream');
+check(/new MediaRecorder/.test(clipSource), 'Clip Director must use MediaRecorder for WebM output');
+check(/DURATION\s*=\s*12000/.test(clipSource), 'Clip Director must keep the 12-second viral format');
+const characterLabSource = await text('characterlab.html');
+const characterLabScript = await text('characterlab.js');
+check(/Marquee 12/i.test(characterLabSource), 'Character Lab must expose the first twelve marquee athletes');
+check(/window\.render_game_to_text\s*=/.test(characterLabScript), 'Character Lab is missing window.render_game_to_text');
+check(/window\.advanceTime\s*=/.test(characterLabScript), 'Character Lab is missing window.advanceTime');
+check(/view.*match[\s\S]*portrait[\s\S]*clip/i.test(characterLabScript), 'Character Lab must cover match, portrait, and clip contexts');
+check(await exists('presence.js'), 'Missing shared presence client');
+check(await exists('livebridge.js'), 'Missing shared live bridge');
+const presenceSource = await text('presence.js');
+check(/secret-key-refused/.test(presenceSource), 'Presence client must explicitly refuse secret keys');
+check(/sb_publishable_/.test(presenceSource), 'Presence client must require a browser-safe publishable key');
+check(/match:/.test(presenceSource), 'Presence client must scope channels to a match topic');
+
+const backendFiles = [
+  'api/config.js',
+  'api/live.js',
+  'api/league.js',
+  'api/tick.js',
+  'api/canonical-server.test.mjs',
+  'lib/canonical-server.js',
+  'supabase/migrations/20260710175340_canonical_league_backend.sql'
+];
+for (const file of backendFiles) check(await exists(file), 'Missing canonical backend artifact', file);
+const serverSource = await text('server.mjs');
+for (const endpoint of ['/api/config', '/api/live', '/api/league', '/api/tick']) {
+  check(serverSource.includes(`['${endpoint}'`), `Project dev server does not dispatch ${endpoint}`);
+}
+const migrationSource = await text('supabase/migrations/20260710175340_canonical_league_backend.sql');
+for (const table of ['seasons', 'teams', 'season_teams', 'athletes', 'fixtures', 'matches', 'match_events', 'standings', 'media_records', 'presence_aggregates', 'heartbeat_aggregates']) {
+  check(migrationSource.includes(`create table public.${table}`), `Canonical migration is missing public.${table}`);
+  check(migrationSource.includes(`alter table public.${table} enable row level security`), `RLS is not enabled on public.${table}`);
+}
+check(/security definer\s+set search_path = ''/i.test(migrationSource), 'Canonical tick must pin an empty search_path under SECURITY DEFINER');
+check(/grant execute on function public\.canonical_apply_tick[\s\S]*to service_role/i.test(migrationSource), 'Canonical tick execute grant must be service-role only');
+check(!/grant\s+(?:insert|update|delete)[^;]*to\s+(?:anon|authenticated)/i.test(migrationSource), 'Public roles must never receive canonical write grants');
+check(/standings_applied_at is null/.test(migrationSource), 'Canonical finalization needs a one-time standings guard');
+check(/pg_advisory_xact_lock/.test(migrationSource), 'Canonical tick needs a fixture-scoped transaction lock');
 
 const contentWindow = evaluateBrowserScript(await text('worlddata.js'), 'worlddata.js');
 const content = contentWindow.CYBERLIGA_CONTENT;

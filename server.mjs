@@ -3,6 +3,10 @@ import { realpath, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import configHandler from './api/config.js';
+import leagueHandler from './api/league.js';
+import liveHandler from './api/live.js';
+import tickHandler from './api/tick.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_REAL = await realpath(ROOT);
@@ -50,6 +54,13 @@ const LONG_CACHE_EXTENSIONS = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.ico', '.svg',
   '.woff', '.woff2', '.ttf', '.otf', '.glb', '.gltf', '.mp3', '.wav',
   '.ogg', '.mp4', '.webm', '.wasm'
+]);
+
+const API_HANDLERS = new Map([
+  ['/api/config', configHandler],
+  ['/api/league', leagueHandler],
+  ['/api/live', liveHandler],
+  ['/api/tick', tickHandler]
 ]);
 
 function sendText(response, status, message, extraHeaders = {}) {
@@ -126,6 +137,33 @@ const server = createServer(async (request, response) => {
     const elapsed = Math.max(0, performance.now() - startedAt).toFixed(1);
     console.log(`[cyberliga] ${response.statusCode} ${method} ${request.url || '/'} ${elapsed}ms`);
   });
+
+  let requestPath;
+  try {
+    requestPath = new URL(request.url || '/', 'http://localhost').pathname.replace(/\/+$/, '') || '/';
+  } catch {
+    sendText(response, 400, 'Malformed request path.');
+    return;
+  }
+  const apiHandler = API_HANDLERS.get(requestPath);
+  if (apiHandler) {
+    try {
+      await apiHandler(request, response);
+    } catch (error) {
+      console.error(`[cyberliga] API failure at ${requestPath}:`, error);
+      if (!response.headersSent) {
+        const body = JSON.stringify({ error: 'internal_server_error' });
+        response.writeHead(500, {
+          'Cache-Control': 'no-store',
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Length': Buffer.byteLength(body),
+          'X-Content-Type-Options': 'nosniff'
+        });
+        response.end(body);
+      } else if (!response.writableEnded) response.end();
+    }
+    return;
+  }
 
   if (method !== 'GET' && method !== 'HEAD') {
     sendText(response, 405, 'Method Not Allowed', { Allow: 'GET, HEAD' });

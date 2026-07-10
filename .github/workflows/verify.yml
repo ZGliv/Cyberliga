@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Static app release gate
+    name: Application release gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -76,6 +76,8 @@ jobs:
             "/league.html"
             "/social.html"
             "/moment.html"
+            "/clip.html"
+            "/characterlab.html"
             "/ops.html"
             "/index.html"
             "/football.html"
@@ -103,6 +105,36 @@ jobs:
             grep -Eiq '^content-type:[[:space:]]*text/html([;[:space:]]|$)' "$headers"
             grep -Eiq '<!doctype[[:space:]]+html|<html([[:space:]>])' "$body"
             echo "Verified $route"
+          done
+
+      - name: Smoke-test canonical APIs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          base_url="http://${HOST}:${PORT}"
+          routes=(
+            "/api/config"
+            "/api/live?sport=soccer"
+            "/api/live?sport=american-football"
+            "/api/league?sport=american-football"
+          )
+
+          index=0
+          for route in "${routes[@]}"; do
+            headers="$RUNNER_TEMP/api-headers-$index.txt"
+            body="$RUNNER_TEMP/api-body-$index.json"
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              --dump-header "$headers" \
+              --output "$body" \
+              "$base_url$route"
+            grep -Eiq '^content-type:[[:space:]]*application/json([;[:space:]]|$)' "$headers"
+            node -e 'const fs=require("fs"); JSON.parse(fs.readFileSync(process.argv[1],"utf8"));' "$body"
+            echo "Verified $route"
+            index=$((index + 1))
           done
 
       - name: Stop preview server

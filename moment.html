@@ -37,12 +37,12 @@
     .moment-meta div+div { padding-left:18px; border-left:1px solid var(--line); }
     .moment-meta small { display:block; margin-bottom:7px; color:var(--dim); font:700 8px/1 monospace; letter-spacing:.15em; }
     .moment-meta b { display:block; overflow:hidden; color:var(--ink); font-size:12px; white-space:nowrap; text-overflow:ellipsis; }
-    .actions { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:9px; margin-top:24px; }
-    .actions button { min-height:48px; padding:0 14px; border:1px solid var(--line); background:transparent; color:var(--ink); cursor:pointer; font:900 9px/1 monospace; letter-spacing:.12em; transition:.16s ease; }
+    .actions { display:grid; grid-template-columns:1.2fr 1fr 1fr 1fr; gap:9px; margin-top:24px; }
+    .actions button,.actions a { min-height:48px; display:flex; align-items:center; justify-content:center; padding:0 14px; border:1px solid var(--line); background:transparent; color:var(--ink); cursor:pointer; text-align:center; font:900 9px/1 monospace; letter-spacing:.12em; transition:.16s ease; }
     .actions button:first-child { border-color:var(--club,var(--acid)); background:var(--club,var(--acid)); color:#070909; }
-    .actions button:hover { transform:translateY(-2px); border-color:var(--club,var(--acid)); }
-    .actions button:active { transform:translateY(0); }
-    .actions button:focus-visible,.mast a:focus-visible,.backlinks a:focus-visible { outline:2px solid var(--acid); outline-offset:3px; }
+    .actions button:hover,.actions a:hover { transform:translateY(-2px); border-color:var(--club,var(--acid)); }
+    .actions button:active,.actions a:active { transform:translateY(0); }
+    .actions button:focus-visible,.actions a:focus-visible,.mast a:focus-visible,.backlinks a:focus-visible { outline:2px solid var(--acid); outline-offset:3px; }
     .canonical { margin-top:20px; padding:13px 14px; border:1px solid var(--line); background:rgba(255,255,255,.025); }
     .canonical small { display:block; margin-bottom:7px; color:var(--dim); font:700 8px/1 monospace; letter-spacing:.15em; }
     .canonical code { display:block; overflow:hidden; color:#bfc5c0; font:500 9px/1.5 monospace; text-overflow:ellipsis; white-space:nowrap; }
@@ -77,7 +77,7 @@
 <body>
   <header class="mast">
     <a class="brand" href="world.html">CYBERLIGA <span>/ MOMENT MAKER</span></a>
-    <div class="live">PERMANENT WORLD SIGNAL</div>
+    <div class="live"><span data-cyberliga-presence>1 WATCHING · LOCAL</span></div>
     <nav><a href="social.html">WORLD WIRE</a><a id="league-link" href="league.html">LEAGUE</a><a href="world.html">WORLD ↗</a></nav>
   </header>
 
@@ -87,6 +87,7 @@
       <p class="eyebrow" id="edition-label">UTC EDITION</p>
       <h1>Make the moment travel.</h1>
       <p class="intro">Every score becomes a poster. Every poster is encoded in a permanent URL, so the exact athlete, colors, headline, and silhouette can be reopened anywhere.</p>
+      <p class="status" data-cyberliga-presence>1 WATCHING · LOCAL</p>
       <div class="moment-meta">
         <div><small>FEATURED ATHLETE</small><b id="athlete-label">—</b></div>
         <div><small>MATCH SIGNAL</small><b id="match-label">—</b></div>
@@ -95,6 +96,7 @@
         <button id="randomize" type="button">NEW DETERMINISTIC MOMENT</button>
         <button id="copy" type="button">COPY LINK</button>
         <button id="save" type="button">SAVE 1080×1920 PNG</button>
+        <a id="clip-link" href="clip.html">ANIMATE 12S CLIP ↗</a>
       </div>
       <div class="canonical"><small>CANONICAL QUERY URL</small><code id="canonical-url">—</code></div>
       <div class="backlinks"><a href="social.html">← WORLD WIRE</a><a id="league-back" href="league.html">LEAGUE ATLAS</a><a href="world.html">PHYSICAL WORLD ↑</a></div>
@@ -103,6 +105,8 @@
   </main>
 
   <script src="worlddata.js"></script>
+  <script src="presence.js"></script>
+  <script src="livebridge.js"></script>
   <script>
   (function () {
     'use strict';
@@ -279,6 +283,7 @@
       document.getElementById('athlete-label').textContent='#'+moment.athlete.number+' '+moment.athlete.name+' · '+moment.athlete.role;
       document.getElementById('match-label').textContent=moment.home.code+' '+moment.score[0]+'–'+moment.score[1]+' '+moment.away.code;
       document.getElementById('canonical-url').textContent=url;
+      document.getElementById('clip-link').href='clip.html?'+canonicalParams(moment).toString();
       document.getElementById('league-link').href=league;document.getElementById('league-back').href=league;
       document.title=moment.athlete.name+' — Cyberliga Moment';
       if(replace)history.replaceState(null,'',localURL(moment));

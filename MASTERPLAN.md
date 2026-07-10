@@ -19,7 +19,7 @@ and team culture. The durable IP lives in names, behavior, stats, rivalries, and
 - Blobs are the only public soccer renderer until a replacement cast passes the identity gate.
 - OG broadcast grammar is the visual north star: wide live camera, minimal permanent HUD,
   contextual names, and motion/crowd/ball behavior carrying the spectacle.
-- The public prototype now has one UTC league clock, two live channels, seeded fixed-step
+- The public prototype now has one UTC league clock, four live channels, seeded fixed-step
   soccer, and a globe front door. This proves the shared-world experience in-browser;
   the production source of truth still moves server-side before accounts or social play.
 - Crypto/monetization: not before audience. Prediction points first, much later.
@@ -44,7 +44,8 @@ and team culture. The durable IP lives in names, behavior, stats, rivalries, and
 
 ## Known issues / tuning
 - [x] Too many penalties → judge-rate gate + penalty downgrade (this session)
-- [ ] Blob actions need clearer anticipation, contact, and follow-through
+- [x] Blob actions now use readable anticipation, contact, follow-through, planted cuts,
+  goalkeeper vocabulary, reactions, and celebration rhythms
 - [ ] Ref sometimes too close to play
 
 ---
@@ -71,11 +72,18 @@ follow-through, and roles remain readable without human anatomy.
   holders, phone flashes, section chants (coordinated bounce), despair slump on conceding
 - Celebrations: knee slide, corner-flag point, group mob with pile-on, badge tap
 
+Motion checkpoint completed 2026-07-10: the public blob rig now implements grounded
+plant/cut squash, acceleration and braking, direction-change banking, authored kick/header/
+throw/tackle beats, four celebration rhythms, emotional states, and a complete goalkeeper
+pose vocabulary without changing simulation decisions or adding humanoid anatomy.
+
 ## Workstream 3 — Identity Before Character Models
 - [x] Preserve 288 player names, numbers, roles, behavior traits, silhouette briefs,
   team cultures, and reciprocal rivalries in one shared content source
 - Build a character art bible before commissioning or generating production bodies:
   silhouette families, face language, proportions, movement signatures, team culture
+- [x] Build an interactive first-12 Character Lab with twelve genuinely different tactile
+  body families, signature motions, gifts, flaws, rivalries, and match/portrait/clip tests
 - [x] Remove the rejected portrait/character direction from every public product route
 - [ ] Use GPT Image as an art-direction lab for radically different silhouette families;
   generated concepts stay off-product until one direction proves genuinely ownable
@@ -96,7 +104,9 @@ follow-through, and roles remain readable without human anatomy.
 - Better replay direction (multiple angles, freeze-frame on contact)
 - [x] Add structured clip telemetry to baseball and combat
 - [x] Add deterministic 1080x1920 poster generation with permanent story URLs
-- Auto-highlight video clip export (the next virality engine boundary)
+- [x] Add a deterministic 12-second 9:16 Clip Director with six sport-specific plays,
+  permanent story parameters, timeline scrubbing, fullscreen, and real VP9/VP8 WebM export
+- Auto-select highlight windows and queue finished clips for private editorial review
 
 ## Workstream 5 — Story Engine (after 1-4)
 - [x] Add deterministic league-wide headlines, marquee logic, rivalry hooks, and season schedules
@@ -109,5 +119,9 @@ follow-through, and roles remain readable without human anatomy.
 - American football, hockey, basketball, baseball, and fighting remain playable experiments.
 - [x] Add a complete American-football exhibition with eight clubs and full game flow
 - [x] Expand basketball and hockey mechanics, fixtures, and rosters
+- [x] Give American football readable formations/routes/pocket pressure, deterministic
+  play outcomes, three-beat tackles, stronger scoring/turnover broadcasts, and mobile controls
+- [x] Give hockey authored pass/shot/one-timer timing, readable checks, goalie cover/rebound
+  logic, puck trails, reactive crowd/camera/audio, and mobile-safe broadcast state
 - Promote an arena into the canonical application only after it adopts the shared
   deterministic event contract, persistence, recovery, and automated test gates.

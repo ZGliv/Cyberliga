@@ -212,7 +212,7 @@
 <header class="masthead">
   <a class="brand" href="social.html">CYBERLIGA <span>/ WORLD WIRE</span></a>
   <div class="edition"><b>SEASON ZERO · GLOBAL EDITION</b><time id="utc-clock">--:--:-- UTC</time></div>
-  <nav class="mastnav"><span class="utc-label"><i class="pulse"></i>WIRE LIVE</span><a href="league.html?sport=soccer">LEAGUE ATLAS</a><a href="moment.html">MOMENT MAKER</a><a class="world" href="world.html">WORLD MAP ↗</a></nav>
+  <nav class="mastnav"><span class="utc-label"><i class="pulse"></i><b data-cyberliga-presence>1 WATCHING · LOCAL</b></span><a href="league.html?sport=soccer">LEAGUE ATLAS</a><a href="moment.html">MOMENT MAKER</a><a class="world" href="world.html">WORLD MAP ↗</a></nav>
 </header>
 
 <div class="club-tape" aria-label="Trending clubs">
@@ -224,7 +224,7 @@
     <article class="lead" id="lead"></article>
     <aside class="desk">
       <div class="desk-head"><span>GLOBAL SIGNAL DESK</span><b id="wire-status">RECEIVING 6/6</b></div>
-      <div class="cycle"><p>NEXT WORLD EDITION IN</p><strong id="countdown">--:--</strong><span id="cycle-id">SYNCHRONIZING UTC CYCLE</span></div>
+      <div class="cycle"><p>NEXT WORLD EDITION IN</p><strong id="countdown">--:--</strong><span id="cycle-id">SYNCHRONIZING UTC CYCLE</span><span data-cyberliga-presence>1 WATCHING · LOCAL</span></div>
       <div class="signal-list" id="signal-list"></div>
     </aside>
   </section>
@@ -258,6 +258,8 @@
 <footer><div><b>CYBERLIGA WORLD WIRE</b><p>Results become history. Athletes become folklore. Cities keep the receipts.</p></div><a href="world.html">RETURN TO THE WORLD ↑</a></footer>
 
 <script src="worlddata.js"></script>
+<script src="presence.js"></script>
+<script src="livebridge.js"></script>
 <script>
 (function () {
   'use strict';
@@ -283,6 +285,7 @@
   function queryFor(values, anchor) { var q=new URLSearchParams(); Object.keys(values).forEach(function(key){if(values[key])q.set(key,values[key]);}); return 'social.html?'+q.toString()+(anchor?'#'+anchor:''); }
   function teamUrl(team, athlete) { return queryFor({sport:team.sportId,team:team.id,player:athlete&&athlete.id},athlete?'player-'+athlete.id:'team-'+team.id); }
   function momentUrl(story) { var q=new URLSearchParams();q.set('sport',story.sport.id);q.set('home',story.home.id);q.set('away',story.away.id);q.set('score',story.score.join('-'));q.set('athlete',story.athlete.id);q.set('headline',story.headline);q.set('match',story.id);q.set('story','wire-'+state.cycle);return 'moment.html?'+q.toString(); }
+  function clipUrl(story) { return momentUrl(story).replace(/^moment\.html/, 'clip.html'); }
   function copyText(value) {
     function fallback() { var field=document.createElement('textarea');field.value=value;field.setAttribute('readonly','');field.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(field);field.select();document.execCommand('copy');field.remove(); }
     if (navigator.clipboard&&navigator.clipboard.writeText) return navigator.clipboard.writeText(value).catch(fallback);
@@ -339,7 +342,7 @@
     document.documentElement.style.setProperty('--club',story.color);
     var lead=document.getElementById('lead');
     lead.style.setProperty('--club',story.color);
-    lead.innerHTML='<div class="kicker"><i></i>'+esc(story.status)+' · '+esc(story.sport.name)+' · '+clock(story.publishedAt)+'</div><h1>'+esc(story.headline)+'</h1><p class="deck">'+esc(story.hook)+' '+esc(story.athlete.name)+' is the name moving fastest across the wire.</p><div class="scoreline"><div class="score"><b>'+esc(story.home.code)+'</b><strong>'+story.score[0]+'</strong><em>—</em><strong>'+story.score[1]+'</strong><b>'+esc(story.away.code)+'</b></div><a href="'+esc(momentUrl(story))+'">MAKE POSTER ↗</a><button type="button" data-share="'+esc(story.id)+'">COPY STORY</button></div>';
+    lead.innerHTML='<div class="kicker"><i></i>'+esc(story.status)+' · '+esc(story.sport.name)+' · '+clock(story.publishedAt)+'</div><h1>'+esc(story.headline)+'</h1><p class="deck">'+esc(story.hook)+' '+esc(story.athlete.name)+' is the name moving fastest across the wire.</p><div class="scoreline"><div class="score"><b>'+esc(story.home.code)+'</b><strong>'+story.score[0]+'</strong><em>—</em><strong>'+story.score[1]+'</strong><b>'+esc(story.away.code)+'</b></div><a href="'+esc(clipUrl(story))+'">ANIMATE CLIP ↗</a><a href="'+esc(momentUrl(story))+'">MAKE POSTER ↗</a><button type="button" data-share="'+esc(story.id)+'">COPY STORY</button></div>';
   }
 
   function renderSignals() {

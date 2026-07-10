@@ -112,7 +112,7 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
 .system-state small { display: block; margin-top: 6px; color: var(--muted); font: 11px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   border: 1px solid var(--line);
   background: var(--line);
   gap: 1px;
@@ -273,7 +273,7 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
     <div>
       <p class="eyebrow">READ-ONLY SYSTEM VIEW · BROWSER-SIDE PROBE</p>
       <h1>WORLD CONTROL</h1>
-      <p class="mast-copy">A truthful view of Cyberliga’s shared UTC prototype: schedule integrity, canonical soccer channels, local route reachability, and the production systems that do not exist yet.</p>
+      <p class="mast-copy">A truthful view of Cyberliga’s shared UTC world: schedule integrity, live API health, canonical soccer channels, media routes, and the exact boundary between deterministic fallback and connected persistence.</p>
     </div>
     <div class="system-state" aria-live="polite">
       <span class="label"><i class="pulse" id="state-pulse"></i> CURRENT ASSESSMENT</span>
@@ -287,6 +287,7 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
     <article class="summary"><p class="micro">CANONICAL SLOT</p><div class="value" id="slot">—</div><div class="sub" id="round-cycle">—</div></article>
     <article class="summary"><p class="micro">NEXT ROLLOVER</p><div class="value" id="rollover">—</div><div class="sub" id="rollover-at">—</div></article>
     <article class="summary"><p class="micro">CONTENT REGISTRY</p><div class="value" id="registry">—</div><div class="sub" id="registry-detail">—</div></article>
+    <article class="summary"><p class="micro">DATA PLANE</p><div class="value" id="backend-mode">—</div><div class="sub" id="backend-detail">PROBING /API</div></article>
   </section>
 
   <div class="section-grid">
@@ -321,12 +322,12 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
   </div>
 
   <section class="panel boundaries">
-    <header class="panel-head"><h2>EXPLICIT PROTOTYPE BOUNDARIES</h2><p>DO NOT REPRESENT THESE AS SHIPPED SYSTEMS</p></header>
+    <header class="panel-head"><h2>EXPLICIT PRODUCTION BOUNDARIES</h2><p>CAPABILITY IS NOT THE SAME AS CONNECTED INFRASTRUCTURE</p></header>
     <div class="boundary-grid">
       <article class="boundary good"><div class="boundary-top"><span class="micro">TIMELINE</span><span class="state">PRESENT</span></div><h3>Shared UTC schedule</h3><p>Every browser derives the same slot, fixture IDs, seeds, and elapsed time from the public clock.</p></article>
-      <article class="boundary"><div class="boundary-top"><span class="micro">AUTHORITY</span><span class="state">ABSENT</span></div><h3>Server-authoritative simulation</h3><p>Match state is calculated in each client. There is no canonical event stream, referee process, or signed result.</p></article>
-      <article class="boundary"><div class="boundary-top"><span class="micro">HISTORY</span><span class="state">ABSENT</span></div><h3>Persistent results</h3><p>No database currently stores standings, completed matches, careers, injuries, narratives, or audit history.</p></article>
-      <article class="boundary"><div class="boundary-top"><span class="micro">AUDIENCE</span><span class="state">ABSENT</span></div><h3>Realtime presence</h3><p>No shared audience count, accounts, chat, follows, predictions, notifications, or operator control plane exists.</p></article>
+      <article class="boundary" id="authority-boundary"><div class="boundary-top"><span class="micro">AUTHORITY</span><span class="state" id="authority-state">FALLBACK</span></div><h3>Canonical event service</h3><p id="authority-copy">The deterministic API is online; the public match renderer still owns its local physics until the database-backed event stream is configured and consumed.</p></article>
+      <article class="boundary" id="history-boundary"><div class="boundary-top"><span class="micro">HISTORY</span><span class="state" id="history-state">SCHEMA READY</span></div><h3>Persistent results</h3><p id="history-copy">Seasons, fixtures, ordered events, standings, media, idempotent finalization, RLS, and indexes are implemented. A dedicated Cyberliga database has not been provisioned yet.</p></article>
+      <article class="boundary" id="audience-boundary"><div class="boundary-top"><span class="micro">AUDIENCE</span><span class="state" id="audience-state">CLIENT READY</span></div><h3>Realtime presence</h3><p id="audience-copy">Anonymous match-scoped presence, reconnecting, privacy-safe aggregation, and honest local fallback are implemented. Shared counts begin when a dedicated realtime project is configured.</p></article>
     </div>
   </section>
 
@@ -350,12 +351,18 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
   var probing = false;
   var lastProbeAt = 0;
   var toastTimer = 0;
+  var backend = { mode: 'probing', canonical: false, source: 'unknown', matches: 0, error: null };
 
   var ROUTES = [
     { name: 'World', path: 'world.html', kind: 'PUBLIC ENTRY' },
     { name: 'League Atlas', path: 'league.html', kind: 'CONTENT' },
     { name: 'World Wire', path: 'social.html', kind: 'SOCIAL' },
-    { name: 'Moment', path: 'moment.html', kind: 'OPTIONAL', optional: true },
+    { name: 'Moment Maker', path: 'moment.html', kind: 'MEDIA' },
+    { name: 'Clip Director', path: 'clip.html', kind: 'MEDIA' },
+    { name: 'Character Lab', path: 'characterlab.html', kind: 'INTERNAL LAB' },
+    { name: 'Runtime Config', path: 'api/config', kind: 'API' },
+    { name: 'Live Events', path: 'api/live?sport=soccer', kind: 'API' },
+    { name: 'League State', path: 'api/league?sport=soccer', kind: 'API' },
     { name: 'Soccer', path: 'index.html', kind: 'ARENA' },
     { name: 'American Football', path: 'football.html', kind: 'ARENA' },
     { name: 'Basketball', path: 'hoops.html', kind: 'ARENA' },
@@ -490,10 +497,12 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
       pulse.style.background = 'var(--amber)';
       el('system-detail').textContent = 'Reachability checks run from this browser only.';
     } else if (routePass && integrityPass) {
-      label.textContent = 'PROTOTYPE SIGNAL PASS';
+      label.textContent = backend.canonical ? 'CANONICAL SIGNAL PASS' : 'FALLBACK SIGNAL PASS';
       label.style.color = 'var(--green)';
       pulse.style.background = 'var(--green)';
-      el('system-detail').textContent = 'Static routes reachable; backend authority remains absent.';
+      el('system-detail').textContent = backend.canonical
+        ? 'Public routes and canonical database event service are healthy.'
+        : 'Public routes and APIs are healthy in explicitly labeled deterministic fallback mode.';
     } else {
       label.textContent = 'ATTENTION REQUIRED';
       label.style.color = 'var(--red)';
@@ -518,6 +527,17 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
     el('round-cycle').textContent = 'ROUND ' + primary.round + ' · CYCLE ' + primary.cycle + ' · 4 CHANNELS';
     el('rollover').textContent = duration(primary.endsAt - now);
     el('rollover-at').textContent = 'AT ' + utcStamp(primary.endsAt);
+    el('backend-mode').textContent = backend.mode === 'supabase' ? 'CANONICAL' : backend.mode === 'deterministic-fallback' ? 'FALLBACK' : backend.mode.toUpperCase();
+    el('backend-detail').textContent = backend.error ? 'API ERROR · STATIC WORLD SAFE' : backend.source.toUpperCase() + ' · ' + backend.matches + ' MATCHES';
+    el('authority-state').textContent = backend.canonical ? 'CONNECTED' : 'FALLBACK';
+    el('history-state').textContent = backend.canonical ? 'PERSISTING' : 'SCHEMA READY';
+    el('audience-state').textContent = backend.mode === 'supabase' ? 'REALTIME READY' : 'CLIENT READY';
+    el('authority-copy').textContent = backend.canonical
+      ? 'The public live API is reading a canonical database event stream. The Three.js soccer renderer is the remaining client-owned simulation boundary.'
+      : 'The deterministic API is online; the public match renderer still owns its local physics until the database-backed event stream is configured and consumed.';
+    el('history-copy').textContent = backend.canonical
+      ? 'Seasons, fixtures, ordered events, standings, media records, and retry-safe finalization are connected to the canonical store.'
+      : 'Seasons, fixtures, ordered events, standings, media, idempotent finalization, RLS, and indexes are implemented. A dedicated Cyberliga database has not been provisioned yet.';
     el('last-render').textContent = 'RENDER ' + utcStamp(now) + (timeOffset ? ' · TEST OFFSET ' + timeOffset + 'MS' : '');
     renderChannels(matches);
     renderSchedule(matches);
@@ -526,12 +546,32 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
     updateAssessment(info);
   }
 
+  async function probeBackend() {
+    try {
+      var responses = await Promise.all([
+        fetch('api/config?_ops_backend=1', { cache: 'no-store', credentials: 'same-origin' }),
+        fetch('api/live?sport=soccer&_ops_backend=1', { cache: 'no-store', credentials: 'same-origin' })
+      ]);
+      if (!responses.every(function (response) { return response.ok; })) throw new Error('backend probe returned a non-2xx status');
+      var payloads = await Promise.all(responses.map(function (response) { return response.json(); }));
+      backend = {
+        mode: payloads[0].backend && payloads[0].backend.mode || payloads[1].source || 'unknown',
+        canonical: payloads[1].canonical === true,
+        source: payloads[1].source || 'unknown',
+        matches: Array.isArray(payloads[1].matches) ? payloads[1].matches.length : 0,
+        error: null
+      };
+    } catch (error) {
+      backend = { mode: 'unavailable', canonical: false, source: 'static-fallback', matches: 0, error: String(error) };
+    }
+  }
+
   async function probeRoutes() {
     if (probing) return;
     probing = true;
     health = ROUTES.map(function () { return { state: 'PENDING', status: '—', latency: '—' }; });
     render();
-    await Promise.all(ROUTES.map(async function (route, index) {
+    await Promise.all([probeBackend()].concat(ROUTES.map(async function (route, index) {
       var started = performance.now();
       try {
         var target = new URL(route.path, location.href);
@@ -548,7 +588,7 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
         health[index] = { state: route.optional ? 'OPTIONAL ABSENT' : 'ERROR', status: 'ERR', latency: Math.max(0, performance.now() - started).toFixed(1) + 'ms' };
       }
       renderRoutes();
-    }));
+    })));
     lastProbeAt = nowMs();
     probing = false;
     render();
@@ -571,7 +611,8 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
       'content=' + info.sports + '_leagues/' + info.teams + '_clubs/' + info.athletes + '_athletes',
       'integrity=' + info.checks.map(function (check) { return check.name.replace(/\s+/g, '_').toLowerCase() + ':' + (check.pass ? 'pass' : 'fail'); }).join(','),
       'routes=' + ROUTES.map(function (route, index) { var item = health[index] || {}; return route.path + ':' + (item.status || 'unprobed') + '/' + (item.latency || '—'); }).join(','),
-      'boundary=client_deterministic;server_authority_absent;persistence_absent;realtime_presence_absent'
+      'backend=' + backend.mode + ';canonical=' + backend.canonical + ';source=' + backend.source,
+      'boundary=client_renderer_simulation;canonical_api_ready;database_' + (backend.canonical ? 'connected' : 'not_provisioned') + ';presence_client_ready'
     ].join('\n');
   }
 
@@ -609,7 +650,8 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
       channels: matches.map(function (match) { return { id: match.id, channel: match.channel + 1, home: match.home.code, away: match.away.code, progress: Number((match.elapsedMs / match.durationMs).toFixed(4)) }; }),
       content: { leagues: info.sports, clubs: info.teams, athletes: info.athletes, checksPassing: info.checks.filter(function (check) { return check.pass; }).length, checksTotal: info.checks.length },
       routes: ROUTES.map(function (route, index) { var item = health[index] || {}; return { path: route.path, optional: !!route.optional, status: item.status || null, state: item.state || 'UNPROBED', latency: item.latency || null }; }),
-      boundaries: { clientDeterministic: true, serverAuthoritative: false, persistence: false, realtimePresence: false }
+      backend: backend,
+      boundaries: { clientRendererSimulation: true, canonicalApiReady: true, serverAuthoritative: backend.canonical, persistenceConnected: backend.canonical, realtimePresenceClient: true }
     });
   };
   window.advanceTime = function (ms) {

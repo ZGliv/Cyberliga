@@ -1,6 +1,6 @@
 # CYBERLIGA — Prototype to Ship
 
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 
 ## V1 product definition
 
@@ -60,6 +60,14 @@ the browser, with no match deadlocks across the automated simulation run.
 
 ## Phase 2 — Canonical league service
 
+- [x] Define the RLS-protected canonical schema for seasons, teams, athletes, fixtures,
+  matches, ordered events, standings, media, presence aggregates, and worker health.
+- [x] Add deterministic `/api/live` and `/api/league` fallbacks, a browser-safe runtime
+  config endpoint, and a secret-protected idempotent `/api/tick` boundary.
+- [x] Add fixture advisory locking, stable event keys/sequences, monotonic snapshots,
+  and one-time standings finalization with service-role-only execution.
+- [ ] Provision a dedicated Cyberliga Supabase project, apply/seed the migration, and
+  configure publishable/service/cron credentials without touching unrelated projects.
 - [ ] Add persistent seasons, teams, players, fixtures, matches, ordered events,
   standings, career stats, storylines, and media records.
 - [ ] Add an always-on worker that claims, simulates, broadcasts, and finalizes fixtures.
@@ -69,6 +77,11 @@ the browser, with no match deadlocks across the automated simulation run.
 
 Exit gate: two fresh browsers see the same clock, result, table, and player history;
 a restarted worker resumes without corrupting or duplicating the match.
+
+Backend checkpoint completed 2026-07-10: the migration applied cleanly to a disposable
+Postgres instance; repeated final ticks produced one match, stable events, and one standings
+application. Anonymous writes and RPC execution were denied. Production remains in explicitly
+labeled deterministic fallback until a dedicated project is chosen and provisioned.
 
 ## Phase 3 — Application shell
 
@@ -82,6 +95,10 @@ a restarted worker resumes without corrupting or duplicating the match.
   deterministic fixtures, rivalries, and daily narrative hooks.
 - [x] Add a shareable World Wire route with six UTC-synchronized editorial desks,
   athlete/team focus links, trending clubs, and rivalry coverage.
+- [x] Add an internal Character Lab for the first twelve marquee athletes with deterministic
+  match, portrait, and vertical-clip previews before any body family reaches the live product.
+- [x] Add privacy-safe anonymous match presence with reconnect/backoff and an honest
+  `1 WATCHING · LOCAL` state until realtime credentials are configured.
 
 Exit gate: every important piece of league state has a permanent shareable URL, and the
 core mobile experience works without relying on one browser's local storage.
@@ -90,9 +107,10 @@ core mobile experience works without relying on one browser's local storage.
 
 - [ ] Simulation distribution, invariant, freeze, and recovery tests.
 - [ ] Desktop and mobile browser smoke tests for every public route.
-- [x] CI for syntax, invariant/data checks, route smoke tests, asset checks, and previews.
-- [x] Add a dependency-free project preview server, 600+ invariant checks, and a GitHub
-  Actions route/release gate.
+- [x] CI for API tests, syntax, invariant/data checks, route/API smoke tests, asset checks,
+  and previews.
+- [x] Add a dependency-free project preview server with local Vercel-function dispatch,
+  700+ invariant checks, and a GitHub Actions application release gate.
 - [ ] Error reporting, worker health checks, database backups, and rollback procedure.
 - [ ] Remove production-critical model/CDN dependencies that lack controlled fallbacks.
 
@@ -103,7 +121,9 @@ sequence, mobile QA passes at 390×844, and production can be rolled back safely
 
 - [ ] Select highlight windows from structured match events.
 - [x] Generate deterministic 1080x1920 vertical moment posters from permanent query URLs.
-- [ ] Generate final-score recaps, replay pages, and actual vertical video clip candidates.
+- [x] Generate deterministic 12-second vertical WebM clip candidates from permanent
+  story URLs with six sport-specific animated signature plays.
+- [ ] Automatically generate final-score recaps, replay pages, and event-selected clips.
 - [ ] Add a private review queue before any automated social publishing.
 - [ ] Run a continuous private season and measure load time, watch time, reconnects,
   crashes, shares, and outcome balance.

@@ -1,0 +1,3 @@
+-- Canonical production data is ingested deliberately after migration.
+-- Keeping the default local seed empty prevents prototype fixtures from being
+-- mistaken for authoritative season history.

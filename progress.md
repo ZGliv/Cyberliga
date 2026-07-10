@@ -110,3 +110,38 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - Added a GitHub Actions release gate and `ops.html`, an honest read-only world-control view
   covering canonical channels, rollover, content integrity, route latency, and the explicit
   server-authority/persistence/presence gaps that remain after this expansion.
+
+## Production Data / Virality / Character Boundary — 2026-07-10
+- Added a CLI-generated Supabase migration for seasons, teams, athletes, fixtures, matches,
+  ordered events, standings, media, presence aggregates, and worker health. Every exposed
+  table has explicit read-only RLS; service writes and `canonical_apply_tick` are isolated.
+- Added deterministic six-sport `/api/live` and `/api/league` fallbacks, browser-safe
+  `/api/config`, secret-protected `/api/tick`, project-server API dispatch, and eight Node API
+  tests. A disposable Postgres run proved retry idempotency and denied anonymous writes/RPC.
+- Added privacy-safe match-scoped realtime presence with reconnect/backoff and honest
+  `1 WATCHING · LOCAL` fallback across the world, live soccer, World Wire, Moment Maker,
+  and Clip Director. No Supabase secret can enter the browser client.
+- Added `clip.html`: deterministic 12-second 9:16 animation for all six sports, permanent
+  story parameters, scrubbing/fullscreen, and real VP9/VP8 WebM export. World Wire and
+  Moment Maker now hand the exact story state into the Clip Director.
+- Added `characterlab.html` + `characterlab.js`: 12 marquee athletes, 12 distinct tactile
+  body families/signature motions, match/portrait/clip contexts, deterministic URLs, and
+  explicit gifts/flaws/rivalries. This remains an art-direction gate, not the live renderer.
+- Rebuilt `blobrig.js` motion language with planted cuts, acceleration/braking, authored
+  anticipation-contact-follow-through, four celebration rhythms, emotional reactions, and
+  expanded goalkeeper behavior while preserving deterministic match state.
+- Upgraded operations to probe the real API/data plane and distinguish canonical Supabase
+  from deterministic fallback. CI now tests APIs and smoke-tests media/character routes.
+- Verification checkpoint: 8 API tests and 747 static/data/route/RLS/media invariants pass;
+  Character Lab and Clip Director passed desktop and 390x844 visual/console checks.
+- External boundary: no dedicated Cyberliga Supabase project has been provisioned. The only
+  visible project belongs to Parl.ai and was deliberately left untouched. Production stays
+  explicitly in deterministic fallback until the target organization and cost are confirmed.
+- American football checkpoint: deterministic play/outcome RNG, pre-snap formations and
+  coverage reads, route/catch geometry, pocket pressure, three-beat tackles, reactive crowd/
+  lights/audio, overtime/final flow, and mobile controls passed full-game and sync tests.
+- Hockey checkpoint: authored pass/shot/one-timer timing, brace/contact/recovery checks,
+  differentiated covers/rebounds, readable puck trail/locator, reactive camera/crowd/audio,
+  and a 400-second full-game/rotation soak passed with zero console errors.
+- Next active passes: football 11v11/player-count rebuild, basketball playbooks/schemes,
+  then navigation/crowd/remaining-sport rotation.

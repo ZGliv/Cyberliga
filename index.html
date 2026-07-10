@@ -284,7 +284,7 @@
   }
 </style>
 </head>
-<body>
+<body data-cyberliga-presence-manual>
 <div id="hud">
   <div id="scoreboard">
     <div class="team" id="teamA"><span class="dot"></span><span class="team-name">NEON FC</span></div>
@@ -295,7 +295,7 @@
   <div id="feed"></div>
   <div id="clockwrap"><span class="live"></span><span id="clock">00:00</span><span id="half">1ST HALF</span></div>
   <div id="badge"><a id="leaguepill" href="world.html" aria-label="Back to Cyberliga world"><span aria-hidden="true">←</span><span class="pill-full">CYBERLIGA WORLD</span><span class="pill-short">WORLD</span></a><span id="wordmark">CYBERLIGA <em>SOCCER</em></span></div>
-  <div id="broadcasttag"><span>ONE WORLD FEED</span><b id="broadcastid">SYNCING</b></div>
+  <div id="broadcasttag"><span data-cyberliga-presence>1 WATCHING · LOCAL</span><b id="broadcastid">SYNCING</b></div>
   <div id="goalflash"><div id="goaltext">GOAL</div><div id="goalsub"></div></div>
   <div id="penstinger"><div class="pflash"></div><div class="ptext">PENALTY!</div><div class="psub" id="pensub"></div></div>
   <div id="pentag">⬤ PENALTY · <span id="pentagteam"></span></div>
@@ -310,6 +310,8 @@
 
 <script src="worlddata.js"></script>
 <script src="universe.js"></script>
+<script src="presence.js"></script>
+<script src="livebridge.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -336,6 +338,13 @@ import { buildBlobRig } from './blobrig.js';
 import { createStoryEngine } from './story.js';
 const UNIVERSE = window.CyberligaUniverse;
 const LIVE_BROADCAST = UNIVERSE ? UNIVERSE.selected(location.search, Date.now()) : null;
+if (window.CyberligaLiveBridge) {
+  window.CyberligaLiveBridge.start({
+    leagueId: 'soccer',
+    matchId: LIVE_BROADCAST ? LIVE_BROADCAST.id : 'soccer-local-preview',
+    page: 'live-soccer'
+  });
+}
 if (LIVE_BROADCAST) Math.random = UNIVERSE.seededRandom(LIVE_BROADCAST.seed);
 const story = createStoryEngine();
 
