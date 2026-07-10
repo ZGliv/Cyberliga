@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>CYBERLIGA WORLD — Live Autonomous Football</title>
-<meta name="description" content="A living AI sports world. Two matches are always live. Every viewer joins the same game already in progress." />
+<title>CYBERLIGA WORLD — Five Autonomous Sports Leagues</title>
+<meta name="description" content="One physical world. Five autonomous sports leagues. Tune into football, basketball, hockey, baseball, and fight circuits." />
 <meta name="theme-color" content="#020304" />
 <meta property="og:type" content="website" />
-<meta property="og:title" content="CYBERLIGA — One World. Always Live." />
-<meta property="og:description" content="Four cities. Twenty-eight characters. Two autonomous football matches unfolding on one shared timeline." />
+<meta property="og:title" content="CYBERLIGA — One Planet. Five Leagues." />
+<meta property="og:description" content="A living global network for autonomous football, basketball, hockey, baseball, and fight leagues." />
 <meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-world-og.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="CYBERLIGA — One World. Always Live." />
-<meta name="twitter:description" content="Tune into the same autonomous match everyone else is watching." />
+<meta name="twitter:title" content="CYBERLIGA — One Planet. Five Leagues." />
+<meta name="twitter:description" content="Open the globe and tune into a living autonomous sports network." />
 <meta name="twitter:image" content="https://cyberliga-ten.vercel.app/cyberliga-world-og.png" />
 <link rel="icon" href="data:," />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -63,35 +63,31 @@
   .liveboard { position:fixed; z-index:30; top:100px; right:30px; width:min(370px,31vw); }
   .panel-label { display:flex; align-items:center; justify-content:space-between; color:var(--muted); font:700 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.19em; }
   .panel-label strong { color:#fff; }
-  .matches { margin-top:10px; display:grid; gap:1px; background:var(--line); }
-  .match { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:9px; min-height:72px; padding:12px 13px; background:rgba(4,6,8,.88); backdrop-filter:blur(18px); transition:background .18s; }
-  .match:hover { background:#121619; }
-  .match .away { text-align:right; }
-  .match b { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:800 13px/1 'Barlow Condensed',sans-serif; letter-spacing:.05em; }
-  .match small { display:block; margin-top:6px; color:var(--muted); font:700 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.14em; }
-  .match .signal { text-align:center; }
-  .match .signal i { display:block; margin:auto; width:6px; height:6px; border-radius:50%; background:var(--live); box-shadow:0 0 10px var(--live); }
-  .match .signal strong { display:block; margin-top:7px; color:#fff; font:800 13px/1 'Barlow Condensed',sans-serif; letter-spacing:.08em; }
-
-  .dossier { margin-top:14px; border-top:1px solid var(--club); padding:17px; background:linear-gradient(135deg,rgba(4,6,8,.94),rgba(4,6,8,.68)); backdrop-filter:blur(18px); }
-  .dossier-top { display:grid; grid-template-columns:84px 1fr; gap:15px; align-items:center; }
-  .dossier img { width:84px; height:84px; object-fit:cover; background:#0c1014; filter:saturate(.94) contrast(1.04); }
-  .dossier .city { color:var(--muted); font:700 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.18em; }
-  .dossier h2 { margin-top:5px; font-size:26px; font-stretch:120%; line-height:.9; letter-spacing:-.045em; }
-  .dossier .star { margin-top:7px; color:var(--club); font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
-  .dossier blockquote { margin-top:14px; color:#fff; font:600 16px/1.25 'Barlow Condensed',sans-serif; }
-  .dossier p { margin-top:9px; color:var(--muted); font:600 12px/1.45 'Barlow Condensed',sans-serif; }
-  .dossier-actions { display:flex; gap:8px; margin-top:15px; }
-  .dossier-actions a,.dossier-actions button { min-height:38px; display:inline-flex; align-items:center; justify-content:center; padding:0 13px; cursor:pointer; font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
-  .dossier-actions a { flex:1; color:#020304; background:#fff; }
-  .dossier-actions button { color:var(--muted); border:1px solid var(--line); background:transparent; }
-
-  .cast { position:fixed; z-index:28; left:30px; right:30px; bottom:28px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; background:var(--line); }
-  .cast button { min-width:0; display:grid; grid-template-columns:47px 1fr; gap:10px; align-items:center; padding:7px; cursor:pointer; text-align:left; background:rgba(4,6,8,.83); backdrop-filter:blur(12px); }
-  .cast button:hover,.cast button.active { background:#121619; }
-  .cast img { width:47px; height:47px; object-fit:cover; background:#0c1014; }
-  .cast b { display:block; overflow:hidden; text-overflow:ellipsis; font:800 12px/1 'Barlow Condensed',sans-serif; letter-spacing:.1em; }
-  .cast span { display:block; margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font:700 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; }
+  .league-list { margin-top:10px; display:grid; gap:1px; background:var(--line); }
+  .league-row { width:100%; min-width:0; display:grid; grid-template-columns:48px 1fr auto; align-items:center; gap:11px; padding:10px 12px; cursor:pointer; color:#fff; background:rgba(4,6,8,.88); text-align:left; transition:background .18s; }
+  .league-row:hover,.league-row.active { background:#121619; }
+  .league-row.active { box-shadow:inset 2px 0 var(--c); }
+  .league-code { display:grid; place-items:center; height:31px; border:1px solid color-mix(in srgb,var(--c) 58%,transparent); color:var(--c); font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.14em; }
+  .league-row b { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:800 12px/1 'Barlow Condensed',sans-serif; letter-spacing:.07em; }
+  .league-row small { display:block; margin-top:5px; color:var(--muted); font:700 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; }
+  .league-state { color:var(--muted); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; text-align:right; }
+  .league-row[data-live="true"] .league-state { color:#fff; }
+  .signal-card { margin-top:14px; border-top:1px solid var(--club); padding:17px; background:linear-gradient(135deg,rgba(4,6,8,.94),rgba(4,6,8,.68)); backdrop-filter:blur(18px); }
+  .signal-card .sport { color:var(--club); font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.2em; }
+  .signal-card h2 { margin-top:7px; font-size:28px; font-stretch:120%; line-height:.88; letter-spacing:-.05em; text-transform:uppercase; }
+  .signal-card .route { margin-top:9px; color:#fff; font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.14em; }
+  .signal-card .copy { margin-top:10px; color:var(--muted); font:600 12px/1.45 'Barlow Condensed',sans-serif; }
+  .signal-actions { display:flex; gap:8px; margin-top:15px; }
+  .signal-actions a,.signal-actions button { min-height:38px; display:inline-flex; align-items:center; justify-content:center; padding:0 13px; cursor:pointer; font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
+  .signal-actions a { flex:1; color:#020304; background:#fff; }
+  .signal-actions button { color:var(--muted); border:1px solid var(--line); background:transparent; }
+  .sportbar { position:fixed; z-index:28; left:30px; right:30px; bottom:28px; display:grid; grid-template-columns:auto repeat(5,1fr); gap:1px; background:var(--line); }
+  .sportbar > span,.sportbar button { min-width:0; min-height:50px; display:flex; align-items:center; padding:0 13px; background:rgba(4,6,8,.84); backdrop-filter:blur(12px); }
+  .sportbar > span { color:var(--muted); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
+  .sportbar button { position:relative; gap:9px; cursor:pointer; color:#fff; text-align:left; }
+  .sportbar button::before { content:''; width:5px; height:22px; background:var(--c); }
+  .sportbar button:hover,.sportbar button.active { background:#121619; }
+  .sportbar b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.1em; }
 
   .loading { position:fixed; inset:0; z-index:100; display:grid; place-items:center; background:#020304; transition:opacity .55s,visibility .55s; }
   .loading.done { opacity:0; visibility:hidden; }
@@ -105,20 +101,17 @@
     .intro h1 { font-size:49px; width:270px; }
     .intro .lede,.intro .proof { display:none; }
     .liveboard { top:auto; left:18px; right:18px; bottom:95px; width:auto; }
-    .dossier { display:none; }
-    .matches { grid-template-columns:1fr 1fr; }
-    .match { min-height:62px; padding:9px; }
-    .match b { font-size:11px; }
-    .match small { display:none; }
-    .cast { left:18px; right:18px; bottom:22px; }
-    .cast button { grid-template-columns:37px 1fr; padding:5px; gap:7px; }
-    .cast img { width:37px; height:37px; }
-    .cast span { display:none; }
+    .liveboard { bottom:22px; }
+    .signal-card { display:none; }
+    .league-list { grid-template-columns:repeat(5,1fr); }
+    .league-row { display:block; min-height:61px; padding:8px 6px; text-align:center; }
+    .league-code { height:24px; border:0; }
+    .league-row b { margin-top:4px; font-size:9px; }
+    .league-row small,.league-state { display:none; }
+    .sportbar { display:none; }
     .frame { inset:7px; }
   }
   @media (max-width:540px) {
-    .match .signal strong { font-size:10px; }
-    .cast b { font-size:10px; }
     .panel-label span:last-child { display:none; }
   }
   @media (prefers-reduced-motion:reduce) { * { animation-duration:.01ms!important; animation-iteration-count:1!important; } }
@@ -126,33 +119,32 @@
 </head>
 <body>
 <div class="loading" id="loading"><p>ACQUIRING THE WORLD SIGNAL</p></div>
-<canvas id="globe" aria-label="Interactive globe showing the four Cyberliga clubs"></canvas>
+<canvas id="globe" aria-label="Interactive globe showing five Cyberliga sports leagues"></canvas>
 <div id="labels"></div>
 <div class="frame" aria-hidden="true"></div>
 
 <header class="topbar">
   <a class="brand" href="world.html"><strong>CYBERLIGA</strong><i></i><span>THE AUTONOMOUS SPORTS WORLD</span></a>
-  <nav class="nav"><a href="league.html">LEAGUE ARCHIVE</a><a class="live" id="watch-primary" href="index.html"><span class="dot"></span>WATCH LIVE</a></nav>
+  <nav class="nav"><a href="#network">5 LEAGUES</a><a class="live" id="watch-primary" href="index.html"><span class="dot"></span>WATCH FOOTBALL LIVE</a></nav>
 </header>
 
 <section class="intro">
-  <p class="eyebrow">GLOBAL PREMIERSHIP · SEASON ZERO</p>
-  <h1>ONE WORLD. <span>ALWAYS LIVE.</span></h1>
-  <p class="lede">Four cities. Twenty-eight characters. Two matches unfolding on one shared timeline—whether anyone is watching or not.</p>
-  <div class="proof"><div><b>2</b><span>LIVE SIGNALS</span></div><div><b>28</b><span>PLAYER LIVES</span></div><div><b>1</b><span>SHARED REALITY</span></div></div>
+  <p class="eyebrow">THE AUTONOMOUS SPORTS NETWORK · SEASON ZERO</p>
+  <h1>ONE PLANET. <span>FIVE LEAGUES.</span></h1>
+  <p class="lede">Football, basketball, hockey, baseball, and fight circuits broadcasting from one physical world. Pick a signal and drop in.</p>
+  <div class="proof"><div><b>5</b><span>SPORTS LEAGUES</span></div><div><b>10</b><span>HOST CITIES</span></div><div><b>1</b><span>LIVE WORLD</span></div></div>
 </section>
 
-<aside class="liveboard">
-  <div class="panel-label"><span><strong>● LIVE NOW</strong> · GLOBAL MATCH CENTRE</span><span id="round-label">ROUND —</span></div>
-  <div class="matches" id="matches"></div>
-  <section class="dossier" id="dossier">
-    <div class="dossier-top"><img id="dossier-image" alt="" /><div><p class="city" id="dossier-city"></p><h2 id="dossier-team"></h2><p class="star" id="dossier-star"></p></div></div>
-    <blockquote id="dossier-line"></blockquote><p id="dossier-story"></p>
-    <div class="dossier-actions"><a id="dossier-watch" href="index.html">TUNE INTO THEIR MATCH ↗</a><button id="share" type="button">COPY WORLD LINK</button></div>
+<aside class="liveboard" id="network">
+  <div class="panel-label"><span><strong>● NETWORK ONLINE</strong> · SELECT A LEAGUE</span><span id="round-label">5 SIGNALS</span></div>
+  <div class="league-list" id="league-list"></div>
+  <section class="signal-card" id="signal-card">
+    <p class="sport" id="signal-sport"></p><h2 id="signal-name"></h2><p class="route" id="signal-route"></p><p class="copy" id="signal-copy"></p>
+    <div class="signal-actions"><a id="signal-watch" href="index.html">ENTER THE ARENA ↗</a><button id="share" type="button">COPY WORLD LINK</button></div>
   </section>
 </aside>
 
-<div class="cast" id="cast" aria-label="Faces of the league"></div>
+<div class="sportbar" id="sportbar" aria-label="Cyberliga sports network"><span>NETWORK //</span></div>
 
 <script src="universe.js"></script>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
@@ -161,71 +153,63 @@ import * as THREE from 'three';
 
 const U = window.CyberligaUniverse;
 let matches = U.liveMatches(Date.now());
-let selected = U.TEAMS[0];
-const activeIds = new Set(matches.flatMap(match => [match.home.id, match.away.id]));
+const LEAGUES = [
+  { id:'football', code:'FBL', sport:'FOOTBALL', name:'GLOBAL PREMIERSHIP', color:'#00e5ff', live:true,
+    state:'2 LIVE', hosts:[{city:'Tokyo',lat:35.6762,lon:139.6503},{city:'São Paulo',lat:-23.5505,lon:-46.6333}],
+    copy:'The canonical league. Two fixtures run on one seeded UTC timeline, so every screen joins the same match already in progress.',
+    href:()=>U.sharePath(matches[0]) },
+  { id:'hoops', code:'HPS', sport:'BASKETBALL', name:'SKYLINE CIRCUIT', color:'#ff8a3d', live:false,
+    state:'PLAYABLE', hosts:[{city:'New York',lat:40.7128,lon:-74.0060},{city:'Manila',lat:14.5995,lon:120.9842}],
+    copy:'Four-on-four pace, violent transitions, and a vertical city circuit built for impossible finishes above the rim.', href:()=> 'hoops.html' },
+  { id:'ice', code:'ICE', sport:'HOCKEY', name:'POLAR LEAGUE', color:'#78dfff', live:false,
+    state:'PLAYABLE', hosts:[{city:'Montréal',lat:45.5019,lon:-73.5674},{city:'Stockholm',lat:59.3293,lon:18.0686}],
+    copy:'A cold-weather circuit of speed, collisions, sudden-death pressure, and arenas that never fully stop shaking.', href:()=> 'hockey.html' },
+  { id:'diamond', code:'BSB', sport:'BASEBALL', name:'NIGHT DIAMOND', color:'#58ffb4', live:false,
+    state:'PLAYABLE', hosts:[{city:'Mexico City',lat:19.4326,lon:-99.1332},{city:'Seoul',lat:37.5665,lon:126.9780}],
+    copy:'A nocturnal baseball league where every pitch becomes a duel and every ball in play turns the whole field into a chase.', href:()=> 'baseball.html' },
+  { id:'fight', code:'FYT', sport:'COMBAT', name:'THE UNDERCARD', color:'#ff3d5a', live:false,
+    state:'PLAYABLE', hosts:[{city:'Lagos',lat:6.5244,lon:3.3792},{city:'Las Vegas',lat:36.1716,lon:-115.1391}],
+    copy:'Three-round fight nights with distinct styles, visible fatigue, scorecards, knockdowns, and no safe route to the final bell.', href:()=> 'fight.html' }
+];
+let selected = LEAGUES[0];
 
-function imgFor(team) {
-  const image = new Image();
-  image.src = team.portrait;
-  return image;
+function routeText(league) {
+  return `${league.hosts[0].city.toUpperCase()} ↔ ${league.hosts[1].city.toUpperCase()}` +
+    (league.live ? ` · ROUND ${matches[0].round} · ${U.clock(matches[0].elapsedMs)}` : ' · EXHIBITION CIRCUIT');
 }
 
-let renderedSlot = -1;
-function renderMatches() {
-  matches = U.liveMatches(Date.now());
-  document.getElementById('round-label').textContent = `ROUND ${matches[0].round} · CYCLE ${matches[0].cycle}`;
-  document.getElementById('watch-primary').href = U.sharePath(matches[0]);
-  if (renderedSlot !== matches[0].slot) {
-    renderedSlot = matches[0].slot;
-    document.getElementById('matches').replaceChildren(...matches.map((match, channel) => {
-      const a = document.createElement('a');
-      a.className = 'match';
-      a.dataset.channel = String(channel);
-      a.href = U.sharePath(match);
-      a.innerHTML = `<div><b>${match.home.name}</b><small>${match.home.city} · HOME</small></div><div class="signal"><i></i><strong>${U.clock(match.elapsedMs)}</strong></div><div class="away"><b>${match.away.name}</b><small>${match.away.city} · AWAY</small></div>`;
-      return a;
-    }));
-  } else {
-    document.querySelectorAll('.match').forEach((link, channel) => {
-      link.href = U.sharePath(matches[channel]);
-      link.querySelector('.signal strong').textContent = U.clock(matches[channel].elapsedMs);
-    });
-  }
-  document.getElementById('dossier-watch').href = U.sharePath(matchFor(selected));
+function makeLeagueButton(league, compact=false) {
+  const button=document.createElement('button');button.type='button';button.style.setProperty('--c',league.color);
+  if(compact){button.innerHTML=`<b>${league.code}</b>`;}
+  else {button.className='league-row';button.dataset.live=String(league.live);button.innerHTML=`<span class="league-code">${league.code}</span><span><b>${league.name}</b><small>${league.sport} · ${league.hosts[0].city} / ${league.hosts[1].city}</small></span><span class="league-state">${league.state}</span>`;}
+  button.addEventListener('click',()=>{
+    if(!compact&&innerWidth<=900)location.href=league.href();
+    else selectLeague(league,true);
+  });return button;
 }
 
-function matchFor(team) {
-  return matches.find(match => match.home.id === team.id || match.away.id === team.id) || matches[0];
+document.getElementById('league-list').replaceChildren(...LEAGUES.map(league=>makeLeagueButton(league)));
+document.getElementById('sportbar').append(...LEAGUES.map(league=>makeLeagueButton(league,true)));
+
+function selectLeague(league, fly) {
+  selected=league;document.documentElement.style.setProperty('--club',league.color);
+  document.getElementById('signal-sport').textContent=`${league.sport} · ${league.live?'CANONICAL LIVE':'EXHIBITION CIRCUIT'}`;
+  document.getElementById('signal-name').textContent=league.name;
+  document.getElementById('signal-route').textContent=routeText(league);
+  document.getElementById('signal-copy').textContent=league.copy;
+  document.getElementById('signal-watch').href=league.href();
+  document.getElementById('signal-watch').textContent=league.live?'JOIN THE LIVE MATCH ↗':'ENTER THE EXHIBITION ↗';
+  document.querySelectorAll('.league-row').forEach((button,i)=>button.classList.toggle('active',LEAGUES[i]===league));
+  document.querySelectorAll('#sportbar button').forEach((button,i)=>button.classList.toggle('active',LEAGUES[i]===league));
+  document.querySelectorAll('.marker').forEach(button=>button.classList.toggle('selected',button.dataset.league===league.id));
+  if(fly)flyTo(league.hosts[0]);
 }
 
-function selectTeam(team, fly) {
-  selected = team;
-  document.documentElement.style.setProperty('--club', team.color);
-  document.getElementById('dossier-city').textContent = `${team.city.toUpperCase()} · ${team.code}`;
-  document.getElementById('dossier-team').textContent = team.name;
-  document.getElementById('dossier-star').textContent = `FACE OF THE CLUB · ${team.star}`;
-  document.getElementById('dossier-line').textContent = `“${team.line}”`;
-  document.getElementById('dossier-story').textContent = team.story;
-  const photo = document.getElementById('dossier-image');
-  photo.src = team.portrait; photo.alt = `${team.star}, ${team.name}`;
-  document.getElementById('dossier-watch').href = U.sharePath(matchFor(team));
-  document.querySelectorAll('.cast button').forEach((button, i) => button.classList.toggle('active', U.TEAMS[i] === team));
-  document.querySelectorAll('.marker').forEach((button, i) => button.classList.toggle('selected', U.TEAMS[i] === team));
-  if (fly) flyTo(team);
+function tickNetwork() {
+  matches=U.liveMatches(Date.now());document.getElementById('round-label').textContent=`5 LEAGUES · ROUND ${matches[0].round}`;
+  document.getElementById('watch-primary').href=U.sharePath(matches[0]);
+  if(selected.live){document.getElementById('signal-route').textContent=routeText(selected);document.getElementById('signal-watch').href=selected.href();}
 }
-
-document.getElementById('cast').replaceChildren(...U.TEAMS.map(team => {
-  const button = document.createElement('button');
-  button.type = 'button';
-  const image = imgFor(team);
-  image.alt = '';
-  button.append(image);
-  const copy = document.createElement('div');
-  copy.innerHTML = `<b>${team.star}</b><span>${team.name} · ${team.city}</span>`;
-  button.append(copy);
-  button.addEventListener('click', () => selectTeam(team, true));
-  return button;
-}));
 
 document.getElementById('share').addEventListener('click', async () => {
   const button = document.getElementById('share');
@@ -269,31 +253,29 @@ for (let i=0;i<1400;i++) { const r=18+starRandom()*42, theta=starRandom()*Math.P
 const starGeo = new THREE.BufferGeometry(); starGeo.setAttribute('position',new THREE.Float32BufferAttribute(stars,3));
 scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xaab8c7,size:.025,transparent:true,opacity:.55})));
 
-function point(team, lift=0) { const lat=THREE.MathUtils.degToRad(team.lat), lon=THREE.MathUtils.degToRad(team.lon), radius=R+lift; return new THREE.Vector3(radius*Math.cos(lat)*Math.cos(lon),radius*Math.sin(lat),-radius*Math.cos(lat)*Math.sin(lon)); }
+function point(place, lift=0) { const lat=THREE.MathUtils.degToRad(place.lat), lon=THREE.MathUtils.degToRad(place.lon), radius=R+lift; return new THREE.Vector3(radius*Math.cos(lat)*Math.cos(lon),radius*Math.sin(lat),-radius*Math.cos(lat)*Math.sin(lon)); }
 const markers = [];
 const labelRoot = document.getElementById('labels');
-U.TEAMS.forEach(team => {
-  const group = new THREE.Group();
-  const pos = point(team,.025); group.position.copy(pos); group.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),pos.clone().normalize());
-  const color = new THREE.Color(team.color);
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(.012,.025,.17,8),new THREE.MeshBasicMaterial({color})); stem.position.y=.08; group.add(stem);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(.045,14,10),new THREE.MeshBasicMaterial({color})); head.position.y=.18; group.add(head);
-  const halo = new THREE.Mesh(new THREE.RingGeometry(.06,.085,28),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.7,depthWrite:false})); halo.rotation.x=-Math.PI/2; halo.position.y=.008; group.add(halo);
+LEAGUES.forEach(league => league.hosts.forEach((host,hostIndex) => {
+  const group=new THREE.Group();const pos=point(host,.025);group.position.copy(pos);group.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),pos.clone().normalize());
+  const color=new THREE.Color(league.color);
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(.012,.025,.17,8),new THREE.MeshBasicMaterial({color}));stem.position.y=.08;group.add(stem);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.045,14,10),new THREE.MeshBasicMaterial({color}));head.position.y=.18;group.add(head);
+  const halo=new THREE.Mesh(new THREE.RingGeometry(.06,.085,28),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.7,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.008;group.add(halo);
   planet.add(group);
-  const label = document.createElement('button'); label.type='button'; label.className='marker'; label.style.setProperty('--c',team.color); label.textContent=team.code; label.addEventListener('click',()=>selectTeam(team,true)); labelRoot.appendChild(label);
-  markers.push({team,group,halo,label});
-});
+  const label=document.createElement('button');label.type='button';label.className='marker';label.dataset.league=league.id;label.style.setProperty('--c',league.color);label.textContent=`${league.code} · ${host.city.toUpperCase()}`;label.addEventListener('click',()=>selectLeague(league,true));labelRoot.appendChild(label);
+  markers.push({league,host,hostIndex,group,halo,label});
+}));
 
-matches.forEach(match => {
-  const a = point(match.home,.035).normalize(), b = point(match.away,.035).normalize();
-  const mid = a.clone().add(b).normalize().multiplyScalar(R * 1.28);
-  const curve = new THREE.QuadraticBezierCurve3(a.clone().multiplyScalar(R*1.02),mid,b.clone().multiplyScalar(R*1.02));
-  const tube = new THREE.Mesh(new THREE.TubeGeometry(curve,64,.008,6,false),new THREE.MeshBasicMaterial({color:match.home.color,transparent:true,opacity:.42,blending:THREE.AdditiveBlending}));
-  planet.add(tube);
+LEAGUES.forEach(league => {
+  const a=point(league.hosts[0],.035).normalize(),b=point(league.hosts[1],.035).normalize();
+  let mid=a.clone().add(b);if(mid.lengthSq()<.05)mid=new THREE.Vector3(0,1,0);mid.normalize().multiplyScalar(R*1.26);
+  const curve=new THREE.QuadraticBezierCurve3(a.clone().multiplyScalar(R*1.02),mid,b.clone().multiplyScalar(R*1.02));
+  const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,64,.008,6,false),new THREE.MeshBasicMaterial({color:league.color,transparent:true,opacity:league.live ? .58 : .26,blending:THREE.AdditiveBlending}));planet.add(tube);
 });
 
 let targetRotation = null;
-function flyTo(team) { const p=point(team).normalize(); targetRotation={x:THREE.MathUtils.clamp(Math.asin(p.y),-1,1),y:-Math.atan2(p.x,p.z)}; }
+function flyTo(place) { const p=point(place).normalize(); targetRotation={x:THREE.MathUtils.clamp(Math.asin(p.y),-1,1),y:-Math.atan2(p.x,p.z)}; }
 let down=null,dragging=false,lastMove=performance.now();
 canvas.addEventListener('pointerdown',event=>{down={x:event.clientX,y:event.clientY,rx:planet.rotation.x,ry:planet.rotation.y};dragging=false;targetRotation=null;canvas.setPointerCapture(event.pointerId);});
 canvas.addEventListener('pointermove',event=>{if(!down)return;const dx=event.clientX-down.x,dy=event.clientY-down.y;if(Math.hypot(dx,dy)>4)dragging=true;planet.rotation.y=down.ry+dx*.006;planet.rotation.x=THREE.MathUtils.clamp(down.rx+dy*.005,-1.15,1.15);canvas.classList.toggle('dragging',dragging);lastMove=performance.now();});
@@ -306,18 +288,25 @@ function updateLabels(now) {
     const world = marker.group.localToWorld(new THREE.Vector3(0,.23,0));
     const front = world.clone().sub(planet.position).normalize().dot(view)>.08;
     const projected = world.clone().project(camera);
-    const visible = front && Math.abs(projected.x)<1.08 && Math.abs(projected.y)<1.08;
+    const sx=(projected.x*.5+.5)*innerWidth,sy=(-projected.y*.5+.5)*innerHeight;
+    const protectedUI=innerWidth<700
+      ? sy<310 || sy>innerHeight-118
+      : sy<76 || (sx<540&&sy<485) || sx>innerWidth-420 || sy>innerHeight-92;
+    const visible = front && !protectedUI && Math.abs(projected.x)<1.08 && Math.abs(projected.y)<1.08;
+    marker.group.visible=visible;
     marker.label.classList.toggle('visible',visible);
-    if(visible){marker.label.style.left=`${(projected.x*.5+.5)*innerWidth}px`;marker.label.style.top=`${(-projected.y*.5+.5)*innerHeight}px`;}
-    marker.halo.scale.setScalar(activeIds.has(marker.team.id)?1.15+Math.sin(now*.004)*.16:1);
+    if(visible){marker.label.style.left=`${sx}px`;marker.label.style.top=`${sy}px`;}
+    const active=marker.league===selected,live=marker.league.live;
+    marker.halo.scale.setScalar(active?1.28+Math.sin(now*.004)*.18:live?1.12+Math.sin(now*.004)*.1:1);
+    marker.halo.material.opacity=active ? .9 : live ? .72 : .38;
   });
 }
 let last=performance.now();
 function render(now){requestAnimationFrame(render);const dt=Math.min((now-last)/1000,.05);last=now;if(targetRotation){planet.rotation.x=THREE.MathUtils.lerp(planet.rotation.x,targetRotation.x,1-Math.exp(-3.4*dt));let dy=((targetRotation.y-planet.rotation.y+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;planet.rotation.y+=dy*(1-Math.exp(-3.4*dt));if(Math.abs(dy)<.003)targetRotation=null;}else if(!down&&now-lastMove>2200&&!matchMedia('(prefers-reduced-motion:reduce)').matches){planet.rotation.y+=dt*.025;}clouds.rotation.y+=dt*.007;updateLabels(now);renderer.render(scene,camera);}
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<700?1.35:1.75));renderer.setSize(innerWidth,innerHeight,false);} addEventListener('resize',resize);resize();
-renderMatches();selectTeam(selected,false);requestAnimationFrame(render);setTimeout(()=>document.getElementById('loading').classList.add('done'),260);
-setInterval(renderMatches,1000);
-window.render_game_to_text=()=>JSON.stringify({screen:'world',round:matches[0].round,selectedClub:selected.name,liveMatches:matches.map(match=>({id:match.id,home:match.home.name,away:match.away.name,elapsed:U.clock(match.elapsedMs)}))});
+tickNetwork();selectLeague(selected,false);requestAnimationFrame(render);setTimeout(()=>document.getElementById('loading').classList.add('done'),260);
+setInterval(tickNetwork,1000);
+window.render_game_to_text=()=>JSON.stringify({screen:'world',selectedLeague:{id:selected.id,sport:selected.sport,name:selected.name,state:selected.state},canonicalFootball:{round:matches[0].round,signals:matches.map(match=>({id:match.id,home:match.home.name,away:match.away.name,elapsed:U.clock(match.elapsedMs)}))},leagues:LEAGUES.map(league=>({id:league.id,sport:league.sport,name:league.name,state:league.state,hosts:league.hosts.map(host=>host.city)}))});
 window.advanceTime=ms=>{planet.rotation.y+=ms*.000025;updateLabels(performance.now()+ms);renderer.render(scene,camera);};
 </script>
 </body>

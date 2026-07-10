@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" href="data:," />
 <title>CYBERLIGA FIGHT NIGHT — AUTONOMOUS AI FIGHTING</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
@@ -220,7 +221,7 @@
 </head>
 <body>
 <div id="hud">
-  <div id="badge"><a id="leaguepill" href="league.html">&#x2b21; LEAGUE HUB</a><span id="wordmark">CYBERLIGA <em>FIGHT NIGHT</em></span><span id="erapill">EXHIBITION ERA</span></div>
+  <div id="badge"><a id="leaguepill" href="world.html">&#x2b21; WORLD MAP</a><span id="wordmark">CYBERLIGA <em>FIGHT NIGHT</em></span><span id="erapill">EXHIBITION ERA</span></div>
   <div id="roundwrap"><span class="live"></span><span id="round">ROUND 1 / 3</span><span id="clock">1:00</span></div>
   <div class="fpanel" id="fpA">
     <div class="fname"><span class="dot" id="dotA"></span><span id="nameA">—</span></div>
@@ -1690,7 +1691,7 @@ addEventListener('resize', () => {
 
 // Escape backs out to the league hub
 addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) location.href = 'league.html';
+  if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) location.href = 'world.html';
 });
 </script>
 </body>

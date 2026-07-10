@@ -7,17 +7,16 @@ Watchability > realism. The unit of growth is the 20-second clip.
 **Architecture lock: ONE simulation, renderer-independent events — NOT game branches.**
 The simulation (tactics, physics, refs, leagues, story) is fully decoupled from bodies.
 Renderers implement one shared rig API. `blobrig.js` is the default soccer renderer during
-prototyping: it loads instantly and reads clearly at broadcast distance. `humanrig.js`
-and `kayrig.js` remain available as optional comparison views, labeled ROBOTS and
-CHARACTERS, but are not the production character direction. Production character visuals
-wait for an art bible establishing genuinely distinct silhouettes, faces, movement, and
-team culture. The durable IP lives in names, behavior, stats, rivalries, and lore.
+prototyping: it loads instantly and reads clearly at broadcast distance. The rejected
+humanoid experiments are no longer exposed in the public application. Production character
+visuals wait for an art bible establishing genuinely distinct silhouettes, faces, movement,
+and team culture. The durable IP lives in names, behavior, stats, rivalries, and lore.
 
 **Current strategy locks (7/9):**
 - Ship one canonical soccer league before trying to make every arena equally complete.
 - Other sports remain clearly labeled exhibitions while the shared application foundation is built.
 - Order: source control → deterministic sim → canonical persistence → application shell → reliability → content engine.
-- Blobs are the prototype default; robot and character views remain optional comparisons.
+- Blobs are the only public soccer renderer until a replacement cast passes the identity gate.
 - OG broadcast grammar is the visual north star: wide live camera, minimal permanent HUD,
   contextual names, and motion/crowd/ball behavior carrying the spectacle.
 - The public prototype now has one UTC league clock, two live channels, seeded fixed-step
@@ -76,10 +75,9 @@ follow-through, and roles remain readable without human anatomy.
 - Preserve player names, numbers, roles, stats, behavior traits, and rivalries now
 - Build a character art bible before commissioning or generating production bodies:
   silhouette families, face language, proportions, movement signatures, team culture
-- [x] Establish the first four marquee identities: Razor, Nova, Circuit, and Nebula,
-  each with a club-specific silhouette brief, point of view, and live-world storyline
-- [ ] Generate the first four GPT Image 2 portraits after the API billing hard limit is lifted;
-  the production batch prompts are saved in `CAST_PROMPTS.jsonl`
+- [x] Remove the rejected portrait/character direction from every public product route
+- [ ] Use GPT Image as an art-direction lab for radically different silhouette families;
+  generated concepts stay off-product until one direction proves genuinely ownable
 - Do not ship a model merely because it is technically rigged; every featured player
   must be recognizable from silhouette or motion before portraits return to center stage
 - Ball: paneled texture, team-tinted trail
@@ -91,7 +89,8 @@ follow-through, and roles remain readable without human anatomy.
 - [x] Make player nameplates contextual to the current action
 - [x] Restore the interactive globe as the public front door with live city signal arcs
 - [x] Add two shareable live channels that join the same seeded UTC match in progress
-- [x] Add club/star dossiers and large-card social metadata for the public world link
+- [x] Replace the character-led globe content with a five-league global sports network
+- [x] Connect football, basketball, hockey, baseball, and combat arenas from the map
 - Better replay direction (multiple angles, freeze-frame on contact)
 - Auto-highlight clip export (the virality engine)
 

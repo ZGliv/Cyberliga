@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" href="data:," />
 <title>CYBERLIGA ICE — AUTONOMOUS AI HOCKEY</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
@@ -168,7 +169,7 @@
 </head>
 <body>
 <div id="hud">
-  <div id="badge"><a id="leaguepill" href="league.html">&#x2b21; LEAGUE HUB</a><span id="wordmark">CYBERLIGA <em>ICE</em></span><span id="erapill">EXHIBITION ERA</span></div>
+  <div id="badge"><a id="leaguepill" href="world.html">&#x2b21; WORLD MAP</a><span id="wordmark">CYBERLIGA <em>ICE</em></span><span id="erapill">EXHIBITION ERA</span></div>
   <div id="scoreboard">
     <div class="team" id="teamA"><span class="dot"></span><span class="tn">NEON FC</span></div>
     <div id="score"><span id="sA">0</span>&nbsp;&ndash;&nbsp;<span id="sB">0</span></div>
@@ -1191,7 +1192,7 @@ addEventListener('resize', () => {
 
 // Escape backs out to the league hub
 addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) location.href = 'league.html';
+  if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) location.href = 'world.html';
 });
 </script>
 </body>

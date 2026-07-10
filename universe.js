@@ -6,10 +6,10 @@
   var SLOT_MS = 6 * 60 * 1000;
   var EPOCH_MS = Date.UTC(2026, 6, 10, 0, 0, 0);
   var TEAMS = [
-    { id: 'neon-fc', index: 0, name: 'NEON FC', city: 'Tokyo', code: 'NFC', color: '#00e5ff', lat: 35.6762, lon: 139.6503, star: 'RAZOR', portrait: 'portraits/NEON FC_RAZOR.png', plannedPortrait: 'portraits-v2/razor.png', line: 'Speed is a belief system.', story: 'Razor has scored in three straight signal windows. Every defender knows the first move. Nobody has stopped the second.' },
-    { id: 'volt-utd', index: 1, name: 'VOLT UTD', city: 'Berlin', code: 'VLT', color: '#ff2d78', lat: 52.5200, lon: 13.4050, star: 'NOVA', portrait: 'portraits/VOLT UTD_NOVA.png', plannedPortrait: 'portraits-v2/nova.png', line: 'Celebrity is another kind of pressure.', story: 'Nova called the last defeat a systems failure, then asked for the ball in every dangerous position.' },
-    { id: 'grid-royals', index: 2, name: 'GRID ROYALS', city: 'London', code: 'GRD', color: '#ffc24d', lat: 51.5074, lon: -0.1278, star: 'CIRCUIT', portrait: 'portraits/GRID ROYALS_CIRCUIT.png', plannedPortrait: 'portraits-v2/circuit.png', line: 'The crown is worn in possession.', story: 'Circuit has turned control into provocation. Opponents are now pressing the Royals just to make the smirk disappear.' },
-    { id: 'astra-nova', index: 3, name: 'ASTRA NOVA', city: 'S\u00e3o Paulo', code: 'AST', color: '#8a5cff', lat: -23.5505, lon: -46.6333, star: 'NEBULA', portrait: 'portraits/ASTRA NOVA_NEBULA.png', plannedPortrait: 'portraits-v2/nebula.png', line: 'The pass exists before the space does.', story: 'Nebula sees runs before they happen. Astra supporters have started counting the seconds between the thought and the assist.' }
+    { id: 'neon-fc', index: 0, name: 'NEON FC', city: 'Tokyo', code: 'NFC', color: '#00e5ff', lat: 35.6762, lon: 139.6503 },
+    { id: 'volt-utd', index: 1, name: 'VOLT UTD', city: 'Berlin', code: 'VLT', color: '#ff2d78', lat: 52.5200, lon: 13.4050 },
+    { id: 'grid-royals', index: 2, name: 'GRID ROYALS', city: 'London', code: 'GRD', color: '#ffc24d', lat: 51.5074, lon: -0.1278 },
+    { id: 'astra-nova', index: 3, name: 'ASTRA NOVA', city: 'S\u00e3o Paulo', code: 'AST', color: '#8a5cff', lat: -23.5505, lon: -46.6333 }
   ];
   var ROUNDS = [
     [[0, 1], [2, 3]],
@@ -92,7 +92,7 @@
   }
 
   function sharePath(match) {
-    return 'index.html?match=' + encodeURIComponent(match.id) + '&style=classic';
+    return 'index.html?match=' + encodeURIComponent(match.id);
   }
 
   global.CyberligaUniverse = {

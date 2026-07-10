@@ -56,3 +56,15 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   `CAST_PROMPTS.jsonl`, and existing portraits remain the runtime fallback.
 - Remaining production boundary: move simulation/events, persistence, results, chat, and
   audience presence to an authoritative realtime service before calling the league fully live.
+
+## Multi-Sport World Reset — 2026-07-10
+- Rejected the first public character direction and removed it from the world homepage,
+  soccer view controls, retired league-hub route, and social-card plan.
+- Reframed the globe as the Cyberliga sports network: Global Premiership football,
+  Skyline Circuit basketball, Polar League hockey, Night Diamond baseball, and The
+  Undercard combat league across ten host cities.
+- Soccer remains labeled `2 LIVE` because it is the synchronized canonical simulation;
+  the other four are labeled `PLAYABLE` exhibition circuits until they adopt that clock.
+- All arena back links and Escape behavior now return to the world map.
+- The prior four-player GPT Image prompt batch was deleted. Fresh generated concepts are
+  an off-product art-direction lab until the user explicitly approves a visual language.

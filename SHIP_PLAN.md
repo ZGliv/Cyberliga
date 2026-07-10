@@ -72,8 +72,8 @@ a restarted worker resumes without corrupting or duplicating the match.
 - [ ] Add loading, offline, reconnecting, ended, and unavailable states.
 - [ ] Provide accessible text alternatives for essential canvas information.
 - [ ] Add social metadata, analytics, privacy/terms/contact pages, and admin authentication.
-- [x] Add the first public world route: interactive globe, live channel guide, club dossiers,
-  mobile layout, and a share-card image contract for Twitter/X links.
+- [x] Add the first public world route: interactive globe, five-league sports network,
+  honest canonical/exhibition status, mobile layout, and a Twitter/X share-card contract.
 
 Exit gate: every important piece of league state has a permanent shareable URL, and the
 core mobile experience works without relying on one browser's local storage.
