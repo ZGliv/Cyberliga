@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>CYBERLIGA WORLD — Live Autonomous Football</title>
+<meta name="description" content="A living AI sports world. Two matches are always live. Every viewer joins the same game already in progress." />
+<meta name="theme-color" content="#020304" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="CYBERLIGA — One World. Always Live." />
+<meta property="og:description" content="Four cities. Twenty-eight characters. Two autonomous football matches unfolding on one shared timeline." />
+<meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-world-og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="CYBERLIGA — One World. Always Live." />
+<meta name="twitter:description" content="Tune into the same autonomous match everyone else is watching." />
+<meta name="twitter:image" content="https://cyberliga-ten.vercel.app/cyberliga-world-og.png" />
+<link rel="icon" href="data:," />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root { --ink:#020304; --paper:#f2f4ef; --muted:rgba(242,244,239,.57); --line:rgba(242,244,239,.16); --live:#ff3b30; --club:#00e5ff; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:100%; height:100%; overflow:hidden; background:var(--ink); color:var(--paper); }
+  body { font-family:'Archivo',system-ui,sans-serif; }
+  a,button { color:inherit; font:inherit; }
+  a { text-decoration:none; }
+  button { border:0; }
+  button:focus-visible,a:focus-visible { outline:2px solid #fff; outline-offset:3px; }
+  #globe { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab; }
+  #globe.dragging { cursor:grabbing; }
+  body::before { content:''; position:fixed; inset:0; z-index:2; pointer-events:none; background:linear-gradient(90deg,rgba(2,3,4,.9),rgba(2,3,4,.24) 42%,rgba(2,3,4,.05) 65%,rgba(2,3,4,.58)); }
+  body::after { content:''; position:fixed; inset:0; z-index:12; pointer-events:none; opacity:.03; background:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px); }
+
+  .frame { position:fixed; inset:13px; z-index:20; pointer-events:none; border:1px solid rgba(255,255,255,.07); }
+  .topbar { position:fixed; z-index:40; top:0; left:0; right:0; height:78px; padding:0 30px; display:flex; align-items:center; justify-content:space-between; background:linear-gradient(180deg,rgba(2,3,4,.78),transparent); }
+  .brand { display:flex; align-items:center; gap:12px; font-weight:900; letter-spacing:-.03em; }
+  .brand i { width:1px; height:20px; background:rgba(255,255,255,.3); transform:rotate(15deg); }
+  .brand span { color:var(--muted); font:700 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.22em; }
+  .nav { display:flex; align-items:center; gap:22px; font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.17em; }
+  .nav .live { display:flex; align-items:center; gap:8px; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--live); box-shadow:0 0 12px var(--live); animation:pulse 1.3s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity:.35; transform:scale(.72); } }
+
+  .intro { position:fixed; z-index:18; left:30px; top:50%; width:min(430px,34vw); transform:translateY(-55%); pointer-events:none; }
+  .eyebrow { color:var(--muted); font:700 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.22em; }
+  .intro h1 { margin-top:15px; font-size:clamp(54px,6.2vw,98px); font-stretch:125%; font-weight:900; line-height:.8; letter-spacing:-.07em; }
+  .intro h1 span { display:block; color:transparent; -webkit-text-stroke:1px rgba(242,244,239,.52); }
+  .intro .lede { margin-top:24px; max-width:37ch; color:rgba(255,255,255,.7); font:600 16px/1.5 'Barlow Condensed',sans-serif; }
+  .intro .proof { display:flex; gap:20px; margin-top:22px; }
+  .intro .proof div { padding-left:10px; border-left:1px solid var(--line); }
+  .intro .proof b { display:block; color:#fff; font:800 18px/1 'Barlow Condensed',sans-serif; }
+  .intro .proof span { display:block; margin-top:4px; color:var(--muted); font:700 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.17em; }
+
+  #labels { position:fixed; inset:0; z-index:16; pointer-events:none; }
+  .marker { position:absolute; transform:translate(-50%,-100%); pointer-events:auto; display:flex; align-items:center; gap:6px; padding:6px 8px; cursor:pointer; border:1px solid rgba(255,255,255,.14); background:rgba(2,3,4,.8); backdrop-filter:blur(8px); opacity:0; transition:opacity .18s,background .18s; font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
+  .marker.visible { opacity:1; }
+  .marker::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--c); box-shadow:0 0 9px var(--c); }
+  .marker:hover,.marker.selected { background:#101317; }
+
+  .liveboard { position:fixed; z-index:30; top:100px; right:30px; width:min(370px,31vw); }
+  .panel-label { display:flex; align-items:center; justify-content:space-between; color:var(--muted); font:700 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.19em; }
+  .panel-label strong { color:#fff; }
+  .matches { margin-top:10px; display:grid; gap:1px; background:var(--line); }
+  .match { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:9px; min-height:72px; padding:12px 13px; background:rgba(4,6,8,.88); backdrop-filter:blur(18px); transition:background .18s; }
+  .match:hover { background:#121619; }
+  .match .away { text-align:right; }
+  .match b { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:800 13px/1 'Barlow Condensed',sans-serif; letter-spacing:.05em; }
+  .match small { display:block; margin-top:6px; color:var(--muted); font:700 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.14em; }
+  .match .signal { text-align:center; }
+  .match .signal i { display:block; margin:auto; width:6px; height:6px; border-radius:50%; background:var(--live); box-shadow:0 0 10px var(--live); }
+  .match .signal strong { display:block; margin-top:7px; color:#fff; font:800 13px/1 'Barlow Condensed',sans-serif; letter-spacing:.08em; }
+
+  .dossier { margin-top:14px; border-top:1px solid var(--club); padding:17px; background:linear-gradient(135deg,rgba(4,6,8,.94),rgba(4,6,8,.68)); backdrop-filter:blur(18px); }
+  .dossier-top { display:grid; grid-template-columns:84px 1fr; gap:15px; align-items:center; }
+  .dossier img { width:84px; height:84px; object-fit:cover; background:#0c1014; filter:saturate(.94) contrast(1.04); }
+  .dossier .city { color:var(--muted); font:700 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.18em; }
+  .dossier h2 { margin-top:5px; font-size:26px; font-stretch:120%; line-height:.9; letter-spacing:-.045em; }
+  .dossier .star { margin-top:7px; color:var(--club); font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
+  .dossier blockquote { margin-top:14px; color:#fff; font:600 16px/1.25 'Barlow Condensed',sans-serif; }
+  .dossier p { margin-top:9px; color:var(--muted); font:600 12px/1.45 'Barlow Condensed',sans-serif; }
+  .dossier-actions { display:flex; gap:8px; margin-top:15px; }
+  .dossier-actions a,.dossier-actions button { min-height:38px; display:inline-flex; align-items:center; justify-content:center; padding:0 13px; cursor:pointer; font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
+  .dossier-actions a { flex:1; color:#020304; background:#fff; }
+  .dossier-actions button { color:var(--muted); border:1px solid var(--line); background:transparent; }
+
+  .cast { position:fixed; z-index:28; left:30px; right:30px; bottom:28px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; background:var(--line); }
+  .cast button { min-width:0; display:grid; grid-template-columns:47px 1fr; gap:10px; align-items:center; padding:7px; cursor:pointer; text-align:left; background:rgba(4,6,8,.83); backdrop-filter:blur(12px); }
+  .cast button:hover,.cast button.active { background:#121619; }
+  .cast img { width:47px; height:47px; object-fit:cover; background:#0c1014; }
+  .cast b { display:block; overflow:hidden; text-overflow:ellipsis; font:800 12px/1 'Barlow Condensed',sans-serif; letter-spacing:.1em; }
+  .cast span { display:block; margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font:700 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; }
+
+  .loading { position:fixed; inset:0; z-index:100; display:grid; place-items:center; background:#020304; transition:opacity .55s,visibility .55s; }
+  .loading.done { opacity:0; visibility:hidden; }
+  .loading p { color:var(--muted); font:700 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.22em; }
+
+  @media (max-width:900px) {
+    body::before { background:linear-gradient(180deg,rgba(2,3,4,.8),transparent 42%,rgba(2,3,4,.82)); }
+    .topbar { height:70px; padding:0 18px; }
+    .brand span,.brand i,.nav a:first-child { display:none; }
+    .intro { top:90px; left:18px; width:calc(100vw - 36px); transform:none; }
+    .intro h1 { font-size:49px; width:270px; }
+    .intro .lede,.intro .proof { display:none; }
+    .liveboard { top:auto; left:18px; right:18px; bottom:95px; width:auto; }
+    .dossier { display:none; }
+    .matches { grid-template-columns:1fr 1fr; }
+    .match { min-height:62px; padding:9px; }
+    .match b { font-size:11px; }
+    .match small { display:none; }
+    .cast { left:18px; right:18px; bottom:22px; }
+    .cast button { grid-template-columns:37px 1fr; padding:5px; gap:7px; }
+    .cast img { width:37px; height:37px; }
+    .cast span { display:none; }
+    .frame { inset:7px; }
+  }
+  @media (max-width:540px) {
+    .match .signal strong { font-size:10px; }
+    .cast b { font-size:10px; }
+    .panel-label span:last-child { display:none; }
+  }
+  @media (prefers-reduced-motion:reduce) { * { animation-duration:.01ms!important; animation-iteration-count:1!important; } }
+</style>
+</head>
+<body>
+<div class="loading" id="loading"><p>ACQUIRING THE WORLD SIGNAL</p></div>
+<canvas id="globe" aria-label="Interactive globe showing the four Cyberliga clubs"></canvas>
+<div id="labels"></div>
+<div class="frame" aria-hidden="true"></div>
+
+<header class="topbar">
+  <a class="brand" href="world.html"><strong>CYBERLIGA</strong><i></i><span>THE AUTONOMOUS SPORTS WORLD</span></a>
+  <nav class="nav"><a href="league.html">LEAGUE ARCHIVE</a><a class="live" id="watch-primary" href="index.html"><span class="dot"></span>WATCH LIVE</a></nav>
+</header>
+
+<section class="intro">
+  <p class="eyebrow">GLOBAL PREMIERSHIP · SEASON ZERO</p>
+  <h1>ONE WORLD. <span>ALWAYS LIVE.</span></h1>
+  <p class="lede">Four cities. Twenty-eight characters. Two matches unfolding on one shared timeline—whether anyone is watching or not.</p>
+  <div class="proof"><div><b>2</b><span>LIVE SIGNALS</span></div><div><b>28</b><span>PLAYER LIVES</span></div><div><b>1</b><span>SHARED REALITY</span></div></div>
+</section>
+
+<aside class="liveboard">
+  <div class="panel-label"><span><strong>● LIVE NOW</strong> · GLOBAL MATCH CENTRE</span><span id="round-label">ROUND —</span></div>
+  <div class="matches" id="matches"></div>
+  <section class="dossier" id="dossier">
+    <div class="dossier-top"><img id="dossier-image" alt="" /><div><p class="city" id="dossier-city"></p><h2 id="dossier-team"></h2><p class="star" id="dossier-star"></p></div></div>
+    <blockquote id="dossier-line"></blockquote><p id="dossier-story"></p>
+    <div class="dossier-actions"><a id="dossier-watch" href="index.html">TUNE INTO THEIR MATCH ↗</a><button id="share" type="button">COPY WORLD LINK</button></div>
+  </section>
+</aside>
+
+<div class="cast" id="cast" aria-label="Faces of the league"></div>
+
+<script src="universe.js"></script>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+<script type="module">
+import * as THREE from 'three';
+
+const U = window.CyberligaUniverse;
+let matches = U.liveMatches(Date.now());
+let selected = U.TEAMS[0];
+const activeIds = new Set(matches.flatMap(match => [match.home.id, match.away.id]));
+
+function imgFor(team) {
+  const image = new Image();
+  image.src = team.portrait;
+  return image;
+}
+
+let renderedSlot = -1;
+function renderMatches() {
+  matches = U.liveMatches(Date.now());
+  document.getElementById('round-label').textContent = `ROUND ${matches[0].round} · CYCLE ${matches[0].cycle}`;
+  document.getElementById('watch-primary').href = U.sharePath(matches[0]);
+  if (renderedSlot !== matches[0].slot) {
+    renderedSlot = matches[0].slot;
+    document.getElementById('matches').replaceChildren(...matches.map((match, channel) => {
+      const a = document.createElement('a');
+      a.className = 'match';
+      a.dataset.channel = String(channel);
+      a.href = U.sharePath(match);
+      a.innerHTML = `<div><b>${match.home.name}</b><small>${match.home.city} · HOME</small></div><div class="signal"><i></i><strong>${U.clock(match.elapsedMs)}</strong></div><div class="away"><b>${match.away.name}</b><small>${match.away.city} · AWAY</small></div>`;
+      return a;
+    }));
+  } else {
+    document.querySelectorAll('.match').forEach((link, channel) => {
+      link.href = U.sharePath(matches[channel]);
+      link.querySelector('.signal strong').textContent = U.clock(matches[channel].elapsedMs);
+    });
+  }
+  document.getElementById('dossier-watch').href = U.sharePath(matchFor(selected));
+}
+
+function matchFor(team) {
+  return matches.find(match => match.home.id === team.id || match.away.id === team.id) || matches[0];
+}
+
+function selectTeam(team, fly) {
+  selected = team;
+  document.documentElement.style.setProperty('--club', team.color);
+  document.getElementById('dossier-city').textContent = `${team.city.toUpperCase()} · ${team.code}`;
+  document.getElementById('dossier-team').textContent = team.name;
+  document.getElementById('dossier-star').textContent = `FACE OF THE CLUB · ${team.star}`;
+  document.getElementById('dossier-line').textContent = `“${team.line}”`;
+  document.getElementById('dossier-story').textContent = team.story;
+  const photo = document.getElementById('dossier-image');
+  photo.src = team.portrait; photo.alt = `${team.star}, ${team.name}`;
+  document.getElementById('dossier-watch').href = U.sharePath(matchFor(team));
+  document.querySelectorAll('.cast button').forEach((button, i) => button.classList.toggle('active', U.TEAMS[i] === team));
+  document.querySelectorAll('.marker').forEach((button, i) => button.classList.toggle('selected', U.TEAMS[i] === team));
+  if (fly) flyTo(team);
+}
+
+document.getElementById('cast').replaceChildren(...U.TEAMS.map(team => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  const image = imgFor(team);
+  image.alt = '';
+  button.append(image);
+  const copy = document.createElement('div');
+  copy.innerHTML = `<b>${team.star}</b><span>${team.name} · ${team.city}</span>`;
+  button.append(copy);
+  button.addEventListener('click', () => selectTeam(team, true));
+  return button;
+}));
+
+document.getElementById('share').addEventListener('click', async () => {
+  const button = document.getElementById('share');
+  try { await navigator.clipboard.writeText(location.href); button.textContent = 'COPIED'; setTimeout(() => button.textContent = 'COPY WORLD LINK', 1200); } catch (_) {}
+});
+
+const canvas = document.getElementById('globe');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' });
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = .92;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x020304);
+scene.fog = new THREE.FogExp2(0x020304, .027);
+const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, .1, 80);
+camera.position.set(0, .1, 8.1);
+const planet = new THREE.Group();
+planet.rotation.set(.08, -.82, 0);
+scene.add(planet);
+const R = 2.72;
+const loader = new THREE.TextureLoader();
+const [earthMap, specMap, normalMap, cloudMap] = await Promise.all([
+  loader.loadAsync('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'),
+  loader.loadAsync('https://threejs.org/examples/textures/planets/earth_specular_2048.jpg'),
+  loader.loadAsync('https://threejs.org/examples/textures/planets/earth_normal_2048.jpg'),
+  loader.loadAsync('https://threejs.org/examples/textures/planets/earth_clouds_1024.png')
+]);
+earthMap.colorSpace = THREE.SRGBColorSpace;
+const earth = new THREE.Mesh(new THREE.SphereGeometry(R, 96, 64), new THREE.MeshPhongMaterial({ map:earthMap, specularMap:specMap, normalMap, normalScale:new THREE.Vector2(.45,.45), specular:new THREE.Color(0x334455), shininess:18 }));
+planet.add(earth);
+const clouds = new THREE.Mesh(new THREE.SphereGeometry(R * 1.008, 96, 64), new THREE.MeshPhongMaterial({ map:cloudMap, transparent:true, opacity:.18, depthWrite:false, blending:THREE.AdditiveBlending }));
+planet.add(clouds);
+const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(R * 1.045, 96, 64), new THREE.ShaderMaterial({ transparent:true, side:THREE.BackSide, depthWrite:false, blending:THREE.AdditiveBlending, vertexShader:'varying vec3 vNormal;void main(){vNormal=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}', fragmentShader:'varying vec3 vNormal;void main(){float i=pow(.72-dot(vNormal,vec3(0.,0.,1.)),3.2);gl_FragColor=vec4(.18,.62,1.,1.)*i*.42;}' }));
+planet.add(atmosphere);
+scene.add(new THREE.HemisphereLight(0x8fb7ff, 0x020304, .36));
+const sun = new THREE.DirectionalLight(0xffffff, 3.4); sun.position.set(-4,3,6); scene.add(sun);
+const rim = new THREE.DirectionalLight(0x2b7fff, 1.8); rim.position.set(5,-1,-4); scene.add(rim);
+const stars = [];
+const starRandom = U.seededRandom('cyberliga-stars');
+for (let i=0;i<1400;i++) { const r=18+starRandom()*42, theta=starRandom()*Math.PI*2, phi=Math.acos(2*starRandom()-1); stars.push(r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta)); }
+const starGeo = new THREE.BufferGeometry(); starGeo.setAttribute('position',new THREE.Float32BufferAttribute(stars,3));
+scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xaab8c7,size:.025,transparent:true,opacity:.55})));
+
+function point(team, lift=0) { const lat=THREE.MathUtils.degToRad(team.lat), lon=THREE.MathUtils.degToRad(team.lon), radius=R+lift; return new THREE.Vector3(radius*Math.cos(lat)*Math.cos(lon),radius*Math.sin(lat),-radius*Math.cos(lat)*Math.sin(lon)); }
+const markers = [];
+const labelRoot = document.getElementById('labels');
+U.TEAMS.forEach(team => {
+  const group = new THREE.Group();
+  const pos = point(team,.025); group.position.copy(pos); group.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),pos.clone().normalize());
+  const color = new THREE.Color(team.color);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(.012,.025,.17,8),new THREE.MeshBasicMaterial({color})); stem.position.y=.08; group.add(stem);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(.045,14,10),new THREE.MeshBasicMaterial({color})); head.position.y=.18; group.add(head);
+  const halo = new THREE.Mesh(new THREE.RingGeometry(.06,.085,28),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.7,depthWrite:false})); halo.rotation.x=-Math.PI/2; halo.position.y=.008; group.add(halo);
+  planet.add(group);
+  const label = document.createElement('button'); label.type='button'; label.className='marker'; label.style.setProperty('--c',team.color); label.textContent=team.code; label.addEventListener('click',()=>selectTeam(team,true)); labelRoot.appendChild(label);
+  markers.push({team,group,halo,label});
+});
+
+matches.forEach(match => {
+  const a = point(match.home,.035).normalize(), b = point(match.away,.035).normalize();
+  const mid = a.clone().add(b).normalize().multiplyScalar(R * 1.28);
+  const curve = new THREE.QuadraticBezierCurve3(a.clone().multiplyScalar(R*1.02),mid,b.clone().multiplyScalar(R*1.02));
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(curve,64,.008,6,false),new THREE.MeshBasicMaterial({color:match.home.color,transparent:true,opacity:.42,blending:THREE.AdditiveBlending}));
+  planet.add(tube);
+});
+
+let targetRotation = null;
+function flyTo(team) { const p=point(team).normalize(); targetRotation={x:THREE.MathUtils.clamp(Math.asin(p.y),-1,1),y:-Math.atan2(p.x,p.z)}; }
+let down=null,dragging=false,lastMove=performance.now();
+canvas.addEventListener('pointerdown',event=>{down={x:event.clientX,y:event.clientY,rx:planet.rotation.x,ry:planet.rotation.y};dragging=false;targetRotation=null;canvas.setPointerCapture(event.pointerId);});
+canvas.addEventListener('pointermove',event=>{if(!down)return;const dx=event.clientX-down.x,dy=event.clientY-down.y;if(Math.hypot(dx,dy)>4)dragging=true;planet.rotation.y=down.ry+dx*.006;planet.rotation.x=THREE.MathUtils.clamp(down.rx+dy*.005,-1.15,1.15);canvas.classList.toggle('dragging',dragging);lastMove=performance.now();});
+canvas.addEventListener('pointerup',()=>{down=null;dragging=false;canvas.classList.remove('dragging');});
+canvas.addEventListener('wheel',event=>{event.preventDefault();camera.position.z=THREE.MathUtils.clamp(camera.position.z+event.deltaY*.0045,5.7,10.5);lastMove=performance.now();},{passive:false});
+
+function updateLabels(now) {
+  const view = new THREE.Vector3().subVectors(camera.position,planet.position).normalize();
+  markers.forEach(marker => {
+    const world = marker.group.localToWorld(new THREE.Vector3(0,.23,0));
+    const front = world.clone().sub(planet.position).normalize().dot(view)>.08;
+    const projected = world.clone().project(camera);
+    const visible = front && Math.abs(projected.x)<1.08 && Math.abs(projected.y)<1.08;
+    marker.label.classList.toggle('visible',visible);
+    if(visible){marker.label.style.left=`${(projected.x*.5+.5)*innerWidth}px`;marker.label.style.top=`${(-projected.y*.5+.5)*innerHeight}px`;}
+    marker.halo.scale.setScalar(activeIds.has(marker.team.id)?1.15+Math.sin(now*.004)*.16:1);
+  });
+}
+let last=performance.now();
+function render(now){requestAnimationFrame(render);const dt=Math.min((now-last)/1000,.05);last=now;if(targetRotation){planet.rotation.x=THREE.MathUtils.lerp(planet.rotation.x,targetRotation.x,1-Math.exp(-3.4*dt));let dy=((targetRotation.y-planet.rotation.y+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;planet.rotation.y+=dy*(1-Math.exp(-3.4*dt));if(Math.abs(dy)<.003)targetRotation=null;}else if(!down&&now-lastMove>2200&&!matchMedia('(prefers-reduced-motion:reduce)').matches){planet.rotation.y+=dt*.025;}clouds.rotation.y+=dt*.007;updateLabels(now);renderer.render(scene,camera);}
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<700?1.35:1.75));renderer.setSize(innerWidth,innerHeight,false);} addEventListener('resize',resize);resize();
+renderMatches();selectTeam(selected,false);requestAnimationFrame(render);setTimeout(()=>document.getElementById('loading').classList.add('done'),260);
+setInterval(renderMatches,1000);
+window.render_game_to_text=()=>JSON.stringify({screen:'world',round:matches[0].round,selectedClub:selected.name,liveMatches:matches.map(match=>({id:match.id,home:match.home.name,away:match.away.name,elapsed:U.clock(match.elapsedMs)}))});
+window.advanceTime=ms=>{planet.rotation.y+=ms*.000025;updateLabels(performance.now()+ms);renderer.render(scene,camera);};
+</script>
+</body>
+</html>

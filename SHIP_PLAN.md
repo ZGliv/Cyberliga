@@ -45,6 +45,12 @@ Exit gate: the exact product can be reproduced from Git on a clean machine.
 - [ ] Make the browser renderer consume snapshots/events instead of owning league truth.
 - [ ] Add accelerated tests covering at least 1,000 complete seeded matches.
 
+Prototype checkpoint completed 2026-07-10: the browser build now derives two fixtures
+from one UTC schedule, seeds each match by its public match ID, and advances at fixed 30 Hz
+steps. Two isolated browser pages frozen at the same timestamp produced byte-identical
+scores, clocks, ball coordinates, and all 14 player positions. This validates the product
+experience, but does not replace the renderer-free Node simulation required by this phase.
+
 Exit gate: the same seed produces the same event sequence and final result in Node and
 the browser, with no match deadlocks across the automated simulation run.
 
@@ -66,6 +72,8 @@ a restarted worker resumes without corrupting or duplicating the match.
 - [ ] Add loading, offline, reconnecting, ended, and unavailable states.
 - [ ] Provide accessible text alternatives for essential canvas information.
 - [ ] Add social metadata, analytics, privacy/terms/contact pages, and admin authentication.
+- [x] Add the first public world route: interactive globe, live channel guide, club dossiers,
+  mobile layout, and a share-card image contract for Twitter/X links.
 
 Exit gate: every important piece of league state has a permanent shareable URL, and the
 core mobile experience works without relying on one browser's local storage.

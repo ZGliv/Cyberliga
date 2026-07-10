@@ -1,10 +1,10 @@
 {
   "redirects": [
-    { "source": "/", "destination": "/league.html", "permanent": false }
+    { "source": "/", "destination": "/world.html", "permanent": false }
   ],
   "headers": [
     {
-      "source": "/(portraits/.*|skins/.*)",
+      "source": "/(portraits/.*|portraits-v2/.*|skins/.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400" }
       ]

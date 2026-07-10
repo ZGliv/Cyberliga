@@ -97,6 +97,14 @@
   #scanlines { position:absolute; inset:0; background: repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px); mix-blend-mode: overlay; }
 
   #watermark { position:absolute; bottom:46px; right:18px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(126,240,255,.4); }
+  #broadcasttag {
+    position:fixed; top:18px; right:18px; z-index:44; display:flex; align-items:center; gap:8px;
+    padding:7px 9px; border:1px solid rgba(255,255,255,.13); color:rgba(255,255,255,.62);
+    background:rgba(2,3,10,.54); backdrop-filter:blur(10px); font:700 9px/1 'Orbitron',sans-serif;
+    letter-spacing:1.1px; pointer-events:none;
+  }
+  #broadcasttag::before { content:''; width:6px; height:6px; border-radius:50%; background:#ff3b30; box-shadow:0 0 10px #ff3b30; }
+  #broadcasttag b { color:#fff; font-weight:700; }
 
   /* Replay tag */
   /* top offset clears the league pill (pill bottom ≈ 53px) */
@@ -299,6 +307,7 @@
       left:10px; right:auto; bottom:44px; width:auto;
       min-height:30px; padding:5px 10px; font-size:10px; letter-spacing:1.1px;
     }
+    #broadcasttag { top:auto; right:10px; bottom:82px; font-size:8px; }
   }
 </style>
 </head>
@@ -312,7 +321,8 @@
   <div id="momentum"></div>
   <div id="feed"></div>
   <div id="clockwrap"><span class="live"></span><span id="clock">00:00</span><span id="half">1ST HALF</span></div>
-  <div id="badge"><a id="leaguepill" href="league.html" aria-label="Back to league hub"><span aria-hidden="true">←</span><span class="pill-full">LEAGUE HUB</span><span class="pill-short">HUB</span></a><span id="wordmark">CYBERLIGA <em>SOCCER</em></span></div>
+  <div id="badge"><a id="leaguepill" href="world.html" aria-label="Back to Cyberliga world"><span aria-hidden="true">←</span><span class="pill-full">CYBERLIGA WORLD</span><span class="pill-short">WORLD</span></a><span id="wordmark">CYBERLIGA <em>SOCCER</em></span></div>
+  <div id="broadcasttag"><span>ONE WORLD FEED</span><b id="broadcastid">SYNCING</b></div>
   <div id="goalflash"><div id="goaltext">GOAL</div><div id="goalsub"></div></div>
   <div id="penstinger"><div class="pflash"></div><div class="ptext">PENALTY!</div><div class="psub" id="pensub"></div></div>
   <div id="pentag">⬤ PENALTY · <span id="pentagteam"></span></div>
@@ -326,6 +336,7 @@
   <div id="watermark">CYBERLIGA SOCCER</div>
 </div>
 
+<script src="universe.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -352,6 +363,9 @@ import { preloadHumanModel, buildPlayerRig } from './humanrig.js';
 import { preloadHumanModel as preloadKayModels, buildPlayerRig as buildKayRig, CHARACTERS as KAY_CHARACTERS } from './kayrig.js';
 import { buildBlobRig } from './blobrig.js';
 import { createStoryEngine } from './story.js';
+const UNIVERSE = window.CyberligaUniverse;
+const LIVE_BROADCAST = UNIVERSE ? UNIVERSE.selected(location.search, Date.now()) : null;
+if (LIVE_BROADCAST) Math.random = UNIVERSE.seededRandom(LIVE_BROADCAST.seed);
 const story = createStoryEngine();
 
 // Blobs remain the prototype default, with the two experimental comparison views
@@ -383,7 +397,7 @@ function cycleVisualStyle() {
 addEventListener('keydown', e => {
   // Escape backs out to the league hub
   if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-    location.href = 'league.html';
+    location.href = 'world.html';
     return;
   }
   if (e.key === 'p' || e.key === 'P') {
@@ -3354,23 +3368,25 @@ function attachPosterButton(snap) {
 function finishMatch() {
   whistle(3);
   stopForBreak();
-  const ra = league.table[TEAM_A.name], rb = league.table[TEAM_B.name];
-  ra.p++; rb.p++;
-  ra.gf += state.scoreA; ra.ga += state.scoreB;
-  rb.gf += state.scoreB; rb.ga += state.scoreA;
-  if (state.scoreA > state.scoreB) { ra.w++; ra.pts += 3; rb.l++; }
-  else if (state.scoreB > state.scoreA) { rb.w++; rb.pts += 3; ra.l++; }
-  else { ra.d++; rb.d++; ra.pts++; rb.pts++; }
-  league.fixture++;
-  localStorage.setItem('cyberliga', JSON.stringify(league));
-  const wrap = story.endMatch(state.scoreA, state.scoreB);
-  if (wrap) {
-    (wrap.recapLines || []).forEach(l => commentate(l, true));
-    if (wrap.motm) {
-      const mt = LEAGUE_TEAMS.find(t => t.name === wrap.motm.team);
-      // tier-2 feed item beside the FT card (drain keeps running in 'fulltime')
-      present.post({ kind: 'motm', simTime: simT, title: present.feedLines.motm(wrap.motm.name),
-        subtitle: wrap.motm.line, color: mt ? hex6(mt.glow) : '#7ef0ff' });
+  if (!LIVE_BROADCAST) {
+    const ra = league.table[TEAM_A.name], rb = league.table[TEAM_B.name];
+    ra.p++; rb.p++;
+    ra.gf += state.scoreA; ra.ga += state.scoreB;
+    rb.gf += state.scoreB; rb.ga += state.scoreA;
+    if (state.scoreA > state.scoreB) { ra.w++; ra.pts += 3; rb.l++; }
+    else if (state.scoreB > state.scoreA) { rb.w++; rb.pts += 3; ra.l++; }
+    else { ra.d++; rb.d++; ra.pts++; rb.pts++; }
+    league.fixture++;
+    localStorage.setItem('cyberliga', JSON.stringify(league));
+    const wrap = story.endMatch(state.scoreA, state.scoreB);
+    if (wrap) {
+      (wrap.recapLines || []).forEach(l => commentate(l, true));
+      if (wrap.motm) {
+        const mt = LEAGUE_TEAMS.find(t => t.name === wrap.motm.team);
+        // tier-2 feed item beside the FT card (drain keeps running in 'fulltime')
+        present.post({ kind: 'motm', simTime: simT, title: present.feedLines.motm(wrap.motm.name),
+          subtitle: wrap.motm.line, color: mt ? hex6(mt.glow) : '#7ef0ff' });
+      }
     }
   }
   showCard('FULL TIME', `${TEAM_A.name} ${state.scoreA} — ${state.scoreB} ${TEAM_B.name}`, true);
@@ -3390,7 +3406,9 @@ function clearTeams() {
   players.length = 0;
 }
 function startMatch() {
-  const [ia, ib] = FIXTURES[league.fixture % FIXTURES.length];
+  const [ia, ib] = LIVE_BROADCAST
+    ? [LIVE_BROADCAST.home.index, LIVE_BROADCAST.away.index]
+    : FIXTURES[league.fixture % FIXTURES.length];
   TEAM_A = LEAGUE_TEAMS[ia]; TEAM_B = LEAGUE_TEAMS[ib];
   crowd.setTeams(TEAM_A, TEAM_B);   // retint stands/flags/scarves for the fixture
   present.clear();                  // never let a queued card from last match slide in
@@ -3413,9 +3431,14 @@ function startMatch() {
   hideLineup();
   momentum = momSm = 0; momShotsA = momShotsB = 0; // fresh momentum ledger per fixture
   momCssA = cA; momCssB = cB;                      // bar blends this fixture's colors
-  commentate(`MATCHDAY ${league.fixture + 1}: ${TEAM_A.name} vs ${TEAM_B.name} — LIVE FROM THE CYBERLIGA SOCCER ARENA`, true);
-  story.startMatch(TEAM_A.name, TEAM_B.name, league.fixture + 1);
-  for (const l of story.prematchLines(TEAM_A.name, TEAM_B.name)) commentate(l, true);
+  const matchday = LIVE_BROADCAST ? LIVE_BROADCAST.round : league.fixture + 1;
+  commentate(`MATCHDAY ${matchday}: ${TEAM_A.name} vs ${TEAM_B.name} — ONE MATCH · ONE TIMELINE · EVERY SCREEN`, true);
+  if (!LIVE_BROADCAST) {
+    story.startMatch(TEAM_A.name, TEAM_B.name, matchday);
+    for (const l of story.prematchLines(TEAM_A.name, TEAM_B.name)) commentate(l, true);
+  } else {
+    commentate(`${LIVE_BROADCAST.home.city} TO ${LIVE_BROADCAST.away.city} — GLOBAL SIGNAL LOCKED`, true);
+  }
   headshotQueue = players.slice(); // portraits captured one per frame during the kickoff hold
   updateJumbotron();
 }
@@ -3539,7 +3562,7 @@ function tick(forcedDt, skipRender) {
     }
   } else if (state.mode === 'fulltime') {
     state.modeT += dt;
-    if (state.modeT > 11) { hideCard(); startMatch(); }
+    if (!LIVE_BROADCAST && state.modeT > 11) { hideCard(); startMatch(); }
   } else if (state.mode === 'foul') {
     state.modeT += dt;
     const f = state.foul;
@@ -3778,6 +3801,32 @@ function refRigStep(dt, t) {
 
 startMatch();
 
+// Join the canonical broadcast at the point the rest of the world has reached.
+// Fixed 30Hz steps plus the match seed make outcomes independent of load time,
+// refresh rate and tab focus.
+const CANONICAL_STEP = 1 / 30;
+let canonicalSteps = 0;
+if (LIVE_BROADCAST) {
+  document.getElementById('broadcastid').textContent = `R${LIVE_BROADCAST.round} · ${LIVE_BROADCAST.id}`;
+  headshotQueue.length = 0;
+  const catchupSteps = Math.floor((LIVE_BROADCAST.elapsedMs / 1000) / CANONICAL_STEP);
+  for (let i = 0; i < catchupSteps; i++) {
+    tick(CANONICAL_STEP, true);
+    canonicalSteps++;
+    if (state.mode === 'fulltime') break;
+  }
+  composer.render();
+  clock3.getDelta();
+  setInterval(() => {
+    const current = UNIVERSE.selected(location.search, Date.now());
+    if (current.id !== LIVE_BROADCAST.id) {
+      const u = new URL(location.href);
+      u.searchParams.set('match', current.id);
+      location.replace(u.href);
+    }
+  }, 1000);
+}
+
 // ============ TICK DRIVER (hidden-tab resilience) ============
 // A 24/7 league can't freeze when the tab hides: rAF stops entirely in hidden
 // tabs, so the sim would stand still for hours. When hidden we drive tick()
@@ -3786,11 +3835,29 @@ startMatch();
 // the sim advances slowly instead of freezing. Exactly ONE driver runs at a
 // time (both are torn down before either is started — no double-ticking).
 let rafId = 0, hiddenTimer = 0;
-function rafLoop() { rafId = requestAnimationFrame(rafLoop); tick(); }
+function driveCanonicalFrame() {
+  if (!LIVE_BROADCAST) { tick(); return; }
+  if (state.mode === 'fulltime') { composer.render(); return; }
+  const elapsed = Math.max(0, Math.min(LIVE_BROADCAST.durationMs,
+    Date.now() - LIVE_BROADCAST.startsAt));
+  const desiredSteps = Math.floor((elapsed / 1000) / CANONICAL_STEP);
+  const due = Math.min(Math.max(desiredSteps - canonicalSteps, 0), 12);
+  if (due === 0) { composer.render(); return; }
+  for (let i = 0; i < due; i++) {
+    canonicalSteps++;
+    tick(CANONICAL_STEP, i < due - 1);
+    if (state.mode === 'fulltime') break;
+  }
+}
+function rafLoop() { rafId = requestAnimationFrame(rafLoop); driveCanonicalFrame(); }
 function startDriver() {
   if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
   if (hiddenTimer) { clearInterval(hiddenTimer); hiddenTimer = 0; }
   if (document.hidden) {
+    if (LIVE_BROADCAST) {
+      hiddenTimer = setInterval(driveCanonicalFrame, 250);
+      return;
+    }
     // CATCH-UP MODE: hidden-tab timers throttle to ~1Hz, so each fire replays the
     // real time that passed as fixed 0.05s sim steps (capped at 1s of catch-up per
     // fire). The league keeps broadcast pace while hidden; only the last step renders.
@@ -3810,6 +3877,21 @@ startDriver();
 
 // debug hook (harmless in prod, lets devtools poke the sim)
 window.CL = { state, ball, players, goalScored, ref, beginFoul, flight, present, tactics, keeperAI, stats, replaySys, buildMatchPoster, posterSnapshot };
+window.render_game_to_text = () => JSON.stringify({
+  coordinateSystem: 'pitch center is 0,0; +x attacks toward the right goal; +z points toward the near touchline',
+  broadcast: LIVE_BROADCAST ? { id: LIVE_BROADCAST.id, round: LIVE_BROADCAST.round, channel: LIVE_BROADCAST.channel } : null,
+  mode: state.mode,
+  clock: Math.round(state.clock * 10) / 10,
+  half: state.half,
+  score: { home: state.scoreA, away: state.scoreB },
+  teams: { home: TEAM_A.name, away: TEAM_B.name },
+  ball: { x: +ball.pos.x.toFixed(2), y: +ball.pos.y.toFixed(2), z: +ball.pos.z.toFixed(2) },
+  players: players.map(p => ({ name: p.name, team: p.team.name, role: p.role, x: +p.pos.x.toFixed(1), z: +p.pos.z.toFixed(1) }))
+});
+window.advanceTime = ms => {
+  const steps = Math.max(1, Math.round(ms / 50));
+  for (let i = 0; i < steps; i++) tick(0.05, i < steps - 1);
+};
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth/innerHeight;

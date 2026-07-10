@@ -20,6 +20,9 @@ team culture. The durable IP lives in names, behavior, stats, rivalries, and lor
 - Blobs are the prototype default; robot and character views remain optional comparisons.
 - OG broadcast grammar is the visual north star: wide live camera, minimal permanent HUD,
   contextual names, and motion/crowd/ball behavior carrying the spectacle.
+- The public prototype now has one UTC league clock, two live channels, seeded fixed-step
+  soccer, and a globe front door. This proves the shared-world experience in-browser;
+  the production source of truth still moves server-side before accounts or social play.
 - Crypto/monetization: not before audience. Prediction points first, much later.
 
 ---
@@ -73,6 +76,10 @@ follow-through, and roles remain readable without human anatomy.
 - Preserve player names, numbers, roles, stats, behavior traits, and rivalries now
 - Build a character art bible before commissioning or generating production bodies:
   silhouette families, face language, proportions, movement signatures, team culture
+- [x] Establish the first four marquee identities: Razor, Nova, Circuit, and Nebula,
+  each with a club-specific silhouette brief, point of view, and live-world storyline
+- [ ] Generate the first four GPT Image 2 portraits after the API billing hard limit is lifted;
+  the production batch prompts are saved in `CAST_PROMPTS.jsonl`
 - Do not ship a model merely because it is technically rigged; every featured player
   must be recognizable from silhouette or motion before portraits return to center stage
 - Ball: paneled texture, team-tinted trail
@@ -82,6 +89,9 @@ follow-through, and roles remain readable without human anatomy.
 - [x] Restore the wide OG live camera; reserve directed shots for goals and replays
 - [x] Reduce permanent match furniture to score, clock, ticker, hub link, and controls
 - [x] Make player nameplates contextual to the current action
+- [x] Restore the interactive globe as the public front door with live city signal arcs
+- [x] Add two shareable live channels that join the same seeded UTC match in progress
+- [x] Add club/star dossiers and large-card social metadata for the public world link
 - Better replay direction (multiple angles, freeze-frame on contact)
 - Auto-highlight clip export (the virality engine)
 

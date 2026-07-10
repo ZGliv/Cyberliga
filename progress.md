@@ -37,3 +37,22 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - First tuning overshot offense; corrected homer/contact/catchability rates after a 14-1 long sim exposed arcade scoring.
 - Balanced long sim completed games at 6-3 and 3-1, with extra-base threats, ground-ball throws, finals, and no app errors.
 - Browser desktop and 390x844 mobile QA passed; sound prompt tap hides the prompt and mobile HUD elements fit.
+
+## Canonical World Prototype — 2026-07-10
+- Restored the globe concept as `world.html` and made it the Vercel root destination.
+- Added `universe.js`: one UTC round clock, two simultaneous six-minute channels, fixed
+  team/city identities, stable public match IDs, and seeded randomness.
+- Soccer now joins the selected live fixture, fast-forwards from kickoff, advances at a
+  fixed 30 Hz independent of renderer frame rate, holds the final result, and rolls into
+  the next canonical round at the shared boundary.
+- Added `render_game_to_text` and `advanceTime` hooks to soccer for deterministic QA.
+- Added world and match mobile layouts, club/star dossiers, signal arcs, Twitter/X Open
+  Graph metadata, and the first four marquee character/storyline briefs.
+- Exact sync test passed: two isolated pages at timestamp 1783697192595 produced identical
+  match ID, mode, score, clock, ball state, and all 14 player positions.
+- Desktop and 390x844 world/match screenshots passed with zero console errors.
+- GPT Image 2 generation attempted for Razor, Nova, Circuit, and Nebula. The API rejected
+  all four before generation with `billing_hard_limit_reached`; prompts are preserved in
+  `CAST_PROMPTS.jsonl`, and existing portraits remain the runtime fallback.
+- Remaining production boundary: move simulation/events, persistence, results, chat, and
+  audience presence to an authoritative realtime service before calling the league fully live.
