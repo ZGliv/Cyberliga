@@ -1,0 +1,16 @@
+{
+  "name": "cyberliga-autonomous-city-league",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node autonomy/service.mjs",
+    "dev": "node autonomy/service.mjs",
+    "test": "node --test autonomy/*.test.mjs",
+    "test:sim": "node --test autonomy/sim.test.mjs",
+    "test:service": "node --test autonomy/service.test.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "redirects": [
-    { "source": "/", "destination": "/league.html", "permanent": false }
+    { "source": "/", "destination": "/index.html", "permanent": false }
   ],
   "headers": [
     {

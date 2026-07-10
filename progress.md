@@ -37,3 +37,18 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - First tuning overshot offense; corrected homer/contact/catchability rates after a 14-1 long sim exposed arcade scoring.
 - Balanced long sim completed games at 6-3 and 3-1, with extra-base threats, ground-ball throws, finals, and no app errors.
 - Browser desktop and 390x844 mobile QA passed; sound prompt tap hides the prompt and mobile HUD elements fit.
+
+## Autonomous City League Pass
+- Scope: replace click-to-start fixtures with one canonical, continuously running city league; remove the country/nation competition layer from the globe and broadcast.
+- Added a deterministic match simulator, persistent SQLite fixture/standings store, restart-safe scheduler, and read-only live-state API.
+- Added 24 city clubs in one double round-robin major league (552 fixtures), with 12 matches playing simultaneously each round.
+- Added `live.html`, an autonomous Three.js broadcast with reactive crowd, interpolated server snapshots, a live match centre, score/clock/events, sound, fullscreen, and city-club deep links.
+- Refactored `world.html` to a city-only globe and removed country aggregation, country boundary rendering, and nation navigation.
+- Added `window.render_game_to_text()` and `window.advanceTime(ms)` hooks for deterministic spectator/gameplay testing.
+- Unit/service verification: 10 tests pass, including 1,000 simulated fixtures, two-spectator canonical state, transactional finalization, and restart persistence.
+
+## Autonomous City League TODO
+- Visual QA passed for the live stadium, reactive crowd, open 12-match drawer, city globe, and an in-progress switch from Singapore–Tokyo to Sydney–Seoul; no browser console errors were recorded.
+- Restart proof passed mid-match: Singapore–Tokyo kept the same fixture ID, kickoff, and 0–2 score while its clock advanced from minute 46 to minute 50 after the process restarted.
+- Two requests pinned to the same authoritative timestamp returned byte-equivalent match state.
+- Production hosting needs a durable database/runtime; the current autonomous service is intentionally local and restart-safe rather than a static Vercel export.

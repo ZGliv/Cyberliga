@@ -3,9 +3,21 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CYBERLIGA SOCCER</title>
+<title>CYBERLIGA — The League Is Alive</title>
+<meta name="description" content="A fully autonomous football league, broadcasting forever. Enter the live Cyberliga arena." />
+<meta name="theme-color" content="#050607" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="CYBERLIGA — The League Is Alive" />
+<meta property="og:description" content="Four clubs. No owners. No off-season. Enter the perpetual live football broadcast." />
+<meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="CYBERLIGA — The League Is Alive" />
+<meta name="twitter:description" content="A fully autonomous football league, broadcasting forever." />
+<meta name="twitter:image" content="https://cyberliga-ten.vercel.app/cyberliga-og.png" />
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=Barlow+Condensed:wght@500;600;700;800&family=Orbitron:wght@600;700;900&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #02030a; }
   canvas { display: block; }
@@ -279,10 +291,287 @@
     #score { min-width:62px; padding:0 8px; font-size:17px; }
     #wordmark { font-size:11px; letter-spacing:1.1px; }
   }
+
+  /* ======================================================================
+     THE FLOODLIT RITUAL — clean-sheet spectator shell
+     The arena supplies the color and spectacle. The interface behaves like
+     a severe, tactile broadcast frame: paper-white type, signal red, ink.
+     ====================================================================== */
+  :root {
+    --ritual-ink: #050607;
+    --ritual-paper: #f2f4ef;
+    --ritual-muted: rgba(242,244,239,.6);
+    --ritual-line: rgba(242,244,239,.18);
+    --ritual-red: #ff3b30;
+    --team-a: #00e5ff;
+    --team-b: #ff2d78;
+  }
+  html, body { background:var(--ritual-ink); }
+  body { color:var(--ritual-paper); }
+  body::before {
+    content:''; position:fixed; inset:0; z-index:2; pointer-events:none;
+    background:
+      linear-gradient(90deg, rgba(0,0,0,.34), transparent 18%, transparent 82%, rgba(0,0,0,.32)),
+      linear-gradient(180deg, rgba(2,3,4,.38), transparent 24%, transparent 75%, rgba(2,3,4,.42));
+  }
+  canvas { filter:saturate(.92) contrast(1.06); }
+  #hud { z-index:3; font-family:'Barlow Condensed','Arial Narrow',sans-serif; }
+  #scanlines { opacity:.28; }
+  #vignette { background:radial-gradient(ellipse at 50% 46%, transparent 42%, rgba(0,0,0,.64) 118%); }
+
+  /* corner registration marks make the whole viewport feel like a live feed */
+  #broadcastframe { position:absolute; inset:14px; z-index:55; pointer-events:none; }
+  #broadcastframe::before, #broadcastframe::after {
+    content:''; position:absolute; width:34px; height:34px; top:0;
+    border-top:1px solid rgba(255,255,255,.45);
+  }
+  #broadcastframe::before { left:0; border-left:1px solid rgba(255,255,255,.45); }
+  #broadcastframe::after { right:0; border-right:1px solid rgba(255,255,255,.45); }
+  #broadcastframe .frame-bottom::before, #broadcastframe .frame-bottom::after {
+    content:''; position:absolute; width:34px; height:34px; bottom:0;
+    border-bottom:1px solid rgba(255,255,255,.3);
+  }
+  #broadcastframe .frame-bottom::before { left:0; border-left:1px solid rgba(255,255,255,.3); }
+  #broadcastframe .frame-bottom::after { right:0; border-right:1px solid rgba(255,255,255,.3); }
+
+  /* brand + route: no rounded game-menu pill, just a network mark */
+  #badge {
+    top:27px; left:29px; gap:14px; align-items:center; z-index:70;
+    font-family:'Archivo',sans-serif;
+  }
+  #wordmark {
+    order:-1; font-family:'Archivo',sans-serif; font-stretch:120%; font-weight:900;
+    font-size:17px; line-height:1; letter-spacing:-.02em; color:var(--ritual-paper);
+    text-shadow:none;
+  }
+  #wordmark em { color:var(--ritual-muted); font-weight:500; font-stretch:100%; font-size:10px; letter-spacing:.18em; margin-left:8px; }
+  #leaguepill, #worldpill {
+    pointer-events:auto;
+    padding:0 0 0 14px; min-height:20px; border:0; border-left:1px solid var(--ritual-line);
+    border-radius:0; background:none; box-shadow:none; color:var(--ritual-muted);
+    font-size:11px; letter-spacing:.18em;
+  }
+  #leaguepill:hover, #worldpill:hover { color:#fff; background:none; border-color:#fff; box-shadow:none; }
+  #worldpill { color:#fff; }
+  #worldpill .pill-short { display:none; }
+
+  /* scoreboard: one authoritative slab, stripped of arcade chrome */
+  #scoreboard {
+    top:18px; height:54px; border:1px solid rgba(255,255,255,.22); border-radius:2px;
+    background:rgba(5,6,7,.84); box-shadow:0 16px 50px rgba(0,0,0,.28);
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  }
+  .team {
+    min-width:168px; padding:0 20px; font-family:'Barlow Condensed',sans-serif;
+    font-size:16px; font-weight:800; letter-spacing:.08em; color:var(--ritual-paper)!important;
+  }
+  .team .dot { width:6px; height:22px; border-radius:0; transform:none; box-shadow:none!important; }
+  #score {
+    min-width:98px; padding:0 20px; font-family:'Archivo',sans-serif; font-size:23px;
+    letter-spacing:-.04em; background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.14);
+    text-shadow:none;
+  }
+  #momentum { top:73px; width:390px; height:2px; border-radius:0; box-shadow:none; }
+  #clockwrap {
+    top:84px; border:0; border-radius:0; padding:0; background:none;
+    font-family:'Barlow Condensed',sans-serif;
+  }
+  #clock { font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:.12em; color:#fff; }
+  #half { font-size:11px; color:var(--ritual-muted); letter-spacing:.16em; }
+  .live { width:6px; height:6px; background:var(--ritual-red); }
+
+  #signalbug {
+    position:absolute; top:27px; right:29px; z-index:70;
+    display:flex; align-items:center; gap:10px;
+    font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:11px;
+    line-height:1; letter-spacing:.18em; color:var(--ritual-muted);
+  }
+  #signalbug strong { color:#fff; font-weight:700; }
+  #signalbug .live { animation:pulse 1.6s ease-in-out infinite; }
+
+  /* what makes a possession matter, stated in one sentence */
+  #matchpulse {
+    position:absolute; left:29px; bottom:75px; z-index:18;
+    width:min(390px,calc(100vw - 58px));
+    padding:14px 17px 15px; border-left:2px solid var(--team-a);
+    background:linear-gradient(90deg,rgba(5,6,7,.82),rgba(5,6,7,.38) 72%,transparent);
+    text-shadow:0 2px 16px rgba(0,0,0,.7);
+    transition:opacity .25s ease, transform .25s ease, border-color .3s ease;
+  }
+  #matchpulse .pulse-kicker { display:flex; align-items:center; gap:8px; margin-bottom:5px; color:var(--ritual-muted); font-size:10px; font-weight:700; letter-spacing:.22em; }
+  #matchpulse .pulse-kicker::before { content:''; display:block; width:14px; height:1px; background:currentColor; }
+  #pulsecopy { font-family:'Archivo',sans-serif; font-stretch:112%; font-weight:750; font-size:clamp(17px,1.7vw,24px); line-height:1.08; letter-spacing:-.025em; color:#fff; }
+  #pulsemeta { margin-top:7px; color:var(--ritual-muted); font-size:11px; letter-spacing:.12em; }
+  #lineup.show ~ #matchpulse { opacity:0; transform:translateY(10px); }
+
+  /* bottom furniture */
+  #ticker { height:31px; border-color:rgba(255,255,255,.14); background:rgba(4,5,6,.9); }
+  #tickerlabel {
+    padding:0 16px; background:var(--ritual-paper); color:var(--ritual-ink);
+    font-family:'Archivo',sans-serif; font-size:9px; letter-spacing:.14em; border:0;
+  }
+  #tickertext { font-size:13px; font-weight:600; color:rgba(255,255,255,.72); letter-spacing:.08em; }
+  #watermark { display:none; }
+  #soundpill, #stylepill {
+    pointer-events:auto; bottom:42px; min-height:28px; padding:4px 11px;
+    border:1px solid rgba(255,255,255,.22); border-radius:2px; background:rgba(5,6,7,.7);
+    box-shadow:none; color:rgba(255,255,255,.66); font-size:10px; letter-spacing:.15em;
+    backdrop-filter:blur(10px);
+  }
+  #soundpill { left:auto; right:167px; cursor:pointer; font-family:'Barlow Condensed',sans-serif; font-weight:700; }
+  #stylepill { left:auto; right:29px; max-width:190px; }
+  #stylepill:hover, #soundpill:hover { color:#fff; border-color:#fff; background:rgba(5,6,7,.9); box-shadow:none; }
+
+  /* Broadcast drama stays spectacular, but swaps sci-fi type for sports scale. */
+  #goaltext, #penstinger .ptext {
+    font-family:'Archivo',sans-serif; font-stretch:125%; letter-spacing:-.055em;
+    text-transform:uppercase;
+  }
+  #goalsub, #penstinger .psub { font-family:'Barlow Condensed',sans-serif; letter-spacing:.18em; }
+  #bigcard .panel {
+    border:1px solid rgba(255,255,255,.22); border-radius:2px;
+    background:rgba(5,6,7,.94); box-shadow:0 30px 100px rgba(0,0,0,.65);
+  }
+  #bigcard h1 { font-family:'Archivo',sans-serif; letter-spacing:-.04em; color:#fff; text-shadow:none; }
+
+  /* The signal-lock opening: the match is visible and moving behind it. */
+  #signalintro {
+    position:fixed; inset:0; z-index:200; pointer-events:auto; overflow:hidden;
+    display:grid; grid-template-columns:minmax(0,1.08fr) minmax(280px,.92fr);
+    color:var(--ritual-paper); font-family:'Archivo',sans-serif;
+    background:
+      linear-gradient(90deg,rgba(2,3,4,.98) 0%,rgba(2,3,4,.88) 46%,rgba(2,3,4,.28) 78%,rgba(2,3,4,.05) 100%),
+      linear-gradient(0deg,rgba(2,3,4,.85),transparent 52%);
+    transition:opacity .7s cubic-bezier(.22,.61,.36,1), visibility .7s;
+  }
+  #signalintro::before {
+    content:''; position:absolute; inset:0; pointer-events:none; opacity:.15;
+    background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px);
+    background-size:64px 64px;
+    mask-image:linear-gradient(90deg,#000,transparent 82%);
+  }
+  #signalintro::after {
+    content:''; position:absolute; top:-30%; left:48%; width:12vw; height:160%; opacity:.5;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);
+    transform:rotate(18deg); filter:blur(20px); animation:searchlight 6s ease-in-out infinite alternate;
+  }
+  @keyframes searchlight { to { transform:translateX(20vw) rotate(18deg); opacity:.2; } }
+  #signalintro.departing { opacity:0; visibility:hidden; }
+  .intro-main {
+    position:relative; z-index:2; align-self:end;
+    padding:clamp(28px,5vw,76px); padding-bottom:clamp(42px,8vh,92px);
+  }
+  .intro-network { display:flex; align-items:center; gap:13px; margin-bottom:clamp(30px,8vh,84px); font-size:11px; font-weight:700; letter-spacing:.2em; color:var(--ritual-muted); }
+  .intro-network strong { font-stretch:120%; color:#fff; font-weight:900; letter-spacing:-.02em; font-size:15px; }
+  .intro-network .slash { width:1px; height:18px; background:var(--ritual-line); transform:rotate(16deg); }
+  .intro-kicker { display:flex; align-items:center; gap:10px; margin-bottom:15px; color:#fff; font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:.2em; }
+  .intro-kicker .live { flex:0 0 auto; }
+  #signalintro h1 {
+    max-width:930px; font-stretch:125%; font-weight:900; font-size:clamp(60px,10.2vw,158px);
+    line-height:.79; letter-spacing:-.065em; text-transform:uppercase;
+  }
+  #signalintro h1 span { display:block; color:transparent; -webkit-text-stroke:1px rgba(242,244,239,.58); }
+  .intro-deck { max-width:520px; margin-top:24px; color:rgba(242,244,239,.68); font-size:clamp(14px,1.4vw,18px); line-height:1.5; letter-spacing:-.01em; }
+  .intro-deck strong { color:#fff; font-weight:700; }
+  .intro-actions { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:30px; }
+  .intro-enter, .intro-muted {
+    appearance:none; border-radius:0; cursor:pointer; font-family:'Barlow Condensed',sans-serif;
+    font-size:12px; font-weight:800; letter-spacing:.16em; transition:transform .16s ease,background .16s,color .16s,border-color .16s;
+  }
+  .intro-enter { border:1px solid var(--ritual-paper); padding:14px 21px; background:var(--ritual-paper); color:var(--ritual-ink); }
+  .intro-enter:hover { transform:translateY(-2px); background:#fff; }
+  .intro-muted { border:0; border-bottom:1px solid rgba(255,255,255,.3); padding:12px 2px 8px; background:none; color:var(--ritual-muted); }
+  .intro-muted:hover { color:#fff; border-color:#fff; }
+  .intro-side {
+    position:relative; z-index:2; align-self:end; justify-self:end; width:min(100%,460px);
+    margin:0 clamp(28px,5vw,72px) clamp(44px,8vh,92px) 20px;
+    padding:18px 0 18px 21px; border-left:1px solid rgba(255,255,255,.3);
+    font-family:'Barlow Condensed',sans-serif;
+  }
+  .intro-side-label { margin-bottom:9px; color:var(--ritual-muted); font-size:10px; font-weight:700; letter-spacing:.22em; }
+  #introfixture { font-family:'Archivo',sans-serif; font-stretch:112%; font-size:clamp(20px,2.4vw,36px); font-weight:800; line-height:1; letter-spacing:-.035em; }
+  #intrometa { margin-top:9px; color:var(--ritual-muted); font-size:12px; letter-spacing:.12em; }
+  .intro-side::after { content:'THE MATCH WILL CONTINUE WITHOUT YOU'; display:block; margin-top:27px; color:rgba(255,255,255,.38); font-size:10px; letter-spacing:.16em; }
+
+  body:not(.entered) #hud > :not(#vignette):not(#scanlines):not(#broadcastframe) { opacity:.18; }
+  body:not(.entered) #hud #scoreboard { opacity:.58; }
+  body.entered #hud > * { transition:opacity .55s ease; }
+
+  @media (prefers-reduced-motion:reduce) {
+    #signalintro::after, .live { animation:none; }
+    #signalintro { transition-duration:.01ms; }
+  }
+
+  @media (max-width:900px) {
+    #signalintro { grid-template-columns:1fr; align-content:end; }
+    .intro-main { padding-bottom:28px; }
+    .intro-network { margin-bottom:36px; }
+    .intro-side { justify-self:start; margin:0 28px 40px; width:calc(100% - 56px); }
+    #signalintro h1 { font-size:clamp(58px,15vw,108px); }
+    #signalbug { display:none; }
+  }
+  @media (max-width:700px) {
+    #broadcastframe { inset:8px; }
+    #badge { top:13px; left:14px; right:14px; display:flex; flex-direction:row; }
+    #wordmark { font-size:14px; }
+    #wordmark em { display:none; }
+    #worldpill { margin-left:auto; }
+    #worldpill .pill-full { display:none; }
+    #worldpill .pill-short { display:inline; }
+    #leaguepill { display:none; }
+    #scoreboard { top:54px; height:44px; width:calc(100vw - 28px); }
+    .team { min-width:0; padding:0 10px; font-size:12px; }
+    .team .dot { height:17px; }
+    #score { min-width:70px; padding:0 10px; font-size:18px; }
+    #momentum { top:99px; width:calc(100vw - 60px); }
+    #clockwrap { top:108px; }
+    #matchpulse { left:14px; bottom:116px; width:calc(100vw - 28px); padding:11px 13px 12px; }
+    #pulsecopy { font-size:17px; }
+    #pulsemeta { display:none; }
+    #soundpill { right:142px; bottom:42px; }
+    #stylepill { right:14px; left:auto; bottom:42px; width:auto; min-height:28px; max-width:122px; font-size:9px; }
+    #ticker { bottom:0; }
+    .intro-main { padding:24px 22px 22px; }
+    .intro-network { margin-bottom:32px; }
+    #signalintro h1 { font-size:clamp(54px,18.5vw,92px); }
+    .intro-deck { margin-top:18px; font-size:14px; }
+    .intro-actions { margin-top:22px; }
+    .intro-side { margin:0 22px 30px; width:calc(100% - 44px); padding:14px 0 14px 16px; }
+    .intro-side::after { display:none; }
+    #introfixture { font-size:21px; }
+    #feed { top:136px; }
+  }
+  @media (max-width:430px) {
+    .intro-network span:last-child { display:none; }
+    #signalintro h1 { font-size:clamp(52px,18.5vw,78px); }
+    .intro-enter { width:100%; }
+    .intro-muted { margin-left:2px; }
+    #matchpulse { bottom:112px; }
+    #soundpill { left:14px; right:auto; max-width:130px; overflow:hidden; white-space:nowrap; }
+  }
 </style>
 </head>
 <body>
+<section id="signalintro" aria-labelledby="introtitle">
+  <div class="intro-main">
+    <div class="intro-network"><strong>CYBERLIGA</strong><span class="slash" aria-hidden="true"></span><span>PERPETUAL SPORTS NETWORK</span></div>
+    <p class="intro-kicker"><span class="live" aria-hidden="true"></span>LIVE SIGNAL ACQUIRED</p>
+    <h1 id="introtitle">THE LEAGUE <span>IS ALIVE.</span></h1>
+    <p class="intro-deck"><strong>Four clubs. No owners. No off-season.</strong> A fully autonomous football league playing through the night, whether you are watching or not.</p>
+    <div class="intro-actions">
+      <button class="intro-enter" id="enterlive" type="button">ENTER THE STADIUM ↗</button>
+      <button class="intro-muted" id="entermuted" type="button">WATCH MUTED</button>
+      <a class="intro-muted" href="world.html">EXPLORE WORLD</a>
+    </div>
+  </div>
+  <aside class="intro-side" aria-label="Current broadcast">
+    <p class="intro-side-label">NOW TRANSMITTING · MATCHDAY <span id="intromatchday">01</span></p>
+    <p id="introfixture">NEON FC — VOLT UTD</p>
+    <p id="intrometa">00:00 · FIRST HALF · GRAND ARENA</p>
+  </aside>
+</section>
 <div id="hud">
+  <div id="broadcastframe" aria-hidden="true"><span class="frame-bottom"></span></div>
   <div id="scoreboard">
     <div class="team" id="teamA"><span class="dot"></span><span class="team-name">NEON FC</span></div>
     <div id="score"><span id="sA">0</span>&nbsp;–&nbsp;<span id="sB">0</span></div>
@@ -291,16 +580,22 @@
   <div id="momentum"></div>
   <div id="feed"></div>
   <div id="clockwrap"><span class="live"></span><span id="clock">00:00</span><span id="half">1ST HALF</span></div>
-  <div id="badge"><a id="leaguepill" href="league.html" aria-label="Back to league hub"><span aria-hidden="true">←</span><span class="pill-full">LEAGUE HUB</span><span class="pill-short">HUB</span></a><span id="wordmark">CYBERLIGA <em>SOCCER</em></span></div>
+  <div id="badge"><a id="worldpill" href="world.html" aria-label="Explore the Cyberliga world"><span class="pill-full">WORLD MAP</span><span class="pill-short">WORLD</span></a><a id="leaguepill" href="league.html" aria-label="Explore the league"><span class="pill-full">LEAGUE</span><span class="pill-short">TABLE</span></a><span id="wordmark">CYBERLIGA <em>LIVE FOOTBALL</em></span></div>
+  <div id="signalbug"><span class="live" aria-hidden="true"></span><strong>LIVE</strong><span id="signalmeta">MATCHDAY 01 · AUTONOMOUS</span></div>
   <div id="goalflash"><div id="goaltext">GOAL</div><div id="goalsub"></div></div>
   <div id="penstinger"><div class="pflash"></div><div class="ptext">PENALTY!</div><div class="psub" id="pensub"></div></div>
   <div id="pentag">⬤ PENALTY · <span id="pentagteam"></span></div>
   <div id="ticker"><div id="tickerlabel">CYBERLIGA</div><div id="tickertext">WELCOME TO THE CYBERLIGA SOCCER ARENA — FOUR CLUBS · EVERY SPORT · ONE LEAGUE — NO HUMANS WERE CONSULTED IN THE MAKING OF THESE TACTICS — SEASON 2077 —</div></div>
   <div id="replaytag">◉ REPLAY</div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
-  <div id="soundpill">🔊 CLICK ANYWHERE FOR SOUND</div>
+  <button id="soundpill" type="button" aria-label="Turn stadium sound on">SOUND OFF</button>
   <button id="stylepill" type="button" aria-label="Switch player view">SWITCH VIEW</button>
   <div id="lineup"><div class="panel" id="lineuppanel"></div></div>
+  <aside id="matchpulse" aria-live="polite">
+    <p class="pulse-kicker">THE SITUATION</p>
+    <p id="pulsecopy">The floodlights are on. The next ninety minutes belong to nobody.</p>
+    <p id="pulsemeta">SEASON 2077 · MATCHDAY 01 · GRAND ARENA</p>
+  </aside>
   <div id="vignette"></div><div id="scanlines"></div>
   <div id="watermark">CYBERLIGA SOCCER</div>
 </div>
@@ -355,14 +650,42 @@ function cycleVisualStyle() {
 {
   const stylePill = document.getElementById('stylepill');
   const nxt = nextVisualStyle();
-  stylePill.textContent = `VIEW: ${STYLE_LABELS[VIS_STYLE]} ▸ ${STYLE_LABELS[nxt]}`;
+  stylePill.textContent = `${STYLE_LABELS[VIS_STYLE]} VIEW · CHANGE`;
   stylePill.setAttribute('aria-label', `Switch player view from ${STYLE_LABELS[VIS_STYLE]} to ${STYLE_LABELS[nxt]}`);
   stylePill.addEventListener('click', cycleVisualStyle);
 }
+
+// The live arena is the front door. The opening gives visitors one deliberate
+// threshold: enter with the crowd, or lift the veil silently. The simulation
+// never waits for either choice.
+const signalIntro = document.getElementById('signalintro');
+function enterBroadcast(withSound) {
+  if (withSound) initAudio();
+  try { sessionStorage.setItem('cl_entered', '1'); } catch (e) { /* private mode */ }
+  document.body.classList.add('entered');
+  signalIntro.classList.add('departing');
+  setTimeout(() => signalIntro.remove(), 760);
+}
+let enteredThisSession = false;
+try { enteredThisSession = sessionStorage.getItem('cl_entered') === '1'; } catch (e) { /* private mode */ }
+const cameFromWorld = new URLSearchParams(location.search).get('from') === 'world';
+if (cameFromWorld) {
+  enteredThisSession = true;
+  try { sessionStorage.setItem('cl_entered', '1'); } catch (e) { /* private mode */ }
+}
+if (enteredThisSession) {
+  document.body.classList.add('entered');
+  signalIntro.remove();
+} else {
+  document.getElementById('enterlive').addEventListener('click', () => enterBroadcast(true));
+  document.getElementById('entermuted').addEventListener('click', () => enterBroadcast(false));
+}
+document.getElementById('soundpill').addEventListener('click', initAudio);
+
 addEventListener('keydown', e => {
-  // Escape backs out to the league hub
+  // Escape returns to the surface the viewer arrived from.
   if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-    location.href = 'league.html';
+    location.href = cameFromWorld ? 'world.html' : 'league.html';
     return;
   }
   if (e.key === 'p' || e.key === 'P') {
@@ -400,6 +723,7 @@ if (!league || !league.table) league = {
   fixture: 0,
   table: Object.fromEntries(LEAGUE_TEAMS.map(t => [t.name, {p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0}])),
 };
+let activeMatchday = league.fixture + 1;
 
 // ============ RENDERER / SCENE ============
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -2766,6 +3090,54 @@ function momentumStep(dt) {
   }
 }
 
+// ============ THE SITUATION (spectator-first narrative) ============
+// One sentence translates the raw sim state into stakes. It deliberately
+// updates slowly so it reads like an editorial producer, not telemetry.
+const elPulse = document.getElementById('matchpulse');
+const elPulseCopy = document.getElementById('pulsecopy');
+const elPulseMeta = document.getElementById('pulsemeta');
+const elIntroFixture = document.getElementById('introfixture');
+const elIntroMeta = document.getElementById('intrometa');
+const elIntroMatchday = document.getElementById('intromatchday');
+const elSignalMeta = document.getElementById('signalmeta');
+let pulseSignature = '';
+function updateMatchNarrative() {
+  const minute = Math.max(1, Math.ceil(state.clock / 60));
+  const scoreLevel = state.scoreA === state.scoreB;
+  const leader = state.scoreA > state.scoreB ? TEAM_A : state.scoreB > state.scoreA ? TEAM_B : null;
+  const dangerTeam = ball.pos.x > 0 ? TEAM_A : TEAM_B;
+  const danger = Math.abs(ball.pos.x) / HALF_W;
+  let copy;
+
+  if (state.mode === 'kickoff') copy = 'The floodlights are on. The next ninety minutes belong to nobody.';
+  else if (state.mode === 'goal') copy = `${state.goalTeam.name} have detonated the arena. Listen to that end.`;
+  else if (state.mode === 'replay') copy = 'The signal rolls backward. One touch changed the whole match.';
+  else if (state.mode === 'foul' && state.foul && state.foul.ruling.penalty) copy = 'Everything has stopped. The official is pointing to the spot.';
+  else if (state.mode === 'foul') copy = 'The rhythm breaks. Players surround the official.';
+  else if (state.mode === 'setpiece' && state.setpiece && state.setpiece.kind === 'penalty') copy = 'One taker. One keeper. Thousands holding their breath.';
+  else if (state.mode === 'halftime') copy = scoreLevel ? 'Level at the interval. Neither club has found a way out.' : `${leader.name} lead, but the stadium does not believe this is finished.`;
+  else if (state.mode === 'fulltime') copy = leader ? `${leader.name} take the night. The league is already moving on.` : 'No winner. No closure. The next fixture is already calling.';
+  else if (danger > .74) copy = `${dangerTeam.name} are one clean touch from breaking this open.`;
+  else if (minute >= 80 && scoreLevel) copy = 'Level, late, and opening up. Nobody in the stands is sitting now.';
+  else if (minute >= 72 && leader) copy = `${leader.name} are protecting a lead that feels increasingly fragile.`;
+  else if (Math.abs(momSm) > .48) {
+    const pressureTeam = momSm > 0 ? TEAM_A : TEAM_B;
+    copy = `${pressureTeam.name} have tilted the pitch. The pressure is becoming physical.`;
+  } else if (scoreLevel) copy = 'The match is balanced on one mistake.';
+  else copy = `${leader.name} lead. The next goal changes the temperature completely.`;
+
+  const modeLabel = state.mode === 'halftime' ? 'HALF-TIME' : state.mode === 'fulltime' ? 'FULL-TIME' : `${minute}' · ${state.half === 1 ? 'FIRST HALF' : 'SECOND HALF'}`;
+  const sig = `${copy}|${modeLabel}`;
+  if (sig !== pulseSignature) {
+    pulseSignature = sig;
+    elPulseCopy.textContent = copy;
+    elPulseMeta.textContent = `SEASON 2077 · MATCHDAY ${String(activeMatchday).padStart(2, '0')} · ${modeLabel}`;
+    const focus = danger > .55 ? dangerTeam : (state.lastTouchTeam || TEAM_A);
+    elPulse.style.borderColor = hex6(focus.glow);
+  }
+  if (signalIntro && signalIntro.isConnected) elIntroMeta.textContent = `${fmtClock(state.clock)} · ${state.half === 1 ? 'FIRST HALF' : 'SECOND HALF'} · GRAND ARENA`;
+}
+
 // ============ LINEUP INTRO (match-start lower third) ============
 // plays through an EXTENDED first kickoff hold (LINEUP_HOLD vs the usual 1.4s): card A,
 // fade gap, card B — auto-dismissed for good at the whistle. Restart kickoffs (goals,
@@ -3009,7 +3381,6 @@ function initAudio() {
   src.start();
   const pill = document.getElementById('soundpill'); if (pill) pill.remove();
 }
-addEventListener('pointerdown', initAudio, { once: true });
 
 function thump(power) { // ball contact — pitch and volume scale with kick power
   if (!AC) return;
@@ -3435,6 +3806,7 @@ function clearTeams() {
 }
 function startMatch() {
   const [ia, ib] = FIXTURES[league.fixture % FIXTURES.length];
+  activeMatchday = league.fixture + 1;
   TEAM_A = LEAGUE_TEAMS[ia]; TEAM_B = LEAGUE_TEAMS[ib];
   crowd.setTeams(TEAM_A, TEAM_B);   // retint stands/flags/scarves for the fixture
   present.clear();                  // never let a queued card from last match slide in
@@ -3447,6 +3819,8 @@ function startMatch() {
   stats.reset(); replaySys.reset();
   elSA.textContent = '0'; elSB.textContent = '0'; elHalf.textContent = '1ST HALF';
   const cA = hex6(TEAM_A.glow), cB = hex6(TEAM_B.glow);
+  document.documentElement.style.setProperty('--team-a', cA);
+  document.documentElement.style.setProperty('--team-b', cB);
   elTeamAEl.innerHTML = `<span class="dot" style="background:${cA};box-shadow:0 0 10px ${cA}"></span><span class="team-name">${TEAM_A.name}</span>`;
   elTeamAEl.style.color = cA;
   elTeamBEl.innerHTML = `<span class="team-name">${TEAM_B.name}</span><span class="dot" style="background:${cB};box-shadow:0 0 10px ${cB}"></span>`;
@@ -3457,8 +3831,14 @@ function startMatch() {
   hideLineup();
   momentum = momSm = 0; momShotsA = momShotsB = 0; // fresh momentum ledger per fixture
   momCssA = cA; momCssB = cB;                      // bar blends this fixture's colors
-  commentate(`MATCHDAY ${league.fixture + 1}: ${TEAM_A.name} vs ${TEAM_B.name} — LIVE FROM THE CYBERLIGA SOCCER ARENA`, true);
-  story.startMatch(TEAM_A.name, TEAM_B.name, league.fixture + 1);
+  const matchday = String(activeMatchday).padStart(2, '0');
+  if (elIntroFixture) elIntroFixture.textContent = `${TEAM_A.name} — ${TEAM_B.name}`;
+  if (elIntroMatchday) elIntroMatchday.textContent = matchday;
+  if (elSignalMeta) elSignalMeta.textContent = `MATCHDAY ${matchday} · AUTONOMOUS`;
+  pulseSignature = '';
+  updateMatchNarrative();
+  commentate(`MATCHDAY ${activeMatchday}: ${TEAM_A.name} vs ${TEAM_B.name} — LIVE FROM THE CYBERLIGA SOCCER ARENA`, true);
+  story.startMatch(TEAM_A.name, TEAM_B.name, activeMatchday);
   for (const l of story.prematchLines(TEAM_A.name, TEAM_B.name)) commentate(l, true);
   headshotQueue = players.slice(); // portraits captured one per frame during the kickoff hold
   updateJumbotron();
@@ -3740,6 +4120,7 @@ function tick(forcedDt, skipRender) {
   elClock.textContent = fmtClock(state.clock);
   tickerStep(dt);
   momentumStep(dt);
+  if (tick.f % 20 === 0) updateMatchNarrative();
   // headshot booth: ONE portrait per frame during the kickoff hold — the old synchronous
   // all-players loop was a multi-hundred-ms freeze at the start of every fixture
   if (headshotQueue.length) {

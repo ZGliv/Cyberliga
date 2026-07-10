@@ -1,1 +1,6 @@
+autonomy/*.sqlite
+autonomy/*.sqlite-shm
+autonomy/*.sqlite-wal
+*.log
+.DS_Store
 .vercel
