@@ -91,7 +91,7 @@ labeled deterministic fallback until a dedicated project is chosen and provision
 - [ ] Add social metadata, analytics, privacy/terms/contact pages, and admin authentication.
 - [x] Add the first public world route: interactive globe, six-league sports network,
   honest canonical/exhibition status, mobile layout, and a Twitter/X share-card contract.
-- [x] Add durable league-atlas URLs for six sports with 48 clubs, 288 athlete identities,
+- [x] Add durable league-atlas URLs for six sports with 48 clubs, 416 athlete identities,
   deterministic fixtures, rivalries, and daily narrative hooks.
 - [x] Add a shareable World Wire route with six UTC-synchronized editorial desks,
   athlete/team focus links, trending clubs, and rivalry coverage.
@@ -99,6 +99,8 @@ labeled deterministic fallback until a dedicated project is chosen and provision
   match, portrait, and vertical-clip previews before any body family reaches the live product.
 - [x] Add privacy-safe anonymous match presence with reconnect/backoff and an honest
   `1 WATCHING · LOCAL` state until realtime credentials are configured.
+- [x] Add a responsive Broadcast Guide and a shared in-game navigation hub across all six
+  arenas so live channels, leagues, stories, media tools, and operations never dead-end.
 
 Exit gate: every important piece of league state has a permanent shareable URL, and the
 core mobile experience works without relying on one browser's local storage.
@@ -106,7 +108,7 @@ core mobile experience works without relying on one browser's local storage.
 ## Phase 4 — Reliability and release gates
 
 - [ ] Simulation distribution, invariant, freeze, and recovery tests.
-- [ ] Desktop and mobile browser smoke tests for every public route.
+- [x] Desktop and mobile browser smoke tests for every public route.
 - [x] CI for API tests, syntax, invariant/data checks, route/API smoke tests, asset checks,
   and previews.
 - [x] Add a dependency-free project preview server with local Vercel-function dispatch,

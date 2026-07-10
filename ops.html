@@ -261,6 +261,7 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
 <header class="topbar">
   <a class="brand" href="world.html"><b>CYBERLIGA</b><span>/ OPERATIONS CONSOLE</span></a>
   <nav class="top-actions" aria-label="Console actions">
+    <a href="menu.html">BROADCAST GUIDE ↗</a>
     <a href="world.html">PUBLIC WORLD ↗</a>
     <a href="social.html">WORLD WIRE ↗</a>
     <button type="button" id="copy-snapshot">COPY INCIDENT</button>
@@ -354,6 +355,7 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
   var backend = { mode: 'probing', canonical: false, source: 'unknown', matches: 0, error: null };
 
   var ROUTES = [
+    { name: 'Broadcast Guide', path: 'menu.html', kind: 'PUBLIC ENTRY' },
     { name: 'World', path: 'world.html', kind: 'PUBLIC ENTRY' },
     { name: 'League Atlas', path: 'league.html', kind: 'CONTENT' },
     { name: 'World Wire', path: 'social.html', kind: 'SOCIAL' },
@@ -421,7 +423,7 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
     var checks = [
       { name: 'League registry', detail: sports.length + ' observed / 6 expected', pass: sports.length === 6 },
       { name: 'Club registry', detail: teams.length + ' observed / 48 expected', pass: teams.length === 48 },
-      { name: 'Athlete registry', detail: athletes + ' observed / 288 expected', pass: athletes === 288 },
+      { name: 'Athlete registry', detail: athletes + ' observed / 416 expected', pass: athletes === 416 },
       { name: 'Per-league shape', detail: sports.filter(function (sport) { return sport.teams.length === 8; }).length + '/6 have eight clubs', pass: sports.length === 6 && sports.every(function (sport) { return sport.teams.length === 8; }) },
       { name: 'Reciprocal rivalries', detail: rivalries + '/' + teams.length + ' clubs resolve both ways', pass: rivalries === teams.length && teams.length === 48 },
       { name: 'Soccer universe', detail: (U && U.TEAMS ? U.TEAMS.length : 0) + ' clubs / ' + (U && U.ROUNDS ? U.ROUNDS.length : 0) + ' rounds', pass: !!roundsValid }

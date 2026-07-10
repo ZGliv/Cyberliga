@@ -73,6 +73,7 @@ jobs:
           routes=(
             "/"
             "/world.html"
+            "/menu.html"
             "/league.html"
             "/social.html"
             "/moment.html"

@@ -85,6 +85,7 @@ const supportingPages = [
   { file: 'social.html', screen: /screen\s*:\s*['"](?:social|world-wire)['"]/ },
   { file: 'moment.html', screen: /screen\s*:\s*['"](?:moment|moment-maker)['"]/ },
   { file: 'clip.html', screen: /screen\s*:\s*['"]animated-clip-director['"]/ },
+  { file: 'menu.html', scriptFile: 'menu.js', screen: /screen\s*:\s*['"]broadcast-guide['"]/ },
   { file: 'characterlab.html', scriptFile: 'characterlab.js', screen: /screen\s*:\s*['"]character-laboratory['"]/ },
   { file: 'ops.html', screen: /screen\s*:\s*['"](?:ops|operations-console)['"]/ }
 ];
@@ -103,6 +104,8 @@ const atlasSource = await text('league.html');
 const socialSource = await text('social.html');
 const momentSource = await text('moment.html');
 const clipSource = await text('clip.html');
+const menuSource = await text('menu.html');
+const menuScript = await text('menu.js');
 check(/football\.html/.test(worldSource), 'World map does not route to American football');
 check(/['"]american-football['"]\s*:\s*['"]football\.html['"]/.test(atlasSource), 'League atlas does not route American football to football.html');
 for (const arena of arenas) {
@@ -121,6 +124,16 @@ check(momentSource.includes('clip.html?'), 'Moment Maker does not preserve its c
 check(/canvas\.captureStream\(30\)/.test(clipSource), 'Clip Director must capture a real 30fps canvas stream');
 check(/new MediaRecorder/.test(clipSource), 'Clip Director must use MediaRecorder for WebM output');
 check(/DURATION\s*=\s*12000/.test(clipSource), 'Clip Director must keep the 12-second viral format');
+check(/id=["']channel-grid["']/.test(menuSource), 'Broadcast Guide must expose the canonical live channel grid');
+check(/id=["']sport-grid["']/.test(menuSource), 'Broadcast Guide must expose every playable arena');
+check(/UNIVERSE\.liveMatches/.test(menuScript), 'Broadcast Guide must use the shared UTC match schedule');
+check(/\^\[1-4\]\$/.test(menuScript), 'Broadcast Guide must keep keyboard tuning for the four soccer channels');
+for (const arena of arenas) check(menuScript.includes(arena.file), `Broadcast Guide does not link ${arena.id}`, arena.file);
+check(await exists('gamehub.js'), 'Missing shared in-game navigation hub');
+for (const arena of arenas) {
+  const arenaSource = await text(arena.file);
+  check(arenaSource.includes('gamehub.js'), `${arena.file} does not load the shared in-game navigation hub`);
+}
 const characterLabSource = await text('characterlab.html');
 const characterLabScript = await text('characterlab.js');
 check(/Marquee 12/i.test(characterLabSource), 'Character Lab must expose the first twelve marquee athletes');
@@ -165,7 +178,7 @@ check(Boolean(content), 'worlddata.js did not expose CYBERLIGA_CONTENT');
 if (content) {
   check(content.metrics?.sports === 6, 'Worlddata sport total must be 6', String(content.metrics?.sports));
   check(content.metrics?.teams === 48, 'Worlddata team total must be 48', String(content.metrics?.teams));
-  check(content.metrics?.athletes === 288, 'Worlddata athlete total must be 288', String(content.metrics?.athletes));
+  check(content.metrics?.athletes === 416, 'Worlddata athlete total must be 416', String(content.metrics?.athletes));
   check(Array.isArray(content.sports) && content.sports.length === 6, 'Worlddata must expose exactly six sports');
 
   const sportIds = new Set();
@@ -181,7 +194,8 @@ if (content) {
       teamIds.add(team.id);
       check(!localCodes.has(team.code), `Duplicate team code in ${sport.id}`, team.code);
       localCodes.add(team.code);
-      check(team.athletes.length === 6, `${team.id} must have six athletes`, String(team.athletes.length));
+      const expectedAthletes = sport.id === 'american-football' ? 22 : 6;
+      check(team.athletes.length === expectedAthletes, `${team.id} must have ${expectedAthletes} athletes`, String(team.athletes.length));
       check(sport.teams.some((candidate) => candidate.id === team.rivalryId), `${team.id} rivalry does not resolve`, String(team.rivalryId));
       for (const athlete of team.athletes) {
         check(!athleteIds.has(athlete.id), 'Duplicate athlete id', athlete.id);
@@ -194,7 +208,7 @@ if (content) {
   }
   check(sportIds.has('american-football'), 'Worlddata is missing American football');
   check(teamIds.size === 48, 'Worlddata must have 48 unique team ids', String(teamIds.size));
-  check(athleteIds.size === 288, 'Worlddata must have 288 unique athlete ids', String(athleteIds.size));
+  check(athleteIds.size === 416, 'Worlddata must have 416 unique athlete ids', String(athleteIds.size));
 }
 
 const universeWindow = {};
@@ -285,5 +299,5 @@ if (failures.length) {
   failures.forEach((failure, index) => console.error(`${index + 1}. ${failure}`));
   process.exitCode = 1;
 } else {
-  console.log(`Cyberliga verification passed: ${checks} checks across 6 arenas, 6 leagues, 48 teams, 288 athletes, routes, schedules, hooks, deployment config, and local assets.`);
+  console.log(`Cyberliga verification passed: ${checks} checks across 6 arenas, 6 leagues, 48 teams, 416 athletes, routes, schedules, hooks, deployment config, and local assets.`);
 }

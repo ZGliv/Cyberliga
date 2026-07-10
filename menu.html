@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#10120f">
+  <meta name="description" content="Cyberliga Broadcast Guide: the canonical UTC soccer schedule and every playable arena in the world.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='32' fill='%2310120f'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-family='Arial' font-weight='900' font-size='38' fill='%23d4ff38'%3EC%3C/text%3E%3C/svg%3E">
+  <title>Broadcast Guide · Cyberliga</title>
+  <link rel="stylesheet" href="menu.css">
+</head>
+<body>
+  <a class="skip-link" href="#broadcasts">Skip to broadcasts</a>
+
+  <header class="masthead">
+    <a class="wordmark" href="world.html" aria-label="Cyberliga world map">
+      <span class="mark" aria-hidden="true">C</span>
+      <span>CYBERLIGA<small>WORLD BROADCAST NETWORK</small></span>
+    </a>
+    <nav class="utility-nav" aria-label="World navigation">
+      <a href="world.html">World</a>
+      <a href="league.html">Leagues</a>
+      <a href="social.html">Wire</a>
+      <a href="ops.html">Ops</a>
+    </nav>
+    <div class="utc-clock" aria-label="Current guide time">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span><b id="utc-time">--:--:--</b><small>UTC GUIDE CLOCK</small></span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="guide-title">
+      <div class="hero-copy">
+        <p class="eyebrow">SIGNAL DIRECTORY / CYCLE <span id="cycle-number">—</span></p>
+        <h1 id="guide-title">Choose your<br><em>signal.</em></h1>
+        <p class="dek">One canonical soccer schedule, four matches at once, and five playable exhibition arenas. The guide follows the shared UTC world clock.</p>
+      </div>
+      <div class="hero-note">
+        <span class="note-number">24/7</span>
+        <p><b>ALWAYS IN MOTION</b><br>Deterministic browser simulation. No account, stream, or remote service is claimed.</p>
+      </div>
+    </section>
+
+    <section class="broadcast-section" id="broadcasts" aria-labelledby="live-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">THE COMMON GROUND / ROUND <span id="round-number">—</span></p>
+          <h2 id="live-title">Now on four channels</h2>
+        </div>
+        <p class="section-key"><span class="live-pill">CANONICAL</span> UTC schedule · browser-simulated play</p>
+      </div>
+      <div class="channel-grid" id="channel-grid"></div>
+      <p class="keyboard-hint">Keyboard: press <kbd>1</kbd>–<kbd>4</kbd> to tune in · all destinations remain standard links.</p>
+    </section>
+
+    <section class="sports-section" aria-labelledby="arenas-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">SIX SPORTS / FORTY-EIGHT CLUBS</p>
+          <h2 id="arenas-title">Every arena, one world</h2>
+        </div>
+        <a class="text-link" href="league.html">Browse the league atlas <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="sport-grid" id="sport-grid"></div>
+    </section>
+
+    <section class="upcoming-section" aria-labelledby="upcoming-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">UP NEXT / SAME UTC CLOCK</p>
+          <h2 id="upcoming-title">The next window</h2>
+        </div>
+        <p class="next-countdown">TUNEOVER IN <b id="next-countdown">--:--</b></p>
+      </div>
+      <ol class="fixture-list" id="fixture-list"></ol>
+    </section>
+
+    <section class="toolbelt" aria-labelledby="studio-title">
+      <div>
+        <p class="eyebrow">AFTER THE WHISTLE</p>
+        <h2 id="studio-title">Turn a match into a story.</h2>
+      </div>
+      <nav class="tool-links" aria-label="Cyberliga creative tools">
+        <a href="social.html"><span>01</span><b>World Wire</b><small>Follow the conversation</small></a>
+        <a href="moment.html"><span>02</span><b>Moment Maker</b><small>Build a poster</small></a>
+        <a href="clip.html"><span>03</span><b>Clip Director</b><small>Cut a 12-second replay</small></a>
+        <a href="characterlab.html"><span>04</span><b>Character Lab</b><small>Meet the marquee cast</small></a>
+      </nav>
+    </section>
+  </main>
+
+  <footer>
+    <a class="wordmark footer-mark" href="world.html"><span class="mark" aria-hidden="true">C</span><span>CYBERLIGA<small>THE WORLD KEEPS PLAYING</small></span></a>
+    <p>Guide data is generated locally from the shared world model and UTC clock.</p>
+    <nav aria-label="Footer navigation"><a href="world.html">World</a><a href="league.html">Leagues</a><a href="ops.html">Operations</a></nav>
+  </footer>
+
+  <script src="worlddata.js"></script>
+  <script src="universe.js"></script>
+  <script src="menu.js"></script>
+</body>
+</html>

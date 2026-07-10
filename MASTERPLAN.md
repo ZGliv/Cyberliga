@@ -78,7 +78,7 @@ throw/tackle beats, four celebration rhythms, emotional states, and a complete g
 pose vocabulary without changing simulation decisions or adding humanoid anatomy.
 
 ## Workstream 3 — Identity Before Character Models
-- [x] Preserve 288 player names, numbers, roles, behavior traits, silhouette briefs,
+- [x] Preserve 416 player names, numbers, roles, behavior traits, silhouette briefs,
   team cultures, and reciprocal rivalries in one shared content source
 - Build a character art bible before commissioning or generating production bodies:
   silhouette families, face language, proportions, movement signatures, team culture
@@ -100,12 +100,14 @@ pose vocabulary without changing simulation decisions or adding humanoid anatomy
 - [x] Add two shareable live channels that join the same seeded UTC match in progress
 - [x] Replace the character-led globe content with a six-league global sports network
 - [x] Separate soccer and American football, then connect all six arenas from the map
-- [x] Add a league atlas for 48 clubs, 288 athlete identities, rivalries, and schedules
+- [x] Add a league atlas for 48 clubs, 416 athlete identities, rivalries, and schedules
 - Better replay direction (multiple angles, freeze-frame on contact)
 - [x] Add structured clip telemetry to baseball and combat
 - [x] Add deterministic 1080x1920 poster generation with permanent story URLs
 - [x] Add a deterministic 12-second 9:16 Clip Director with six sport-specific plays,
   permanent story parameters, timeline scrubbing, fullscreen, and real VP9/VP8 WebM export
+- [x] Add a Broadcast Guide for the four canonical soccer channels, all six arenas, upcoming
+  fixtures, and creative tools, plus a consistent in-game navigation hub on every sport
 - Auto-select highlight windows and queue finished clips for private editorial review
 
 ## Workstream 5 — Story Engine (after 1-4)
@@ -121,6 +123,10 @@ pose vocabulary without changing simulation decisions or adding humanoid anatomy
 - [x] Expand basketball and hockey mechanics, fixtures, and rosters
 - [x] Give American football readable formations/routes/pocket pressure, deterministic
   play outcomes, three-beat tackles, stronger scoring/turnover broadcasts, and mobile controls
+- [x] Rebuild American football as full 11v11 with 22 named roles, 13 offensive calls, six
+  defensive calls, complete drive logic, game plans, special teams, and richer sidelines
+- [x] Rebuild basketball as full 5v5 with seven offenses, five defenses, screens, help,
+  shot quality, rebounding, fouls/free throws, full stats, reactive crowd, and mobile game plan
 - [x] Give hockey authored pass/shot/one-timer timing, readable checks, goalie cover/rebound
   logic, puck trails, reactive crowd/camera/audio, and mobile-safe broadcast state
 - Promote an arena into the canonical application only after it adopts the shared

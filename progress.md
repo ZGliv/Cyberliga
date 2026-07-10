@@ -145,3 +145,24 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   and a 400-second full-game/rotation soak passed with zero console errors.
 - Next active passes: football 11v11/player-count rebuild, basketball playbooks/schemes,
   then navigation/crowd/remaining-sport rotation.
+
+## 11v11 / Hoops / Broadcast Navigation — 2026-07-10
+- Rebuilt American football around 22 simultaneous named athletes: 11 offensive roles and
+  11 defensive roles, 13 situational offensive calls, six defensive calls, routes, protection,
+  zones, man coverage, blitzes, option reads, sacks, fumbles, punts, and field goals.
+- Expanded all eight football clubs to complete 22-athlete identity rosters while preserving
+  the original stars and stable IDs. The shared world now contains 48 clubs and 416 athletes;
+  the public API fallback, atlas, globe, World Wire, ops checks, and release verifier agree.
+- Rebuilt basketball as proper 5v5 with seven authored offenses, five working coverages,
+  screens/cuts/help, shot quality, steals, blocks, box-outs, rebounds, assists, fouls, free
+  throws, full stats, role-specific bodies, a 400-person reactive crowd, and mobile Game Plan.
+- Added `menu.html`, a responsive Broadcast Guide with four canonical UTC soccer channels,
+  all six playable arenas, the next fixture window, creative tools, keyboard tuning, and
+  standard permanent links.
+- Added `gamehub.js` to every arena: one consistent `G`-key/mobile overlay linking the Guide,
+  world, atlas, World Wire, studios, lab, ops, and all six sports without breaking game input.
+- Route QA passed at 1280x720 and 390x844 with no document overflow, broken assets, or console
+  errors. Football completed three automated full games including overtime; basketball
+  completed a 41-possession game and exercised every play/coverage. Same-seed twin-browser
+  gates were byte-identical for both upgraded arenas.
+- Release gate now passes 8 API tests plus 933 static/data/route/schedule/navigation checks.

@@ -4,7 +4,7 @@
   // CYBERLIGA's editorial source of truth. The compact rows below are expanded
   // into asset-ready teams and featured casts at load time. Nothing here needs
   // network access, so a seed always creates the same season and story beats.
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0';
 
   function hash(value) {
     var text = String(value == null ? '' : value);
@@ -90,7 +90,7 @@
   ];
 
   // Team row: id, name, code, city, region, primary, secondary, accent,
-  // motif, tactile texture, motion language, rivalry id, six cast names.
+  // motif, tactile texture, motion language, rivalry id, cast names.
   var SPORT_BLUEPRINTS = [
     {
       id: 'soccer', name: 'Soccer', league: 'THE COMMON GROUND', code: 'SC',
@@ -206,41 +206,69 @@
       id: 'american-football', name: 'American Football', league: 'THE SUNDAY ANIMAL', code: 'AF',
       unit: 'points', close: 3, blowout: 21,
       roles: [
-        ['Quarterback', 'pocket-side weather reader', 'throws receivers open'],
-        ['Running Back', 'gap-sized escape artist', 'gets small before getting gone'],
-        ['Receiver', 'sideline acrobat', 'catches the part nobody can reach'],
-        ['Tight End', 'route-running front porch', 'blocks like a wall and turns like a gate'],
-        ['Linebacker', 'middle-field thunderhead', 'arrives with the play call still echoing'],
-        ['Safety', 'deep-field rumor collector', 'erases the ending of a long throw']
+        ['Quarterback', 'pocket-side weather reader', 'throws receivers open', 'holds the ball one heartbeat too long when the first read wins', 12],
+        ['Running Back', 'gap-sized escape artist', 'gets small before getting gone', 'hunts the cutback even when the clean yards are outside', 28],
+        ['Receiver', 'sideline acrobat', 'catches the part nobody can reach', 'fights press coverage with emotion instead of patience', 11],
+        ['Tight End', 'route-running front porch', 'blocks like a wall and turns like a gate', 'telegraphs the seam when the matchup looks too inviting', 87],
+        ['Linebacker', 'middle-field thunderhead', 'arrives with the play call still echoing', 'bites hard on play action after consecutive run fits', 54],
+        ['Safety', 'deep-field rumor collector', 'erases the ending of a long throw', 'trusts that closing range enough to gamble underneath', 24],
+        ['Z Receiver', 'motion-started space thief', 'turns free releases into vertical panic', 'drifts into traffic when the scramble drill loses shape', 18],
+        ['Slot Receiver', 'middle-field seam unpicker', 'wins the option route after the defender commits', 'turns upfield before fully securing routine catches', 83],
+        ['Left Tackle', 'blind-side lighthouse', 'runs speed rushers past the pocket', 'oversets against pure speed and exposes the inside lane', 77],
+        ['Left Guard', 'short-pulling road grader', 'lands the first square block in space', 'lunges when a lighter tackle gives ground on purpose', 68],
+        ['Center', 'protection-setting hinge', 'identifies pressure and keeps the pocket speaking one language', 'calls late checks loudly enough for the defense to hear', 55],
+        ['Right Guard', 'down-blocking pile mover', 'turns double teams into second-level angles', 'chases linebackers beyond the leverage of the play', 66],
+        ['Right Tackle', 'edge-setting gatepost', 'seals the backside before the runner makes the cut', 'plays too tall when tired and gives away the chest', 72],
+        ['Left Defensive End', 'long-arm edge setter', 'compresses the run lane without surrendering contain', 'runs past quick-set throws while hunting the sack', 91],
+        ['Defensive Tackle', 'three-technique seam splitter', 'crosses a guard face before the block can settle', 'loses get-off after long drives without a rotation', 97],
+        ['Nose Tackle', 'double-team gravity well', 'anchors both A gaps and keeps the linebackers clean', 'stays anchored when the play has already escaped outside', 93],
+        ['Right Defensive End', 'backside pursuit engine', 'closes the bootleg before it becomes daylight', 'squeezes too hard and loses contain to fast option looks', 99],
+        ['Weakside Linebacker', 'flow-chasing cleanup artist', 'runs through the open window before the blocker arrives', 'overruns jet motion and opens the cutback behind it', 51],
+        ['Strongside Linebacker', 'tight-end side traffic cop', 'sets a hard edge and carries the first crosser', 'gets stiff in space against two-way option routes', 58],
+        ['Left Cornerback', 'boundary-route pickpocket', 'squeezes fades into the paint and steals late throws', 'peeks into the backfield when the receiver stacks vertically', 21],
+        ['Right Cornerback', 'field-side mirror', 'stays square through the receiver\'s second move', 'grabs cloth when recovery speed is finally tested', 31],
+        ['Strong Safety', 'alley-filling collision poet', 'turns the extra run gap into a dead end', 'arrives so hot that patient runners can redirect underneath', 27]
       ],
       teams: [
-        ['new-orleans-bayou-kings','NEW ORLEANS BAYOU KINGS','NOB','New Orleans','Gulf Delta','#4E7A52','#4C315B','#D3A946','cypress crown','moss fringe, velvet and swamp-soft rubber','slow bayou misdirection breaking into brass-band bursts','atlanta-peaches','Gumbo Gene|Moss Boss|Beignet|King Roux|Parish|Second Line'],
-        ['atlanta-peaches','ATLANTA PEACHES','ATL','Atlanta','Piedmont','#F29A7B','#3E6147','#F7D4A6','split peach','peach-fuzz flock and quilted cotton','soft starts with pit-hard downhill finishes','new-orleans-bayou-kings','Pit Boss Penny|Fuzz|Cobbler|Peach Tree Pete|Stone|Juice Box'],
-        ['chicago-stockyards','CHICAGO STOCKYARDS','CHI','Chicago','Lake Michigan','#8B4B3E','#D8C4A1','#2D3A4E','gate and hoof','heavy canvas, rope seam and worn hide','square pulls and meat-hook pursuit angles','minneapolis-snow-geese','Gatehouse Gus|Yardbird|Cleaver Cleo|Lake Beef|Apron|Whistle'],
-        ['minneapolis-snow-geese','MINNEAPOLIS SNOW GEESE','MSP','Minneapolis','North Star','#E8F0EC','#587FA2','#E5B843','snow goose','down quilt and waxed webbed rubber','waddling formations that erupt into honking flight','chicago-stockyards','Honker Hank|Downy|Webfoot Wes|Grey Wing|Loaf|Migration Mike'],
-        ['dallas-prairie-hounds','DALLAS PRAIRIE HOUNDS','DPH','Dallas','North Texas','#B86A3D','#E6C17B','#344D61','prairie hound','sun-baked suede and bandana cotton','low tracking starts and wide dust-kicking routes','oakland-redwoods','Hush Puppy|Bandana Bill|Long Grass|Tumble|Sundog|Bluebonnet'],
-        ['oakland-redwoods','OAKLAND REDWOODS','OAK','Oakland','East Bay','#315F45','#A34D3D','#E6C784','redwood ring','bark cork and fog-damp felt','towering pass sets and root-deep tackling bases','dallas-prairie-hounds','Ring Count|Fog Fern|Big Burl|Acorn Alice|Canopy Cal|Root'],
-        ['seattle-rain-dogs','SEATTLE RAIN DOGS','SEA','Seattle','Puget Sound','#3E6D82','#202E3C','#D5B84A','rain dog','slick corduroy and sponge-padded wool','puddle cuts and shake-dry change of direction','honolulu-wave-riders','Drizzle Dog|Parka Pete|Puddle|Salmon Run|Grey Sky|Shake'],
-        ['honolulu-wave-riders','HONOLULU WAVE RIDERS','HNL','Honolulu','Oahu','#2B9A9B','#F2B84A','#E85D4A','breaking wave','towel terry, cork and flower-soft felt','rolling option waves and longboard-balanced catches','seattle-rain-dogs','Foam|Aloha Al|Reef Runner|Mango Board|Lei Line|Big Set']
+        ['new-orleans-bayou-kings','NEW ORLEANS BAYOU KINGS','NOB','New Orleans','Gulf Delta','#4E7A52','#4C315B','#D3A946','cypress crown','moss fringe, velvet and swamp-soft rubber','slow bayou misdirection breaking into brass-band bursts','atlanta-peaches','Gumbo Gene|Moss Boss|Beignet|King Roux|Parish|Second Line|Brass Bayou|Cypress Slim|Levee Lou|Canal Cake|Banjo Boudreaux|Mardi Grip|Porchlight|Mudbug Max|Tuba June|Gator Bell|Lagniappe Lou|Sazerac Sid|Fleur Fats|Crawdad Clay|Creole Moon|Delta Deke'],
+        ['atlanta-peaches','ATLANTA PEACHES','ATL','Atlanta','Piedmont','#F29A7B','#3E6147','#F7D4A6','split peach','peach-fuzz flock and quilted cotton','soft starts with pit-hard downhill finishes','new-orleans-bayou-kings','Pit Boss Penny|Fuzz|Cobbler|Peach Tree Pete|Stone|Juice Box|Sweet Tea|Pecan Pat|I-285 Ike|Peachtree Pip|Georgia Clay|Cicada Cal|Porch Swing|Red Top|Waffle House Walt|Magnolia Max|Pollen Count|Dogwood Dan|Traffic Jam|Golden Ray|Chattahoochee Chuck|Midtown Mel'],
+        ['chicago-stockyards','CHICAGO STOCKYARDS','CHI','Chicago','Lake Michigan','#8B4B3E','#D8C4A1','#2D3A4E','gate and hoof','heavy canvas, rope seam and worn hide','square pulls and meat-hook pursuit angles','minneapolis-snow-geese','Gatehouse Gus|Yardbird|Cleaver Cleo|Lake Beef|Apron|Whistle|Stockpot Stu|L-Train Len|Brawler Bridge|Packinghouse Pat|Cold Front Carl|Union Jackknife|Iron El|Southside Smoke|Loop Lou|Rivet Rita|Canaryville Cal|Lake Effect Leo|Rail Spike|Backlot Buck|Halsted Hank|Windburn'],
+        ['minneapolis-snow-geese','MINNEAPOLIS SNOW GEESE','MSP','Minneapolis','North Star','#E8F0EC','#587FA2','#E5B843','snow goose','down quilt and waxed webbed rubber','waddling formations that erupt into honking flight','chicago-stockyards','Honker Hank|Downy|Webfoot Wes|Grey Wing|Loaf|Migration Mike|Sleet Pete|Hotdish Hal|Skyway Sam|North Loop Nils|Ice House Ike|Flannel Fran|Lake Chip|Walleye Walt|Mill City Milo|Frostbite Fritz|Loon Call|Boundary Bill|Powder Keg|Twin Current|Cabin Cal|Whiteout'],
+        ['dallas-prairie-hounds','DALLAS PRAIRIE HOUNDS','DPH','Dallas','North Texas','#B86A3D','#E6C17B','#344D61','prairie hound','sun-baked suede and bandana cotton','low tracking starts and wide dust-kicking routes','oakland-redwoods','Hush Puppy|Bandana Bill|Long Grass|Tumble|Sundog|Bluebonnet|Mesquite Mack|Spur Line|Cattle Guard Cal|Dust Devil Dee|Brazos Buck|Bootheel Bob|Oilcan Ollie|Prairie Jack|Red Dirt Ray|Fencepost Finn|Rattler Rex|Armadillo Art|Sunset Spur|Sagebrush Sam|Trinity Tex|Blue Norther'],
+        ['oakland-redwoods','OAKLAND REDWOODS','OAK','Oakland','East Bay','#315F45','#A34D3D','#E6C784','redwood ring','bark cork and fog-damp felt','towering pass sets and root-deep tackling bases','dallas-prairie-hounds','Ring Count|Fog Fern|Big Burl|Acorn Alice|Canopy Cal|Root|Fogbank Frank|Sequoia Slim|Bay Bridge Burl|Mossback Mae|Town Root|Jack London Jay|Temescal Twig|Lake Merritt Lou|Barkley|Needle Ned|Portside Pine|Canyon Cone|Redwood Rita|East Bay Ember|Grove Ghost|Stump Speech'],
+        ['seattle-rain-dogs','SEATTLE RAIN DOGS','SEA','Seattle','Puget Sound','#3E6D82','#202E3C','#D5B84A','rain dog','slick corduroy and sponge-padded wool','puddle cuts and shake-dry change of direction','honolulu-wave-riders','Drizzle Dog|Parka Pete|Puddle|Salmon Run|Grey Sky|Shake|Coffee Cloud|Rainier Ray|Ferry Finn|Capitol Drip|Needle Nate|Cascade Cal|Sockeye Sid|Moss Machine|Sounder Sam|Pike Place Pip|Evergreen Ed|Umbrella Uma|Gutter Gus|Puget Pete|Cloudbreak|Thunder Pup'],
+        ['honolulu-wave-riders','HONOLULU WAVE RIDERS','HNL','Honolulu','Oahu','#2B9A9B','#F2B84A','#E85D4A','breaking wave','towel terry, cork and flower-soft felt','rolling option waves and longboard-balanced catches','seattle-rain-dogs','Foam|Aloha Al|Reef Runner|Mango Board|Lei Line|Big Set|Pipeline Pono|Kona Kai|Trade Wind Tui|Waikiki Walt|Volcano Vance|Palm Shade|Shaka Sam|Makai Mike|Taro Tide|Lava Lei|North Shore Nalu|Coconut Cal|Rainbow Reef|Puka Pete|Island Time|Sunset Sefa']
       ]
     }
   ];
 
   function makeAthletes(team, roles, teamIndex) {
     var names = team.castNames;
+    var usedFootballNumbers = [];
     return roles.map(function (role, athleteIndex) {
       var formIndex = (hash(team.id) + athleteIndex * 5 + teamIndex * 3) % FORMS.length;
       var moodIndex = (hash(names[athleteIndex]) + athleteIndex + teamIndex) % TEMPERAMENTS.length;
-      return {
+      var legacyNumber = ((hash(team.id + '|' + athleteIndex) % 89) + 1);
+      var athleteNumber = legacyNumber;
+      if (team.sportId === 'american-football') {
+        athleteNumber = athleteIndex < 6 ? legacyNumber : role[4];
+        while (usedFootballNumbers.indexOf(athleteNumber) >= 0) {
+          athleteNumber = athleteNumber === 99 ? 1 : athleteNumber + 1;
+        }
+        usedFootballNumbers.push(athleteNumber);
+      }
+      var athlete = {
         id: team.id + '-a' + (athleteIndex + 1),
         name: names[athleteIndex],
-        number: ((hash(team.id + '|' + athleteIndex) % 89) + 1),
+        number: athleteNumber,
         role: role[0],
         archetype: role[1],
         temperament: TEMPERAMENTS[moodIndex],
         silhouette: FORMS[formIndex] + '; ' + team.texture + '; ' + team.motif + ' detail',
         signature: role[2]
       };
+      if (role[3]) athlete.flaw = role[3];
+      return athlete;
     });
   }
 
@@ -481,7 +509,7 @@
     if (context.events.indexOf('debut') >= 0) lines.push('ONE DEBUT, ONE NIGHT, ONE NAME NOBODY FORGETS');
     if (context.events.indexOf('knockout') >= 0) lines.push('THE BELL ARRIVED ONE SECOND TOO LATE');
 
-    lines.push('SIX STRANGE SHAPES, ONE SHARED GRUDGE, ZERO QUIET MOMENTS');
+    lines.push(context.home.athletes.length + ' STRANGE SHAPES, ONE SHARED GRUDGE, ZERO QUIET MOMENTS');
     lines.push(context.home.city.toUpperCase() + ' TO ' + context.away.city.toUpperCase() + ': THE STORY TRAVELS FASTER THAN THE SCORE');
     return shuffled(lines.filter(function (line, index, all) { return all.indexOf(line) === index; }), storySeed + '|headlines').slice(0, wanted);
   }

@@ -123,7 +123,7 @@ test('fallback network covers six sports and American football content', () => {
 
   const football = buildFallbackLeague('american-football', observedAt);
   assert.equal(football.teams.length, 8);
-  assert.ok(football.teams.every((team) => team.athletes.length === 6));
+  assert.ok(football.teams.every((team) => team.athletes.length === 22));
   assert.equal(football.standings.length, 8);
   assert.equal(football.live.length, 4);
 });

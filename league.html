@@ -4,21 +4,21 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>CYBERLIGA LEAGUE ATLAS</title>
-<meta name="description" content="Explore all six Cyberliga leagues, 48 clubs, 288 athletes, rivalries, fixtures, and live arenas." />
+<meta name="description" content="Explore all six Cyberliga leagues, 48 clubs, 416 athletes, rivalries, fixtures, and live arenas." />
 <meta name="theme-color" content="#050607" />
 <link rel="icon" href="data:," />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="league.css" />
-<style>.page-links{display:flex;gap:7px}</style>
+<style>.page-links{display:flex;gap:7px}.mini-cast .roster-overflow{position:relative;z-index:3;align-self:center;display:grid;place-items:center;flex:0 0 34px;height:34px;margin-left:4px;border:1px solid var(--team);border-radius:50%;color:var(--team);background:#080a0b;font:800 9px/1 'Barlow Condensed',sans-serif;letter-spacing:.08em}</style>
 </head>
 <body>
 <div class="grain" aria-hidden="true"></div>
 <header class="topbar">
   <a class="brand" href="world.html">CYBERLIGA <span>/ LEAGUE ATLAS</span></a>
-  <div class="network-proof"><b>6</b> LEAGUES <i></i><b>48</b> CLUBS <i></i><b>288</b> ATHLETES</div>
-  <div class="page-links"><a class="world-link" href="characterlab.html">CAST LAB</a><a class="world-link" href="social.html">WORLD WIRE</a><a class="world-link" href="world.html">WORLD MAP ↗</a></div>
+  <div class="network-proof"><b>6</b> LEAGUES <i></i><b>48</b> CLUBS <i></i><b>416</b> ATHLETES</div>
+  <div class="page-links"><a class="world-link" href="menu.html">GUIDE</a><a class="world-link" href="characterlab.html">CAST LAB</a><a class="world-link" href="social.html">WORLD WIRE</a><a class="world-link" href="world.html">WORLD MAP ↗</a></div>
 </header>
 
 <main>
@@ -126,7 +126,8 @@
 
   function renderClubs() {
     document.getElementById('club-grid').innerHTML = teams.map(function (item, teamIndex) {
-      var faces = item.athletes.map(function (athlete, i) { return avatar(athlete, i, false); }).join('');
+      var faces = item.athletes.slice(0, 6).map(function (athlete, i) { return avatar(athlete, i, false); }).join('');
+      if (item.athletes.length > 6) faces += '<span class="roster-overflow" aria-label="' + (item.athletes.length - 6) + ' more athletes">+' + (item.athletes.length - 6) + '</span>';
       return '<button class="club-card' + (item.id === selectedTeam.id ? ' selected' : '') + '" data-team="' + esc(item.id) + '" style="' + colorStyle(item) + '"><div class="club-top"><span>' + esc(item.code) + '</span><small>' + String(teamIndex + 1).padStart(2,'0') + '</small></div><h3>' + esc(item.name) + '</h3><p>' + esc(item.city) + ' · ' + esc(item.region) + '</p><div class="mini-cast">' + faces + '</div><div class="club-rule"><i></i><span>' + esc(item.motif) + '</span></div></button>';
     }).join('');
     Array.prototype.forEach.call(document.querySelectorAll('.club-card'), function (button) {
