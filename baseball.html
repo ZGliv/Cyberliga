@@ -1996,12 +1996,35 @@ const camPos = new THREE.Vector3(-10.8, 5.2, 2.4), camLook = new THREE.Vector3(M
 const tmpP = new THREE.Vector3(), tmpL = new THREE.Vector3();
 function cameraStep(dt) {
   const portrait = innerWidth <= 700 && innerHeight > innerWidth*1.2;
+  const wholePlay = portrait && (S.camMode==='chase'||S.camMode==='run'||S.camMode==='changeover');
+  // During a live ball the phone becomes a portrait scorebook view: +x runs
+  // vertically and z runs horizontally. Fit the bases, all active defenders /
+  // runners and the ball instead of following one actor out of frame.
+  camera.up.set(wholePlay?1:0,wholePlay?0:1,0);
+  const fitPortraitDiamond=()=>{
+    let minX=-3,maxX=30,minZ=-15,maxZ=15;
+    for(const p of allPlayers()){
+      if(!['fielder','runner','batter','exit'].includes(p.duty))continue;
+      minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);
+      minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);
+    }
+    if(ball.mode!=='IDLE'){
+      minX=Math.min(minX,ball.pos.x);maxX=Math.max(maxX,ball.pos.x);
+      minZ=Math.min(minZ,ball.pos.z);maxZ=Math.max(maxZ,ball.pos.z);
+    }
+    const cx=(minX+maxX)/2,cz=(minZ+maxZ)/2;
+    const spanX=maxX-minX+8,spanZ=maxZ-minZ+7;
+    const portraitAspect=Math.max(.38,innerWidth/innerHeight);
+    const visibleSpan=Math.max(spanX,spanZ/portraitAspect);
+    const height=clamp(visibleSpan/(2*Math.tan(THREE.MathUtils.degToRad(74/2))),46,78);
+    tmpP.set(cx,height,cz);tmpL.set(cx,.2,cz);
+  };
   switch (S.camMode) {
     case 'contact':
       // Three-quarter profile holds through the complete hip/hand/bat arc
       // before the broadcast follows the flight.
-      tmpP.set(portrait?-3.4:-2.0,portrait?5.1:4.15,portrait?8.6:8.2);
-      tmpL.set(.15,1.05,.45);
+      tmpP.set(portrait?-5.2:-2.0,portrait?7.1:4.15,portrait?12:8.2);
+      tmpL.set(portrait?.8:.15,1.05,.45);
       break;
     case 'chase': {
       const ballBeat=S.state==='LIVE'&&S.t<.92&&ball.mode==='LIVE';
@@ -2009,13 +2032,15 @@ function cameraStep(dt) {
       if (!ballBeat) {
         // After the initial contact/flight read, cut to one elevated picture
         // containing the diamond, every active runner, the fielder and throw.
-        tmpP.set(portrait?-9:2.5,portrait?32.5:23.5,portrait?0:24);
-        tmpL.set(clamp(ball.pos.x*.18+(portrait?12.5:10),portrait?11:8,portrait?15:15),.45,clamp(ball.pos.z*.08,-1.5,1.5));
+        if(portrait)fitPortraitDiamond();
+        else {
+          tmpP.set(2.5,23.5,24);
+          tmpL.set(clamp(ball.pos.x*.18+10,8,15),.45,clamp(ball.pos.z*.08,-1.5,1.5));
+        }
       } else if (portrait) {
         // A low, trailing camera is unreadably tight at portrait aspect ratios.
         // Hold the diamond in frame while preserving the short ball-flight beat.
-        tmpP.set(-9, 32.5, 0);
-        tmpL.set(clamp(ball.pos.x, 8, 18), Math.max(.55, ball.pos.y*.18), clamp(ball.pos.z*.28, -3, 3));
+        fitPortraitDiamond();
       } else {
         const sp = Math.hypot(ball.vel.x, ball.vel.z) || 1;
         tmpP.set(ball.pos.x - ball.vel.x/sp*6.5, Math.max(2.2, ball.pos.y + 2.4), ball.pos.z - ball.vel.z/sp*6.5);
@@ -2024,8 +2049,8 @@ function cameraStep(dt) {
       break;
     }
     case 'run':
-      tmpP.set(portrait?-9:2.5, portrait?32.5:23.5, portrait?0:24);
-      tmpL.set(DIAG/2*(portrait?1.32:1.08), 0.4, 0);
+      if(portrait)fitPortraitDiamond();
+      else {tmpP.set(2.5,23.5,24);tmpL.set(DIAG/2*1.08,0.4,0);}
       break;
     case 'dugout': {
       const side=S.transition?.side||1;
@@ -2034,8 +2059,8 @@ function cameraStep(dt) {
       break;
     }
     case 'changeover':
-      tmpP.set(portrait?1:4,portrait?35:25.5,portrait?25:26);
-      tmpL.set(10.5,.35,0);
+      if(portrait)fitPortraitDiamond();
+      else {tmpP.set(4,25.5,26);tmpL.set(10.5,.35,0);}
       break;
     case 'homer':
       tmpP.set(portrait?-10:-8, (portrait?5:4) + Math.min(S.t, 5)*1.2, portrait?4:3.2);
@@ -2048,13 +2073,16 @@ function cameraStep(dt) {
       break;
     }
     default: // 'plate' — broadcast home: elevated behind the catcher
-      tmpP.set(portrait?-12.6:-10.8, portrait?5.9:5.2, (portrait?2.15:2.4) + Math.sin(tGlobal*0.13)*0.5);
+      // Stay in front of the home-plate seating sprites while gaining context
+      // through height and FOV; pulling straight back puts crowd dots between
+      // the viewer and the hitter on narrow phones.
+      tmpP.set(portrait?-8.8:-10.8, portrait?9.8:5.2, (portrait?3.2:2.4) + Math.sin(tGlobal*0.13)*0.5);
       tmpL.set(MOUND_X*(portrait?0.82:0.9), portrait?0.85:0.9, portrait?0.35:0);
   }
   if (S.camCut) { camPos.copy(tmpP); camLook.copy(tmpL); S.camCut = false; }  // hard cut hides resets
   else { camPos.lerp(tmpP, dampK(3.2, dt)); camLook.lerp(tmpL, dampK(5, dt)); }
   camera.position.copy(camPos);
-  const desiredFov=portrait?(S.camMode==='plate'?54:S.camMode==='card'?50:(S.camMode==='chase'||S.camMode==='run')?60:S.camMode==='changeover'?64:S.camMode==='dugout'?58:S.camMode==='contact'?50:56):S.camMode==='dugout'?39:S.camMode==='contact'?38:S.camMode==='changeover'?46:42;
+  const desiredFov=portrait?(S.camMode==='plate'?65:S.camMode==='card'?50:(S.camMode==='chase'||S.camMode==='run'||S.camMode==='changeover')?74:S.camMode==='dugout'?58:S.camMode==='contact'?58:65):S.camMode==='dugout'?39:S.camMode==='contact'?38:S.camMode==='changeover'?46:42;
   camera.fov += (desiredFov-camera.fov)*dampK(7,dt);
   camera.updateProjectionMatrix();
   camera.lookAt(camLook);
@@ -2231,7 +2259,7 @@ startDriver();
 
 function resizeScene() {
   camera.aspect = innerWidth/innerHeight;
-  camera.fov = innerWidth <= 700 && innerHeight > innerWidth*1.2 ? 54 : 42;
+  camera.fov = innerWidth <= 700 && innerHeight > innerWidth*1.2 ? 65 : 42;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
   composer.setSize(innerWidth, innerHeight);

@@ -198,10 +198,16 @@
     .bar { height:8px; }
     .bar.stam { height:5px; }
     .bar.guard { height:4px; }
-    #flash { z-index:45; }
-    #flashtext { max-width:100vw; font-size:clamp(38px, 13vw, 70px); letter-spacing:5px; line-height:.98; text-align:center; overflow-wrap:anywhere; }
+    #flash {
+      z-index:45; justify-content:flex-end;
+      padding:0 12px calc(143px + env(safe-area-inset-bottom, 0px));
+    }
+    #flashtext { max-width:100%; font-size:clamp(31px, 10vw, 44px); letter-spacing:3px; line-height:.98; text-align:center; overflow-wrap:anywhere; }
     #flashsub { max-width:calc(100vw - 28px); font-size:14px; letter-spacing:2.6px; line-height:1.15; text-align:center; padding:0 16px; }
-    #count { z-index:45; font-size:clamp(86px, 30vw, 188px); }
+    #count {
+      z-index:45; align-items:flex-end; padding-bottom:calc(143px + env(safe-area-inset-bottom, 0px));
+      font-size:clamp(64px, 20vw, 88px);
+    }
     #banner {
       left:12px; right:12px; bottom:calc(82px + env(safe-area-inset-bottom, 0px));
       z-index:55; transform:translateY(28px);
@@ -1569,7 +1575,9 @@ function refStep(dt) {
   refRig.group.position.set(refP.x, RING_Y, refP.z);
   refRig.group.rotation.y = refP.heading;
   const exchangeD=Math.hypot(fighters[0].x-fighters[1].x,fighters[0].z-fighters[1].z);
-  refRig.group.visible=S.state!=='FIGHT'||(exchangeD>2.2&&!fighters.some(f=>f.act==='strike'||f.act==='hit'));
+  // The portrait broadcast is wide enough to retain the official during an
+  // exchange.  Desktop keeps the existing close-camera occlusion guard.
+  refRig.group.visible=S.state!=='FIGHT'||innerWidth<700||(exchangeD>2.2&&!fighters.some(f=>f.act==='strike'||f.act==='hit'));
   if (S.state === 'KNOCKDOWN') refRig.poseArgue(simClockTotal);        // counting it off, big arm
   else if (S.state === 'DECISION') refRig.posePointToSpot(simClockTotal);
   refRig.update(dt, clamp(sp/5, 0, 1));
@@ -1796,24 +1804,44 @@ function cameraStep(dt) {
   const mx = (A.x + B.x)/2, mz = (A.z + B.z)/2;
   if (S.state === 'WALKON' && S.walkIdx < 2) {           // hero shot tracking the walker
     const f = fighters[S.walkIdx], s = f.side === 0 ? 1 : -1;
-    tmpP.set(f.x + s*5.2, 2.3, f.z + 5.8);
+    if(innerWidth<700) tmpP.set(f.x + s*8.4, 4.8, f.z + 11.2);
+    else tmpP.set(f.x + s*5.2, 2.3, f.z + 5.8);
     tmpL.set(f.x, f.y + 1.4, f.z);
   } else if (S.state === 'KNOCKDOWN' || (S.state === 'KO_SEQ' && S.t < 3.4)) { // low, close, slow orbit
     const v = S.downF || (S.winner ? opp(S.winner) : A);
-    const a = orbA*0.5;
-    tmpP.set(v.x + Math.cos(a)*4.4, RING_Y + 1.6, v.z + Math.sin(a)*4.4);
-    tmpL.set(v.x, RING_Y + 0.7, v.z);
+    if(innerWidth<700){
+      // Keep the whole ring, standing fighter and referee in the story.  The old
+      // four-metre orbit turned a knockdown into a full-screen torso on phones.
+      const a=orbA*.34, focusX=lerp(mx,v.x,.22), focusZ=lerp(mz,v.z,.22);
+      tmpP.set(focusX+Math.cos(a)*22.6,RING_Y+9.4,focusZ+Math.sin(a)*22.6);
+      tmpL.set(focusX,RING_Y+.9,focusZ);
+    }else{
+      const a = orbA*0.5;
+      tmpP.set(v.x + Math.cos(a)*4.4, RING_Y + 1.6, v.z + Math.sin(a)*4.4);
+      tmpL.set(v.x, RING_Y + 0.7, v.z);
+    }
   } else if (S.state === 'KO_SEQ' || S.state === 'DECISION') {
-    tmpP.set(Math.cos(orbA*0.6)*9.5, RING_Y + 4.2, Math.sin(orbA*0.6)*9.5);
+    const portrait=innerWidth<700, rad=portrait?22.6:9.5, h=portrait?9.4:4.2;
+    tmpP.set(Math.cos(orbA*0.6)*rad, RING_Y+h, Math.sin(orbA*0.6)*rad);
     tmpL.set(0, RING_Y + 1, 0);
   } else {                                               // locked ringside broadcast, punch-in when leather flies
     const portrait=innerWidth<700;
-    const rad = (portrait?21.8:11.2) - punchHeat*(portrait?1.6:1.9), h = (portrait?8.25:5.05) - punchHeat*(portrait?.45:.7);
+    // Desktop retains its punch-in.  Portrait stays wide through impact so a
+    // glove landing never crops the opponent, referee or ring geometry.
+    const rad = portrait?23.2:11.2-punchHeat*1.9;
+    const h = portrait?9.15:5.05-punchHeat*.7;
     const lineA=Math.atan2(B.z-A.z,B.x-A.x);let sideA=lineA+Math.PI/2;
     if(Math.cos(sideA-broadcastA)<0)sideA+=Math.PI;
     broadcastA=lerpAngle(broadcastA,sideA,dampK(4.2,dt));
-    tmpP.set(mx*.28+Math.cos(broadcastA)*rad,h,mz*.28+Math.sin(broadcastA)*rad);
-    tmpL.set(mx,RING_Y+1.08,mz);
+    if(portrait){
+      // Anchor the phone broadcast to the cage instead of following the pocket.
+      // The exchange can drift without walking an octagon edge off-screen.
+      tmpP.set(Math.cos(broadcastA)*rad,h,Math.sin(broadcastA)*rad);
+      tmpL.set(mx*.18,RING_Y+1.08,mz*.18);
+    }else{
+      tmpP.set(mx*.28+Math.cos(broadcastA)*rad,h,mz*.28+Math.sin(broadcastA)*rad);
+      tmpL.set(mx,RING_Y+1.08,mz);
+    }
   }
   if (camCut) { camPos.copy(tmpP); camLook.copy(tmpL); camCut = false; }   // hard cut
   else { camPos.lerp(tmpP, dampK(3, dt)); camLook.lerp(tmpL, dampK(5, dt)); }
@@ -2049,7 +2077,7 @@ document.addEventListener('visibilitychange', startDriver);
 startDriver();
 
 function resizeScene() {
-  camera.fov = innerWidth < 700 ? 56 : 42;
+  camera.fov = innerWidth < 700 ? 64 : 42;
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);

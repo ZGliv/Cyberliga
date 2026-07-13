@@ -2956,6 +2956,7 @@ const camShakeOff = new THREE.Vector3(); // last frame's shake offset — peeled
 const camPosD = new THREE.Vector3(), camTgtD = new THREE.Vector3(); // per-frame desired frame (scratch)
 let camShake = 0;
 const CAM_FOV = 42;
+const MOBILE_TACTICAL_HEIGHT = 94;
 const arenaCameraFov = () => innerWidth < 700 ? 64 : CAM_FOV;
 // The earliest version stayed wide enough to read the formation and let the blobs'
 // movement create tension. Follow the ball, but never turn open play into a close-up.
@@ -2969,7 +2970,7 @@ function ogLiveFrame(outPos, outTgt, t) {
     // one readable frame while still biasing the look point toward the live action.
     // Roll the tactical board into portrait: pitch length runs up the phone and
     // touchline width runs across it, using far more of the available screen.
-    outPos.set(ball.pos.x * 0.12, 80 + bob, ball.pos.z * 0.06 + 0.01);
+    outPos.set(ball.pos.x * 0.12, MOBILE_TACTICAL_HEIGHT + bob, ball.pos.z * 0.06 + 0.01);
     outTgt.set(ball.pos.x * 0.22, 0.7, ball.pos.z * 0.12);
     return;
   }
@@ -2984,7 +2985,7 @@ function cameraStep(dt, t) {
     camShakeOff.set(0, 0, 0);
     if (innerWidth < 700) {
       const focus = replayCam.camTarget;
-      camera.position.set(focus.x * 0.12, 80, focus.z * 0.06 + 0.01);
+      camera.position.set(focus.x * 0.12, MOBILE_TACTICAL_HEIGHT, focus.z * 0.06 + 0.01);
       camTarget.set(focus.x * 0.22, 0.7, focus.z * 0.12);
     } else {
       camera.position.copy(replayCam.camPos);

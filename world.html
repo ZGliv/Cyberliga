@@ -90,14 +90,6 @@
   .signal-actions a { flex:1; color:#020304; background:#fff; }
   .signal-actions #signal-explore { color:#fff; border:1px solid var(--line); background:transparent; }
   .signal-actions button { color:var(--muted); border:1px solid var(--line); background:transparent; }
-  .sportbar { position:fixed; z-index:28; left:30px; right:30px; bottom:28px; display:grid; grid-template-columns:auto repeat(6,1fr); gap:1px; background:var(--line); }
-  .sportbar > span,.sportbar a { min-width:0; min-height:50px; display:flex; align-items:center; padding:0 13px; background:rgba(4,6,8,.84); backdrop-filter:blur(12px); }
-  .sportbar > span { color:var(--muted); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
-  .sportbar a { position:relative; gap:9px; cursor:pointer; color:#fff; text-align:left; }
-  .sportbar a::before { content:''; width:5px; height:22px; background:var(--c); }
-  .sportbar a:hover,.sportbar a.active { background:#121619; }
-  .sportbar b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.1em; }
-
   /* Fixture network: one filter rail, then the real arena schedule. */
   .liveboard { top:88px; width:min(440px,35vw); }
   .filter-tabs { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:1px; margin-top:10px; background:var(--line); }
@@ -137,15 +129,14 @@
     .intro .lede,.intro .proof,.intro-actions { display:none; }
     .liveboard { top:136px; left:10px; right:10px; bottom:auto; width:auto; }
     .panel-label { padding:0 2px; }
-    .filter-tabs { display:flex; overflow-x:auto; scrollbar-width:none; }
-    .filter-tabs::-webkit-scrollbar { display:none; }
-    .filter-tab { flex:0 0 auto; min-width:58px; min-height:35px; padding:0 9px; font-size:7.5px; }
+    .filter-tabs { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); overflow:visible; }
+    .filter-tab { min-width:0; min-height:38px; padding:0 2px; font-size:0; }
+    .filter-tab::after { content:attr(data-mobile-label); font:800 7.5px/1 'Barlow Condensed',sans-serif; letter-spacing:.045em; }
     .game-drawer { max-height:235px; border-bottom:1px solid var(--line); }
     .fixture-card { min-height:68px; grid-template-columns:45px minmax(0,1fr) auto; gap:8px; padding:8px; }
     .fixture-meta b { margin-bottom:4px; padding:4px 1px; }
     .fixture-team span { font-size:10px; }
     .fixture-enter { font-size:7px; }
-    .sportbar { display:none; }
     .frame { inset:7px; }
   }
   @media (max-width:540px) {
@@ -266,7 +257,8 @@ function setFilter(next,{push=false}={}){
   if(push){const url=new URL(location.href);if(valid==='all')url.searchParams.delete('sport');else url.searchParams.set('sport',valid);history.pushState({sport:valid},'',url);}
 }
 const tabs=document.getElementById('filter-tabs');
-tabs.replaceChildren(...FILTERS.map(filter=>{const button=document.createElement('button');button.type='button';button.className='filter-tab';button.dataset.sport=filter.id;button.role='tab';button.style.setProperty('--c',filter.color);button.textContent=filter.short;button.addEventListener('click',()=>setFilter(filter.id,{push:true}));return button;}));
+const MOBILE_FILTER_LABELS={all:'ALL',soccer:'SOCCER','american-football':'FOOT',basketball:'HOOPS',hockey:'HOCKEY',baseball:'BASE',combat:'FIGHT'};
+tabs.replaceChildren(...FILTERS.map(filter=>{const button=document.createElement('button');button.type='button';button.className='filter-tab';button.dataset.sport=filter.id;button.dataset.mobileLabel=MOBILE_FILTER_LABELS[filter.id]||filter.short;button.role='tab';button.style.setProperty('--c',filter.color);button.textContent=filter.short;button.setAttribute('aria-label',`Show ${filter.id==='all'?'all sports':filter.short} games`);button.addEventListener('click',()=>setFilter(filter.id,{push:true}));return button;}));
 addEventListener('popstate',()=>setFilter(new URLSearchParams(location.search).get('sport')||'all'));
 function tickNetwork(){
   matches=U.liveMatches(Date.now());

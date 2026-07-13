@@ -408,3 +408,51 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   inspected. A final visual audit caught the soccer analyst strip above the Full Time headline;
   the card now owns a higher layer and suppresses the analyst/presence strips while open. Fresh
   desktop/mobile Full Time captures and the mandated soccer client confirm the correction.
+
+## Mobile Broadcast / Game-Network Follow-up — 2026-07-13
+- Current user request: materially zoom every mobile arena farther out so complete play context
+  remains visible, make baseball understandable in particular, remove the obsolete bottom sport
+  selector, preserve the filterable ALL/sport/individual-game network, and deploy to production.
+- The screenshot mismatch is between an immutable stale `cyberliga-i1m0...` preview and the
+  current `cyberliga-ten.vercel.app` production alias. Current source already contains the desired
+  24-game network, seven filters, four fixtures per league and individual arena deep links; no
+  bottom selector markup remains. The real mobile defect was that the seven-filter rail scrolled
+  horizontally and hid Combat at first view.
+- Mobile world filters now form one seven-column row at both 390×844 and 360×740: ALL, SOCCER,
+  FOOT, HOOPS, HOCKEY, BASE and FIGHT are simultaneously visible, while desktop retains full
+  league names. ALL reports 24 games / 48 city endpoints; FOOT selects four games / eight cities;
+  individual football cards retain `football.html?fixture=N` links. Both viewports have no
+  overflow or browser errors, and the required web-game client still reports all 24 fixtures.
+- Parallel camera passes are active for soccer/football, baseball/hockey and basketball/combat.
+  Final acceptance requires moving-play screenshots at 390×844 and 360×740, not only CSS/state
+  checks, plus complete filter/deep-link interaction QA before the production commit.
+- Soccer and football portrait framing now pass at both target sizes. Soccer pulls back 17.5%
+  and contains both goals, touchlines and all 12 players. Football uses phase-specific wider
+  All-22 cameras for ordinary plays, airborne red-zone passes, kickoffs and PATs; all 22 players
+  and the relevant end-zone context remain visible, with finite state and no overflow/errors.
+- Baseball now switches live balls, relay throws and side changes into a dynamically fitted
+  scorebook view containing the entire diamond, nine defenders, runners, ball and throw path;
+  plate/contact/strikeout shots stay close enough to read the hand-linked swing. Forced single,
+  double-play, strikeout and field-flip branches plus a 300-second fresh soak passed at both sizes.
+- Hockey's new portrait tactical camera contains both nets and the complete lineup continuously,
+  and forced slapshot/check/goal branches remain correct. Visual acceptance is temporarily
+  reopened because the first full-rink captures exposed an oversized center-ice bloom that can
+  hide skaters and the puck; portrait lighting must be restrained before release.
+- Hockey's reopened lighting gate now passes: portrait-only ice roughness/reflectivity and bloom
+  are restrained enough to preserve the center circle, puck and every skater in default play,
+  slapshots and checks at both sizes. Desktop keeps its original shinier broadcast treatment.
+- Basketball now uses a fixed full-court end-line camera for transitions and a stable wide active-
+  half view for settled offense, with all ten players visible instead of compressing them against
+  the far baseline. Combat keeps the complete cage, both fighters and referee visible through
+  exchanges and knockdowns; count/KO graphics move below the ring rather than covering contact.
+  Forced transition and FIGHT→KNOCKDOWN branches passed at 390×844 and 360×740.
+- An independent four-size world audit (390×844, 360×740, 768×1024 and 956×992) confirms no
+  bottom strip at any breakpoint, all seven filters visible/clickable, correct active colors and
+  query history, 24/4 fixture counts, internal access to final drawer cards, and successful actual
+  second-card navigation into all six arenas. No viewport produced document overflow or browser,
+  page, request or HTTP errors.
+- The final exact-source mobile release matrix passes all 12 arena cells (six sports at 390×844
+  and 360×740): HTTP 200, finite state, no horizontal overflow and no console, page or request
+  errors. Every capture was visually inspected; active-play companion captures confirm full-field,
+  full-court, full-rink, complete-diamond and full-cage context where phase cards intentionally
+  cover the paused action in halftime/setup/between-round states.

@@ -327,7 +327,8 @@ camera.position.set(0, 16, BZ + 21);
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.6, 0.82));
+const bloomPass=new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight),0.55,0.6,0.82);
+composer.addPass(bloomPass);
 
 // ============ LIGHTING (no shadows — frugal) ============
 scene.add(new THREE.HemisphereLight(0x5a70b8, 0x0a0d1a, 1.0));
@@ -1635,17 +1636,26 @@ let lastCamMode = 'broadcast';
 const tmpP = new THREE.Vector3(), tmpL = new THREE.Vector3();
 function cameraStep(dt) {
   const portrait = innerWidth <= 700 && innerHeight > innerWidth*1.2;
+  // The low-angle desktop specular is atmospheric, but a tactical overhead
+  // reflects it into a screen-sized white disc. On phones, roughen the ice and
+  // tighten bloom so markings, puck and skaters survive the center-ice light.
+  ice.material.roughness=portrait?.56:.16;
+  ice.material.metalness=portrait?.06:.32;
+  ice.material.envMapIntensity=portrait?.28:.7;
+  bloomPass.strength=portrait?.24:.55;
+  bloomPass.radius=portrait?.28:.6;
+  bloomPass.threshold=portrait?.95:.82;
   const rush = S.state === 'PLAY' ? players.find(p => p.breakaway && puck.carrier === p) : null;
   const mode = (S.state === 'GOAL_SEQ' && S.t < 3.1) ? 'over' : rush ? 'rush' : 'broadcast';
   camera.up.set(portrait?1:0,portrait?0:1,0);
   roofTrusses.forEach(beam=>beam.visible=!portrait&&mode!=='over');
   scoreboard.visible=!portrait&&mode!=='over';
   if(portrait){
-    // Rotate the rink into portrait broadcast orientation: the 56m length runs
-    // vertically while the 26m width fills the phone, eliminating the huge
-    // dead bands produced by squeezing a landscape rink into a narrow screen.
-    const focusX=mode==='over'?S.scoredSide*4:mode==='rush'?rush.x*.14:puck.x*.06;
-    tmpP.set(focusX,42,7.5);tmpL.set(focusX,0,0);
+    // A phone broadcast is a fixed tactical overhead: the complete rink stays
+    // between the score bug and controls, including both goals and every
+    // skater.  Action callouts carry the close-up drama without cropping the
+    // opposite-side shape out of the play.
+    tmpP.set(0,56,4);tmpL.set(0,0,0);
   } else if (mode === 'over') {
     const gx = S.scoredSide*GLX;
     tmpP.set(gx*(portrait?0.38:0.55), portrait?36:30, portrait?BZ+38:7); tmpL.set(gx*(portrait?0.62:0.8), 0, 0);
@@ -1665,7 +1675,11 @@ function cameraStep(dt) {
       tmpL.z += (S.cameraZ-tmpL.z)*weight*0.55;
     }
   }
-  if (mode !== lastCamMode) { camPos.copy(tmpP); camLook.copy(tmpL); lastCamMode = mode; } // hard cut
+  // Portrait is intentionally a locked tactical camera. Snap to it on the
+  // first rendered tune-in frame as well as after restarts; otherwise the old
+  // landscape camera spends its first seconds easing through a cropped rink.
+  if (portrait) { camPos.copy(tmpP); camLook.copy(tmpL); lastCamMode=mode; }
+  else if (mode !== lastCamMode) { camPos.copy(tmpP); camLook.copy(tmpL); lastCamMode = mode; } // hard cut
   else { camPos.lerp(tmpP, dampK(3.1, dt)); camLook.lerp(tmpL, dampK(4.6, dt)); }
   camera.position.copy(camPos);
   if (S.cameraKind === 'hit' && S.cameraBeat > 0) {
@@ -1673,7 +1687,7 @@ function cameraStep(dt) {
     camera.position.x += Math.sin(simClockTotal*71)*shake;
     camera.position.y += Math.cos(simClockTotal*57)*shake*0.35;
   }
-  const desiredFov = portrait ? (mode === 'over' ? 66 : 68) : mode === 'rush' ? 35 : S.cameraBeat > 0 ? 38 : 40;
+  const desiredFov = portrait ? 78 : mode === 'rush' ? 35 : S.cameraBeat > 0 ? 38 : 40;
   camera.fov += (desiredFov-camera.fov)*dampK(7,dt); camera.updateProjectionMatrix();
   camera.lookAt(camLook);
 }
