@@ -96,6 +96,8 @@
   .filter-tab { min-width:0; min-height:38px; padding:0 5px; cursor:pointer; color:var(--muted); background:rgba(4,6,8,.9); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.08em; text-transform:uppercase; }
   .filter-tab:hover,.filter-tab.active { color:#fff; background:#14191d; box-shadow:inset 0 -2px var(--c,#fff); }
   .filter-tab.active { color:var(--c,#fff); }
+  .sport-stage { display:contents; }
+  .mobile-sport-toggle,.mobile-match-head { display:none; }
   .game-drawer { margin-top:1px; max-height:calc(100vh - 238px); overflow-y:auto; overscroll-behavior:contain; scrollbar-color:rgba(255,255,255,.28) transparent; }
   .game-list { display:grid; gap:1px; background:var(--line); }
   .fixture-card { --c:#fff; min-width:0; min-height:76px; display:grid; grid-template-columns:54px minmax(0,1fr) auto; align-items:center; gap:10px; padding:10px 12px; color:#fff; background:rgba(4,6,8,.93); border-left:2px solid transparent; transition:background .16s,border-color .16s; }
@@ -129,13 +131,31 @@
     .intro .lede,.intro .proof,.intro-actions { display:none; }
     .liveboard { top:136px; left:10px; right:10px; bottom:auto; width:auto; }
     .panel-label { padding:0 2px; }
-    .filter-tabs { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); overflow:visible; }
-    .filter-tab { min-width:0; min-height:38px; padding:0 2px; font-size:0; }
-    .filter-tab::after { content:attr(data-mobile-label); font:800 7.5px/1 'Barlow Condensed',sans-serif; letter-spacing:.045em; }
-    .game-drawer { max-height:235px; border-bottom:1px solid var(--line); }
-    .fixture-card { min-height:68px; grid-template-columns:45px minmax(0,1fr) auto; gap:8px; padding:8px; }
+    .sport-stage { position:relative; display:block; margin-top:9px; }
+    .mobile-sport-toggle { width:100%; min-height:46px; display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:10px; padding:0 12px; cursor:pointer; color:#fff; border:1px solid rgba(255,255,255,.22); background:rgba(4,6,8,.94); text-align:left; }
+    .mobile-step { color:var(--muted); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
+    .mobile-sport-toggle strong { overflow:hidden; color:var(--club); font:800 12px/1 'Barlow Condensed',sans-serif; letter-spacing:.1em; text-overflow:ellipsis; white-space:nowrap; }
+    .mobile-change { color:#fff; font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.12em; }
+    .mobile-sport-toggle[aria-expanded="true"] .mobile-change { color:var(--club); }
+    .filter-tabs { display:none; margin-top:0; overflow:visible; }
+    .filter-tabs.mobile-open { position:absolute; z-index:5; top:calc(100% + 4px); left:0; right:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; padding:1px; border:1px solid rgba(255,255,255,.22); background:#30363a; box-shadow:0 18px 36px rgba(0,0,0,.72); }
+    .filter-tab { min-width:0; min-height:51px; display:grid; grid-template-rows:auto auto; place-content:center; gap:5px; padding:6px 3px; font-size:0; }
+    .filter-tab[data-sport="all"] { grid-column:1/-1; min-height:43px; }
+    .filter-tab::after { content:attr(data-mobile-name); grid-row:1; color:inherit; font:800 9px/1.05 'Barlow Condensed',sans-serif; letter-spacing:.06em; text-align:center; }
+    .filter-tab::before { content:attr(data-mobile-count); grid-row:2; color:var(--muted); font:700 7px/1 'Barlow Condensed',sans-serif; letter-spacing:.12em; text-align:center; }
+    .filter-tab.active::before { color:color-mix(in srgb,var(--c) 72%,#fff); }
+    .mobile-match-head { min-height:34px; display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; align-items:center; gap:8px; padding:0 5px 0 2px; border-bottom:1px solid var(--line); background:rgba(2,3,4,.76); }
+    .mobile-match-head strong { color:#fff; font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; text-align:right; }
+    .mobile-match-nav { width:29px; height:27px; cursor:pointer; color:#fff; border:1px solid var(--line); background:rgba(4,6,8,.94); font:800 13px/1 'Barlow Condensed',sans-serif; }
+    .mobile-match-nav:disabled { cursor:default; color:rgba(255,255,255,.22); }
+    .game-drawer { max-height:none; overflow-x:auto; overflow-y:hidden; border-bottom:1px solid var(--line); scroll-behavior:smooth; scroll-snap-type:x mandatory; scrollbar-width:none; }
+    .game-drawer::-webkit-scrollbar { display:none; }
+    .game-list { width:100%; display:flex; gap:8px; background:transparent; }
+    .fixture-card { flex:0 0 calc(100vw - 64px); min-height:88px; grid-template-columns:45px minmax(0,1fr) auto; gap:8px; padding:9px 8px; border:1px solid var(--line); border-left:2px solid transparent; scroll-snap-align:start; }
+    .fixture-card.is-current { border-left-color:var(--c); background:rgba(12,17,20,.97); }
     .fixture-meta b { margin-bottom:4px; padding:4px 1px; }
-    .fixture-team span { font-size:10px; }
+    .fixture-team span { font-size:0; }
+    .fixture-team span::after { content:attr(data-mobile-name); font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.055em; }
     .fixture-enter { font-size:7px; }
     .frame { inset:7px; }
   }
@@ -166,7 +186,11 @@
 
 <aside class="liveboard" id="network">
   <div class="panel-label"><span><strong>LIVE GAME NETWORK</strong> · <span data-cyberliga-presence>1 WATCHING · LOCAL</span></span><span id="round-label">24 GAMES</span></div>
-  <div class="filter-tabs" id="filter-tabs" role="tablist" aria-label="Filter games by sport"></div>
+  <div class="sport-stage">
+    <button class="mobile-sport-toggle" id="mobile-sport-toggle" type="button" aria-controls="filter-tabs" aria-expanded="false"><span class="mobile-step">1 · SPORT</span><strong id="mobile-sport-label">ALL SPORTS</strong><span class="mobile-change">CHANGE ↓</span></button>
+    <div class="filter-tabs" id="filter-tabs" role="tablist" aria-label="Filter games by sport"></div>
+  </div>
+  <div class="mobile-match-head"><span class="mobile-step">2 · PICK A GAME</span><strong id="mobile-match-position">GAME 1 / 24</strong><button class="mobile-match-nav" id="mobile-match-prev" type="button" aria-label="Previous game">←</button><button class="mobile-match-nav" id="mobile-match-next" type="button" aria-label="Next game">→</button></div>
   <div class="game-drawer" id="game-drawer"><div class="game-list" id="game-list"></div></div>
 </aside>
 
@@ -235,13 +259,45 @@ fixtureCards=buildFixtureCards();
 function makeFixtureCard(card){
   const link=document.createElement('a');link.className='fixture-card';link.href=card.href;link.dataset.sport=card.league.id;link.dataset.index=String(card.index);link.style.setProperty('--c',card.league.color);
   link.setAttribute('aria-label',`${card.league.sport}: ${card.home.name} versus ${card.away.name}`);
-  link.innerHTML=`<span class="fixture-meta"><b>${card.league.code}</b><span>GAME ${String(card.index+1).padStart(2,'0')}</span></span><span class="fixture-teams"><span class="fixture-team"><strong>${card.home.code}</strong><span>${card.home.city} · ${card.home.name}</span></span><span class="fixture-team"><strong>${card.away.code}</strong><span>${card.away.city} · ${card.away.name}</span></span></span><span class="fixture-enter">${card.league.live?`LIVE ${U.clock(card.liveMatch.elapsedMs)}`:'PLAYABLE'}<b>ENTER ↗</b></span>`;
+  link.innerHTML=`<span class="fixture-meta"><b>${card.league.code}</b><span>GAME ${String(card.index+1).padStart(2,'0')}</span></span><span class="fixture-teams"><span class="fixture-team"><strong>${card.home.code}</strong><span data-mobile-name="${card.home.name}">${card.home.city} · ${card.home.name}</span></span><span class="fixture-team"><strong>${card.away.code}</strong><span data-mobile-name="${card.away.name}">${card.away.city} · ${card.away.name}</span></span></span><span class="fixture-enter">${card.league.live?`LIVE ${U.clock(card.liveMatch.elapsedMs)}`:'PLAYABLE'}<b>ENTER ↗</b></span>`;
   link.addEventListener('pointerenter',()=>focusFixture(card));
   link.addEventListener('focus',()=>focusFixture(card));
   return link;
 }
 function visibleCards(){return activeFilter==='all'?fixtureCards:fixtureCards.filter(card=>card.league.id===activeFilter);}
-function renderGames(){document.getElementById('game-list').replaceChildren(...visibleCards().map(makeFixtureCard));}
+const mobileSelectorMedia=matchMedia('(max-width:900px)');
+const gameDrawer=document.getElementById('game-drawer');
+const gameList=document.getElementById('game-list');
+function mobileCardElements(){return [...gameList.querySelectorAll('.fixture-card')];}
+function currentMobileCardIndex(){
+  if(!mobileSelectorMedia.matches)return 0;
+  const cards=mobileCardElements();if(!cards.length)return 0;
+  return cards.reduce((best,card,index)=>Math.abs(card.offsetLeft-gameDrawer.scrollLeft)<best.distance?{index,distance:Math.abs(card.offsetLeft-gameDrawer.scrollLeft)}:best,{index:0,distance:Infinity}).index;
+}
+function updateMobileMatchCursor({focus=false}={}){
+  if(!mobileSelectorMedia.matches)return;
+  const cards=mobileCardElements(),index=Math.min(currentMobileCardIndex(),Math.max(0,cards.length-1));
+  cards.forEach((card,cardIndex)=>card.classList.toggle('is-current',cardIndex===index));
+  document.getElementById('mobile-match-position').textContent=`GAME ${cards.length?index+1:0} / ${cards.length}`;
+  document.getElementById('mobile-match-prev').disabled=index<=0;
+  document.getElementById('mobile-match-next').disabled=index>=cards.length-1;
+  if(focus&&visibleCards()[index])focusFixture(visibleCards()[index]);
+}
+function moveToMobileCard(index,{behavior='smooth',focus=true}={}){
+  const cards=mobileCardElements();if(!mobileSelectorMedia.matches||!cards.length)return;
+  const next=Math.max(0,Math.min(cards.length-1,index));
+  gameDrawer.scrollTo({left:cards[next].offsetLeft,behavior});
+  cards.forEach((card,cardIndex)=>card.classList.toggle('is-current',cardIndex===next));
+  document.getElementById('mobile-match-position').textContent=`GAME ${next+1} / ${cards.length}`;
+  document.getElementById('mobile-match-prev').disabled=next<=0;
+  document.getElementById('mobile-match-next').disabled=next>=cards.length-1;
+  if(focus&&visibleCards()[next])focusFixture(visibleCards()[next]);
+}
+function renderGames({resetMobile=false}={}){
+  const preserved=resetMobile?0:currentMobileCardIndex();
+  gameList.replaceChildren(...visibleCards().map(makeFixtureCard));
+  if(mobileSelectorMedia.matches)requestAnimationFrame(()=>moveToMobileCard(preserved,{behavior:'auto',focus:false}));
+}
 function focusFixture(card){
   document.querySelectorAll('.marker').forEach(label=>label.classList.toggle('selected',label.dataset.team===card.home.id||label.dataset.team===card.away.id));
   flyTo(placeFor(card.home));
@@ -251,21 +307,57 @@ function setFilter(next,{push=false}={}){
   const definition=FILTERS.find(filter=>filter.id===valid);document.documentElement.style.setProperty('--club',definition.color);
   document.querySelectorAll('.filter-tab').forEach(button=>{const on=button.dataset.sport===valid;button.classList.toggle('active',on);button.setAttribute('aria-selected',String(on));});
   document.getElementById('round-label').textContent=`${visibleCards().length} GAMES · ${visibleCards().length*2} CITIES`;
-  renderGames();document.getElementById('game-drawer').scrollTop=0;
+  renderGames({resetMobile:true});gameDrawer.scrollTop=0;gameDrawer.scrollLeft=0;
+  document.getElementById('mobile-sport-label').textContent=valid==='all'?'ALL SPORTS':definition.sport;
+  setMobileSportPicker(false);
   if(typeof markers!=='undefined')markers.forEach(marker=>{marker.filtered=valid!=='all'&&marker.league.id!==valid;marker.label.classList.remove('selected');});
   if(typeof routes!=='undefined')routes.forEach(route=>route.mesh.visible=valid==='all'||route.league.id===valid);
   if(push){const url=new URL(location.href);if(valid==='all')url.searchParams.delete('sport');else url.searchParams.set('sport',valid);history.pushState({sport:valid},'',url);}
 }
 const tabs=document.getElementById('filter-tabs');
-const MOBILE_FILTER_LABELS={all:'ALL',soccer:'SOCCER','american-football':'FOOT',basketball:'HOOPS',hockey:'HOCKEY',baseball:'BASE',combat:'FIGHT'};
-tabs.replaceChildren(...FILTERS.map(filter=>{const button=document.createElement('button');button.type='button';button.className='filter-tab';button.dataset.sport=filter.id;button.dataset.mobileLabel=MOBILE_FILTER_LABELS[filter.id]||filter.short;button.role='tab';button.style.setProperty('--c',filter.color);button.textContent=filter.short;button.setAttribute('aria-label',`Show ${filter.id==='all'?'all sports':filter.short} games`);button.addEventListener('click',()=>setFilter(filter.id,{push:true}));return button;}));
+const mobileSportToggle=document.getElementById('mobile-sport-toggle');
+const MOBILE_FILTER_NAMES={all:'ALL SPORTS',soccer:'SOCCER','american-football':'AMERICAN FOOTBALL',basketball:'BASKETBALL',hockey:'HOCKEY',baseball:'BASEBALL',combat:'COMBAT'};
+function setMobileSportPicker(open){
+  const visible=mobileSelectorMedia.matches&&open;
+  tabs.classList.toggle('mobile-open',visible);
+  mobileSportToggle.setAttribute('aria-expanded',String(visible));
+  tabs.setAttribute('aria-hidden',String(mobileSelectorMedia.matches&&!visible));
+  mobileSportToggle.querySelector('.mobile-change').textContent=visible?'CLOSE ↑':'CHANGE ↓';
+}
+tabs.replaceChildren(...FILTERS.map(filter=>{const button=document.createElement('button');button.type='button';button.className='filter-tab';button.dataset.sport=filter.id;button.dataset.mobileName=MOBILE_FILTER_NAMES[filter.id]||filter.short;button.dataset.mobileCount=`${filter.id==='all'?24:4} GAMES`;button.role='tab';button.style.setProperty('--c',filter.color);button.textContent=filter.short;button.setAttribute('aria-label',`Show ${filter.id==='all'?'all sports':filter.short} games`);button.addEventListener('click',()=>setFilter(filter.id,{push:true}));return button;}));
+mobileSportToggle.addEventListener('click',()=>setMobileSportPicker(mobileSportToggle.getAttribute('aria-expanded')!=='true'));
+document.getElementById('mobile-match-prev').addEventListener('click',()=>moveToMobileCard(currentMobileCardIndex()-1));
+document.getElementById('mobile-match-next').addEventListener('click',()=>moveToMobileCard(currentMobileCardIndex()+1));
+let mobileScrollTimer=0,mobileScrollFrame=0;
+gameDrawer.addEventListener('scroll',()=>{
+  if(!mobileSelectorMedia.matches)return;
+  cancelAnimationFrame(mobileScrollFrame);mobileScrollFrame=requestAnimationFrame(()=>updateMobileMatchCursor());
+  clearTimeout(mobileScrollTimer);mobileScrollTimer=setTimeout(()=>updateMobileMatchCursor({focus:true}),120);
+},{passive:true});
+document.addEventListener('pointerdown',event=>{if(mobileSelectorMedia.matches&&!event.target.closest('.sport-stage'))setMobileSportPicker(false);});
+document.addEventListener('keydown',event=>{if(event.key==='Escape')setMobileSportPicker(false);});
+mobileSelectorMedia.addEventListener('change',()=>{setMobileSportPicker(false);if(mobileSelectorMedia.matches)requestAnimationFrame(()=>moveToMobileCard(0,{behavior:'auto',focus:false}));});
 addEventListener('popstate',()=>setFilter(new URLSearchParams(location.search).get('sport')||'all'));
+function refreshRenderedSoccerCards(soccerCards){
+  gameList.querySelectorAll('.fixture-card[data-sport="soccer"]').forEach(link=>{
+    const card=soccerCards[Number(link.dataset.index)];if(!card)return;
+    link.href=card.href;
+    link.setAttribute('aria-label',`${card.league.sport}: ${card.home.name} versus ${card.away.name}`);
+    const teams=link.querySelectorAll('.fixture-team span');
+    [[teams[0],card.home],[teams[1],card.away]].forEach(([label,team])=>{if(!label)return;label.textContent=`${team.city} · ${team.name}`;label.dataset.mobileName=team.name;});
+    const enter=link.querySelector('.fixture-enter');
+    if(enter)enter.innerHTML=`LIVE ${U.clock(card.liveMatch.elapsedMs)}<b>ENTER ↗</b>`;
+  });
+}
 function tickNetwork(){
   matches=U.liveMatches(Date.now());
   document.getElementById('watch-primary').href=U.sharePath(matches[0]);document.getElementById('hero-watch').href=U.sharePath(matches[0]);
   const soccerCards=fixtureCards.filter(card=>card.league.id==='soccer');
   matches.forEach((match,index)=>{const card=soccerCards[index];card.liveMatch=match;card.home=match.home;card.away=match.away;card.href=U.sharePath(match);});
-  if(activeFilter==='all'||activeFilter==='soccer')renderGames();
+  if(activeFilter==='all'||activeFilter==='soccer'){
+    if(matches[0].slot!==lastSoccerSlot)renderGames();
+    else refreshRenderedSoccerCards(soccerCards);
+  }
   lastSoccerSlot=matches[0].slot;
 }
 

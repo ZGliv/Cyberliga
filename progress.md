@@ -456,3 +456,33 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   errors. Every capture was visually inspected; active-play companion captures confirm full-field,
   full-court, full-rink, complete-diamond and full-cage context where phase cards intentionally
   cover the paused action in halftime/setup/between-round states.
+
+## Hoops Inbounds / Navigation Removal / Mobile Picker — 2026-07-13
+- Current combined request: show a real baseline inbound after every made basket in basketball,
+  remove the floating Navigate menu completely, ensure the obsolete bottom Network sport strip is
+  absent, and replace the cramped mobile world drawer with a more intuitive game-selection flow
+  while leaving the accepted desktop selector unchanged.
+- Initial audit confirms made baskets currently pause in `MADE` and then call the generic outlet
+  helper, so there is no authored inbounder, baseline setup or visible legal pass before bring-up.
+  The floating Navigate pill/panel is injected by `gamehub.js` into all six arenas. The old bottom
+  sport strip exists only on the immutable stale preview shown in the earlier screenshot; current
+  production source has no strip markup, and the new mobile selector must keep that absence.
+- Mobile world currently compresses seven sports into tiny abbreviations and stacks four tall
+  fixture rows over the globe. The redesign target is a clear sport-first choice followed by one
+  focused, touch/swipe-friendly matchup at a time, with all 24 games and every deep link retained.
+- Hoops now authors six observable post-score beats: make, ball retrieval, baseline setup,
+  inbound-ready stance, airborne pass and receiver catch. The inbounder is the only player allowed
+  behind the end line; both game and shot clocks remain frozen until the catch, then BRINGUP resumes.
+  Made final free throws use the same baseline restart. Forced desktop/mobile sequences scored,
+  crossed the baseline, completed the pass and restarted both clocks with no overflow or errors.
+- The floating Navigate implementation is removed: `gamehub.js` is now a cleanup-only compatibility
+  shim that injects no DOM, CSS, shortcut, listeners or global API. All six arenas retain permanent
+  Home links; desktop/mobile audits found no Navigate text or controls, and `G` is inert.
+- Mobile World is now a compact two-step selector: a full-name sport chooser with game counts, then
+  a one-card swipe carousel with previous/next buttons, position counter and a visible next-card
+  preview. All 24 games, every league's fourth game, history state and real arena deep links passed
+  at 390×844 and 360×740. Desktop selector geometry remains unchanged at 1280×720.
+- Live soccer clocks now update the rendered card labels in place between round rollovers instead
+  of rebuilding the carousel once per second, so an in-progress mobile swipe is not interrupted.
+  The final required clients, complete two-size interaction matrix, 9 API tests and 980 application
+  checks pass with no console/page/request errors or horizontal overflow.

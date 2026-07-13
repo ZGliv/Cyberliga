@@ -577,7 +577,7 @@ const ballMesh=new THREE.Mesh(new THREE.SphereGeometry(BALL_R,16,12),
 const seams=new THREE.Mesh(new THREE.IcosahedronGeometry(BALL_R*1.01,1),
   new THREE.MeshBasicMaterial({ color:0x301006, wireframe:true, transparent:true, opacity:0.32 }));
 ballMesh.add(seams); scene.add(ballMesh);
-const ball={ pos:V3(0,1,0), vel:V3(), state:'HELD', holder:null, passTo:null, pending:null, t:0, T:0, vy:0, shot:null, lastTeam:0 };
+const ball={ pos:V3(0,1,0), vel:V3(), state:'HELD', holder:null, passTo:null, pending:null, t:0, T:0, vy:0, shot:null, lastTeam:0, inbound:false };
 const ballShadow=new THREE.Mesh(new THREE.CircleGeometry(0.36,24),
   new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.34, depthWrite:false }));
 ballShadow.rotation.x=-Math.PI/2; ballShadow.position.y=0.025; scene.add(ballShadow);
@@ -708,7 +708,8 @@ let phase='PLAY', q=1, qClock=Q_LEN, shotClock=24, breakT=0, possArrow=1;
 const play={state:'BRINGUP',t:0,offense:0,passes:0,wait:.55,windKind:'jumper',windDur:.3,released:false,decided:false,
   stealChecked:false,dunk:null,saidReb:false,scorer:null,driveLane:1,driveKind:'rim',schemeId:'EARLY_DRAG',coverageId:'MAN',
   step:0,possessionNo:0,actionLabel:'PUSHING THE BREAK',shotQuality:0,shotContext:'',lastPasser:null,lastPassAt:-99,
-  reboundClaimed:false,freeThrow:null,possessionReason:'TIP',transitionT:0,seenSchemes:new Set(),seenCoverages:new Set(),decision:'ORGANIZE'};
+  reboundClaimed:false,freeThrow:null,possessionReason:'TIP',transitionT:0,seenSchemes:new Set(),seenCoverages:new Set(),decision:'ORGANIZE',
+  inbound:null,inboundsCompleted:0,lastInbound:null};
 function setState(s){ play.state=s; play.t=0; }
 const offT=()=>teams[play.offense], defT=()=>teams[1-play.offense];
 const atkRim=t=>V3(t.dir*RIM_X, RIM_Y, 0);
@@ -752,6 +753,7 @@ function updateCenterCube(){
 function fmtGameClock(value){const m=Math.floor(value/60),s=String(Math.floor(value%60)).padStart(2,'0');return `${m}:${s}`;}
 
 function callPossession(reason='INBOUND'){
+  play.inbound=null;
   play.possessionNo++;
   let scheme=PLAYBOOKS[(play.possessionNo-1)%PLAYBOOKS.length];
   let coverage=COVERAGES[(play.possessionNo-1)%COVERAGES.length];
@@ -787,6 +789,7 @@ function newMatch(){
   q=1; qClock=Q_LEN; shotClock=24; phase='PLAY'; possArrow=1; quarterPending=false;
   tGlobal=0;
   play.possessionNo=0; play.seenSchemes.clear(); play.seenCoverages.clear(); play.freeThrow=null;
+  play.inbound=null; play.inboundsCompleted=0; play.lastInbound=null; ball.inbound=false;
   play.transitionT=0;
   hideCard(); updateHUDTeams();
   say(`MATCHDAY — ${teams[0].def.name} VS ${teams[1].def.name} — TIP-OFF IN THE HOOPDOME`);
@@ -824,6 +827,44 @@ function outlet(toIdx,reason='INBOUND'){
   ball.pos.y=Math.max(ball.pos.y,1.0);
   startPass(best,'BRINGUP');
   ball.lastTeam=toIdx;
+}
+function beginBaselineInbound(scoringSide=play.offense){
+  const scoredAt=teams[scoringSide].dir;
+  const receivingSide=1-scoringSide, receiving=teams[receivingSide];
+  const pickup=V3(scoredAt*RIM_X,0,0);
+  const inbounder=receiving.players.slice(1).sort((a,b)=>
+    dxz(a.pos.x,a.pos.z,pickup.x,pickup.z)-dxz(b.pos.x,b.pos.z,pickup.x,pickup.z))[0]||receiving.players[4];
+  const receiver=receiving.players[0]===inbounder?receiving.players[1]:receiving.players[0];
+  play.inbound=null;
+  play.offense=receivingSide; shotClock=24; callPossession('INBOUND');
+  play.inbound={
+    stage:'RETRIEVE',scoringSide,receivingSide,rimSign:scoredAt,inbounder,receiver,
+    startedAt:tGlobal,retrievedAt:null,releasedAt:null
+  };
+  play.actionLabel='RETRIEVE THE BALL · BASELINE INBOUND';
+  play.decision=`${inbounder.name} RETRIEVES · ${receiver.name} SHOWS TO THE BALL`;
+  play.transitionT=0; ball.inbound=false; ball.passTo=null; ball.pending=null; ball.lastTeam=receivingSide;
+  for(const p of allPlayers())p.contest=false;
+  setState('INBOUND_RETRIEVE'); updateGamePlan(); cut();
+  say(`${inbounder.name} TRACKS DOWN THE MAKE — ${receiving.def.name} MUST INBOUND FROM THE BASELINE`);
+}
+function collectInboundBall(){
+  const ib=play.inbound;if(!ib)return;
+  ball.holder=ib.inbounder;ball.state='HELD';ball.vel.set(0,0,0);ball.vy=0;ball.shot=null;ball.inbound=false;
+  ib.stage='BASELINE';ib.retrievedAt=tGlobal;
+  play.actionLabel='BALL SECURED · STEP BEHIND THE BASELINE';
+  play.decision=`${ib.receiver.name} FLASHES INTO THE BACKCOURT`;
+  setState('INBOUND_BASELINE');updateGamePlan();
+  say(`${ib.inbounder.name} COLLECTS THE BALL AND STEPS OUT OF BOUNDS`);
+}
+function releaseBaselineInbound(){
+  const ib=play.inbound;if(!ib||ball.holder!==ib.inbounder)return;
+  startPass(ib.receiver,'BRINGUP');
+  ball.inbound=true;ib.stage='PASS';ib.releasedAt=tGlobal;
+  play.actionLabel=`INBOUND PASS · ${ib.inbounder.name} TO ${ib.receiver.name}`;
+  play.decision='LEGAL TOUCH · BEGIN THE BRING-UP';
+  setState('INBOUND_PASS');updateGamePlan();
+  say(`${ib.inbounder.name} PUTS IT IN PLAY — ${ib.receiver.name} COMES BACK TO RECEIVE`);
 }
 function forceTurnover(defender, victim){
   const oldSide=victim.side;
@@ -952,6 +993,38 @@ function setTargets(dt){
     ring.material.color.setHex(off.def.glow);ring.material.opacity=action[1]===i?.62:.15;
     ring.scale.setScalar(action[1]===i?1.35:1);
   });
+  if(play.inbound&&play.state.startsWith('INBOUND_')){
+    const ib=play.inbound,sign=ib.rimSign,inbounder=ib.inbounder,receiver=ib.receiver;
+    spacingRings.forEach(r=>r.visible=false);matchupLines.forEach(r=>r.visible=false);
+    const receiveZ=(play.possessionNo%2?1:-1)*1.75;
+    for(const p of off.players){
+      if(p===inbounder){
+        if(play.state==='INBOUND_RETRIEVE')p.target.set(clamp(ball.pos.x,-HL+.45,HL-.45),0,clamp(ball.pos.z,-2.2,2.2));
+        else p.target.set(sign*(HL+.68),0,-receiveZ*.42);
+        p.sprint=p.shape.speed+.65;
+      }else if(p===receiver){
+        p.target.set(sign*(HL-2.25),0,receiveZ);p.sprint=p.shape.speed+.55;
+      }else{
+        const lane=(p.role%2?1:-1)*(3.15+(p.role===2?2.25:0));
+        p.target.set(sign*(HL-4.2-p.role*.95),0,lane);p.sprint=p.shape.speed+.45;
+      }
+    }
+    for(const p of def.players){
+      const lane=(p.role-2)*2.55;
+      p.target.set(sign*(HL-6.4-p.role*.82),0,clamp(lane,-5.7,5.7));p.sprint=p.shape.speed+.35;
+    }
+    const showInboundLane=play.state==='INBOUND_READY'||play.state==='INBOUND_PASS';
+    actionRoute.visible=showInboundLane;
+    if(showInboundLane){
+      const bend=V3(lerp(inbounder.pos.x,receiver.pos.x,.48),.08,lerp(inbounder.pos.z,receiver.pos.z,.48)+(receiveZ>0?.45:-.45));
+      actionRoute.geometry.setFromPoints([V3(inbounder.pos.x,.08,inbounder.pos.z),bend,V3(receiver.pos.x,.08,receiver.pos.z)]);
+      actionRoute.computeLineDistances();actionRoute.material.color.setHex(off.def.glow);
+    }
+    if(play.state==='INBOUND_BASELINE')inbounder.rig.poseThrowIn(.28);
+    else if(play.state==='INBOUND_READY')inbounder.rig.poseThrowIn(.34+clamp(play.t/.72,0,1)*.20);
+    else if(play.state==='INBOUND_PASS')inbounder.rig.poseThrowIn(.55+clamp(play.t/.55,0,1)*.35);
+    return;
+  }
   const routeTarget=action[1]!=null?off.players[action[1]]?.target:null;
   if(car&&routeTarget&&['SET','BRINGUP','DRIVE'].includes(play.state)){
     const bend=V3(lerp(car.pos.x,routeTarget.x,.52),.06,lerp(car.pos.z,routeTarget.z,.52)+(play.possessionNo%2?1:-1)*.55);
@@ -1092,13 +1165,19 @@ function updatePlayers(dt){
         p.vel.x+=sx/sd*f*dt; p.vel.z+=sz/sd*f*dt;
         p.pos.x+=sx/sd*correction; p.pos.z+=sz/sd*correction;
       } }
-    p.pos.x=clamp(p.pos.x+p.vel.x*dt, -HL+0.25, HL-0.25);
+    const legalInbounder=play.inbound&&p===play.inbound.inbounder&&
+      ['INBOUND_BASELINE','INBOUND_READY','INBOUND_PASS'].includes(play.state);
+    const xLimit=legalInbounder?HL+.82:HL-.25;
+    p.pos.x=clamp(p.pos.x+p.vel.x*dt, -xLimit, xLimit);
     p.pos.z=clamp(p.pos.z+p.vel.z*dt, -HW+0.25, HW-0.25);
     if (p.air){ p.jumpV-=PG*dt; p.jumpY+=p.jumpV*dt;
       if (p.jumpY<=0){ p.jumpY=0; p.air=false; p.squash=0.2; } }
     p.squash*=Math.exp(-6*dt);
     const sp=Math.hypot(p.vel.x,p.vel.z);
-    const face = sp>0.6 ? Math.atan2(p.vel.x,p.vel.z) : Math.atan2(ball.pos.x-p.pos.x, ball.pos.z-p.pos.z);
+    let face = sp>0.6 ? Math.atan2(p.vel.x,p.vel.z) : Math.atan2(ball.pos.x-p.pos.x, ball.pos.z-p.pos.z);
+    if(legalInbounder&&play.inbound?.receiver){
+      const rec=play.inbound.receiver;face=Math.atan2(rec.pos.x-p.pos.x,rec.pos.z-p.pos.z);
+    }
     p.heading=lerpAngle(p.heading, face, 1-Math.exp(-8*dt));
     p.rig.group.position.set(p.pos.x, p.jumpY, p.pos.z);
     p.rig.group.rotation.y=p.heading;
@@ -1129,9 +1208,11 @@ function updateBall(dt){
     const bx=h.pos.x+fx*0.3+rx*0.5, bz=h.pos.z+fz*0.3+rz*0.5;
     const kf=1-Math.exp(-18*dt);
     ball.pos.x+=(bx-ball.pos.x)*kf; ball.pos.z+=(bz-ball.pos.z)*kf;
-    const carrying = h.air || play.state==='WINDUP' || play.state==='DUNK' || play.state==='MADE' || phase!=='PLAY';
+    const inboundCarry=play.state==='INBOUND_BASELINE'||play.state==='INBOUND_READY';
+    const carrying = h.air || play.state==='WINDUP' || play.state==='DUNK' || play.state==='MADE' || inboundCarry || phase!=='PLAY';
     if (carrying){
-      const ty = 1.25 + h.jumpY + (play.state==='WINDUP' ? clamp(play.t/play.windDur,0,1)*1.0 : 0);
+      const ty = 1.25 + h.jumpY + (play.state==='WINDUP' ? clamp(play.t/play.windDur,0,1)*1.0 : 0) +
+        (play.state==='INBOUND_READY'?.72:0);
       ball.pos.y+=(ty-ball.pos.y)*(1-Math.exp(-20*dt)); ball.vy=0;
     } else { // dribble: ballistic loop with downward impulse synced to movement
       ball.vy-=GD*dt; ball.pos.y+=ball.vy*dt;
@@ -1150,7 +1231,7 @@ function updateBall(dt){
       const wx=rec.pos.x-ball.pos.x, wz=rec.pos.z-ball.pos.z, wl=Math.hypot(wx,wz)||1;
       const kh=1-Math.exp(-6*dt);
       ball.vel.x+=(wx/wl*hw-ball.vel.x)*kh; ball.vel.z+=(wz/wl*hw-ball.vel.z)*kh;
-      if(!ball.passStealChecked&&ball.t>ball.T*.38){
+      if(!ball.inbound&&!ball.passStealChecked&&ball.t>ball.T*.38){
         ball.passStealChecked=true;
         let thief=null,td=99;
         for(const defender of teams[1-play.offense].players){ const dd=dxz(defender.pos.x,defender.pos.z,ball.pos.x,ball.pos.z); if(dd<td){td=dd;thief=defender;} }
@@ -1160,8 +1241,16 @@ function updateBall(dt){
         }
       }
       if (d<0.6 || ball.t>ball.T+0.45){
-        const pend=ball.pending; ball.passTo=null;
+        const pend=ball.pending,wasInbound=ball.inbound,activeInbound=play.inbound; ball.passTo=null;ball.inbound=false;
         gainPossession(rec, pend==='BRINGUP'?'BRINGUP':'SET');
+        if(wasInbound&&activeInbound){
+          activeInbound.stage='COMPLETE';play.inboundsCompleted++;
+          play.lastInbound={inbounder:activeInbound.inbounder.name,receiver:activeInbound.receiver.name,
+            team:teams[activeInbound.receivingSide].def.name,duration:+(tGlobal-activeInbound.startedAt).toFixed(2)};
+          play.actionLabel=`INBOUND COMPLETE · ${rec.name} HAS IT`;
+          play.decision='FIVE PLAYERS FLOW INTO THE BRING-UP';updateGamePlan();
+          say(`${rec.name} SECURES THE INBOUND — NOW THE POSSESSION CAN BEGIN`);
+        }
       }
     }
     // floor
@@ -1298,7 +1387,14 @@ function freeThrowStep(){
   if(play.t>1.45){
     ft.remaining--;
     if(ft.remaining>0){ ft.attempted=false;ft.made=false;ball.holder=ft.shooter;ball.state='HELD';play.t=0;play.actionLabel=`FREE THROW ${ft.total-ft.remaining+1} OF ${ft.total}`;updateGamePlan(); }
-    else { const next=1-ft.shooter.side; play.freeThrow=null; outlet(next,'FREE THROWS'); }
+    else {
+      const made=ft.made,shooter=ft.shooter,next=1-shooter.side;play.freeThrow=null;
+      if(made){
+        play.offense=shooter.side;play.scorer=shooter;
+        play.actionLabel='FREE THROW GOOD · BASELINE INBOUND NEXT';play.decision='DEAD BALL · CLOCK STOPPED';
+        setState('MADE');updateGamePlan();
+      }else outlet(next,'MISSED FREE THROW');
+    }
   }
 }
 function resolveRebound(){
@@ -1324,7 +1420,8 @@ function flow(dt){
   play.transitionT=Math.max(0,play.transitionT-dt);
   const off=offT(), def=defT(), car=carrier(), rim=atkRim(off);
   // clocks
-  if(play.state!=='FREE_THROW') qClock-=dt;
+  const deadBall=['FREE_THROW','MADE','INBOUND_RETRIEVE','INBOUND_BASELINE','INBOUND_READY','INBOUND_PASS'].includes(play.state);
+  if(!deadBall) qClock-=dt;
   if (['BRINGUP','SET','PASSING','DRIVE','WINDUP'].includes(play.state)){
     shotClock-=dt;
     if (shotClock<=0){ violation(); return; }
@@ -1412,14 +1509,38 @@ function flow(dt){
     case 'FREE_THROW': freeThrowStep(); break;
     case 'MADE':
       if (lowCam && play.t>0.75){ lowCam=false; cut(); }
-      if (play.t>1.35){
+      // Let the scorer finish and the bucket graphic clear before the scored-on
+      // club starts the dead-ball retrieval. The inbound should read as its own play.
+      if (play.t>1.7){
         if (quarterPending){ enterBreak(); break; }
-        outlet(1-play.offense);
+        beginBaselineInbound(play.offense);
+      }
+      break;
+    case 'INBOUND_RETRIEVE': {
+      const ib=play.inbound;if(!ib){outlet(play.offense,'DEAD BALL');break;}
+      const near=dxz(ib.inbounder.pos.x,ib.inbounder.pos.z,ball.pos.x,ball.pos.z);
+      if((near<.72&&ball.pos.y<1.05&&play.t>.18)||(near<1.25&&play.t>2.3))collectInboundBall();
+      else if(play.t>4){ib.inbounder.pos.set(clamp(ball.pos.x,-HL+.45,HL-.45),0,clamp(ball.pos.z,-2.2,2.2));collectInboundBall();}
+      break; }
+    case 'INBOUND_BASELINE': {
+      const ib=play.inbound;if(!ib){outlet(play.offense,'DEAD BALL');break;}
+      if(Math.abs(ib.inbounder.pos.x)>=HL+.34&&play.t>.35){
+        ib.stage='READY';play.actionLabel='OUT OF BOUNDS · FIND THE POINT';
+        play.decision=`${ib.receiver.name} BREAKS OPEN`;setState('INBOUND_READY');updateGamePlan();
+        say(`${ib.inbounder.name} IS SET BEHIND THE BASELINE — WAITING FOR A CLEAN WINDOW`);
+      }
+      break; }
+    case 'INBOUND_READY':
+      if(play.t>.78)releaseBaselineInbound();
+      break;
+    case 'INBOUND_PASS':
+      if(play.t>2.2&&ball.passTo){
+        const rec=ball.passTo;ball.passTo=null;ball.inbound=false;gainPossession(rec,'BRINGUP');
       }
       break;
   }
   // global stuck watchdog
-  if (play.t>14){ ball.shot=null; outlet(1-play.offense); }
+  if (play.t>14){ ball.shot=null; outlet(play.state.startsWith('INBOUND_')?play.offense:1-play.offense,'DEAD BALL RESET'); }
 }
 function startWindup(sh, kind){
   play.shooter=sh; play.windKind=kind; play.windDur=kind==='layup'?0.2:0.3; play.released=false;
@@ -1483,7 +1604,7 @@ function updateCamera(dt){
   let dp, dl;
   if(innerWidth<700&&phase==='PLAY'){
     const dir=offT().dir;
-    const transition=play.transitionT>0||play.state==='BRINGUP'||
+    const transition=play.transitionT>0||play.state==='BRINGUP'||play.state.startsWith('INBOUND_')||
       (play.state==='PASSING'&&play.possessionReason!=='INBOUND');
     if(transition){
       // A fixed end-line tactical camera keeps the complete floor and both filled
@@ -1501,6 +1622,9 @@ function updateCamera(dt){
     }
   } else if (phase!=='PLAY'){
     dp=V3(Math.sin(tGlobal*0.12)*17, 11.5, Math.cos(tGlobal*0.12)*17); dl=V3(0,1,0);
+  } else if(play.state.startsWith('INBOUND_')&&play.inbound){
+    const sign=play.inbound.rimSign;
+    dp=V3(sign*(HL+2.6),8.8,13.8);dl=V3(sign*(HL-1.7),1.25,0);
   } else if (lowCam){
     const dir=offT().dir, zs=ball.pos.z>=0?1:-1;
     dp=V3(dir*(HL-0.6), 1.4, zs*6.2); dl=V3(dir*RIM_X, 2.7, 0);
@@ -1554,6 +1678,10 @@ function fxStep(dt){
   ballShadow.scale.setScalar(shadowScale); ballShadow.material.opacity=0.12+shadowScale*0.24;
   const status = paused ? 'PAUSED' : phase==='FINAL' ? 'FINAL' : phase==='BREAK' ? 'INTERMISSION' :
     play.state==='FREE_THROW' ? 'AT THE LINE' :
+    play.state==='INBOUND_RETRIEVE' ? 'RETRIEVING THE MAKE' :
+    play.state==='INBOUND_BASELINE' ? 'STEPPING OUT OF BOUNDS' :
+    play.state==='INBOUND_READY' ? 'BASELINE INBOUND' :
+    play.state==='INBOUND_PASS' ? 'INBOUND PASS' :
     play.state==='REBOUND' ? 'LOOSE BALL' : play.state==='DUNK' ? 'AT THE RIM' :
     play.state==='SHOT' ? 'SHOT IN FLIGHT' : car ? `${car.name} • ${car.td.name}` : play.state.replace('_',' ');
   elStatus.textContent=status;
@@ -1656,6 +1784,14 @@ window.render_game_to_text=()=>JSON.stringify({
   action:play.actionLabel,
   decision:play.decision,
   transition:{active:play.transitionT>0,seconds:+play.transitionT.toFixed(2),reason:play.possessionReason},
+  inbound:play.inbound?{
+    active:play.state.startsWith('INBOUND_'),stage:play.inbound.stage,
+    inbounder:play.inbound.inbounder.name,receiver:play.inbound.receiver.name,
+    rimSign:play.inbound.rimSign,
+    inbounderPosition:{x:+play.inbound.inbounder.pos.x.toFixed(2),z:+play.inbound.inbounder.pos.z.toFixed(2)},
+    behindBaseline:Math.abs(play.inbound.inbounder.pos.x)>HL,
+    completed:play.inboundsCompleted,last:play.lastInbound
+  }:{active:false,stage:null,completed:play.inboundsCompleted,last:play.lastInbound},
   tuneIn:{...tuneInMeta},
   shotQuality:play.shotQuality?{value:+play.shotQuality.toFixed(3),label:qualityLabel(play.shotQuality),context:play.shotContext}:null,
   possession:play.possessionNo,
@@ -1685,6 +1821,18 @@ window.__CYBERLIGA_HOOPS_TEST__={
     play.offense=idx;ball.holder=runner;ball.state='HELD';ball.vel.set(0,0,0);ball.pos.set(runner.pos.x,1,runner.pos.z);
     elFlash.classList.remove('show');flashTimer=0;
     callPossession('STEAL');setState('BRINGUP');play.transitionT=3.8;cut();return JSON.parse(window.render_game_to_text());
+  },
+  forceMadeBasket(side=play.offense,pts=2){
+    const idx=clamp(side|0,0,1),tm=teams[idx],opp=teams[1-idx],scorer=tm.players[2],rim=atkRim(tm);
+    phase='PLAY';hideCard();play.inbound=null;play.freeThrow=null;play.offense=idx;play.scorer=null;play.transitionT=0;lowCam=false;
+    tm.players.forEach((p,i)=>{p.pos.set(rim.x-tm.dir*(1.3+i*.72),0,(i-2)*1.45);p.vel.set(0,0,0);p.target.copy(p.pos);});
+    opp.players.forEach((p,i)=>{p.pos.set(rim.x-tm.dir*(2.0+i*.58),0,(i-2)*1.3+.32);p.vel.set(0,0,0);p.target.copy(p.pos);});
+    scorer.fga++;tm.fga++;play.lastPasser=null;play.lastPassAt=-99;
+    ball.holder=null;ball.passTo=null;ball.pending=null;ball.inbound=false;ball.state='SHOT';ball.lastTeam=idx;
+    ball.pos.set(rim.x,RIM_Y+.18,0);ball.vel.set(0,-6.2,0);ball.vy=0;
+    ball.shot={pts:pts===3?3:2,shooter:scorer,team:tm,bank:false,banked:false,quality:1,intendedMake:true,contest:0};
+    play.actionLabel='CLEAN MAKE · VERIFY BASELINE INBOUND';play.decision='BALL MUST CLEAR THE NET BEFORE THE RESTART';
+    setState('SHOT');updateGamePlan();cut();return JSON.parse(window.render_game_to_text());
   },
   fresh(){matchNo=Math.max(0,matchNo-1);newMatch();tuneInMeta.mode='forced-fresh';tuneInMeta.offsetSeconds=0;tuneInMeta.entryState='TIP-OFF';return JSON.parse(window.render_game_to_text());},
   state(){return JSON.parse(window.render_game_to_text());}
