@@ -287,7 +287,11 @@ const HOCKEY_TEAMS=HOCKEY_CONTENT.getTeams('hockey');
 const LEAGUE_TEAMS=HOCKEY_TEAMS.map(team=>{const hex=Number.parseInt(team.colors.primary.slice(1),16);return {name:team.name,code:team.code,css:team.colors.primary,kit:hex,glow:hex};});
 const FIXTURES=HOCKEY_CONTENT.createSeason('hockey','arena').rounds.flatMap(round=>round.matches.map(match=>[HOCKEY_TEAMS.findIndex(t=>t.id===match.homeId),HOCKEY_TEAMS.findIndex(t=>t.id===match.awayId)]));
 const ROSTERS=Object.fromEntries(HOCKEY_TEAMS.map(team=>[team.name,team.athletes.map(a=>a.name)])); // [goalie, C, W, W, D, D]
-let fixtureIdx = (parseInt(localStorage.getItem('cl_ice_fx')) || 0) % FIXTURES.length;
+const fixtureQuery = new URLSearchParams(location.search);
+const requestedFixture = parseInt(fixtureQuery.get('match') ?? fixtureQuery.get('fixture'), 10);
+let fixtureIdx = (Number.isFinite(requestedFixture) && requestedFixture >= 0
+  ? requestedFixture
+  : (parseInt(localStorage.getItem('cl_ice_fx'), 10) || 0)) % FIXTURES.length;
 let TEAM_A, TEAM_B;
 const ATT = [1, -1]; // team 0 attacks +x, team 1 attacks -x
 const ROLES = ['G','C','LW','RW','LD','RD'];
@@ -1518,19 +1522,20 @@ const camPos = new THREE.Vector3(0, 16, BZ + 21), camLook = new THREE.Vector3(0,
 let lastCamMode = 'broadcast';
 const tmpP = new THREE.Vector3(), tmpL = new THREE.Vector3();
 function cameraStep(dt) {
+  const portrait = innerWidth <= 700 && innerHeight > innerWidth*1.2;
   const rush = S.state === 'PLAY' ? players.find(p => p.breakaway && puck.carrier === p) : null;
   const mode = (S.state === 'GOAL_SEQ' && S.t < 3.1) ? 'over' : rush ? 'rush' : 'broadcast';
   if (mode === 'over') {
     const gx = S.scoredSide*GLX;
-    tmpP.set(gx*0.55, 30, 7); tmpL.set(gx*0.8, 0, 0);
+    tmpP.set(gx*(portrait?0.38:0.55), portrait?36:30, portrait?BZ+38:7); tmpL.set(gx*(portrait?0.62:0.8), 0, 0);
   } else if (mode === 'rush') {
     const d = ATT[rush.team];
-    tmpP.set(clamp(rush.x-d*5.5,-20,20), 11.2, BZ+14.5);
+    tmpP.set(clamp(rush.x-d*(portrait?7:5.5),-20,20), portrait?25:11.2, BZ+(portrait?39:14.5));
     tmpL.set(clamp(rush.x+d*4,-23,23), 0.6, rush.z*0.42);
   } else {
     S.push += ((Math.abs(puck.x) > BLX + 2 ? 1 : 0) - S.push)*dampK(1.7, dt); // zone push-in
-    tmpP.set(clamp(puck.x*0.72, -19, 19), 15.5 - S.push*3.2, BZ + 20.5 - S.push*5);
-    tmpL.set(clamp(puck.x*0.82, -22, 22), 0.8, puck.z*0.35);
+    tmpP.set(clamp(puck.x*(portrait?0.28:0.72), portrait?-9:-19, portrait?9:19), portrait?29:15.5 - S.push*3.2, BZ + (portrait?46:20.5 - S.push*5));
+    tmpL.set(clamp(puck.x*(portrait?0.42:0.82), portrait?-13:-22, portrait?13:22), 0.8, puck.z*0.35);
     if (S.cameraBeat > 0) {
       const weight = clamp(S.cameraBeat/0.5,0,1);
       tmpP.x += (S.cameraX*0.72-tmpP.x)*weight*0.42;
@@ -1547,7 +1552,7 @@ function cameraStep(dt) {
     camera.position.x += Math.sin(simClockTotal*71)*shake;
     camera.position.y += Math.cos(simClockTotal*57)*shake*0.35;
   }
-  const desiredFov = mode === 'rush' ? 35 : S.cameraBeat > 0 ? 38 : 40;
+  const desiredFov = portrait ? (mode === 'over' ? 72 : mode === 'rush' ? 70 : 74) : mode === 'rush' ? 35 : S.cameraBeat > 0 ? 38 : 40;
   camera.fov += (desiredFov-camera.fov)*dampK(7,dt); camera.updateProjectionMatrix();
   camera.lookAt(camLook);
 }

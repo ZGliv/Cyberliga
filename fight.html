@@ -347,7 +347,12 @@ const LEAGUE_TEAMS=COMBAT_TEAMS.map(team=>{const hex=Number.parseInt(team.colors
 // Star fighter + alternate come from the same world cast as the atlas and World Wire.
 const CLUB_FIGHTERS=COMBAT_TEAMS.map(team=>team.athletes.slice(0,2).map(a=>a.name));
 const FIXTURES=COMBAT_CONTENT.createSeason('combat','arena').rounds.flatMap(round=>round.matches.map(match=>[COMBAT_TEAMS.findIndex(t=>t.id===match.homeId),COMBAT_TEAMS.findIndex(t=>t.id===match.awayId)]));
-let fixtureIdx = (parseInt(localStorage.getItem('cl_fight_fx')) || 0) % FIXTURES.length;
+const fightQuery = new URLSearchParams(location.search);
+const requestedFixture = fightQuery.get('match') ?? fightQuery.get('fixture');
+const requestedFixtureNo = requestedFixture === null ? NaN : Number(requestedFixture);
+let fixtureIdx = Number.isFinite(requestedFixtureNo) && requestedFixtureNo >= 0
+  ? Math.trunc(requestedFixtureNo) % FIXTURES.length
+  : (parseInt(localStorage.getItem('cl_fight_fx')) || 0) % FIXTURES.length;
 
 // persistent fight records (W-L, KOs) — careers tracked for life
 let RECS = {};
@@ -1683,8 +1688,17 @@ function cameraStep(dt) {
     tmpL.set(0, RING_Y + 1, 0);
   } else {                                               // broadcast orbit, punch-in when leather flies
     const portrait=innerWidth<700;
-    const rad = (portrait?15.2:11.6) - punchHeat*(portrait?1.5:2.8), h = (portrait?6.8:5.6) - punchHeat*(portrait?.7:1.6);
-    tmpP.set(mx*0.4 + Math.cos(orbA)*rad, h, mz*0.4 + Math.sin(orbA)*rad);
+    const rad = (portrait?22:11.6) - punchHeat*(portrait?2:2.8), h = (portrait?8.5:5.6) - punchHeat*(portrait?.7:1.6);
+    // On a narrow screen, an arbitrary orbit can stack one boxer directly behind
+    // the other. Favor the closest side-on angle to the exchange so both bodies,
+    // guards, and punch paths remain distinct while the desktop orbit stays cinematic.
+    let cameraA=orbA;
+    if(portrait){
+      const lineA=Math.atan2(B.z-A.z,B.x-A.x);
+      cameraA=lineA+Math.PI/2;
+      if(Math.cos(cameraA-orbA)<0) cameraA+=Math.PI;
+    }
+    tmpP.set(mx*0.4 + Math.cos(cameraA)*rad, h, mz*0.4 + Math.sin(cameraA)*rad);
     tmpL.set(mx, RING_Y + 1.05, mz);
   }
   if (camCut) { camPos.copy(tmpP); camLook.copy(tmpL); camCut = false; }   // hard cut
@@ -1909,6 +1923,7 @@ document.addEventListener('visibilitychange', startDriver);
 startDriver();
 
 function resizeScene() {
+  camera.fov = innerWidth < 700 ? 56 : 42;
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
@@ -1924,6 +1939,7 @@ elPauseBtn.addEventListener('click',e=>{e.stopPropagation();togglePause();});
 elRematchBtn.addEventListener('click',e=>{e.stopPropagation();rematch();});
 elFullBtn.addEventListener('click',e=>{e.stopPropagation();toggleFullscreen();});
 addEventListener('resize',resizeScene);
+resizeScene();
 document.addEventListener('fullscreenchange',()=>{ resizeScene(); elFullBtn.textContent=document.fullscreenElement?'×':'F'; });
 addEventListener('keydown',e=>{
   if (e.metaKey || e.ctrlKey || e.altKey) return;

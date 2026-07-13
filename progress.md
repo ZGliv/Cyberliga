@@ -287,6 +287,26 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   `advanceTime`, and open/close GameHub with no console, page, or request errors. Mobile
   football, baseball, hockey, and basketball screenshots passed without horizontal overflow.
 
-## Next
-- Publish a Vercel preview from `codex/vercel-sports-revamp` for product review. Keep the
-  current production alias unchanged until the preview is approved.
+## World Game Browser / Mobile Arena Release — 2026-07-12
+- Replaced the one-link-per-sport selector with a true game browser. `ALL` is the default
+  network and exposes 24 simultaneous fixtures across all six leagues; each sport tab narrows
+  the drawer, globe markers, and route arcs to four selectable fixtures and eight club cities.
+- Mapped all 48 clubs to their actual world cities. Every fixture card has two city endpoints
+  and links directly to that matchup: canonical soccer match IDs, football fixture indices,
+  and explicit basketball, hockey, baseball, and combat match indices.
+- Added shareable league filters such as `world.html?sport=american-football`, browser-history
+  navigation, live soccer clock refreshes, and an inspectable world state reporting 24 games /
+  48 endpoints in ALL and 4 games / 8 endpoints in a league view.
+- Rebuilt the mobile world layout around a compact heading, horizontally scrollable league
+  rail, and contained game drawer so the globe remains visible instead of sitting beneath a
+  desktop-sized hero. 360x740, 390x844, and 1280x720 checks have no page overflow or errors.
+- Reframed all six playable arenas for phones: soccer uses a full portrait tactical pitch;
+  football holds the full play shape and play-call controls; basketball follows a readable
+  active half court; hockey keeps the full rink; baseball keeps plate-to-diamond action; and
+  combat holds both fighters, the ring, HUD, and controls in one side-on frame.
+- Added direct `?match=` fixture initialization to baseball, hockey, and combat while retaining
+  their saved-match fallbacks. The full 12-cell arena matrix (six sports at 390x844 and
+  1440x900) passed HTTP, route identity, text-state, overflow, console, and page-error checks.
+- Release gate passes `git diff --check`, 9 API tests, and all 989 project checks. The required
+  web-game client also confirms the football league deep link exposes exactly four games and
+  eight cities with no error artifact.

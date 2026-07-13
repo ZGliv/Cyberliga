@@ -1366,9 +1366,13 @@ function breakFlow(dt){
 function updateCamera(dt){
   let dp, dl;
   if(innerWidth<700&&phase==='PLAY'){
-    const dir=offT().dir,lead=play.state==='SHOT'||play.state==='DUNK'?5:3;
-    dp=V3(clamp(ball.pos.x-dir*13.5,-21,21),10.8,0);
-    dl=V3(clamp(ball.pos.x+dir*lead,-13,13),1.05,ball.pos.z*.28);
+    // A portrait baseline broadcast follows the active half court. The previous
+    // 104-degree full-court view technically fit the floor, but reduced the offense,
+    // defense, ball and rim to a tiny cluster at the far end of the phone.
+    const dir=offT().dir, rim=atkRim(offT());
+    const shot=play.state==='SHOT'||play.state==='MADE'||play.state==='DUNK';
+    dp=V3(clamp(ball.pos.x-dir*(shot ? 8 : 9),-18,18),shot ? 10.6 : 10.2,0);
+    dl=V3(lerp(ball.pos.x,rim.x,shot ? .55 : .42),shot ? 2.15 : 1.25,ball.pos.z*.28);
   } else if (phase!=='PLAY'){
     dp=V3(Math.sin(tGlobal*0.12)*17, 11.5, Math.cos(tGlobal*0.12)*17); dl=V3(0,1,0);
   } else if (lowCam){
@@ -1530,7 +1534,7 @@ window.__CYBERLIGA_HOOPS_TEST__={
   state(){return JSON.parse(window.render_game_to_text());}
 };
 function resizeView(){
-  camera.fov=innerWidth<700?104:44;
+  camera.fov=innerWidth<700?84:44;
   camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight); composer.setSize(innerWidth,innerHeight);
 }

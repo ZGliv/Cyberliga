@@ -98,6 +98,28 @@
   .sportbar a:hover,.sportbar a.active { background:#121619; }
   .sportbar b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.1em; }
 
+  /* Fixture network: one filter rail, then the real arena schedule. */
+  .liveboard { top:88px; width:min(440px,35vw); }
+  .filter-tabs { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:1px; margin-top:10px; background:var(--line); }
+  .filter-tab { min-width:0; min-height:38px; padding:0 5px; cursor:pointer; color:var(--muted); background:rgba(4,6,8,.9); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.08em; text-transform:uppercase; }
+  .filter-tab:hover,.filter-tab.active { color:#fff; background:#14191d; box-shadow:inset 0 -2px var(--c,#fff); }
+  .filter-tab.active { color:var(--c,#fff); }
+  .game-drawer { margin-top:1px; max-height:calc(100vh - 238px); overflow-y:auto; overscroll-behavior:contain; scrollbar-color:rgba(255,255,255,.28) transparent; }
+  .game-list { display:grid; gap:1px; background:var(--line); }
+  .fixture-card { --c:#fff; min-width:0; min-height:76px; display:grid; grid-template-columns:54px minmax(0,1fr) auto; align-items:center; gap:10px; padding:10px 12px; color:#fff; background:rgba(4,6,8,.93); border-left:2px solid transparent; transition:background .16s,border-color .16s; }
+  .fixture-card:hover,.fixture-card:focus-visible { background:#12171b; border-left-color:var(--c); }
+  .fixture-meta { color:var(--c); font:800 8px/1.15 'Barlow Condensed',sans-serif; letter-spacing:.12em; text-align:center; }
+  .fixture-meta b { display:block; margin-bottom:6px; padding:5px 2px; border:1px solid color-mix(in srgb,var(--c) 48%,transparent); font-size:9px; }
+  .fixture-meta span { color:var(--muted); }
+  .fixture-teams { min-width:0; }
+  .fixture-team { display:flex; align-items:baseline; gap:7px; min-width:0; }
+  .fixture-team + .fixture-team { margin-top:5px; }
+  .fixture-team strong { flex:0 0 34px; color:var(--c); font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.1em; }
+  .fixture-team span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:800 11px/1 'Barlow Condensed',sans-serif; letter-spacing:.055em; }
+  .fixture-enter { color:var(--muted); font:800 8px/1.25 'Barlow Condensed',sans-serif; letter-spacing:.12em; text-align:right; white-space:nowrap; }
+  .fixture-enter b { display:block; margin-top:5px; color:#fff; font-size:9px; }
+  .empty-games { padding:22px; color:var(--muted); background:rgba(4,6,8,.9); font:700 10px/1.4 'Barlow Condensed',sans-serif; letter-spacing:.12em; text-align:center; }
+
   .loading { position:fixed; inset:0; z-index:100; display:grid; place-items:center; background:#020304; transition:opacity .55s,visibility .55s; }
   .loading.done { opacity:0; visibility:hidden; }
   .loading p { color:var(--muted); font:700 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.22em; }
@@ -109,19 +131,20 @@
     .nav { gap:3px; }
     .nav a { min-height:34px; padding:0 8px; font-size:9px; }
     .nav .secondary,.nav .live { display:none; }
-    .intro { top:90px; left:18px; width:calc(100vw - 36px); transform:none; }
-    .intro h1 { font-size:49px; width:270px; }
-    .intro .lede,.intro .proof { display:none; }
-    .intro-actions { margin-top:17px; }
-    .intro-actions a { min-height:39px; padding:0 12px; font-size:8px; }
-    .liveboard { top:440px; left:18px; right:18px; bottom:auto; width:auto; }
-    .signal-card { display:none; }
-    .league-list { grid-template-columns:repeat(3,1fr); }
-    .league-row { display:block; min-height:67px; padding:8px 6px; text-align:center; }
-    .league-code { height:24px; border:0; }
-    .league-row b { margin-top:4px; font-size:9px; }
-    .league-row small { display:none; }
-    .league-state { display:block; margin-top:6px; text-align:center; font-size:7px; color:var(--c); }
+    .intro { top:76px; left:12px; width:calc(100vw - 24px); transform:none; }
+    .intro h1 { margin-top:7px; width:auto; font-size:30px; line-height:.88; letter-spacing:-.055em; }
+    .intro h1 span { display:none; }
+    .intro .lede,.intro .proof,.intro-actions { display:none; }
+    .liveboard { top:136px; left:10px; right:10px; bottom:auto; width:auto; }
+    .panel-label { padding:0 2px; }
+    .filter-tabs { display:flex; overflow-x:auto; scrollbar-width:none; }
+    .filter-tabs::-webkit-scrollbar { display:none; }
+    .filter-tab { flex:0 0 auto; min-width:58px; min-height:35px; padding:0 9px; font-size:7.5px; }
+    .game-drawer { max-height:235px; border-bottom:1px solid var(--line); }
+    .fixture-card { min-height:68px; grid-template-columns:45px minmax(0,1fr) auto; gap:8px; padding:8px; }
+    .fixture-meta b { margin-bottom:4px; padding:4px 1px; }
+    .fixture-team span { font-size:10px; }
+    .fixture-enter { font-size:7px; }
     .sportbar { display:none; }
     .frame { inset:7px; }
   }
@@ -143,23 +166,18 @@
 </header>
 
 <section class="intro">
-  <p class="eyebrow">WELCOME TO CYBERLIGA · SIX PLAYABLE SPORTS</p>
-  <h1>CHOOSE A SPORT. <span>ENTER THE ACTION.</span></h1>
-  <p class="lede">Watch a match, explore clubs and players, or switch sports at any time. Start with live soccer or choose any playable arena.</p>
+  <p class="eyebrow">24 GAMES · 48 CLUBS · ONE WORLD</p>
+  <h1>CHOOSE A GAME. <span>ENTER THE ACTION.</span></h1>
+  <p class="lede">Filter the world by sport, then enter any of 24 games already staged across the six Cyberliga leagues.</p>
   <div class="intro-actions"><a class="primary" id="hero-watch" href="index.html">WATCH LIVE SOCCER →</a><a href="#network">CHOOSE A SPORT ↓</a></div>
   <div class="proof"><div><b>6</b><span>SPORTS LEAGUES</span></div><div><b>48</b><span>CLUBS</span></div><div><b>416</b><span>ATHLETES</span></div></div>
 </section>
 
 <aside class="liveboard" id="network">
-  <div class="panel-label"><span><strong>CHOOSE A SPORT</strong> · <span data-cyberliga-presence>1 WATCHING · LOCAL</span></span><span id="round-label">6 SPORTS</span></div>
-  <div class="league-list" id="league-list"></div>
-  <section class="signal-card" id="signal-card">
-    <p class="sport" id="signal-sport"></p><h2 id="signal-name"></h2><p class="route" id="signal-route"></p><p class="copy" id="signal-copy"></p>
-    <div class="signal-actions"><a id="signal-watch" href="index.html">ENTER THE ARENA ↗</a><a id="signal-explore" href="league.html?sport=soccer">MEET THE LEAGUE</a><button id="share" type="button">COPY LINK</button></div>
-  </section>
+  <div class="panel-label"><span><strong>LIVE GAME NETWORK</strong> · <span data-cyberliga-presence>1 WATCHING · LOCAL</span></span><span id="round-label">24 GAMES</span></div>
+  <div class="filter-tabs" id="filter-tabs" role="tablist" aria-label="Filter games by sport"></div>
+  <div class="game-drawer" id="game-drawer"><div class="game-list" id="game-list"></div></div>
 </aside>
-
-<div class="sportbar" id="sportbar" aria-label="Cyberliga sports network"><span>NETWORK //</span></div>
 
 <script src="worlddata.js"></script>
 <script src="universe.js"></script>
@@ -172,72 +190,92 @@ import * as THREE from 'three';
 const U = window.CyberligaUniverse;
 let matches = U.liveMatches(Date.now());
 const LEAGUES = [
-  { id:'soccer', contentId:'soccer', code:'SCL', sport:'SOCCER', name:'THE COMMON GROUND', color:'#00e5ff', live:true,
-    state:'4 LIVE', hosts:[{city:'Tokyo',lat:35.6762,lon:139.6503},{city:'São Paulo',lat:-23.5505,lon:-46.6333}],
-    copy:'The canonical league. Eight clubs fill four fixtures on one seeded UTC timeline, so every screen joins the same match already in progress.',
-    href:()=>U.sharePath(matches[0]) },
-  { id:'gridiron', contentId:'american-football', code:'AMF', sport:'AMERICAN FOOTBALL', name:'THE SUNDAY ANIMAL', color:'#c8ff44', live:false,
-    state:'PLAYABLE', hosts:[{city:'Dallas',lat:32.7767,lon:-96.7970},{city:'Osaka',lat:34.6937,lon:135.5023}],
-    copy:'Six-on-six pressure football with collapsing pockets, violent route breaks, interceptions, and a full-field race after every catch.', href:()=> 'football.html' },
-  { id:'hoops', contentId:'basketball', code:'HPS', sport:'BASKETBALL', name:'THE HIGH ROOM', color:'#ff8a3d', live:false,
-    state:'PLAYABLE', hosts:[{city:'New York',lat:40.7128,lon:-74.0060},{city:'Manila',lat:14.5995,lon:120.9842}],
-    copy:'Four-on-four pace, violent transitions, and a vertical city circuit built for impossible finishes above the rim.', href:()=> 'hoops.html' },
-  { id:'ice', contentId:'hockey', code:'ICE', sport:'HOCKEY', name:'THE COLD ARGUMENT', color:'#78dfff', live:false,
-    state:'PLAYABLE', hosts:[{city:'Montréal',lat:45.5019,lon:-73.5674},{city:'Stockholm',lat:59.3293,lon:18.0686}],
-    copy:'A cold-weather circuit of speed, collisions, sudden-death pressure, and arenas that never fully stop shaking.', href:()=> 'hockey.html' },
-  { id:'diamond', contentId:'baseball', code:'BSB', sport:'BASEBALL', name:'THE LONG AFTERNOON', color:'#58ffb4', live:false,
-    state:'PLAYABLE', hosts:[{city:'Mexico City',lat:19.4326,lon:-99.1332},{city:'Seoul',lat:37.5665,lon:126.9780}],
-    copy:'A nocturnal baseball league where every pitch becomes a duel and every ball in play turns the whole field into a chase.', href:()=> 'baseball.html' },
-  { id:'fight', contentId:'combat', code:'FYT', sport:'COMBAT', name:'THE HANDMADE UNDERCARD', color:'#ff3d5a', live:false,
-    state:'PLAYABLE', hosts:[{city:'Lagos',lat:6.5244,lon:3.3792},{city:'Las Vegas',lat:36.1716,lon:-115.1391}],
-    copy:'Three-round fight nights with distinct styles, visible fatigue, scorecards, knockdowns, and no safe route to the final bell.', href:()=> 'fight.html' }
+  { id:'soccer', contentId:'soccer', code:'SCL', sport:'SOCCER', short:'SOCCER', color:'#00e5ff', live:true, arena:'index.html', query:'match' },
+  { id:'american-football', contentId:'american-football', code:'AMF', sport:'AMERICAN FOOTBALL', short:'FOOTBALL', color:'#c8ff44', live:false, arena:'football.html', query:'fixture' },
+  { id:'basketball', contentId:'basketball', code:'HPS', sport:'BASKETBALL', short:'HOOPS', color:'#ff8a3d', live:false, arena:'hoops.html', query:'match' },
+  { id:'hockey', contentId:'hockey', code:'ICE', sport:'HOCKEY', short:'HOCKEY', color:'#78dfff', live:false, arena:'hockey.html', query:'match' },
+  { id:'baseball', contentId:'baseball', code:'BSB', sport:'BASEBALL', short:'BASEBALL', color:'#58ffb4', live:false, arena:'baseball.html', query:'match' },
+  { id:'combat', contentId:'combat', code:'FYT', sport:'COMBAT', short:'COMBAT', color:'#ff3d5a', live:false, arena:'fight.html', query:'match' }
 ];
-let selected = LEAGUES[0];
+const CONTENT = window.CYBERLIGA_CONTENT;
+const CITY_COORDS = {
+  'Tokyo':[35.6762,139.6503],'Osaka':[34.6937,135.5023],'Berlin':[52.52,13.405],'London':[51.5074,-.1278],
+  'Sao Paulo':[-23.5505,-46.6333],'Valparaiso':[-33.0472,-71.6127],'Lagos':[6.5244,3.3792],'Marrakech':[31.6295,-7.9811],
+  'New Orleans':[29.9511,-90.0715],'Atlanta':[33.749,-84.388],'Chicago':[41.8781,-87.6298],'Minneapolis':[44.9778,-93.265],
+  'Dallas':[32.7767,-96.797],'Oakland':[37.8044,-122.2712],'Seattle':[47.6062,-122.3321],'Honolulu':[21.3099,-157.8581],
+  'New York':[40.7128,-74.006],'Toronto':[43.6532,-79.3832],'Manila':[14.5995,120.9842],'Melbourne':[-37.8136,144.9631],
+  'Dakar':[14.7167,-17.4677],'Medellin':[6.2442,-75.5812],'Belgrade':[44.7866,20.4489],'Istanbul':[41.0082,28.9784],
+  'Montreal':[45.5019,-73.5674],'Reykjavik':[64.1466,-21.9426],'Stockholm':[59.3293,18.0686],'Helsinki':[60.1699,24.9384],
+  'Sapporo':[43.0618,141.3545],'Anchorage':[61.2181,-149.9003],'Prague':[50.0755,14.4378],'Tromso':[69.6492,18.9553],
+  'Mexico City':[19.4326,-99.1332],'Havana':[23.1136,-82.3666],'Seoul':[37.5665,126.978],'Kyoto':[35.0116,135.7681],
+  'Santo Domingo':[18.4861,-69.9312],'San Juan':[18.4655,-66.1057],'Cape Town':[-33.9249,18.4241],'Auckland':[-36.8509,174.7645],
+  'Accra':[5.6037,-.187],'Bangkok':[13.7563,100.5018],'Tbilisi':[41.7151,44.8271],'Las Vegas':[36.1716,-115.1391],
+  'Tunis':[36.8065,10.1815],'Cebu':[10.3157,123.8854],'Lima':[-12.0464,-77.0428],'Liverpool':[53.4084,-2.9916]
+};
+const FILTERS=[{id:'all',short:'ALL',color:'#ffffff'},...LEAGUES];
+let activeFilter='all';
+let fixtureCards=[];
+let lastSoccerSlot=matches[0].slot;
 
-function routeText(league) {
-  return `${league.hosts[0].city.toUpperCase()} ↔ ${league.hosts[1].city.toUpperCase()}` +
-    (league.live ? ` · ROUND ${matches[0].round} · ${U.clock(matches[0].elapsedMs)}` : ' · EXHIBITION CIRCUIT');
+function placeFor(team){const coord=CITY_COORDS[team.city];return {city:team.city,lat:coord[0],lon:coord[1]};}
+function arenaHref(league,index,liveMatch){
+  if(league.live)return U.sharePath(liveMatch);
+  return `${league.arena}?${league.query}=${index}`;
 }
+function buildFixtureCards(){
+  const cards=[];
+  LEAGUES.forEach(league=>{
+    const teams=CONTENT.getTeams(league.contentId);
+    if(league.live){
+      matches.forEach((match,index)=>cards.push({league,index,home:match.home,away:match.away,liveMatch:match,href:arenaHref(league,index,match)}));
+      return;
+    }
+    if(league.id==='american-football'){
+      for(let index=0;index<4;index++)cards.push({league,index,home:teams[index*2],away:teams[index*2+1],href:arenaHref(league,index)});
+      return;
+    }
+    const round=CONTENT.createSeason(league.contentId,'arena').rounds[0];
+    round.matches.forEach((match,index)=>cards.push({league,index,home:teams.find(team=>team.id===match.homeId),away:teams.find(team=>team.id===match.awayId),href:arenaHref(league,index)}));
+  });
+  return cards;
+}
+fixtureCards=buildFixtureCards();
 
-function makeLeagueButton(league, compact=false) {
-  const link=document.createElement('a');link.href=league.href();link.style.setProperty('--c',league.color);
-  link.setAttribute('aria-label',`${league.sport}: enter ${league.live?'live match':'playable arena'}`);
-  if(compact){link.innerHTML=`<b>${league.code}</b>`;}
-  else {link.className='league-row';link.dataset.live=String(league.live);link.innerHTML=`<span class="league-code">${league.code}</span><span><b>${league.sport}</b><small>${league.name} · ${league.hosts[0].city} / ${league.hosts[1].city}</small></span><span class="league-state">${league.live?'WATCH LIVE →':'PLAY →'}</span>`;}
-  link.addEventListener('pointerenter',()=>selectLeague(league,false));
-  link.addEventListener('focus',()=>selectLeague(league,false));
+function makeFixtureCard(card){
+  const link=document.createElement('a');link.className='fixture-card';link.href=card.href;link.dataset.sport=card.league.id;link.dataset.index=String(card.index);link.style.setProperty('--c',card.league.color);
+  link.setAttribute('aria-label',`${card.league.sport}: ${card.home.name} versus ${card.away.name}`);
+  link.innerHTML=`<span class="fixture-meta"><b>${card.league.code}</b><span>GAME ${String(card.index+1).padStart(2,'0')}</span></span><span class="fixture-teams"><span class="fixture-team"><strong>${card.home.code}</strong><span>${card.home.city} · ${card.home.name}</span></span><span class="fixture-team"><strong>${card.away.code}</strong><span>${card.away.city} · ${card.away.name}</span></span></span><span class="fixture-enter">${card.league.live?`LIVE ${U.clock(card.liveMatch.elapsedMs)}`:'PLAYABLE'}<b>ENTER ↗</b></span>`;
+  link.addEventListener('pointerenter',()=>focusFixture(card));
+  link.addEventListener('focus',()=>focusFixture(card));
   return link;
 }
-
-document.getElementById('league-list').replaceChildren(...LEAGUES.map(league=>makeLeagueButton(league)));
-document.getElementById('sportbar').append(...LEAGUES.map(league=>makeLeagueButton(league,true)));
-
-function selectLeague(league, fly) {
-  selected=league;document.documentElement.style.setProperty('--club',league.color);
-  document.getElementById('signal-sport').textContent=`${league.sport} · ${league.live?'CANONICAL LIVE':'EXHIBITION CIRCUIT'}`;
-  document.getElementById('signal-name').textContent=league.name;
-  document.getElementById('signal-route').textContent=routeText(league);
-  document.getElementById('signal-copy').textContent=league.copy;
-  document.getElementById('signal-watch').href=league.href();
-  document.getElementById('signal-watch').textContent=league.live?'JOIN THE LIVE MATCH ↗':'ENTER THE EXHIBITION ↗';
-  document.getElementById('signal-explore').href=`league.html?sport=${encodeURIComponent(league.contentId)}`;
-  document.querySelectorAll('.league-row').forEach((button,i)=>button.classList.toggle('active',LEAGUES[i]===league));
-  document.querySelectorAll('#sportbar a').forEach((button,i)=>button.classList.toggle('active',LEAGUES[i]===league));
-  document.querySelectorAll('.marker').forEach(button=>button.classList.toggle('selected',button.dataset.league===league.id));
-  if(fly)flyTo(league.hosts[0]);
+function visibleCards(){return activeFilter==='all'?fixtureCards:fixtureCards.filter(card=>card.league.id===activeFilter);}
+function renderGames(){document.getElementById('game-list').replaceChildren(...visibleCards().map(makeFixtureCard));}
+function focusFixture(card){
+  document.querySelectorAll('.marker').forEach(label=>label.classList.toggle('selected',label.dataset.team===card.home.id||label.dataset.team===card.away.id));
+  flyTo(placeFor(card.home));
 }
-
-function tickNetwork() {
-  matches=U.liveMatches(Date.now());document.getElementById('round-label').textContent=`6 LEAGUES · ROUND ${matches[0].round}`;
-  document.getElementById('watch-primary').href=U.sharePath(matches[0]);
-  document.getElementById('hero-watch').href=U.sharePath(matches[0]);
-  if(selected.live){document.getElementById('signal-route').textContent=routeText(selected);document.getElementById('signal-watch').href=selected.href();}
+function setFilter(next,{push=false}={}){
+  const valid=FILTERS.some(filter=>filter.id===next)?next:'all';activeFilter=valid;
+  const definition=FILTERS.find(filter=>filter.id===valid);document.documentElement.style.setProperty('--club',definition.color);
+  document.querySelectorAll('.filter-tab').forEach(button=>{const on=button.dataset.sport===valid;button.classList.toggle('active',on);button.setAttribute('aria-selected',String(on));});
+  document.getElementById('round-label').textContent=`${visibleCards().length} GAMES · ${visibleCards().length*2} CITIES`;
+  renderGames();document.getElementById('game-drawer').scrollTop=0;
+  if(typeof markers!=='undefined')markers.forEach(marker=>{marker.filtered=valid!=='all'&&marker.league.id!==valid;marker.label.classList.remove('selected');});
+  if(typeof routes!=='undefined')routes.forEach(route=>route.mesh.visible=valid==='all'||route.league.id===valid);
+  if(push){const url=new URL(location.href);if(valid==='all')url.searchParams.delete('sport');else url.searchParams.set('sport',valid);history.pushState({sport:valid},'',url);}
 }
-
-document.getElementById('share').addEventListener('click', async () => {
-  const button = document.getElementById('share');
-  try { await navigator.clipboard.writeText(location.href); button.textContent = 'COPIED'; setTimeout(() => button.textContent = 'COPY LINK', 1200); } catch (_) {}
-});
+const tabs=document.getElementById('filter-tabs');
+tabs.replaceChildren(...FILTERS.map(filter=>{const button=document.createElement('button');button.type='button';button.className='filter-tab';button.dataset.sport=filter.id;button.role='tab';button.style.setProperty('--c',filter.color);button.textContent=filter.short;button.addEventListener('click',()=>setFilter(filter.id,{push:true}));return button;}));
+addEventListener('popstate',()=>setFilter(new URLSearchParams(location.search).get('sport')||'all'));
+function tickNetwork(){
+  matches=U.liveMatches(Date.now());
+  document.getElementById('watch-primary').href=U.sharePath(matches[0]);document.getElementById('hero-watch').href=U.sharePath(matches[0]);
+  const soccerCards=fixtureCards.filter(card=>card.league.id==='soccer');
+  matches.forEach((match,index)=>{const card=soccerCards[index];card.liveMatch=match;card.home=match.home;card.away=match.away;card.href=U.sharePath(match);});
+  if(activeFilter==='all'||activeFilter==='soccer')renderGames();
+  lastSoccerSlot=matches[0].slot;
+}
 
 const canvas = document.getElementById('globe');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' });
@@ -278,23 +316,25 @@ scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xaab8c7,size
 
 function point(place, lift=0) { const lat=THREE.MathUtils.degToRad(place.lat), lon=THREE.MathUtils.degToRad(place.lon), radius=R+lift; return new THREE.Vector3(radius*Math.cos(lat)*Math.cos(lon),radius*Math.sin(lat),-radius*Math.cos(lat)*Math.sin(lon)); }
 const markers = [];
+const routes = [];
 const labelRoot = document.getElementById('labels');
-LEAGUES.forEach(league => league.hosts.forEach((host,hostIndex) => {
+fixtureCards.forEach(card => [card.home,card.away].forEach((team,hostIndex) => {
+  const league=card.league,host=placeFor(team);
   const group=new THREE.Group();const pos=point(host,.025);group.position.copy(pos);group.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),pos.clone().normalize());
   const color=new THREE.Color(league.color);
   const stem=new THREE.Mesh(new THREE.CylinderGeometry(.012,.025,.17,8),new THREE.MeshBasicMaterial({color}));stem.position.y=.08;group.add(stem);
   const head=new THREE.Mesh(new THREE.SphereGeometry(.045,14,10),new THREE.MeshBasicMaterial({color}));head.position.y=.18;group.add(head);
   const halo=new THREE.Mesh(new THREE.RingGeometry(.06,.085,28),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.7,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.008;group.add(halo);
   planet.add(group);
-  const label=document.createElement('a');label.href=league.href();label.className='marker';label.dataset.league=league.id;label.style.setProperty('--c',league.color);label.textContent=`${league.code} · ${host.city.toUpperCase()}`;label.setAttribute('aria-label',`Open ${league.sport} arena from ${host.city}`);label.addEventListener('pointerenter',()=>selectLeague(league,true));labelRoot.appendChild(label);
-  markers.push({league,host,hostIndex,group,halo,label});
+  const label=document.createElement('a');label.href=card.href;label.className='marker';label.dataset.league=league.id;label.dataset.team=team.id;label.style.setProperty('--c',league.color);label.textContent=`${league.code} · ${team.code} · ${host.city.toUpperCase()}`;label.setAttribute('aria-label',`Open ${league.sport}: ${card.home.name} versus ${card.away.name}`);label.addEventListener('pointerenter',()=>focusFixture(card));labelRoot.appendChild(label);
+  markers.push({league,card,team,host,hostIndex,group,halo,label,filtered:false});
 }));
 
-LEAGUES.forEach(league => {
-  const a=point(league.hosts[0],.035).normalize(),b=point(league.hosts[1],.035).normalize();
+fixtureCards.forEach(card => {
+  const league=card.league,a=point(placeFor(card.home),.035).normalize(),b=point(placeFor(card.away),.035).normalize();
   let mid=a.clone().add(b);if(mid.lengthSq()<.05)mid=new THREE.Vector3(0,1,0);mid.normalize().multiplyScalar(R*1.26);
   const curve=new THREE.QuadraticBezierCurve3(a.clone().multiplyScalar(R*1.02),mid,b.clone().multiplyScalar(R*1.02));
-  const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,64,.008,6,false),new THREE.MeshBasicMaterial({color:league.color,transparent:true,opacity:league.live ? .58 : .26,blending:THREE.AdditiveBlending}));planet.add(tube);
+  const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,64,.008,6,false),new THREE.MeshBasicMaterial({color:league.color,transparent:true,opacity:league.live ? .58 : .31,blending:THREE.AdditiveBlending}));planet.add(tube);routes.push({league,card,mesh:tube});
 });
 
 let targetRotation = null;
@@ -308,18 +348,19 @@ canvas.addEventListener('wheel',event=>{event.preventDefault();camera.position.z
 function updateLabels(now) {
   const view = new THREE.Vector3().subVectors(camera.position,planet.position).normalize();
   markers.forEach(marker => {
+    if(marker.filtered){marker.group.visible=false;marker.label.classList.remove('visible');return;}
     const world = marker.group.localToWorld(new THREE.Vector3(0,.23,0));
     const front = world.clone().sub(planet.position).normalize().dot(view)>.08;
     const projected = world.clone().project(camera);
     const sx=(projected.x*.5+.5)*innerWidth,sy=(-projected.y*.5+.5)*innerHeight;
     const protectedUI=innerWidth<700
-      ? sy<310 || sy>innerHeight-118
+      ? sy<390 || sy>innerHeight-82
       : sy<76 || (sx<540&&sy<485) || sx>innerWidth-420 || sy>innerHeight-92;
     const visible = front && !protectedUI && Math.abs(projected.x)<1.08 && Math.abs(projected.y)<1.08;
     marker.group.visible=visible;
     marker.label.classList.toggle('visible',visible);
     if(visible){marker.label.style.left=`${sx}px`;marker.label.style.top=`${sy}px`;}
-    const active=marker.league===selected,live=marker.league.live;
+    const active=marker.label.classList.contains('selected'),live=marker.league.live;
     marker.halo.scale.setScalar(active?1.28+Math.sin(now*.004)*.18:live?1.12+Math.sin(now*.004)*.1:1);
     marker.halo.material.opacity=active ? .9 : live ? .72 : .38;
   });
@@ -327,9 +368,9 @@ function updateLabels(now) {
 let last=performance.now();
 function render(now){requestAnimationFrame(render);const dt=Math.min((now-last)/1000,.05);last=now;if(targetRotation){planet.rotation.x=THREE.MathUtils.lerp(planet.rotation.x,targetRotation.x,1-Math.exp(-3.4*dt));let dy=((targetRotation.y-planet.rotation.y+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;planet.rotation.y+=dy*(1-Math.exp(-3.4*dt));if(Math.abs(dy)<.003)targetRotation=null;}else if(!down&&now-lastMove>2200&&!matchMedia('(prefers-reduced-motion:reduce)').matches){planet.rotation.y+=dt*.025;}clouds.rotation.y+=dt*.007;updateLabels(now);renderer.render(scene,camera);}
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<700?1.35:1.75));renderer.setSize(innerWidth,innerHeight,false);} addEventListener('resize',resize);resize();
-tickNetwork();selectLeague(selected,false);requestAnimationFrame(render);setTimeout(()=>document.getElementById('loading').classList.add('done'),260);
+tickNetwork();setFilter(new URLSearchParams(location.search).get('sport')||'all');requestAnimationFrame(render);setTimeout(()=>document.getElementById('loading').classList.add('done'),260);
 setInterval(tickNetwork,1000);
-window.render_game_to_text=()=>JSON.stringify({screen:'world',selectedLeague:{id:selected.id,sport:selected.sport,name:selected.name,state:selected.state},canonicalSoccer:{round:matches[0].round,signals:matches.map(match=>({id:match.id,home:match.home.name,away:match.away.name,elapsed:U.clock(match.elapsedMs)}))},leagues:LEAGUES.map(league=>({id:league.id,sport:league.sport,name:league.name,state:league.state,hosts:league.hosts.map(host=>host.city)}))});
+window.render_game_to_text=()=>JSON.stringify({screen:'world',activeFilter,fixtureCount:visibleCards().length,cityEndpointCount:visibleCards().length*2,totalFixtureCount:fixtureCards.length,totalCityEndpointCount:markers.length,coordinateSystem:'globe latitude/longitude; fixture drawer top to bottom',fixtures:visibleCards().map(card=>({sport:card.league.id,index:card.index,home:card.home.name,away:card.away.name,cities:[card.home.city,card.away.city],href:card.href})),filters:FILTERS.map(filter=>filter.id),canonicalSoccer:{round:matches[0].round,signals:matches.map(match=>({id:match.id,home:match.home.name,away:match.away.name,elapsed:U.clock(match.elapsedMs)}))}});
 window.advanceTime=ms=>{planet.rotation.y+=ms*.000025;updateLabels(performance.now()+ms);renderer.render(scene,camera);};
 </script>
 </body>
