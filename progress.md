@@ -255,3 +255,38 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   All 416 profiles, all six replay sports, the 2D 11v11 football reset, hockey crease/equipment,
   rank triggers, desktop/mobile routes, and navigation passed independent browser/runtime QA.
 - Release candidate passes 9 API tests plus 989 application/data/route/navigation checks.
+
+## Vercel Multi-Sport Arena Revamp — 2026-07-12
+- Current user request: continue from the promising production deployment rather than the
+  rejected soccer-only remake; rebuild football as a blob-character broadcast, polish the
+  baseball hitter/catcher/pitch cadence, connect hockey equipment and add real shots/check
+  recoveries, narrow and separate basketball bodies, and improve every arena crowd.
+- Traced `https://cyberliga-ten.vercel.app` to production commit `03b9444` and created the
+  isolated `codex/vercel-sports-revamp` branch/worktree from that exact source. The unrelated
+  dirty soccer rebuild remains untouched in the original worktree.
+- Football retains the deterministic 11v11 down/distance/play-call simulation but now renders
+  a Three.js stadium with 22 padded blob athletes, routes, LOS/gain markers, ball flight and
+  contact effects, crowd, stable desktop/mobile cameras, and a preserved 2D fallback. A
+  negative first-frame delta that could throw the camera out of the stadium was caught during
+  the second audit and fixed by clamping RAF time; delayed canvas sampling now proves real 3D
+  pixels and stable camera positions.
+- Baseball now has a side-on batter, hands/arms and a hand-linked bat, readable catcher/umpire
+  equipment, early/late/chase/check whiffs, fouls and contact timing, slower at-bat beats, and
+  explicit BALL/CALLED STRIKE/WHIFF/FOUL/CONTACT callouts. Forced outcomes, a 1200-second soak,
+  desktop/mobile framing, and same-seed runs passed.
+- Hockey now uses connected shaft/blade/toe assemblies and two visible gloves, favors shooting
+  before crease entry, adds lifted slap shots and mph callouts, and models checked skaters
+  falling, sliding, getting up, and rejoining at reduced speed. One-timers, goals, checks,
+  mobile framing, and crowd placards passed forced visual QA.
+- Basketball role scales are materially narrower while height remains role-specific; body-
+  radius separation plus positional correction keeps live-drive opponents at least 1.026 court
+  units apart in the QA scenario. Defensive rebounds now trigger EARLY DRAG / RUN WIDE LANES,
+  a dashed action route shows the set, and the four-sided bowl reports 566 spectators.
+- Final integration gate: `git diff --check`, 9 API tests, and all 989 project checks pass.
+  Desktop browser smokes for all four arenas parse `render_game_to_text`, execute
+  `advanceTime`, and open/close GameHub with no console, page, or request errors. Mobile
+  football, baseball, hockey, and basketball screenshots passed without horizontal overflow.
+
+## Next
+- Publish a Vercel preview from `codex/vercel-sports-revamp` for product review. Keep the
+  current production alias unchanged until the preview is approved.

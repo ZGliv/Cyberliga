@@ -88,6 +88,17 @@
   #flash.show #flashtext { animation:slam .45s cubic-bezier(.2,1.6,.3,1); }
   @keyframes slam { 0%{ transform:scale(2.3); opacity:0; } 100%{ transform:scale(1); opacity:1; } }
   #flashsub { font-family:'Rajdhani'; font-weight:700; font-size:19px; letter-spacing:6px; color:rgba(255,255,255,.88); margin-top:6px; }
+  #pitchcall {
+    position:absolute; left:50%; top:51%; z-index:52; min-width:220px; padding:8px 18px 7px;
+    transform:translate(-50%,-50%) scale(.84); opacity:0; text-align:center;
+    border:1px solid rgba(255,255,255,.2); border-radius:999px; pointer-events:none;
+    background:linear-gradient(180deg,rgba(7,13,29,.98),rgba(2,4,13,.95));
+    box-shadow:0 10px 32px rgba(0,0,0,.58),0 0 30px var(--call,#58ffb4),inset 0 1px rgba(255,255,255,.1);
+    transition:opacity .12s,transform .18s cubic-bezier(.2,1.45,.35,1),border-color .15s;
+  }
+  #pitchcall.show { opacity:1; transform:translate(-50%,-50%) scale(1); border-color:var(--call,#58ffb4); }
+  #pitchcall strong { display:block; font:900 18px/1 'Orbitron'; letter-spacing:4px; color:var(--call,#fff); text-shadow:0 0 14px var(--call,#58ffb4); }
+  #pitchcall span { display:block; margin-top:4px; font:700 11px/1 'Rajdhani'; letter-spacing:2.4px; color:#f2fffa; }
 
   #ticker {
     position:absolute; bottom:0; left:0; right:0; height:34px; display:flex; align-items:center; overflow:hidden;
@@ -204,6 +215,9 @@
     #flash { z-index:45; }
     #flashtext { max-width:100vw; font-size:clamp(38px, 13vw, 68px); letter-spacing:5px; line-height:.98; text-align:center; overflow-wrap:anywhere; }
     #flashsub { max-width:calc(100vw - 28px); font-size:14px; letter-spacing:2.6px; line-height:1.15; text-align:center; padding:0 16px; }
+    #pitchcall { top:46%; min-width:190px; max-width:calc(100vw - 28px); padding:7px 14px 6px; }
+    #pitchcall strong { font-size:15px; letter-spacing:2.8px; }
+    #pitchcall span { font-size:10px; letter-spacing:1.6px; }
     #bigcard { z-index:80; padding:12px; }
     #bigcard .panel {
       min-width:0; width:min(100%, 430px); max-height:calc(100vh - 24px); max-height:calc(100dvh - 24px);
@@ -268,6 +282,7 @@
     <div class="gp-meter" title="Pitcher workload"><i id="gpFatigue"></i></div>
     <div id="pitchtrail" aria-label="Current at-bat pitch sequence"><span class="pitch-empty">AWAITING FIRST PITCH</span></div>
   </aside>
+  <div id="pitchcall" role="status" aria-live="polite"><strong id="pitchcalltext"></strong><span id="pitchcallsub"></span></div>
   <div id="flash"><div id="flashtext"></div><div id="flashsub"></div></div>
   <div id="ticker"><div id="tickerlabel">DIAMOND</div><div id="tickertext"></div></div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
@@ -330,7 +345,7 @@ let fixtureIdx = (parseInt(localStorage.getItem('cl_dia_fx')) || 0) % FIXTURES.l
 
 // fielding spots: P C 1B 2B SS 3B LF CF RF
 const SPOTS = [
-  { x:MOUND_X, z:0 }, { x:-1.7, z:0 },
+  { x:MOUND_X, z:0 }, { x:-1.48, z:0 },
   { x:10.6, z:10.2 }, { x:13.6, z:4.9 }, { x:13.6, z:-4.9 }, { x:10.6, z:-10.2 },
   { x:24.5*Math.cos(-0.52), z:24.5*Math.sin(-0.52) }, { x:26.5, z:0 }, { x:24.5*Math.cos(0.52), z:24.5*Math.sin(0.52) },
 ];
@@ -710,10 +725,18 @@ const elCard=$('bigcard'), elPanel=$('cardpanel'), elPlayStatus=$('playstatus');
 const elPauseBtn=$('pausebtn'), elRematchBtn=$('rematchbtn'), elFullBtn=$('fullbtn');
 const elGpPitch=$('gpPitch'), elGpIntent=$('gpIntent'), elGpApproach=$('gpApproach'), elGpDefense=$('gpDefense'), elGpFatigue=$('gpFatigue');
 const elPitchTrail=$('pitchtrail');
+const elPitchCall=$('pitchcall'), elPitchCallText=$('pitchcalltext'), elPitchCallSub=$('pitchcallsub');
 let flashTimer=0;
 function flashMsg(big, sub, color){
   elFT.textContent=big; elFS.textContent=sub; elFlash.style.setProperty('--fc',color);
   elFlash.classList.add('show'); flashTimer=1.7;
+}
+const CALL_COLORS={ball:'#58ffb4',strike:'#ff5e75',foul:'#ffd34d',contact:'#37e0ff',live:'#f2fffa'};
+function showPitchCall(label,detail='',tone='live',seconds=1.25){
+  S.callLabel=label; S.callDetail=detail; S.callTone=tone; S.callT=seconds;
+  elPitchCallText.textContent=label; elPitchCallSub.textContent=detail;
+  elPitchCall.style.setProperty('--call',CALL_COLORS[tone]||CALL_COLORS.live);
+  elPitchCall.classList.add('show');
 }
 let tickerQ=[], tickerX=innerWidth;
 elTicker.textContent='WELCOME TO THE CYBERLIGA DIAMOND DOME — FULLY AUTONOMOUS AI BASEBALL — NO HUMAN SIGNS, NO STOLEN ONES EITHER — SEASON 2077 EXHIBITION ERA';
@@ -747,10 +770,16 @@ function addBaseballGear(rig, role, color){
   const brim=new THREE.Mesh(new THREE.BoxGeometry(.34,.045,.22),dark); brim.position.set(0,2.08,.24);
   gear.add(crown,brim);
   const glove=new THREE.Mesh(new THREE.SphereGeometry(role==='1B'? .23:.18,8,7),leather);
-  glove.scale.set(1.25,.85,.55); glove.position.set(-.43,1.14,.05); gear.add(glove);
+  glove.scale.set(1.25,.85,.55); glove.position.set(-.43,1.14,.05); glove.userData.fieldOnly=true; gear.add(glove);
   if(role==='C'){
-    const mask=new THREE.Mesh(new THREE.TorusGeometry(.3,.035,6,10),dark); mask.position.set(0,1.99,.18); mask.rotation.x=Math.PI/2; gear.add(mask);
-    const chest=new THREE.Mesh(new THREE.BoxGeometry(.56,.58,.12),dark); chest.position.set(0,1.16,.35); gear.add(chest);
+    const mask=new THREE.Mesh(new THREE.TorusGeometry(.3,.035,6,10),dark); mask.position.set(0,1.99,.18); mask.rotation.x=Math.PI/2; mask.userData.fieldOnly=true; gear.add(mask);
+    const chest=new THREE.Mesh(new THREE.BoxGeometry(.58,.6,.12),dark); chest.position.set(0,1.16,.35); chest.userData.fieldOnly=true; gear.add(chest);
+    for(const sx of [-1,1]){
+      const shin=new THREE.Mesh(new THREE.CapsuleGeometry(.095,.38,4,8),dark);
+      shin.position.set(sx*.22,.48,.29); shin.rotation.z=sx*.08; shin.userData.fieldOnly=true; gear.add(shin);
+    }
+    const throat=new THREE.Mesh(new THREE.BoxGeometry(.24,.18,.08),club);
+    throat.position.set(0,1.62,.34); throat.rotation.x=-.22; throat.userData.fieldOnly=true; gear.add(throat);
   }
   if(role==='P'){
     const stripe=new THREE.Mesh(new THREE.BoxGeometry(.1,.68,.05),club); stripe.position.set(.18,1.2,.42); gear.add(stripe);
@@ -777,14 +806,24 @@ function disposeClubs(){
 // umpire
 const ump=buildBlobRig({ kitColor:0x39414f, glowColor:0xffb13d });
 scene.add(ump.group);
-ump.group.position.set(-2.7,0,0.7); ump.group.rotation.y=Math.PI/2+0.5;
+ump.group.position.set(-2.58,0,-0.08); ump.group.rotation.y=Math.PI/2;
+const umpGear=new THREE.Group();
+{
+  const armor=new THREE.MeshStandardMaterial({color:0x111722,roughness:.68,metalness:.2});
+  const trim=new THREE.MeshStandardMaterial({color:0xffb13d,roughness:.5,emissive:0xff8c26,emissiveIntensity:.32});
+  const chest=new THREE.Mesh(new THREE.BoxGeometry(.62,.54,.13),armor); chest.position.set(0,1.22,.36); umpGear.add(chest);
+  const mask=new THREE.Mesh(new THREE.TorusGeometry(.31,.035,6,10),armor); mask.position.set(0,2,.19); mask.rotation.x=Math.PI/2; umpGear.add(mask);
+  const indicator=new THREE.Mesh(new THREE.BoxGeometry(.12,.18,.08),trim); indicator.position.set(.35,1.36,.36); umpGear.add(indicator);
+  ump.group.add(umpGear);
+}
 
 // ---------- match state ----------
 const S={ state:'SETUP', t:0, inning:1, half:0, outs:0, balls:0, strikes:0,
   bases:[null,null,null],      // runner refs at 1B/2B/3B
   batter:null, pitchPlan:null, play:null, throwPlan:null, runnersDone:false,
   scoreFlash:0, camMode:'plate', camCut:true, homerPan:0, lastState:'', clipMoment:'', clipT:0, clips:[],
-  approach:'READ & REACT', defense:'STRAIGHT UP', intent:'ESTABLISH THE ZONE', lastPitch:null, pitchHistory:[], forceNext:null, playLog:[] };
+  approach:'READ & REACT', defense:'STRAIGHT UP', intent:'ESTABLISH THE ZONE', lastPitch:null, pitchHistory:[], forceNext:null, playLog:[],
+  callLabel:'', callDetail:'', callTone:'live', callT:0 };
 let paused=false;
 function logPlay(type,detail={}){
   S.playLog.push({type,inning:S.inning,half:S.half,outs:S.outs,score:teams.map(t=>t.runs),...detail});
@@ -863,6 +902,7 @@ function setupMatch(){
   S.batter=null; S.play=null; S.halfRuns=0; S.stuckT=0; S.lastState='';
   S.clipMoment=''; S.clipT=0; S.clips=[];
   S.approach='READ & REACT'; S.defense='STRAIGHT UP'; S.intent='ESTABLISH THE ZONE'; S.lastPitch=null; S.pitchHistory=[]; S.forceNext=null; S.playLog=[];
+  S.callLabel=''; S.callDetail=''; S.callTone='live'; S.callT=0; elPitchCall.classList.remove('show');
   applyTeamHUD(); hideCard();
   say(`FIRST PITCH AT THE DIAMOND DOME — ${TEAM_A.name} VS ${TEAM_B.name} — ${INNINGS} INNINGS OF FULLY AUTONOMOUS BASEBALL`);
   flashMsg('PLAY BALL', `${TEAM_A.name} VS ${TEAM_B.name}`, '#58ffb4');
@@ -906,7 +946,7 @@ function snapAll(){
   for (const t of teams) for (const p of t.players){
     const s=dutySpot(p);
     p.x=s.x; p.z=s.z; p.vx=p.vz=0; p.tx=s.x; p.tz=s.z;
-    p.heading=Math.atan2(MOUND_X-p.x, -p.z)||0;
+    p.heading=p.duty==='batter'?Math.PI:(Math.atan2(MOUND_X-p.x, -p.z)||0);
   }
 }
 const allPlayers=()=>teams[0].players.concat(teams[1].players);
@@ -944,8 +984,8 @@ function updatePlayers(dt){
     if (p.air){ p.jumpV-=26*dt; p.jumpY+=p.jumpV*dt; if (p.jumpY<=0){ p.jumpY=0; p.air=false; } }
     const sp=Math.hypot(p.vx,p.vz);
     let face;
-    if (p.duty==='batter' && (S.state==='SETUP'||S.state==='WINDUP'||S.state==='PITCH'))
-      face=Math.PI/2; // square to the mound, side-on stance reads from the plate cam
+    if (p.duty==='batter' && (S.state==='SETUP'||S.state==='WINDUP'||S.state==='PITCH'||S.state==='RESOLVE'))
+      face=Math.PI; // chest faces the plate; the lead shoulder and eyes point toward the mound
     else face = sp>0.7 ? Math.atan2(p.vx,p.vz) : Math.atan2(ball.pos.x-p.x, ball.pos.z-p.z);
     p.heading=lerpAngle(p.heading, face, dampK(8,dt));
     p.rig.group.position.set(p.x, p.jumpY, p.z);
@@ -953,16 +993,56 @@ function updatePlayers(dt){
     p.rig.update(dt, clamp(sp/RUNSPD,0,1), { turn:0 });
   }
   // umpire faces the play
+  ump.group.rotation.y=Math.PI/2;
   ump.update(dt, 0);
 }
 
-// ---------- bat (glowing prop so the swing reads from the plate cam) ----------
-const bat = new THREE.Group(); bat.rotation.order = 'YZX';
-{
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.07, 1.45, 8),
-    new THREE.MeshStandardMaterial({ color:0x1a2030, roughness:0.35, metalness:0.3, emissive:0x58ffb4, emissiveIntensity:0.9 }));
-  m.rotation.z = -Math.PI/2; m.position.x = 0.72; bat.add(m);
-  scene.add(bat); bat.visible = false;
+// ---------- hand-linked batting rig ----------
+// The classic blobs have no shared limb mesh, so baseball authors its own arms and places
+// the bat handle at their joined hands. This keeps the prop attached through load, contact,
+// check swing and follow-through instead of letting it emerge from the shoulder.
+const batMat=new THREE.MeshStandardMaterial({color:0x1a2030,roughness:.34,metalness:.3,emissive:0x58ffb4,emissiveIntensity:.86});
+const armMat=new THREE.MeshStandardMaterial({color:0xdcebe2,roughness:.58,metalness:.04});
+const handMat=new THREE.MeshStandardMaterial({color:0x101724,roughness:.68,emissive:0x58ffb4,emissiveIntensity:.18});
+const bat=new THREE.Mesh(new THREE.CylinderGeometry(.075,.045,1.5,10),batMat); scene.add(bat); bat.visible=false;
+const batKnob=new THREE.Mesh(new THREE.SphereGeometry(.085,10,8),batMat); scene.add(batKnob); batKnob.visible=false;
+const battingArms=[0,1].map(()=>{ const m=new THREE.Mesh(new THREE.CylinderGeometry(.075,.09,1,8),armMat); scene.add(m); m.visible=false; return m; });
+const battingHands=[0,1].map(()=>{ const m=new THREE.Mesh(new THREE.SphereGeometry(.11,10,8),handMat); scene.add(m); m.visible=false; return m; });
+const segUp=V3(0,1,0), poseA=V3(), poseB=V3(), poseC=V3(), poseD=V3();
+function placeSegment(mesh,a,b){
+  poseD.copy(b).sub(a); const len=Math.max(.001,poseD.length());
+  mesh.position.copy(a).addScaledVector(poseD,.5); mesh.scale.set(1,len,1);
+  mesh.quaternion.setFromUnitVectors(segUp,poseD.normalize());
+}
+function smooth01(v){ const x=clamp(v,0,1); return x*x*(3-2*x); }
+function mixPose(out,a,b,k){ return out.copy(a).lerp(b,smooth01(k)); }
+function battingPoseLocal(style,t){
+  const readyH=V3(.34,1.48,-.28), loadH=V3(.5,1.55,-.3), hitH=V3(-.2,1.25,-.4), followH=V3(-.36,1.46,.22);
+  const readyE=V3(1.16,2.52,-.12), loadE=V3(1.36,2.48,-.24), hitE=V3(-.55,1.36,1.05), followE=V3(-1.38,1.82,.72);
+  if(t<0) return {hand:poseA.copy(readyH),end:poseB.copy(readyE)};
+  const k=clamp(t/.62,0,1);
+  if(style==='CHECK'){
+    const checkH=V3(.02,1.37,-.4), checkE=V3(-.42,2.25,.02);
+    if(k<.28) return {hand:mixPose(poseA,readyH,loadH,k/.28),end:mixPose(poseB,readyE,loadE,k/.28)};
+    if(k<.58) return {hand:mixPose(poseA,loadH,checkH,(k-.28)/.3),end:mixPose(poseB,loadE,checkE,(k-.28)/.3)};
+    return {hand:mixPose(poseA,checkH,readyH,(k-.58)/.42),end:mixPose(poseB,checkE,readyE,(k-.58)/.42)};
+  }
+  if(k<.24) return {hand:mixPose(poseA,readyH,loadH,k/.24),end:mixPose(poseB,readyE,loadE,k/.24)};
+  if(k<.56) return {hand:mixPose(poseA,loadH,hitH,(k-.24)/.32),end:mixPose(poseB,loadE,hitE,(k-.24)/.32)};
+  return {hand:mixPose(poseA,hitH,followH,(k-.56)/.44),end:mixPose(poseB,hitE,followE,(k-.56)/.44)};
+}
+function setBattingRigVisible(show){ [bat,batKnob,...battingArms,...battingHands].forEach(m=>m.visible=show); }
+function updateBattingRig(show){
+  setBattingRigVisible(show); if(!show) return;
+  const batter=S.batter, style=S.pitchPlan&&S.pitchPlan.swingStyle||'ON TIME';
+  const local=battingPoseLocal(style,S.swingT), hand=local.hand.clone(), end=local.end.clone();
+  const h1=hand.clone().add(V3(-.07,.035,.025)), h2=hand.clone().add(V3(.07,-.035,-.025));
+  const sh1=V3(-.27,1.48,.02), sh2=V3(.27,1.48,.02);
+  batter.rig.group.localToWorld(sh1); batter.rig.group.localToWorld(sh2);
+  batter.rig.group.localToWorld(h1); batter.rig.group.localToWorld(h2); batter.rig.group.localToWorld(end);
+  placeSegment(battingArms[0],sh1,h1); placeSegment(battingArms[1],sh2,h2);
+  battingHands[0].position.copy(h1); battingHands[1].position.copy(h2);
+  poseC.copy(h1).add(h2).multiplyScalar(.5); placeSegment(bat,poseC,end); batKnob.position.copy(poseC);
 }
 
 // ---------- strike-zone indicator (flashes on called strikes) ----------
@@ -1070,15 +1150,24 @@ function planPitch() {
   let swing=forced&&['called_strike','ball'].includes(forced.result)?false:forced?true:simRandom()<clamp(swingP+press,0.03,.97);
   const commandMiss=fatigue*.11, pq=clamp((speed-17)/10*.42+Math.abs(curve)/1.4*.3+type.whiff*.8,0,1);
   const contact=clamp((inZone?.8:.48)-pq*.22-commandMiss+(S.strikes===2?.04:0),.2,.94);
+  const forcedContact=forced&&['foul','ground','double_play','error','fly','sac_fly','liner','single','double','triple','homer'].includes(forced.result);
+  const forcedWhiff=forced&&['swing_miss','early_whiff','late_whiff','check_swing'].includes(forced.result);
+  const contactMade=!!swing&&(forcedContact?true:forcedWhiff?false:simRandom()<contact);
+  const foulMade=contactMade&&(forced&&forced.result==='foul'?true:forcedContact?false:simRandom()<(S.strikes===2?.34:.25));
+  let swingStyle='ON TIME';
+  if(forced&&forced.result==='early_whiff') swingStyle='EARLY';
+  else if(forced&&forced.result==='late_whiff') swingStyle='LATE';
+  else if(forced&&forced.result==='check_swing') swingStyle='CHECK';
+  else if(swing&&!contactMade) swingStyle=spick(['EARLY','LATE','CHASE','CHECK']);
   const vertical=aimY<.55?'LOW':aimY>1.38?'HIGH':aimY>1.05?'UP':'DOWN';
   const horizontal=Math.abs(aimZ)<.22?'MIDDLE':aimZ>0?'ARM-SIDE':'GLOVE-SIDE';
-  return { name:type.name,speed,inZone,curve,drop:type.drop,groundBias:type.ground,aimY,aimZ,swing,contact,
+  return { name:type.name,speed,inZone,curve,drop:type.drop,groundBias:type.ground,aimY,aimZ,swing,contact,contactMade,foulMade,swingStyle,
     location:`${vertical} ${horizontal}`,foulP:S.strikes===2?.34:.25,forcedResult:forced&&forced.result||null };
 }
 function throwPitch() {
   const plan = S.pitchPlan;
   fldTeam().pitches++;
-  S.lastPitch={name:plan.name,location:plan.location,speedMph:Math.round(plan.speed*4),result:'LIVE'};
+  S.lastPitch={name:plan.name,location:plan.location,speedMph:Math.round(plan.speed*4),swingStyle:plan.swing?plan.swingStyle:null,result:'LIVE'};
   ball.pos.set(MOUND_X - 0.55, 1.5, 0);
   const T = (MOUND_X - 0.55)/plan.speed;
   ball.vel.set(-plan.speed,
@@ -1101,6 +1190,7 @@ function strikeOut(how) {
 function walk() {
   batTeam().walks++; commitPitch('WALK','ball');
   say(`BALL FOUR — ${S.batter.name} TAKES HIS BASE`);
+  showPitchCall('BALL FOUR',`${S.batter.name} EARNS FIRST`,'ball',1.65);
   flashMsg('WALK', `${S.batter.name} WORKS THE COUNT`, '#58ffb4');
   callBeep(true); swellCrowd(0.18);
   // forced chain only: runners move up when pushed
@@ -1122,6 +1212,7 @@ function walk() {
 function foulBall() {
   crack(); swellCrowd(0.16); impactBurst(0.45);
   if (S.strikes < 2) S.strikes++;
+  showPitchCall('FOUL BALL',`${S.batter.name} STAYS ALIVE · ${S.balls}-${S.strikes}`,'foul',1.45);
   // dead ball sprayed backward into the netting
   ball.pos.set(0.1, 1.1, 0);
   ball.vel.set(-(3 + simRandom()*5), 7 + simRandom()*5, (simRandom() < 0.5 ? -1 : 1)*(5 + simRandom()*8));
@@ -1177,6 +1268,7 @@ function inPlay(plan) {
              canCatch, fieldClean, routePressure:+routePressure.toFixed(2),
              originalBases, forcedResult:forced, launchAngle:Math.round(e*180/Math.PI), exitVelo:Math.round(v*2.45),
              grandSlam:type==='HOMER' && aboard===3, moonshot:type==='HOMER' && quality>0.9 };
+  showPitchCall('CONTACT',`${S.play.exitVelo} MPH · ${S.play.launchAngle}° · ${type}`,'contact',1.05);
   S.lastPitch.result=`IN PLAY · ${type}`;
   if (type === 'HOMER') {
     bt.hits++; bt.hrs++;
@@ -1212,18 +1304,21 @@ function inPlay(plan) {
 }
 function resolvePitch(forcedBall = false) {
   const plan = S.pitchPlan;
-  if(plan&&plan.forcedResult==='swing_miss') plan.contact=0;
   if(plan&&plan.forcedResult==='foul'){ foulBall(); return; }
   if(plan&&['ground','double_play','error','fly','sac_fly','liner','single','double','triple','homer'].includes(plan.forcedResult)){ inPlay(plan); return; }
   if (forcedBall || !plan || !plan.swing) {
     if (!forcedBall && plan && plan.inZone) {
       S.strikes++; zoneT = 1; callBeep(false); glovePop();
+      swellCrowd(.12);
       say(`STRIKE ${S.strikes} LOOKING ON ${S.batter.name}`);
+      showPitchCall('CALLED STRIKE',`${plan.name} · ${plan.location} · ${S.balls}-${S.strikes}`,'strike',1.35);
       if (S.strikes >= 3) { strikeOut('CAUGHT LOOKING'); return; }
       commitPitch('CALLED STRIKE','strike');
     } else {
       S.balls++; glovePop();
+      swellCrowd(.05);
       say(spick([`BALL ${S.balls} — JUST OFF THE PLATE`, `BALL ${S.balls} — THE LASERS SAY NO`, `BALL ${S.balls} OUTSIDE`]));
+      showPitchCall('BALL',`${plan?`${plan.name} · ${plan.location}`:'MISSED THE ZONE'} · ${S.balls}-${S.strikes}`,'ball',1.25);
       if (S.balls >= 4) { walk(); return; }
       commitPitch('BALL','ball');
     }
@@ -1231,15 +1326,18 @@ function resolvePitch(forcedBall = false) {
     return;
   }
   // swing
-  if (simRandom() >= plan.contact) {
+  if (!plan.contactMade) {
     S.strikes++; glovePop();
-    say(`${S.batter.name} SWINGS THROUGH IT — STRIKE ${S.strikes}`);
+    swellCrowd(.18);
+    const swingCall=plan.swingStyle==='CHECK'?'CHECK SWING':plan.swingStyle==='EARLY'?'EARLY WHIFF':plan.swingStyle==='LATE'?'LATE WHIFF':'SWING & MISS';
+    say(`${S.batter.name} ${swingCall} — STRIKE ${S.strikes}`);
+    showPitchCall(swingCall,`${plan.name} · STRIKE ${S.strikes}`,'strike',1.4);
     if (S.strikes >= 3) { strikeOut('GOES DOWN SWINGING'); return; }
-    commitPitch('SWINGING STRIKE','strike');
+    commitPitch(`${swingCall} · STRIKE`,'strike');
     ball.mode = 'IDLE'; setState('SETUP');
     return;
   }
-  if (simRandom() < plan.foulP) { foulBall(); return; }
+  if (plan.foulMade) { foulBall(); return; }
   inPlay(plan);
 }
 
@@ -1472,23 +1570,25 @@ function stateStep(dt) {
   if (S.swingT >= 0) S.swingT += dt;
   switch (S.state) {
     case 'SETUP': {
-      if (S.t > 0.7) { S.pitchPlan = planPitch(); S.swingT = -1; S.swung = false; setState('WINDUP'); }
+      if (S.swingT > .86) S.swingT=-1;
+      if (S.t > 1.2) { S.pitchPlan = planPitch(); S.swingT = -1; S.swung = false; setState('WINDUP'); }
       break;
     }
     case 'WINDUP': {
-      if (S.t > 0.8 || S.t > 4) throwPitch();         // pitch is always thrown (watchdog inclusive)
+      if (S.t > 1.15 || S.t > 4) throwPitch();         // pitch is always thrown (watchdog inclusive)
       break;
     }
     case 'PITCH': {
       const plan = S.pitchPlan;
-      if (plan && plan.swing && !S.swung && ball.pos.x < 2.1) { S.swung = true; S.swingT = 0; }
+      const trigger=plan&&plan.swingStyle==='EARLY'?3.65:plan&&plan.swingStyle==='LATE'?1.15:plan&&plan.swingStyle==='CHECK'?2.55:2.15;
+      if (plan && plan.swing && !S.swung && ball.pos.x < trigger) { S.swung = true; S.swingT = 0; }
       if (ball.pos.x <= 0.02) { resolvePitch(false); break; }
       if (S.t > 2.5) { resolvePitch(true); break; }   // watchdog: lost pitch = ball
       break;
     }
     case 'RESOLVE': { // dead-ball beat: fouls + walks settle here
       const isWalk = S.play && S.play.type === 'WALK';
-      if (S.t > (isWalk ? 1.6 : 1.3) && (allSettled() || S.t > 4.5)) {
+      if (S.t > (isWalk ? 1.9 : 1.65) && (allSettled() || S.t > 4.8)) {
         if (isWalk) afterPlay();
         else { S.play = null; ball.mode = 'IDLE'; setState('SETUP'); cut('plate'); }
       }
@@ -1600,8 +1700,17 @@ function stateStep(dt) {
 function posePlayers() {
   if (!teams.length) return;
   const pitcher = pitcherP(), catcher = fldTeam().players[1];
-  if (S.state === 'WINDUP') pitcher.rig.poseThrowIn(clamp(S.t/0.9, 0, 1));   // lean-back squash
+  for(const p of allPlayers()){
+    p.rig.group.scale.set(1,1,1);
+    p.gear.traverse(o=>{ if(o.userData.fieldOnly) o.visible=p.duty==='fielder'; });
+  }
+  catcher.rig.group.scale.set(1.08,.8,1.08);
+  ump.group.scale.set(1.05,.88,1.05);
+  if (S.state === 'WINDUP') pitcher.rig.poseThrowIn(clamp(S.t/1.15, 0, 1));   // slower, readable leg-load and release
   catcher.rig.poseGKSet(tGlobal);
+  if(S.callT>0&&(S.callTone==='strike'||S.callTone==='ball')) catcher.rig.poseGKCatch(1);
+  if(S.callT>0&&S.callTone==='strike') ump.posePointToSpot(tGlobal);
+  else if(S.callT>0&&S.callTone==='ball') ump.poseWhistle(tGlobal);
   if(S.state==='LIVE'&&S.play&&S.play.chaser) S.play.chaser.rig.poseGKShuffle(tGlobal,Math.sign(S.play.lz-S.play.chaser.z)||1);
   if(S.state==='THROW'&&S.play&&S.play.fielder) S.play.fielder.rig.poseThrowIn(clamp((S.t-.15)/.32,0,1));
   if(S.state==='HOMER'||(S.clipT>0&&S.clipMoment.includes('DOUBLE PLAY'))){
@@ -1609,22 +1718,15 @@ function posePlayers() {
     for(const p of celebrating.players) if(p.duty==='dugout') p.rig.poseCelebrate(tGlobal,p.role%4);
   }
   if (S.batter && S.batter.duty === 'batter') {
-    if (S.swingT >= 0) S.batter.rig.poseSkill(0, clamp(S.swingT/0.5, 0, 1));
+    if (S.swingT >= 0) S.batter.rig.poseSkill(0, clamp(S.swingT/.68, 0, 1));
     else S.batter.rig.poseGKSet(tGlobal*1.3 + 2);
   }
-  // bat
   const showBat = S.batter && S.batter.duty === 'batter' &&
     (S.state === 'SETUP' || S.state === 'WINDUP' || S.state === 'PITCH' || S.state === 'RESOLVE');
-  bat.visible = !!showBat;
-  if (showBat) {
-    bat.position.set(S.batter.x + 0.1, 1.18, S.batter.z);
-    let yaw = 2.5, tilt = 0.95;
-    if (S.swingT >= 0) {
-      const k = clamp(S.swingT/0.16, 0, 1), e2 = 1 - Math.pow(1 - k, 3);
-      yaw = lerp(2.5, -1.7, e2); tilt = lerp(0.95, 0.12, e2);
-    }
-    bat.rotation.set(0, yaw, tilt);
+  if(showBat){
+    armMat.color.setHex(batTeam().def.col); handMat.emissive.setHex(batTeam().def.glow); batMat.emissive.setHex(batTeam().def.glow);
   }
+  updateBattingRig(!!showBat);
 }
 
 // ---------- trail / fx ----------
@@ -1706,6 +1808,8 @@ function timerStep(dt, touchDom){
   ledPulse = Math.max(0, ledPulse - dt*0.5);
   crowdPulse = Math.max(0, crowdPulse - dt*0.72);
   S.clipT=Math.max(0,S.clipT-dt);
+  S.callT=Math.max(0,S.callT-dt);
+  if(touchDom) elPitchCall.classList.toggle('show',S.callT>0);
   if (flashTimer > 0) {
     flashTimer -= dt;
     if (flashTimer <= 0 && touchDom) elFlash.classList.remove('show');
@@ -1784,8 +1888,9 @@ function gameSnapshot(){
     hrs:teams.length ? [teams[0].hrs, teams[1].hrs] : [0,0],
     bases:S.bases.map(b => b ? b.name : null), activeRunners,
     batter:S.batter && S.batter.name,
-    pitch:S.pitchPlan ? {name:S.pitchPlan.name,speedMph:Math.round(S.pitchPlan.speed*4),location:S.pitchPlan.location,inZone:!!S.pitchPlan.inZone,curve:+S.pitchPlan.curve.toFixed(2),swing:!!S.pitchPlan.swing} : null,
+    pitch:S.pitchPlan ? {name:S.pitchPlan.name,speedMph:Math.round(S.pitchPlan.speed*4),location:S.pitchPlan.location,inZone:!!S.pitchPlan.inZone,curve:+S.pitchPlan.curve.toFixed(2),swing:!!S.pitchPlan.swing,swingStyle:S.pitchPlan.swingStyle,contactMade:!!S.pitchPlan.contactMade} : null,
     lastPitch:S.lastPitch,
+    pitchCall:S.callT>0?{label:S.callLabel,detail:S.callDetail,tone:S.callTone,seconds:+S.callT.toFixed(2)}:null,
     ball:{ mode:ball.mode, pos:[+ball.pos.x.toFixed(1), +ball.pos.y.toFixed(1), +ball.pos.z.toFixed(1)], vel:[+ball.vel.x.toFixed(1),+ball.vel.y.toFixed(1),+ball.vel.z.toFixed(1)] },
     play:pl ? {
       type:pl.type, quality:pl.quality == null ? null : +pl.quality.toFixed(2),
@@ -1828,6 +1933,7 @@ window._baseballTest={
     }else if(result==='sac_fly'){
       const runner=batTeam().players.find(p=>p!==S.batter); runner.duty='runner'; runner.baseIdx=2; S.bases[2]=runner;
     }
+    flashTimer=0; elFlash.classList.remove('show'); S.callT=0; elPitchCall.classList.remove('show');
     snapAll(); S.forceNext={result,pitch}; setState('SETUP'); cut('plate'); return gameSnapshot();
   },
   forceNext(result,pitch='FOUR-SEAM'){ S.forceNext={result,pitch}; return {result,pitch}; },

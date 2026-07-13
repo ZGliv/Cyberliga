@@ -538,6 +538,18 @@ for(const x of [-23,-8,8,23]) {
   const banner=new THREE.Mesh(new THREE.BoxGeometry(12,.16,.08),bannerMat.clone());
   banner.material.color.setHex(x<0?0x00d9ff:0xff45bd); banner.position.set(x,7.55,-BZ-6.05); scene.add(banner);
 }
+// Handheld club placards add a lively foreground layer to the lower bowl. They
+// sway as the building reacts without requiring per-frame updates for all 520
+// instanced supporters.
+const fanCards=[];
+const fanCardGeo=new THREE.PlaneGeometry(1.05,.52);
+for(let i=0;i<18;i++) {
+  const mat=new THREE.MeshBasicMaterial({color:i%3===0?0xf5f9ff:i%2?0x00d9ff:0xff45bd,side:THREE.DoubleSide});
+  const card=new THREE.Mesh(fanCardGeo,mat);
+  const row=i%4, x=-26+(i*7.1)%52;
+  card.position.set(x,2.35+row*.55,-BZ-2.55-row*.75);
+  scene.add(card); fanCards.push({mesh:card,baseY:card.position.y,phase:i*1.73});
+}
 const benchMat = new THREE.MeshStandardMaterial({ color:0x10243a, roughness:.58, metalness:.2 });
 const benchTrim = new THREE.MeshBasicMaterial({ color:0x35dff5 });
 for (const x of [-12,12]) {
@@ -743,6 +755,7 @@ const COMM = {
   drop:  ['PUCK DOWN — {a} WINS THE DRAW', '{a} SNAPS IT BACK OFF THE FACEOFF'],
   pass:  ['{a} FEEDS {b}', '{a} THREADS IT TO {b}', 'TAPE TO TAPE — {a} FINDS {b}'],
   shot:  ['{a} WINDS UP — SHOT!', '{a} RIPS ONE FROM THE CIRCLE', '{a} LETS IT FLY'],
+  slap:  ['{a} LEANS INTO A SLAP SHOT!', '{a} LOADS UP AND HAMMERS IT', '{a} UNLEASHES FROM DISTANCE'],
   save:  ['{g} SAYS NO!', 'ROBBERY BY {g}!', '{g} FLASHES THE PAD — BIG SAVE'],
   check: ['CRUNCH! {a} FLATTENS {b}', '{a} ERASES {b} — HUGE HIT', '{b} GETS WELDED TO THE GLASS BY {a}'],
   goal:  ['{a} ROOFS IT — GOAL!', '{a} BURIES IT — LAMP LIT!', 'GOAL! {a} FROM POINT-BLANK RANGE'],
@@ -774,12 +787,20 @@ function mkPlayer(team, idx, name, teamDef) {
   const gear=new THREE.Group();
   const shaftMat=new THREE.MeshStandardMaterial({color:isGK?0xf2f7fb:0x151b25,roughness:.38,metalness:.15});
   const tapeMat=new THREE.MeshStandardMaterial({color:teamDef.kit,emissive:teamDef.glow,emissiveIntensity:.22,roughness:.5});
-  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.045,.06,1.62,7),shaftMat);
-  shaft.position.set(.43,.88,.29); shaft.rotation.set(.45,0,.12); gear.add(shaft);
-  const blade=new THREE.Mesh(new THREE.BoxGeometry(isGK?.72:.62,.10,isGK?.28:.18),tapeMat);
-  blade.position.set(.58,.13,.96); blade.rotation.y=-.18; gear.add(blade);
-  const glove=new THREE.Mesh(new THREE.SphereGeometry(.13,7,5),tapeMat);
-  glove.position.set(.33,1.48,-.02); gear.add(glove);
+  // The shaft's lower endpoint lands inside the blade heel. Keeping the entire
+  // stick in one animated group prevents the floating-blade look during turns,
+  // checks and shot follow-throughs.
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.045,.06,1.82,7),shaftMat);
+  shaft.position.set(.42,.94,.38); shaft.rotation.set(-.48,0,.10); gear.add(shaft);
+  const blade=new THREE.Mesh(new THREE.BoxGeometry(isGK?.84:.72,.11,isGK?.30:.22),tapeMat);
+  blade.position.set(.58,.125,.91); blade.rotation.y=-.13; gear.add(blade);
+  const toe=new THREE.Mesh(new THREE.SphereGeometry(.115,7,5),tapeMat);
+  toe.position.set(isGK?.98:.92,.125,.865); toe.scale.set(1.25,.5,1); gear.add(toe);
+  const gloveGeo=new THREE.SphereGeometry(.13,7,5);
+  const upperGlove=new THREE.Mesh(gloveGeo,tapeMat);
+  upperGlove.position.set(.38,1.64,.02); upperGlove.scale.set(1.18,.9,1); gear.add(upperGlove);
+  const lowerGlove=new THREE.Mesh(gloveGeo,tapeMat);
+  lowerGlove.position.set(.40,1.28,.21); lowerGlove.scale.set(1.12,.9,1); gear.add(lowerGlove);
   if(isGK) {
     const padMat=new THREE.MeshStandardMaterial({color:0xeaf6fb,emissive:teamDef.glow,emissiveIntensity:.10,roughness:.65});
     for(const side of [-1,1]) {
@@ -792,8 +813,8 @@ function mkPlayer(team, idx, name, teamDef) {
   rig.group.add(gear);
   scene.add(rig.group);
   return { team, idx, name, role, isGK, rig, badge, x: 0, z: 0, vx: 0, vz: 0, heading: 0, turn: 0,
-    tx: 0, tz: 0, sprint: 1, fallT: 0, checkCd: 0, touchCd: 0, puffCd: 0, recvT: 0, decT: 1 + Math.random(),
-    fox: 0, foz: 0, holdT: 0, butterT: 0, breakaway: false, wasBreakaway:false,
+    tx: 0, tz: 0, sprint: 1, fallT: 0, fallDuration:2.35, fallSide:1, rejoinT:0, checkCd: 0, touchCd: 0, puffCd: 0, recvT: 0, decT: 1 + Math.random(),
+    fox: 0, foz: 0, holdT: 0, carryT:0, butterT: 0, breakaway: false, wasBreakaway:false,
     action:null, gear, checkReady:0, hitT:0, saveT:0, saveKind:'', saveSide:1, edge:0, motionAccel:0,
     energy:1, shiftT:0, penaltyT:0, penaltyReason:'', zoneRole:'' };
 }
@@ -813,7 +834,7 @@ const gkOfSide = s => players.find(p => p.isGK && p.team === (s === 1 ? 1 : 0));
 
 // ============ MATCH STATE ============
 const S = { state: 'FACEOFF', t: 0, period: 1, clock: PERIOD_LEN, score: [0, 0],
-  shots: [0, 0], hits: [0, 0], saves: [0, 0], rebounds:[0,0], oneTimers: [0, 0], screens:[0,0], faceX: 0, faceZ: 0, dropped: false,
+  shots: [0, 0], hits: [0, 0], saves: [0, 0], rebounds:[0,0], oneTimers: [0, 0], slapShots:[0,0], screens:[0,0], faceX: 0, faceZ: 0, dropped: false,
   faceoffs:[0,0], penalties:[0,0], powerPlayGoals:[0,0], shift:[1,1], shiftClock:[26,26], systems:[0,1], possessionTeam:null,
   zoneTime:[0,0], entries:[0,0], cycles:[0,0], lastZone:[0,0],
   scorerName: '', scoredSide: 1, scoringTeam: 0, noTouchT: 0, push: 0,
@@ -839,7 +860,7 @@ function setupMatch(firstLoad) {
   buildSquads();
   simClockTotal=0; lastSayT=-10;
   S.period = 1; S.clock = PERIOD_LEN;
-  S.score = [0, 0]; S.shots = [0, 0]; S.hits = [0, 0]; S.saves = [0, 0]; S.rebounds = [0, 0]; S.oneTimers = [0, 0]; S.screens=[0,0]; S.noTouchT = 0;
+  S.score = [0, 0]; S.shots = [0, 0]; S.hits = [0, 0]; S.saves = [0, 0]; S.rebounds = [0, 0]; S.oneTimers = [0, 0]; S.slapShots=[0,0]; S.screens=[0,0]; S.noTouchT = 0;
   S.faceoffs=[0,0]; S.penalties=[0,0]; S.powerPlayGoals=[0,0]; S.shift=[1,1]; S.shiftClock=[26,29];
   S.systems=[(fixtureIdx+ia)%SYSTEMS.length,(fixtureIdx+ib+1)%SYSTEMS.length]; S.possessionTeam=null;
   S.zoneTime=[0,0]; S.entries=[0,0]; S.cycles=[0,0]; S.lastZone=[0,0];
@@ -875,7 +896,7 @@ function setFaceoff(fx, fz, snap = false) {
   puck.x = fx; puck.z = fz; puck.y = 1.1; puck.vx = puck.vz = puck.vy = 0;
   const faceCenters=[0,1].map(team=>activeSkaters(team).find(p=>p.idx===1)||activeSkaters(team)[0]);
   for (const p of players) {
-    p.action = null; p.checkReady = 0; p.hitT = 0; p.wasBreakaway = false;
+    p.action = null; p.checkReady = 0; p.hitT = 0; p.wasBreakaway = false; p.fallT=0; p.rejoinT=0; p.carryT=0;
     const d = ATT[p.team];
     let t;
     if(p.penaltyT>0) t={x:0,z:(p.team===0?1:-1)*(BZ+2.2)};
@@ -940,8 +961,10 @@ function stepBenchAndSpecialTeams(dt) {
   const carrier=puck.carrier;
   if(carrier) {
     S.possessionTeam=carrier.team;
+    if(!carrier.isGK) carrier.carryT+=dt;
     if(ATT[carrier.team]*carrier.x>BLX) S.zoneTime[carrier.team]+=dt;
   }
+  for(const p of players) if(p!==carrier && !p.isGK) p.carryT=0;
 }
 
 // ============ AI ============
@@ -954,20 +977,27 @@ function nearestOpp(p) {
   if (best) best.dd = bd;
   return best;
 }
-function releasePuck(p, txx, tzz, spd, passTarget = null) {
+function releasePuck(p, txx, tzz, spd, passTarget = null, lift = 0) {
   const dx = txx - puck.x, dz = tzz - puck.z, l = Math.hypot(dx, dz) || 1e-6;
   puck.vx = dx/l*spd; puck.vz = dz/l*spd;
-  puck.carrier = null; puck.lastTouch = p; puck.passTarget = passTarget; p.touchCd = 0.45;
+  puck.y=PY; puck.vy=lift;
+  puck.carrier = null; puck.lastTouch = p; puck.passTarget = passTarget; p.touchCd = 0.45; p.carryT=0;
   clack();
 }
-function beginShot(p, oneTimer = false) {
+function beginShot(p, oneTimer = false, slapShot = false) {
   if (puck.carrier !== p || p.action) return false;
   const d = ATT[p.team];
   const aimZ = (Math.random()*2 - 1)*(NW/2 - 0.3) + (Math.random()*2 - 1)*1.15;
-  p.action = { type:oneTimer ? 'oneTimer' : 'shot', t:0, duration:oneTimer ? 0.30 : 0.48,
-    contact:oneTimer ? 0.31 : 0.43, released:false, aimX:d*(GLX + 0.4), aimZ,
-    speed:(oneTimer ? 29 : 25) + Math.random()*6 };
-  p.tx = p.x; p.tz = p.z; p.sprint = oneTimer ? 0.72 : 0.55;
+  const type=oneTimer?'oneTimer':slapShot?'slapShot':'shot';
+  p.action = { type, t:0, duration:oneTimer ? 0.30 : slapShot ? 0.78 : 0.48,
+    contact:oneTimer ? 0.31 : slapShot ? 0.64 : 0.43, released:false, aimX:d*(GLX + 0.4), aimZ,
+    speed:(oneTimer ? 29 : slapShot ? 30 : 25) + Math.random()*(slapShot?7:6),
+    lift:oneTimer ? 2.4+Math.random()*1.6 : slapShot && Math.random()<.74 ? 6.2+Math.random()*1.4 : 0 };
+  p.tx = p.x; p.tz = p.z; p.sprint = oneTimer ? 0.72 : slapShot ? 0.42 : 0.55;
+  if(slapShot) {
+    p.vx*=.48; p.vz*=.48;
+    cueEvent(`SLAP SHOT WINDUP • ${p.name}`,'danger',.82);
+  }
   return true;
 }
 function pass(p, m) {
@@ -994,15 +1024,19 @@ function stepPlayerActions(dt) {
         if (ATT[p.team]*m.x > BLX-1) cueEvent(`CROSS-SEAM FEED • ${m.name}`, '', 0.9);
         if (Math.random() < 0.42) say(fill(pick(COMM.pass), p.name, m.name));
       } else {
-        releasePuck(p, a.aimX, a.aimZ, a.speed, null);
+        releasePuck(p, a.aimX, a.aimZ, a.speed, null, a.lift||0);
+        if(a.type==='slapShot') {
+          S.slapShots[p.team]++;
+          cueEvent(`SLAP SHOT • ${Math.round(a.speed*2.237)} MPH`,'danger',1.05);
+        }
         const d = ATT[p.team], gk = gkOfSide(d); if (gk) gk.butterT = 0.9;
-        crowdLevel = Math.max(crowdLevel, a.type === 'oneTimer' ? 0.18 : 0.11);
-        S.cameraBeat = a.type === 'oneTimer' ? 0.44 : 0.22;
+        crowdLevel = Math.max(crowdLevel, a.type === 'oneTimer' ? 0.18 : a.type==='slapShot' ? .2 : 0.11);
+        S.cameraBeat = a.type === 'oneTimer' ? 0.44 : a.type==='slapShot' ? .38 : 0.22;
         S.cameraKind = a.type; S.cameraX = p.x; S.cameraZ = p.z;
         S.ledBeat = 0.4; S.ledColor = (p.team === 0 ? TEAM_A : TEAM_B).glow;
         spawnImpactRing(p.x + Math.sin(p.heading)*0.75, p.z + Math.cos(p.heading)*0.75,
-          (p.team === 0 ? TEAM_A : TEAM_B).glow, a.type === 'oneTimer' ? 1.35 : 0.9);
-        say(a.type === 'oneTimer' ? fill(pick(COMM.onetimer), p.name) : fill(pick(COMM.shot), p.name), a.type === 'oneTimer');
+          (p.team === 0 ? TEAM_A : TEAM_B).glow, a.type === 'oneTimer' ? 1.35 : a.type==='slapShot' ? 1.5 : 0.9);
+        say(a.type === 'oneTimer' ? fill(pick(COMM.onetimer), p.name) : a.type==='slapShot' ? fill(pick(COMM.slap),p.name) : fill(pick(COMM.shot), p.name), a.type !== 'shot');
       }
     }
     if (k >= 1) p.action = null;
@@ -1030,7 +1064,15 @@ function steerCarrier(p) {
   const zone=d*p.x>BLX;
   if(zone && !S.lastZone[p.team]) { S.entries[p.team]++; cueEvent(`${sys.entry} · CLEAN ENTRY`,'',1); }
   S.lastZone[p.team]=zone?1:0;
-  if (d*p.x > GLX - 1.2) { p.tx = d*(GLX - 4.5); p.tz = (p.z > 0 ? -1 : 1)*1.5; } // wraparound
+  const distGoal = Math.hypot(gx - p.x, p.z);
+  // The carrier must make a hockey decision before entering the crease. A clean
+  // lane creates an immediate release; a blocked lane curls to support instead.
+  if(zone && d*p.x>GLX-4.4 && Math.abs(p.z)<NW/2+2.8) {
+    const lane=segmentClearance(p.x,p.z,gx,p.z*.08,1-p.team);
+    if(lane>.5 || p.carryT>1.15) { beginShot(p,false,false); return; }
+    p.tx=d*(GLX-5.2); p.tz=(p.z>=0?1:-1)*4.6;
+  }
+  else if (d*p.x > GLX - 1.2) { p.tx = d*(GLX - 4.5); p.tz = (p.z > 0 ? -1 : 1)*1.5; } // wraparound
   else if(!zone) {
     if(sys.entry==='WIDE DRIVE') { p.tx=gx-d*2; p.tz=(p.z>=0?1:-1)*7.4; }
     else if(sys.entry==='MIDDLE-LANE DRIVE') { p.tx=gx-d*2; p.tz=p.z*.18; }
@@ -1050,14 +1092,18 @@ function steerCarrier(p) {
   }
   p.wasBreakaway = p.breakaway;
   p.sprint = (p.breakaway ? 1.14 : sys.pace) * (.72+.28*p.energy);
-  const distGoal = Math.hypot(gx - p.x, p.z);
   // decisions tick on a timer (pressure just shortens it) — never per-frame
   // random rolls, so behavior is identical at any frame rate / catch-up step
   p.decT -= dtg * (pressured ? 2.6 : 1);
   if (p.decT < 0) {
-    p.decT = 0.7 + Math.random()*1.2;
-    if (d*p.x > BLX - 1 && distGoal < 17 &&
-        Math.random() < (pressured ? 0.5 : 0.4)*(1.25 - distGoal/20)) { beginShot(p); return; }
+    p.decT = zone ? .42+Math.random()*.72 : 0.7 + Math.random()*1.2;
+    const lane=segmentClearance(p.x,p.z,gx,p.z*.1,1-p.team);
+    const shotWindow=d*p.x>BLX-1 && distGoal<18.5 && distGoal>3;
+    const shotChance=clamp(.34+(pressured?.18:0)+(lane>1.5?.18:0)+Math.min(p.carryT,2.5)*.12+(distGoal<8?.18:0),.3,.9);
+    if (shotWindow && Math.random()<shotChance) {
+      const setForSlap=distGoal>7 && distGoal<17 && lane>1.15 && Math.hypot(p.vx,p.vz)<6.4;
+      beginShot(p,false,setForSlap && Math.random()<.52); return;
+    }
     if(sys.entry==='CHIP + CHASE' && !zone && d*p.x>BLX-3 && Math.random()<.28) {
       releasePuck(p,d*(GLX-2),(p.z>=0?1:-1)*8.5,20); cueEvent('CHIP BEHIND THE DEFENSE','',.9); return;
     }
@@ -1175,12 +1221,23 @@ function integratePlayers(dt) {
   for (const p of players) {
     p.checkCd -= dt; p.touchCd -= dt; p.puffCd -= dt;
     p.hitT = Math.max(0, p.hitT - dt); p.saveT = Math.max(0, p.saveT - dt);
+    p.rejoinT=Math.max(0,p.rejoinT-dt);
     if(p.penaltyT>0) { p.x=0; p.z=(p.team===0?1:-1)*(BZ+2.1); p.vx=p.vz=0; continue; }
-    const maxs = MAXS * (p.isGK ? 0.78 : p.sprint) * (p.isGK?1:.78+.22*p.energy);
+    const rejoinScale=p.rejoinT>0?.66+.34*(1-p.rejoinT/1.25):1;
+    const maxs = MAXS * (p.isGK ? 0.78 : p.sprint) * (p.isGK?1:.78+.22*p.energy)*rejoinScale;
     const oldSp = Math.hypot(p.vx, p.vz), oldVx = p.vx, oldVz = p.vz;
     if (p.fallT > 0) {
-      p.fallT -= dt;
-      p.vx *= Math.exp(-4*dt); p.vz *= Math.exp(-4*dt);
+      const wasFall=p.fallT;
+      p.fallT=Math.max(0,p.fallT-dt);
+      // A checked skater keeps meaningful ice momentum while down, then plants
+      // before the authored get-up. They are excluded from tactics and pickups
+      // until the recovery is complete.
+      const slideDrag=p.fallT>.68?1.18:4.4;
+      p.vx *= Math.exp(-slideDrag*dt); p.vz *= Math.exp(-slideDrag*dt);
+      if(wasFall>0 && p.fallT===0) {
+        p.rejoinT=1.25; p.touchCd=Math.max(p.touchCd,.25); p.zoneRole='RECOVERING';
+        spawnPuff(p.x,p.z,4,1.8);
+      }
     } else {
       const dx = p.tx - p.x, dz = p.tz - p.z, dist = Math.hypot(dx, dz);
       if (dist > 0.25) {
@@ -1225,17 +1282,21 @@ function integratePlayers(dt) {
       if (carrier && (a === carrier || b === carrier) && a.team !== b.team) {
         const hitter = a === carrier ? b : a;
         const relSp = Math.hypot(a.vx - b.vx, a.vz - b.vz);
-          if (!hitter.isGK && hitter.fallT <= 0 && hitter.checkCd <= 0 && relSp > 3.5) {
-          hitter.checkCd = 1.4;
+          if (!hitter.isGK && hitter.fallT <= 0 && hitter.checkCd <= 0 && relSp > 3.15) {
+          hitter.checkCd = 1.7;
           hitter.hitT = 0.72;
           S.hits[hitter.team]++;
-          if (S.forceCheck || Math.random() < 0.6) {
+          if (S.forceCheck || Math.random() < 0.72) {
             S.forceCheck = false;
             puck.carrier = null;
             puck.passTarget = null;
             puck.vx = carrier.vx*0.5 + hitter.vx*0.4 + (Math.random()-0.5)*5;
             puck.vz = carrier.vz*0.5 + hitter.vz*0.4 + (Math.random()-0.5)*5;
-            carrier.action = null; carrier.fallT = 1.12; carrier.touchCd = 0.8;
+            const knockX=carrier.x-hitter.x, knockZ=carrier.z-hitter.z, knockL=Math.hypot(knockX,knockZ)||1;
+            carrier.vx=carrier.vx*.58+hitter.vx*.38+knockX/knockL*1.8;
+            carrier.vz=carrier.vz*.58+hitter.vz*.38+knockZ/knockL*1.8;
+            carrier.action = null; carrier.fallDuration=2.25+Math.min(.35,relSp*.035); carrier.fallT=carrier.fallDuration;
+            carrier.fallSide=Math.sign(hitter.vx*carrier.vz-hitter.vz*carrier.vx)||1; carrier.rejoinT=0; carrier.touchCd = carrier.fallDuration+.2;
             spawnPuff(carrier.x, carrier.z, 10, 4.5); thud(0.8);
             const hitColor = (hitter.team === 0 ? TEAM_A : TEAM_B).glow;
             spawnImpactRing((carrier.x+hitter.x)*0.5, (carrier.z+hitter.z)*0.5, hitColor, clamp(relSp/7,0.8,1.5));
@@ -1429,9 +1490,9 @@ function refStep(dt) {
 
 // ============ CARDS ============
 function statsTable() {
-  return `<table><tr><th></th><th>SOG</th><th>FO</th><th>HITS</th><th>1T</th><th>PP</th></tr>
-    <tr><td class="tname" style="color:${TEAM_A.css}">${TEAM_A.name}</td><td>${S.shots[0]}</td><td>${S.faceoffs[0]}</td><td>${S.hits[0]}</td><td>${S.oneTimers[0]}</td><td>${S.powerPlayGoals[0]}/${S.penalties[1]}</td></tr>
-    <tr><td class="tname" style="color:${TEAM_B.css}">${TEAM_B.name}</td><td>${S.shots[1]}</td><td>${S.faceoffs[1]}</td><td>${S.hits[1]}</td><td>${S.oneTimers[1]}</td><td>${S.powerPlayGoals[1]}/${S.penalties[0]}</td></tr></table>`;
+  return `<table><tr><th></th><th>SOG</th><th>FO</th><th>HITS</th><th>SLAP</th><th>1T</th><th>PP</th></tr>
+    <tr><td class="tname" style="color:${TEAM_A.css}">${TEAM_A.name}</td><td>${S.shots[0]}</td><td>${S.faceoffs[0]}</td><td>${S.hits[0]}</td><td>${S.slapShots[0]}</td><td>${S.oneTimers[0]}</td><td>${S.powerPlayGoals[0]}/${S.penalties[1]}</td></tr>
+    <tr><td class="tname" style="color:${TEAM_B.css}">${TEAM_B.name}</td><td>${S.shots[1]}</td><td>${S.faceoffs[1]}</td><td>${S.hits[1]}</td><td>${S.slapShots[1]}</td><td>${S.oneTimers[1]}</td><td>${S.powerPlayGoals[1]}/${S.penalties[0]}</td></tr></table>`;
 }
 function showPeriodCard() {
   const ot = S.period === 3 && S.score[0] === S.score[1];
@@ -1507,14 +1568,20 @@ function updateRigs(dt) {
     p.rig.group.rotation.y = p.heading;
     const gearLoad=p.action?clamp(p.action.t/p.action.duration,0,1):0;
     const wind=p.action ? Math.sin(gearLoad*Math.PI) : 0;
+    const slap=p.action?.type==='slapShot';
+    const fallElapsed=p.fallDuration-p.fallT;
+    const fallGear=p.fallT<=0?0:fallElapsed<.56?clamp(fallElapsed/.56,0,1):p.fallT<.68?clamp(p.fallT/.68,0,1):1;
     const carry=puck.carrier===p ? Math.sin(simClockTotal*8+p.idx)*.08 : 0;
-    p.gear.position.y=p.isGK&&p.butterT>.25?-.10:0;
-    p.gear.rotation.x=(p.isGK?.02:-.08)+wind*(p.action?.type==='pass'?.18:.42);
-    p.gear.rotation.y=carry+wind*(p.idx%2?.32:-.32);
-    p.gear.rotation.z=(p.isGK?-.08:.02)+wind*(p.idx%2?.18:-.18);
+    p.gear.position.y=(p.isGK&&p.butterT>.25?-.10:0)-fallGear*.38;
+    p.gear.position.z=fallGear*.16;
+    p.gear.rotation.x=(p.isGK?.02:-.08)+wind*(p.action?.type==='pass'?.18:slap?.92:.42)+fallGear*1.04;
+    p.gear.rotation.y=carry+wind*(p.idx%2?(slap?.56:.32):(slap?-.56:-.32));
+    p.gear.rotation.z=(p.isGK?-.08:.02)+wind*(p.idx%2?(slap?.34:.18):(slap?-.34:-.18))+fallGear*p.fallSide*.12;
     if (p.fallT > 0) {
-      if (p.fallT > 0.5) p.rig.poseFall(clamp((1.12 - p.fallT)/0.62, 0, 1));
-      else p.rig.poseGetUp(1 - p.fallT*2);
+      const elapsed=p.fallDuration-p.fallT;
+      if(elapsed<.56) p.rig.poseFall(clamp(elapsed/.56,0,1));
+      else if(p.fallT<.68) p.rig.poseGetUp(1-p.fallT/.68);
+      else p.rig.poseFall(1);
     } else if (S.state === 'GOAL_SEQ' && S.scorer === p) {
       p.rig.poseCelebrate(S.t, p.idx);
     } else if (p.isGK) {
@@ -1631,6 +1698,11 @@ function updateFX(dt) {
   if (AC && crowdGain) {
     crowdGain.gain.value += (crowdLevel - crowdGain.gain.value)*dampK(3, dt);
   }
+  const crowdEnergy=clamp((crowdLevel-.04)/.24,0,1);
+  for(const f of fanCards) {
+    f.mesh.position.y=f.baseY+Math.sin(simClockTotal*(2.2+crowdEnergy*3)+f.phase)*(.035+crowdEnergy*.12);
+    f.mesh.rotation.z=Math.sin(simClockTotal*(1.8+crowdEnergy*2.4)+f.phase)*(.05+crowdEnergy*.14);
+  }
 }
 
 // ============ STATE MACHINE ============
@@ -1740,7 +1812,7 @@ function hudStep() {
   const action = players.find(p => p.action && !p.action.released);
   const special=[0,1].find(team=>activeSkaters(team).length!==activeSkaters(1-team).length);
   elStatus.textContent = paused ? 'PAUSED' : S.state === 'PLAY' && breakaway ? `BREAKAWAY • ${breakaway.name}` :
-    S.state === 'PLAY' && action ? `${action.action.type === 'oneTimer' ? 'ONE-TIMER' : action.action.type === 'shot' ? 'WINDING UP' : 'PASS LOADING'} • ${action.name}` :
+    S.state === 'PLAY' && action ? `${action.action.type === 'oneTimer' ? 'ONE-TIMER' : action.action.type === 'slapShot' ? 'SLAP SHOT WINDUP' : action.action.type === 'shot' ? 'WRIST SHOT' : 'PASS LOADING'} • ${action.name}` :
     S.state === 'PLAY' && special!==undefined ? `${strengthLabel(special)} • ${currentSystem(special).offense}` :
     S.state === 'PLAY' && carrier ? `${carrier.name} • ${(carrier.team === 0 ? TEAM_A : TEAM_B).name}` :
     S.state === 'PLAY' ? 'LOOSE PUCK' : S.state.replace('_', ' ');
@@ -1826,7 +1898,7 @@ function forceIceMoment(kind) {
   paused = false; elPause.textContent = 'PAUSE'; elCard.classList.remove('show'); elFlash.classList.remove('show');
   setState('PLAY'); S.clock = Math.max(S.clock,20); puck.held = false; puck.carrier = null;
   puck.passTarget = null; puck.saveChecked = false; puck.y = PY; puck.vx = puck.vz = puck.vy = 0;
-  for (const p of players) { p.action=null; p.fallT=0; p.hitT=0; p.touchCd=0; p.recvT=0; p.wasBreakaway=false; p.penaltyT=0; p.energy=1; }
+  for (const p of players) { p.action=null; p.fallT=0; p.rejoinT=0; p.carryT=0; p.hitT=0; p.touchCd=0; p.recvT=0; p.wasBreakaway=false; p.penaltyT=0; p.energy=1; }
   const shooter = teamPlayers(0).find(p=>p.idx===2), passer = teamPlayers(0).find(p=>p.idx===1);
   const receiver = teamPlayers(0).find(p=>p.idx===3), hitter = teamPlayers(1).find(p=>p.idx===2);
   if (kind === 'goal') {
@@ -1842,6 +1914,12 @@ function forceIceMoment(kind) {
     shooter.x=0; shooter.z=0; shooter.vx=2; shooter.vz=0;
     hitter.x=-.92; hitter.z=0; hitter.vx=8.5; hitter.vz=0;
     puck.carrier=shooter; puck.lastTouch=shooter; puck.x=shooter.x; puck.z=shooter.z; S.forceCheck=true;
+  } else if (kind === 'slapshot') {
+    shooter.x=8.5; shooter.z=2.4; shooter.vx=shooter.vz=0;
+    players.filter(p=>p!==shooter&&!p.isGK).forEach((p,i)=>{p.x=-17+(i%4)*2.2;p.z=-9+(i%5)*4;p.vx=p.vz=0;});
+    puck.carrier=shooter; puck.lastTouch=shooter; puck.x=shooter.x; puck.z=shooter.z; shooter.carryT=.9;
+    beginShot(shooter,false,true);
+    shooter.action.lift=7.1; // deterministic branch always demonstrates airborne rubber
   } else if (kind === 'breakaway') {
     shooter.x=4; shooter.z=0; shooter.vx=7; shooter.vz=.2;
     puck.carrier=shooter; puck.lastTouch=shooter;
@@ -1880,15 +1958,16 @@ window.render_game_to_text = () => JSON.stringify({
   period: S.period,
   clock: +Math.max(0, S.clock).toFixed(2),
   teams: [
-    { name: TEAM_A.name, code:TEAM_A.code, score: S.score[0], shots: S.shots[0], saves: S.saves[0], rebounds:S.rebounds[0], hits: S.hits[0], oneTimers: S.oneTimers[0], faceoffs:S.faceoffs[0], penalties:S.penalties[0], ppGoals:S.powerPlayGoals[0], entries:S.entries[0], cycles:S.cycles[0], zoneTime:+S.zoneTime[0].toFixed(1), strength:strengthLabel(0), shift:S.shift[0], system:currentSystem(0) },
-    { name: TEAM_B.name, code:TEAM_B.code, score: S.score[1], shots: S.shots[1], saves: S.saves[1], rebounds:S.rebounds[1], hits: S.hits[1], oneTimers: S.oneTimers[1], faceoffs:S.faceoffs[1], penalties:S.penalties[1], ppGoals:S.powerPlayGoals[1], entries:S.entries[1], cycles:S.cycles[1], zoneTime:+S.zoneTime[1].toFixed(1), strength:strengthLabel(1), shift:S.shift[1], system:currentSystem(1) }
+    { name: TEAM_A.name, code:TEAM_A.code, score: S.score[0], shots: S.shots[0], saves: S.saves[0], rebounds:S.rebounds[0], hits: S.hits[0], slapShots:S.slapShots[0], oneTimers: S.oneTimers[0], faceoffs:S.faceoffs[0], penalties:S.penalties[0], ppGoals:S.powerPlayGoals[0], entries:S.entries[0], cycles:S.cycles[0], zoneTime:+S.zoneTime[0].toFixed(1), strength:strengthLabel(0), shift:S.shift[0], system:currentSystem(0) },
+    { name: TEAM_B.name, code:TEAM_B.code, score: S.score[1], shots: S.shots[1], saves: S.saves[1], rebounds:S.rebounds[1], hits: S.hits[1], slapShots:S.slapShots[1], oneTimers: S.oneTimers[1], faceoffs:S.faceoffs[1], penalties:S.penalties[1], ppGoals:S.powerPlayGoals[1], entries:S.entries[1], cycles:S.cycles[1], zoneTime:+S.zoneTime[1].toFixed(1), strength:strengthLabel(1), shift:S.shift[1], system:currentSystem(1) }
   ],
   broadcast:{ event:S.eventTTL>0?S.eventText:null, eventKind:S.eventTTL>0?S.eventKind:null, camera:S.cameraBeat>0?S.cameraKind:'broadcast' },
   puck: { x: +puck.x.toFixed(2), y: +puck.y.toFixed(2), z: +puck.z.toFixed(2), held: puck.held, carrier: puck.carrier?.name || null,
-    passTarget:puck.passTarget?.name||null, speed: +Math.hypot(puck.vx, puck.vz).toFixed(2) },
+    passTarget:puck.passTarget?.name||null, speed: +Math.hypot(puck.vx, puck.vz).toFixed(2), verticalSpeed:+puck.vy.toFixed(2) },
   players: players.map(p => ({ name: p.name, team: p.team === 0 ? TEAM_A.name : TEAM_B.name, role:p.role,
     x: +p.x.toFixed(2), z: +p.z.toFixed(2), speed:+Math.hypot(p.vx,p.vz).toFixed(2), fallen: p.fallT > 0, breakaway: p.breakaway,
-    action:p.action?.type||null, bracing:p.checkReady>.1, save:p.saveT>0?p.saveKind:null, energy:+p.energy.toFixed(2), shiftSeconds:+p.shiftT.toFixed(1), penalty:+p.penaltyT.toFixed(1), assignment:p.zoneRole }))
+    downPhase:p.fallT>0?(p.fallT<.68?'getting-up':p.fallT>p.fallDuration-.56?'falling':'sliding'):p.rejoinT>0?'rejoining':null,
+    action:p.action?.type||null, actionProgress:p.action?+clamp(p.action.t/p.action.duration,0,1).toFixed(2):null, bracing:p.checkReady>.1, save:p.saveT>0?p.saveKind:null, energy:+p.energy.toFixed(2), shiftSeconds:+p.shiftT.toFixed(1), penalty:+p.penaltyT.toFixed(1), assignment:p.rejoinT>0?'RECOVERING':p.zoneRole }))
 });
 window.advanceTime = (ms) => {
   const wasPaused = paused; paused = false;
