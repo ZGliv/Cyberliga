@@ -353,6 +353,22 @@ const requestedFixtureNo = requestedFixture === null ? NaN : Number(requestedFix
 let fixtureIdx = Number.isFinite(requestedFixtureNo) && requestedFixtureNo >= 0
   ? Math.trunc(requestedFixtureNo) % FIXTURES.length
   : (parseInt(localStorage.getItem('cl_fight_fx')) || 0) % FIXTURES.length;
+const fightTuneSlot=Math.floor(Date.now()/(8*60*1000));
+const fightSessionKey=fightQuery.get('seed')||new Date().toISOString().slice(0,10);
+const requestedEntry=fightQuery.get('entry');
+const requestedAtRaw=fightQuery.get('at');
+const requestedAt=requestedAtRaw===null?NaN:Number(requestedAtRaw);
+const fightTuneHash=hashText(`${fightSessionKey}:fight-live:${fixtureIdx}:${fightTuneSlot}`);
+const fightFresh=fightQuery.get('fresh')==='1'||requestedEntry==='walkout';
+const walkoutSlot=!fightFresh&&requestedEntry!=='live'&&requestedAtRaw===null&&fightTuneHash%8===0;
+const fightTuneMeta={
+  mode:fightFresh?'fresh-walkout':walkoutSlot?'walkout-join':'live-join',
+  slot:fightTuneSlot,
+  requestedFixture:fixtureIdx,
+  targetOffsetSeconds:fightFresh||walkoutSlot?0:clamp(Number.isFinite(requestedAt)?requestedAt:10+(fightTuneHash%126),0,160),
+  offsetSeconds:0,
+  entryState:'WALKON',round:1,clock:ROUND_LEN
+};
 
 // persistent fight records (W-L, KOs) — careers tracked for life
 let RECS = {};
@@ -448,21 +464,21 @@ document.fonts.ready.then(()=>{ matTex.image && (matTex.needsUpdate = true); });
   scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(skirtPts), new THREE.LineBasicMaterial({ color:0xff3d5a })));
 }
 // corner posts + ropes (posts 0/4 take the fighters' colors per card)
-const postMats = [];
+const postMats = [],ringPosts=[];
 for (let i=0;i<8;i+=2){
   const m = new THREE.MeshStandardMaterial({ color:0x39414f, emissive:0x39414f, emissiveIntensity:0.6, roughness:0.5 });
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 1.55, 10), m);
   const p = octPt(i, RING_R+0.18); post.position.set(p.x, RING_Y+0.72, p.z);
   scene.add(post); postMats.push(m);
   const cap = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), m);
-  cap.position.set(p.x, RING_Y+1.52, p.z); scene.add(cap);
+  cap.position.set(p.x, RING_Y+1.52, p.z); scene.add(cap);ringPosts.push({post,cap,position:p.clone()});
 }
-const ropeMats = [];
+const ropeMats = [],ropeLines=[];
 for (let lvl=0; lvl<3; lvl++){
   const y = RING_Y + 0.55 + lvl*0.42;
   const pts = []; for (let i=0;i<=8;i++) pts.push(octPt(i%8, RING_R+0.18, y));
   const m = new THREE.LineBasicMaterial({ color: lvl===1 ? 0x00e5ff : 0xff3d5a, transparent:true, opacity:0.9 });
-  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), m));
+  const ropeLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),m);scene.add(ropeLine);ropeLines.push(ropeLine);
   ropeMats.push(m);
 }
 // arena floor + entrance walkway
@@ -503,6 +519,35 @@ addStand(46, 0, -16, 0);
 addStand(46, 0, 16, Math.PI);
 addStand(34, -17, 0, Math.PI/2);
 addStand(34, 17, 0, -Math.PI/2);
+
+// A real bowl of individual silhouettes sits in front of the old texture
+// panels. It reads as a packed fight-night crowd from every side camera while
+// remaining well outside the ringside camera rail.
+const fightCrowd=new THREE.Group();scene.add(fightCrowd);
+const fightCrowdCount=1280,crowdBodyGeo=new THREE.CapsuleGeometry(.13,.27,3,5),crowdHeadGeo=new THREE.SphereGeometry(.16,6,5);
+const crowdBodyMesh=new THREE.InstancedMesh(crowdBodyGeo,new THREE.MeshBasicMaterial({color:0xffffff}),fightCrowdCount);
+const crowdHeadMesh=new THREE.InstancedMesh(crowdHeadGeo,new THREE.MeshBasicMaterial({color:0xffffff}),fightCrowdCount);
+{
+  const m=new THREE.Matrix4(),col=new THREE.Color(),palette=[0x74253e,0x24566f,0x8a6228,0x384271,0x8d3151];
+  for(let i=0;i<fightCrowdCount;i++){
+    const side=i%4,row=Math.floor(i/4)%8,seat=Math.floor(i/32),along=-21+seat*1.08+(Math.random()-.5)*.16;
+    let x=0,z=0;if(side===0){x=along;z=15.7+row*.92;}else if(side===1){x=along;z=-15.7-row*.92;}else if(side===2){x=16.7+row*.92;z=clamp(along,-14.8,14.8);}else{x=-16.7-row*.92;z=clamp(along,-14.8,14.8);}
+    const y=1.35+row*.68+(Math.random()*.08),stretch=.88+Math.random()*.38;
+    m.makeScale(1,stretch,1);m.setPosition(x,y,z);crowdBodyMesh.setMatrixAt(i,m);
+    m.makeScale(1,1,1);m.setPosition(x,y+.48,z);crowdHeadMesh.setMatrixAt(i,m);
+    col.setHex(palette[(i+row)%palette.length]);crowdBodyMesh.setColorAt(i,col);
+    crowdHeadMesh.setColorAt(i,col.clone().offsetHSL(0,-.08,.24));
+  }
+  crowdBodyMesh.instanceMatrix.needsUpdate=crowdHeadMesh.instanceMatrix.needsUpdate=true;
+  crowdBodyMesh.instanceColor.needsUpdate=crowdHeadMesh.instanceColor.needsUpdate=true;
+  fightCrowd.add(crowdBodyMesh,crowdHeadMesh);
+}
+const arenaTruss=new THREE.Mesh(new THREE.TorusGeometry(11.8,.11,8,80),new THREE.MeshStandardMaterial({color:0x2f3850,emissive:0xff3d5a,emissiveIntensity:.42,metalness:.8,roughness:.25}));
+arenaTruss.rotation.x=Math.PI/2;arenaTruss.position.y=12.8;scene.add(arenaTruss);
+for(let i=0;i<16;i++){
+  const a=i/16*Math.PI*2,lamp=new THREE.Mesh(new THREE.SphereGeometry(.12,7,5),new THREE.MeshBasicMaterial({color:i%2?0x00e5ff:0xff3d5a}));
+  lamp.position.set(Math.cos(a)*11.8,12.75,Math.sin(a)*11.8);scene.add(lamp);
+}
 
 function softDot() {
   const c = document.createElement('canvas'); c.width = c.height = 64;
@@ -744,6 +789,15 @@ function buildBoxerDetails(rig, club) {
   rig.group.add(detail);
   return { detail, chest, trunks, belt, lShoulder, rShoulder, lFoot, rFoot };
 }
+function buildPunchTrail(color){
+  const count=7,array=new Float32Array(count*3),geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.BufferAttribute(array,3));
+  const material=new THREE.LineBasicMaterial({color,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
+  const line=new THREE.Line(geometry,material);line.frustumCulled=false;line.visible=false;scene.add(line);
+  const pointMaterial=new THREE.PointsMaterial({color,size:.17,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,sizeAttenuation:true});
+  const points=new THREE.Points(geometry,pointMaterial);points.frustumCulled=false;points.visible=false;scene.add(points);
+  return {line,points,geometry,material,pointMaterial,array,count,active:false};
+}
 // seeded per-name style: RAZOR always fights like RAZOR
 function nameRng(name) {
   let h = 2166136261;
@@ -787,14 +841,17 @@ function mkFighter(side, clubIdx) {
     lastStand: false, surgeT: 0, cut:0, swelling:0, landed:0, headLanded:0, bodyLanded:0, counters:0,
   };
   const scale=style.id==='BRAWLER'?1.1:style.id==='OUTBOXER'?.94:style.id==='PRESSURE'?1.04:1;
-  fighter.rig.group.scale.set(scale,style.id==='OUTBOXER'?1.05:1,scale);
+  fighter.renderScale=[scale,style.id==='OUTBOXER'?1.05:1,scale];
+  fighter.rig.group.scale.set(...fighter.renderScale);
   fighter.kit.chest.scale.x*=style.id==='BRAWLER'?1.16:style.id==='OUTBOXER'?.92:1;
   fighter.kit.trunks.scale.x*=style.id==='PRESSURE'?1.08:1;
   for(const arm of Object.values(fighter.arms)) arm.glove.scale.multiplyScalar(style.id==='BRAWLER'?1.12:style.id==='OUTBOXER'?.92:1);
+  fighter.punchTrail=buildPunchTrail(club.glow);
   return fighter;
 }
 const refRig = buildBlobRig({ kitColor: 0x39414f, glowColor: 0xffb13d });
 scene.add(refRig.group);
+refRig.group.scale.setScalar(.72);
 const refP = { x: 0, z: FIGHT_R + 0.4, y: RING_Y, vx: 0, vz: 0, heading: 0, tx: 0, tz: FIGHT_R + 0.4 };
 const opp = f => fighters[1 - f.side];
 
@@ -829,7 +886,10 @@ function applyFighterHUD() {
   cornerSpots[0].color.set(A.club.glow); cornerSpots[1].color.set(B.club.glow);
 }
 function setupCard() {
-  for (const f of fighters) { scene.remove(f.rig.group); f.rig.dispose(); }
+  for (const f of fighters) {
+    if(f.punchTrail){scene.remove(f.punchTrail.line,f.punchTrail.points);f.punchTrail.geometry.dispose();f.punchTrail.material.dispose();f.punchTrail.pointMaterial.dispose();}
+    scene.remove(f.rig.group); f.rig.dispose();
+  }
   for (const c of cornerCrew) { scene.remove(c.rig.group); c.rig.dispose(); }
   cornerCrew=[];
   const [ia, ib] = FIXTURES[fixtureIdx % FIXTURES.length];
@@ -855,6 +915,40 @@ function setupCard() {
   refP.x = 0; refP.z = 0.5; refP.tx = 0; refP.tz = 0.5;
   say(`FIGHT NIGHT AT THE CYBERDROME — ${fighters[0].name} (${fighters[0].club.name}) vs ${fighters[1].name} (${fighters[1].club.name}) — 3 ROUNDS — SEASON 2077`, true);
   setState('WALKON'); cut();
+}
+function resetLiveFight(seedLabel='broadcast'){
+  const [ia,ib]=FIXTURES[fixtureIdx%FIXTURES.length];seedFight(`fight:${fixtureIdx}:${ia}:${ib}:${seedLabel}`);S.seed=fightSeed;simClockTotal=0;
+  S.round=1;S.clock=ROUND_LEN;S.roundDmg=[[0,0]];S.kdRound=[[0,0]];S.roundStats=[[roundStat(),roundStat()]];S.cards=null;
+  S.walkIdx=2;S.announced=2;S.count=0;S.countT=0;S.getUpAt=11;S.downF=null;S.slowmo=0;S.noAction=0;S.fightT=0;
+  S.winner=null;S.method='';S.cardShown=false;S.clinchT=0;S.threeKD=false;S.clipMoment='';S.clipT=0;S.clips=[];
+  fighters.forEach((f,i)=>{
+    f.x=i?1.12:-1.12;f.z=(i?-.08:.08);f.y=RING_Y;f.vx=f.vz=0;f.hp=f.stam=f.guard=100;
+    f.act='move';f.actT=0;f.strike=null;f.strikeK='';f.strikeDone=f.strikeLanded=false;f.comboQ=null;f.targetZone='head';
+    f.cut=f.swelling=0;f.landed=f.headLanded=f.bodyLanded=f.counters=0;f.comboN=0;f.comboT=0;f.gasSaid=false;
+    f.openT=f.counterT=f.recovT=f.invulnT=f.surgeT=0;f.lastStand=false;f.downs=0;f.armJolt=f.headSnap=f.bodyShot=f.torsoShock=0;
+    f.decT=.35+i*.12;f.circ=i?1:-1;f.wantDist=f.style.range;f.plan=f.style.plans[0];f.cornerNote='LIVE BROADCAST READ';
+    if(f.punchTrail){f.punchTrail.material.opacity=f.punchTrail.pointMaterial.opacity=0;f.punchTrail.line.visible=f.punchTrail.points.visible=false;f.punchTrail.active=false;}
+  });
+  refP.x=0;refP.z=-3.4;refP.tx=0;refP.tz=-3.4;refP.vx=refP.vz=0;
+  for(const sp of cornerSpots)sp.intensity=28;
+  punchHeat=0;shake=0;elCard.classList.remove('show');elFlash.classList.remove('show');elBanner.classList.remove('show');elCount.classList.remove('show');flashTimer=0;
+  setState('FIGHT');fightTuneMeta.entryState='FIGHT';fightTuneMeta.round=1;fightTuneMeta.clock=ROUND_LEN;cut();hudStep();return fightSnapshot();
+}
+function tuneIntoFightBroadcast(){
+  let goal=fightTuneMeta.targetOffsetSeconds;
+  if(goal<=0){fightTuneMeta.entryState=S.state;fightTuneMeta.round=S.round;fightTuneMeta.clock=+S.clock.toFixed(1);return;}
+  resetLiveFight(`broadcast:${fightTuneSlot}`);
+  let elapsed=0,recued=false;
+  while(elapsed+1e-6<goal){
+    tick(Math.min(.05,goal-elapsed),true);elapsed+=Math.min(.05,goal-elapsed);
+    if(S.state==='KO_SEQ'||S.state==='DECISION'){
+      if(recued)break;
+      recued=true;goal=10+(fightTuneHash%34);elapsed=0;resetLiveFight(`broadcast-recue:${fightTuneSlot}`);fightTuneMeta.mode='live-recue';
+    }
+  }
+  fightTuneMeta.offsetSeconds=+elapsed.toFixed(1);fightTuneMeta.entryState=S.state;fightTuneMeta.round=S.round;fightTuneMeta.clock=+S.clock.toFixed(1);
+  camCut=true;updateRigs(.016);updateFX(0);cameraStep(.016);tickerStep(0);hudStep();composer.render();
+  say(`JOINING LIVE — ROUND ${S.round}, ${fmtClock(S.clock)} — ${fighters[0].name} AND ${fighters[1].name} ARE ALREADY WORKING`,true);
 }
 
 // ============ STRIKE RESOLUTION ============
@@ -1401,8 +1495,12 @@ function stateStep(dt) {
       }
       { // ref orbits just outside the pocket
         const mx = (fighters[0].x + fighters[1].x)/2, mz = (fighters[0].z + fighters[1].z)/2;
-        const a = Math.atan2(mz, mx) + 2.4;
-        refP.tx = Math.cos(a)*(FIGHT_R - 0.3); refP.tz = Math.sin(a)*(FIGHT_R - 0.3);
+        // Stay on the far, off-center side of the exchange relative to the
+        // locked broadcast camera. The referee remains legible without ever
+        // stacking over the two fighters or becoming a giant foreground blob.
+        const cx=Math.cos(broadcastA),cz=Math.sin(broadcastA),tx=-cz,tz=cx;
+        refP.tx=clamp(mx-cx*3.15+tx*2.25,-FIGHT_R+.2,FIGHT_R-.2);
+        refP.tz=clamp(mz-cz*3.15+tz*2.25,-FIGHT_R+.2,FIGHT_R-.2);
       }
       if (S.clock <= 0) { S.clock = 0; endRound(); }
       break;
@@ -1470,6 +1568,8 @@ function refStep(dt) {
   refP.heading = lerpAngle(refP.heading, want, dampK(8, dt));
   refRig.group.position.set(refP.x, RING_Y, refP.z);
   refRig.group.rotation.y = refP.heading;
+  const exchangeD=Math.hypot(fighters[0].x-fighters[1].x,fighters[0].z-fighters[1].z);
+  refRig.group.visible=S.state!=='FIGHT'||(exchangeD>2.2&&!fighters.some(f=>f.act==='strike'||f.act==='hit'));
   if (S.state === 'KNOCKDOWN') refRig.poseArgue(simClockTotal);        // counting it off, big arm
   else if (S.state === 'DECISION') refRig.posePointToSpot(simClockTotal);
   refRig.update(dt, clamp(sp/5, 0, 1));
@@ -1586,6 +1686,23 @@ function updateBoxerDetails(f, dt, sp, twistWant) {
   k.lShoulder.rotation.z = twistWant*0.22 - slip*0.08;
   k.rShoulder.rotation.z = twistWant*0.22 - slip*0.08;
 }
+const trailWorld=new THREE.Vector3();
+function updatePunchTrail(f,dt){
+  const trail=f.punchTrail,isPunch=f.act==='strike'||f.act==='feint';
+  if(isPunch){
+    f.rig.group.updateMatrixWorld(true);
+    const arm=f.act==='strike'?f.strikeArm:f.feintArm;
+    f.arms[arm].glove.getWorldPosition(trailWorld);
+    if(!trail.active){for(let i=0;i<trail.count;i++){trail.array[i*3]=trailWorld.x;trail.array[i*3+1]=trailWorld.y;trail.array[i*3+2]=trailWorld.z;}trail.active=true;}
+    else for(let i=trail.count-1;i>0;i--){trail.array[i*3]=trail.array[(i-1)*3];trail.array[i*3+1]=trail.array[(i-1)*3+1];trail.array[i*3+2]=trail.array[(i-1)*3+2];}
+    trail.array[0]=trailWorld.x;trail.array[1]=trailWorld.y;trail.array[2]=trailWorld.z;
+    const k=f.act==='strike'?Math.sin(clamp(f.actT/f.strikeDur,0,1)*Math.PI):.42;
+    trail.material.opacity=.18+k*.82;trail.pointMaterial.opacity=.12+k*.72;trail.line.visible=trail.points.visible=true;trail.geometry.attributes.position.needsUpdate=true;
+  }else{
+    trail.material.opacity*=Math.exp(-14*dt);trail.pointMaterial.opacity=trail.material.opacity*.8;
+    if(trail.material.opacity<.02){trail.material.opacity=trail.pointMaterial.opacity=0;trail.line.visible=trail.points.visible=false;trail.active=false;}
+  }
+}
 function updateRigs(dt) {
   for (const f of fighters) {
     const o = opp(f), sp = Math.hypot(f.vx, f.vz);
@@ -1593,12 +1710,14 @@ function updateRigs(dt) {
     const want = (!inRing && sp > 0.7) ? Math.atan2(f.vx, f.vz) : Math.atan2(o.x - f.x, o.z - f.z);
     f.heading = lerpAngle(f.heading, want, dampK(9, dt));
     f.rig.group.position.set(f.x, f.y, f.z);
+    const mobileBoost=innerWidth<700?1.24:1;
+    f.rig.group.scale.set(f.renderScale[0]*mobileBoost,f.renderScale[1]*mobileBoost,f.renderScale[2]*mobileBoost);
     f.walkPh += dt*(2 + sp*2.6);
     if (f.act === 'strike') {
       const k = clamp(f.actT/f.strikeDur, 0, 1);
-      if (f.strikeK === 'HOOK') f.rig.poseSkill(0, k);          // whip the body around
+      if (f.strikeK === 'HOOK' || f.strikeK === 'BODY') f.rig.poseSkill(0, k); // whip through hooks/body work
       else if (f.strikeK === 'UPPER') f.rig.poseHeader(k);      // dip and rise through it
-      else f.rig.poseKick(k*0.7);                               // jab/cross: lunge + snap
+      else f.rig.poseJockey(simClockTotal*1.15+f.side*1.7,f.circ); // straights stay planted; articulated arms do the punching
     }
     else if (f.act === 'hit') f.rig.poseFall(0.42*clamp(f.actT*3, 0, 1));
     else if (f.act === 'block') f.rig.poseShield(1, f.circ);
@@ -1655,6 +1774,7 @@ function updateRigs(dt) {
       for (const armKey of ['L', 'R']) { const sh = f.arms[armKey].sh; sh.position.y = SH_Y; sh.position.z = SH_Z; }
     }
     f.rig.update(dt, clamp(sp/6, 0, 1), { accel: clamp(sp/6, 0, 1)*0.35 });
+    updatePunchTrail(f,dt);
   }
   for(const c of cornerCrew){
     const base=CORNER[c.side], dir=c.side===0?-1:1;
@@ -1669,7 +1789,7 @@ function updateRigs(dt) {
 // ============ CAMERA (orbiting ringside broadcast) ============
 const camPos = new THREE.Vector3(0, 5, 13), camLook = new THREE.Vector3(0, RING_Y + 1, 0);
 const tmpP = new THREE.Vector3(), tmpL = new THREE.Vector3();
-let orbA = 0.8;
+let orbA = 0.8,broadcastA=Math.PI/2;
 function cameraStep(dt) {
   orbA += dt*(0.085 + punchHeat*0.05);
   const [A, B] = fighters;
@@ -1686,20 +1806,14 @@ function cameraStep(dt) {
   } else if (S.state === 'KO_SEQ' || S.state === 'DECISION') {
     tmpP.set(Math.cos(orbA*0.6)*9.5, RING_Y + 4.2, Math.sin(orbA*0.6)*9.5);
     tmpL.set(0, RING_Y + 1, 0);
-  } else {                                               // broadcast orbit, punch-in when leather flies
+  } else {                                               // locked ringside broadcast, punch-in when leather flies
     const portrait=innerWidth<700;
-    const rad = (portrait?22:11.6) - punchHeat*(portrait?2:2.8), h = (portrait?8.5:5.6) - punchHeat*(portrait?.7:1.6);
-    // On a narrow screen, an arbitrary orbit can stack one boxer directly behind
-    // the other. Favor the closest side-on angle to the exchange so both bodies,
-    // guards, and punch paths remain distinct while the desktop orbit stays cinematic.
-    let cameraA=orbA;
-    if(portrait){
-      const lineA=Math.atan2(B.z-A.z,B.x-A.x);
-      cameraA=lineA+Math.PI/2;
-      if(Math.cos(cameraA-orbA)<0) cameraA+=Math.PI;
-    }
-    tmpP.set(mx*0.4 + Math.cos(cameraA)*rad, h, mz*0.4 + Math.sin(cameraA)*rad);
-    tmpL.set(mx, RING_Y + 1.05, mz);
+    const rad = (portrait?21.8:11.2) - punchHeat*(portrait?1.6:1.9), h = (portrait?8.25:5.05) - punchHeat*(portrait?.45:.7);
+    const lineA=Math.atan2(B.z-A.z,B.x-A.x);let sideA=lineA+Math.PI/2;
+    if(Math.cos(sideA-broadcastA)<0)sideA+=Math.PI;
+    broadcastA=lerpAngle(broadcastA,sideA,dampK(4.2,dt));
+    tmpP.set(mx*.28+Math.cos(broadcastA)*rad,h,mz*.28+Math.sin(broadcastA)*rad);
+    tmpL.set(mx,RING_Y+1.08,mz);
   }
   if (camCut) { camPos.copy(tmpP); camLook.copy(tmpL); camCut = false; }   // hard cut
   else { camPos.lerp(tmpP, dampK(3, dt)); camLook.lerp(tmpL, dampK(5, dt)); }
@@ -1709,6 +1823,12 @@ function cameraStep(dt) {
     camera.position.y += (Math.random() - 0.5)*shake*0.16;
   }
   camera.lookAt(camLook);
+  const cleanView=S.state==='FIGHT'||S.state==='KNOCKDOWN';
+  const cdx=Math.cos(broadcastA),cdz=Math.sin(broadcastA);
+  for(const p of ringPosts){
+    const far=(p.position.x-mx)*cdx+(p.position.z-mz)*cdz<.35;
+    p.post.visible=p.cap.visible=!cleanView||far;
+  }
 }
 
 // ============ FX / AMBIENCE ============
@@ -1733,8 +1853,11 @@ function updateFX(dt) {
     f.s.material.opacity = f.t > 0 ? clamp(f.t*9, 0, 1) : 0;
   }
   for (const m of standMats) m.color.setHex(flashBurst > 0 ? 0xaab6ce : 0x8e9ab3);
+  const cleanBroadcast=S.state==='FIGHT'||S.state==='KNOCKDOWN';
   for (let i = 0; i < ropeMats.length; i++)
-    ropeMats[i].opacity = clamp(0.55 + 0.2*Math.sin(simClockTotal*2.1 + i*1.7) + punchHeat*0.25, 0, 1);
+    ropeMats[i].opacity = clamp((cleanBroadcast?.11:.48) + 0.07*Math.sin(simClockTotal*2.1 + i*1.7) + punchHeat*0.08, .06, .72);
+  fightCrowd.position.y=Math.sin(simClockTotal*2.1)*.012+crowdLevel*.08*Math.abs(Math.sin(simClockTotal*7));
+  arenaTruss.material.emissiveIntensity=.34+crowdLevel*1.35+flashBurst*.16;
   punchHeat = Math.max(0, punchHeat - dt*1.1);
   shake = Math.max(0, shake - dt*1.8);
   thudCd -= dt;
@@ -1787,6 +1910,7 @@ function hudStep() {
 
 // ============ MAIN LOOP ============
 setupCard();
+tuneIntoFightBroadcast();
 function fightSnapshot() {
   const [nextA,nextB]=FIXTURES[(fixtureIdx+1)%FIXTURES.length];
   return {
@@ -1794,6 +1918,7 @@ function fightSnapshot() {
     paused, fullscreen:!!document.fullscreenElement,
     controls:{pause:'P',rematch:'R',fullscreen:'F',exit:'Escape'},
     deterministicSeed:S.seed,
+    tuneIn:{...fightTuneMeta},
     fixture:{index:fixtureIdx,total:FIXTURES.length,clubs:fighters.map(f=>f.club.name),next:[LEAGUE_TEAMS[nextA].name,LEAGUE_TEAMS[nextB].name]},
     status:elPlayStatus.textContent, clipMoment:S.clipMoment || null, clipSeconds:+S.clipT.toFixed(1), clipsThisBout:S.clips.slice(),
     state: S.state,
@@ -1829,12 +1954,14 @@ function fightSnapshot() {
       striking:{landed:f.landed,head:f.headLanded,body:f.bodyLanded,counters:f.counters,cut:+f.cut.toFixed(1),swelling:+f.swelling.toFixed(1)},
       downs: f.downs,
       lastStand:!!f.lastStand,
-      surgeSeconds:+f.surgeT.toFixed(2)
+      surgeSeconds:+f.surgeT.toFixed(2),
+      punchTrailVisible:!!f.punchTrail?.line.visible
     })),
     roundDamage: S.roundDmg.map(r => r.map(v => +v.toFixed(1))),
     roundStats:S.roundStats,
     knockdowns: S.kdRound,
-    scorecards:S.cards
+    scorecards:S.cards,
+    arena:{name:'THE CYBERDROME',spectators:fightCrowdCount,upperLightTruss:true,cleanBroadcastHardware:true}
   };
 }
 window._dbg = fightSnapshot;
@@ -1849,14 +1976,12 @@ window.advanceTime = ms => {
 };
 window._fightTest={
   live(){
-    const [ia,ib]=FIXTURES[fixtureIdx%FIXTURES.length];seedFight(`fight:${fixtureIdx}:${ia}:${ib}:test`);S.seed=fightSeed;simClockTotal=0;
-    S.round=1;S.clock=ROUND_LEN;S.roundDmg=[[0,0]];S.kdRound=[[0,0]];S.roundStats=[[roundStat(),roundStat()]];S.winner=null;S.method='';S.cardShown=false;S.downF=null;S.noAction=0;S.fightT=0;S.clinchT=0;S.threeKD=false;S.clips=[];S.clipT=0;S.clipMoment='';
-    fighters.forEach((f,i)=>{f.x=i?1.05:-1.05;f.z=0;f.y=RING_Y;f.vx=f.vz=0;f.hp=f.stam=f.guard=100;f.act='move';f.actT=0;f.cut=f.swelling=0;f.landed=f.headLanded=f.bodyLanded=f.counters=0;f.comboQ=null;f.openT=f.counterT=f.recovT=f.invulnT=f.surgeT=0;f.lastStand=false;f.downs=0;f.decT=.4+i*.1;f.circ=i?1:-1;f.wantDist=f.style.range;f.plan=f.style.plans[0];f.cornerNote='OPENING READ';});
-    elCard.classList.remove('show');elFlash.classList.remove('show');elBanner.classList.remove('show');S.cards=null;setState('FIGHT');hudStep();return fightSnapshot();
+    fightTuneMeta.mode='forced-live';fightTuneMeta.offsetSeconds=0;fightTuneMeta.targetOffsetSeconds=0;
+    return resetLiveFight('test');
   },
   exchange(side=0,kind='CROSS',target='head'){
-    const f=fighters[clamp(side|0,0,1)],o=opp(f);f.x=f.side?1.02:-1.02;o.x=f.side?-1.02:1.02;f.z=o.z=0;f.act=o.act='move';f.stam=100;o.invulnT=0;o.openT=2;
-    startStrike(f,STRIKES[kind]?kind:'CROSS');f.targetZone=target==='body'?'body':f.targetZone;return fightSnapshot();
+    const f=fighters[clamp(side|0,0,1)],o=opp(f);f.x=f.side?1.02:-1.02;o.x=f.side?-1.02:1.02;f.z=o.z=0;f.act='move';o.act='stun';o.actT=0;f.stam=100;o.invulnT=0;o.openT=2;
+    startStrike(f,STRIKES[kind]?kind:'CROSS');f.targetZone=target==='body'?'body':f.targetZone;cut();return fightSnapshot();
   },
   forceDecision(){
     S.round=3;S.clock=0;S.roundDmg=[[15,11],[10,17],[18,13]];S.kdRound=[[0,0],[0,0],[1,0]];
@@ -1869,7 +1994,8 @@ window._fightTest={
     const winner=fighters[clamp(side|0,0,1)],loser=opp(winner);elCard.classList.remove('show');S.cardShown=false;S.cards=null;
     S.kdRound[S.round-1]=[0,0];S.kdRound[S.round-1][winner.side]=method==='TKO'?3:1;
     loser.hp=0;S.downF=loser;S.threeKD=method==='TKO';winFight(winner,method==='TKO'?'TKO':'KO');return fightSnapshot();
-  }
+  },
+  fresh(){setupCard();fightTuneMeta.mode='forced-fresh';fightTuneMeta.targetOffsetSeconds=0;fightTuneMeta.offsetSeconds=0;fightTuneMeta.entryState='WALKON';fightTuneMeta.round=1;fightTuneMeta.clock=ROUND_LEN;return fightSnapshot();}
 };
 function tick(dt, skipRender = false) {
   if (paused) { if (!skipRender) { hudStep(); composer.render(); } return; }

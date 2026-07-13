@@ -113,7 +113,7 @@
   @keyframes blink { 50% { opacity:.35; } }
 
   /* HT/FT broadcast cards */
-  #bigcard { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(2,3,10,.45); backdrop-filter: blur(3px); }
+  #bigcard { position:absolute; inset:0; z-index:7; display:none; align-items:center; justify-content:center; background:rgba(2,3,10,.45); backdrop-filter: blur(3px); }
   #bigcard.show { display:flex; }
   #bigcard .panel { background: linear-gradient(180deg, rgba(8,12,28,.97), rgba(3,5,14,.97)); border:1px solid rgba(0,229,255,.3); border-radius:14px; padding:30px 46px; text-align:center; box-shadow:0 0 60px rgba(0,229,255,.18); min-width:440px; }
   #bigcard h1 { font-family:'Orbitron'; font-size:32px; letter-spacing:8px; color:#7ef0ff; margin-bottom:8px; text-shadow:0 0 18px rgba(0,229,255,.5); }
@@ -160,6 +160,19 @@
   #matchcontext .phase { color:#fff; flex:0 0 auto; }
   #matchcontext .sep { color:rgba(255,255,255,.25); }
   #matchcontext .plans { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  #analyststrip {
+    position:absolute; top:138px; left:50%; transform:translateX(-50%); z-index:6;
+    width:min(590px,calc(100vw - 44px)); display:grid; grid-template-columns:1fr auto 1fr;
+    align-items:center; gap:10px; padding:5px 11px; border-radius:7px;
+    border:1px solid rgba(255,255,255,.09); background:rgba(3,6,16,.58); backdrop-filter:blur(7px);
+    color:rgba(225,243,255,.76); font:800 9px/1.15 'Orbitron',sans-serif; letter-spacing:1px;
+    box-shadow:0 8px 24px rgba(0,0,0,.2); pointer-events:none;
+  }
+  #analystA { text-align:left; color:#7ef0ff; }
+  #analystB { text-align:right; color:#ff7aaa; }
+  #analystphase { color:#fff0a8; font-size:8px; letter-spacing:1.4px; white-space:nowrap; }
+  body:has(#bigcard.show) #analyststrip,
+  body:has(#bigcard.show) #broadcasttag { visibility:hidden; }
 
   /* Lineup intro lower third (match start, kickoff hold) */
   #lineup { position:absolute; left:26px; bottom:64px; transform:translateY(24px); opacity:0; transition:opacity .35s, transform .35s ease-out; }
@@ -270,6 +283,12 @@
       max-width:calc(100vw - 20px); padding:5px 9px; gap:6px;
       font-size:8px; letter-spacing:.75px;
     }
+    #analyststrip {
+      top:calc(env(safe-area-inset-top, 0px) + 164px); width:calc(100vw - 20px);
+      gap:5px; padding:5px 8px; font-size:7.5px; letter-spacing:.55px;
+      background:rgba(3,6,16,.72);
+    }
+    #analystphase { font-size:6.8px; letter-spacing:.8px; }
     #ticker { height:34px; }
     #tickerlabel { padding:0 10px; font-size:10px; letter-spacing:2px; }
     #tickertext { font-size:13px; letter-spacing:.6px; }
@@ -316,6 +335,7 @@
   <div id="feed"></div>
   <div id="clockwrap"><span class="live"></span><span id="clock">00:00</span><span id="half">1ST HALF</span></div>
   <div id="matchcontext"><span class="phase">KICKOFF RITUAL</span><span class="sep">◆</span><span class="plans">CLUB ANTHEMS · OPENING SHAPES</span></div>
+  <div id="analyststrip"><span id="analystA">50% · 0 SH · 0.00 xG</span><span id="analystphase">OPENING SHAPES</span><span id="analystB">0.00 xG · 0 SH · 50%</span></div>
   <div id="badge"><a id="leaguepill" href="world.html" aria-label="Back to Cyberliga home"><span aria-hidden="true">←</span><span class="pill-full">CYBERLIGA HOME</span><span class="pill-short">HOME</span></a><span id="wordmark">CYBERLIGA <em>SOCCER</em></span></div>
   <div id="broadcasttag"><span data-cyberliga-presence>1 WATCHING · LOCAL</span><b id="broadcastid">SYNCING</b></div>
   <div id="goalflash"><div id="goaltext">GOAL</div><div id="goalsub"></div></div>
@@ -960,6 +980,13 @@ function resetTrail() {
   attr.needsUpdate = true;
   trailLine.material.opacity = 0;
 }
+const offsideLine=new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,.045,-HALF_H),new THREE.Vector3(0,.045,HALF_H)]),
+  new THREE.LineDashedMaterial({color:0xffe14d,transparent:true,opacity:.72,dashSize:.8,gapSize:.42,depthWrite:false})
+);
+offsideLine.computeLineDistances();offsideLine.visible=false;scene.add(offsideLine);
+const offsideBand=new THREE.Mesh(new THREE.PlaneGeometry(.18,FIELD_H),new THREE.MeshBasicMaterial({color:0xffe14d,transparent:true,opacity:.28,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
+offsideBand.rotation.x=-Math.PI/2;offsideBand.position.y=.042;offsideBand.visible=false;scene.add(offsideBand);
 
 // ============ MATCH STATE ============
 const state = {
@@ -980,6 +1007,8 @@ const state = {
   spectacleCooldown: 0,
   cameraBeat: null,
   departures: [],
+  offsideWatch:null,
+  lastOffside:null,
 };
 const HALF_LEN = 120; // seconds of sim per half
 
@@ -1158,6 +1187,51 @@ function applyDribbleAction(p, act) {
   }
 }
 
+function assessOffside(passer,receiver){
+  if(!passer||!receiver||passer.team!==receiver.team||receiver.role==='GK')return null;
+  const attackDir=-passer.dir,receiverProgress=attackDir*receiver.pos.x,ballProgress=attackDir*ball.pos.x;
+  const defenders=players.filter(q=>q.team!==passer.team).map(q=>attackDir*q.pos.x).sort((a,b)=>b-a);
+  if(defenders.length<2)return null;
+  const lineProgress=defenders[1],lineX=lineProgress*attackDir;
+  const flagged=receiverProgress>.15&&receiverProgress>ballProgress+.18&&receiverProgress>lineProgress+.18;
+  return {flagged,attackDir,lineX,lineProgress,receiverProgress,ballProgress};
+}
+function watchOffsidePass(passer,receiver){
+  const check=assessOffside(passer,receiver);
+  if(!check?.flagged){if(state.offsideWatch?.team===passer.team)state.offsideWatch=null;return;}
+  state.offsideWatch={passer,receiver,team:passer.team,check,createdAt:state.clock,until:state.clock+4,armed:false};
+}
+function callOffside(watch,source='live'){
+  if(!watch?.receiver||!players.includes(watch.receiver))return false;
+  const attacking=watch.team,defending=attacking===TEAM_A?TEAM_B:TEAM_A;
+  const spot=watch.receiver.pos.clone();spot.x=THREE.MathUtils.clamp(spot.x,-HALF_W+1,HALF_W-1);spot.z=THREE.MathUtils.clamp(spot.z,-HALF_H+1,HALF_H-1);
+  let kicker=null,kd=1e9;for(const q of players){if(q.team!==defending)continue;const d=Math.hypot(q.pos.x-spot.x,q.pos.z-spot.z);if(d<kd){kd=d;kicker=q;}}
+  if(!kicker)return false;
+  if(state.carrier)poss.release(state.carrier);
+  state.carrier=null;state.carrierHold=0;state.passTarget=null;watch.receiver.kickAnim=null;
+  ball.pos.set(spot.x,.24,spot.z);ball.vel.set(0,0,0);ball.spin.set(0,0,0);ball.pinned=true;
+  state.lastTouchTeam=defending;state.lastTouchPlayer=kicker;
+  state.setpiece={kind:'freekick',kicker,gx:-kicker.dir};state.mode='setpiece';state.modeT=0;
+  if(attacking===TEAM_A)stats.offsidesA++;else stats.offsidesB++;
+  const teamOffsides=attacking===TEAM_A?stats.offsidesA:stats.offsidesB;
+  if(teamOffsides>=2){
+    if(attacking===TEAM_A)state.tactical.home='HOLD THE RUN 2-1-2';else state.tactical.away='HOLD THE RUN 2-1-2';
+    state.tactical.reason='OFFSIDE-LINE ADJUSTMENT';
+  }
+  state.lastOffside={team:attacking.name,receiver:watch.receiver.name,passer:watch.passer?.name||null,lineX:+watch.check.lineX.toFixed(2),spot:{x:+spot.x.toFixed(2),z:+spot.z.toFixed(2)},clock:+state.clock.toFixed(1),source,visibleUntil:simT+4.2};
+  state.offsideWatch=null;resetTrail();cameraCut();whistle(1);
+  setContextEvent('OFFSIDE',`${watch.receiver.name} BEYOND THE SECOND-LAST DEFENDER`,4.2);
+  commentate(`OFFSIDE — ${watch.receiver.name} WENT A FRACTION TOO EARLY`,true);
+  present.post({kind:'info',simTime:simT,title:`OFFSIDE · ${watch.receiver.name}`,force:true});
+  return true;
+}
+function offsideVisualStep(){
+  const active=state.offsideWatch?.check||(state.lastOffside&&state.lastOffside.visibleUntil>simT?{lineX:state.lastOffside.lineX}:null);
+  if(!active){offsideLine.visible=offsideBand.visible=false;return;}
+  offsideLine.geometry.setFromPoints([new THREE.Vector3(active.lineX,.045,-HALF_H),new THREE.Vector3(active.lineX,.045,HALF_H)]);
+  offsideLine.computeLineDistances();offsideLine.visible=true;offsideBand.position.x=active.lineX;offsideBand.visible=true;
+}
+
 // execute a tactical kick decision: aim scatter + leg choice + flight scheduling
 function scheduleKick(p, plan, dirV) {
   if (p.kickAnim || p.kickCooldown > 0) return;
@@ -1191,9 +1265,9 @@ function scheduleKick(p, plan, dirV) {
   p._kiPlan = null; p._carryPlan = null; // committed — drop cached fallback plans
   poss.release(p); // possession ends with the strike commitment
   // the intended receiver RUNS TO MEET THE BALL — no more passes rolling past statues
-  if (plan.mate) state.passTarget = { player: plan.mate, until: state.clock + 2.5 };
+  if (plan.mate) {state.passTarget = { player: plan.mate, until: state.clock + 2.5 };watchOffsidePass(p,plan.mate);}
   if (plan.type === 'shoot') {
-    if (p.team === TEAM_A) stats.shotsA++; else stats.shotsB++;
+    recordShot(p);
     story.event('shot', { player: p.name, team: p.team.name });
     if (technique === 'screamer') {
       crowdExcitement = Math.max(crowdExcitement, 0.6);
@@ -1220,7 +1294,7 @@ function attemptAerialFinish(p, type) {
     leg:Math.random()<.5?0:1, windup:type === 'bicycle' ? .34 : .22, follow:type === 'bicycle' ? .52 : .30 };
   p.kickCooldown = type === 'bicycle' ? 1.4 : 1.0;
   state.lastTouchTeam=p.team; state.lastTouchPlayer=p;
-  if (p.team === TEAM_A) stats.shotsA++; else stats.shotsB++;
+  recordShot(p);
   stats[type === 'bicycle' ? 'bicycles' : 'volleys']++;
   state.spectacleCooldown = type === 'bicycle' ? 14 : 9;
   state.lastTechnique = { type, player:p.name, team:p.team.name, clock:state.clock };
@@ -1390,6 +1464,14 @@ function aiStep(dt) {
     if (cur !== state.carrier) state.carrierHold = 0;
     state.carrier = cur;
     carrier = cur;
+    if(state.offsideWatch){
+      const w=state.offsideWatch;
+      if(state.clock>w.until||!players.includes(w.receiver)||(state.lastTouchTeam&&state.lastTouchTeam!==w.team))state.offsideWatch=null;
+      else{
+        if(ballSp>3)w.armed=true;
+        if(w.armed&&carrier===w.receiver&&carrier.pos.distanceTo(ball.pos)<1.5){callOffside(w);return;}
+      }
+    }
     const out = tactics.update(dt, { players, ball, possessionTeam: state.lastTouchTeam, carrier, mode: state.mode });
     intents = out.intents; plan = out.plan;
 
@@ -1851,6 +1933,14 @@ function aiStep(dt) {
         p._urg = 0.55;
       }
     }
+    // Once a side has been caught twice, its forwards actively bend runs behind
+    // the live second-last-defender line unless they are already the intended
+    // receiver. The rule changes strategy instead of merely stopping play.
+    const teamOffsides=p.team===TEAM_A?stats.offsidesA:stats.offsidesB;
+    if(state.mode==='play'&&p.role==='FWD'&&teamOffsides>=2&&state.passTarget?.player!==p){
+      const attackDir=-p.dir,def=players.filter(q=>q.team!==p.team).map(q=>attackDir*q.pos.x).sort((a,b)=>b-a);
+      if(def.length>=2){const safe=def[1]-.55,progress=attackDir*target.x;if(progress>safe)target.x=attackDir*safe;}
+    }
     target.x = THREE.MathUtils.clamp(target.x, -HALF_W+0.5, HALF_W-0.5);
     target.z = THREE.MathUtils.clamp(target.z, -HALF_H+0.5, HALF_H-0.5);
 
@@ -1948,7 +2038,7 @@ function aiStep(dt) {
           leg: 0, windup: wu, follow: 0.175 };
         p.kickCooldown = 0.9;
         if (isShotH) {
-          if (p.team === TEAM_A) stats.shotsA++; else stats.shotsB++;
+          recordShot(p);
           commentate(`${p.name} RISES FOR THE HEADER`);
         }
       }
@@ -2836,12 +2926,12 @@ function takeSetPiece() {
     const corner = (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random()*1.8);
     const dir = new THREE.Vector3(s.gx*HALF_W - ball.pos.x, 0, corner - ball.pos.z).normalize();
     flightParams = { dir, power: 0.85 + Math.random()*0.15, technique: 'driven', curve: 0 };
-    stats[k.team === TEAM_A ? 'shotsA' : 'shotsB']++;
+    recordShot(k,.76);
   } else if (distToGoal < 24) {
     // direct free kick: curl it around everything
     const dir = new THREE.Vector3(s.gx*HALF_W - ball.pos.x, 0, (Math.random()-0.5)*5 - ball.pos.z).normalize();
     flightParams = { dir, power: 0.8 + Math.random()*0.15, technique: 'curler', curve: Math.sign(ball.pos.z || 0.5) * s.gx };
-    stats[k.team === TEAM_A ? 'shotsA' : 'shotsB']++;
+    recordShot(k);
   } else {
     // lofted delivery to the most advanced teammate
     let mate = null, best = -1e9;
@@ -3317,12 +3407,37 @@ function roar() { // goal eruption swells over the crowd bed, decays for ~5s
 // ============ MATCH STATS ============
 const stats = {
   posA: 0, posB: 0, shotsA: 0, shotsB: 0, duelsA: 0, duelsB: 0,
-  backheels:0, volleys:0, bicycles:0, injuries:0,
+  xgA:0,xgB:0,offsidesA:0,offsidesB:0,backheels:0, volleys:0, bicycles:0, injuries:0,
   reset() {
     this.posA=this.posB=this.shotsA=this.shotsB=this.duelsA=this.duelsB=0;
+    this.xgA=this.xgB=this.offsidesA=this.offsidesB=0;
     this.backheels=this.volleys=this.bicycles=this.injuries=0;
   },
 };
+function expectedGoals(p){
+  const goalX=-p.dir*HALF_W,d=Math.hypot(goalX-p.pos.x,p.pos.z),angle=1-THREE.MathUtils.clamp(Math.abs(p.pos.z)/15,0,.72);
+  return THREE.MathUtils.clamp(.62*Math.exp(-Math.max(0,d-4)/8.8)*(.58+.42*angle),.015,.72);
+}
+function recordShot(p,xgOverride=null){
+  const xg=xgOverride==null?expectedGoals(p):xgOverride;
+  if(p.team===TEAM_A){stats.shotsA++;stats.xgA+=xg;}else{stats.shotsB++;stats.xgB+=xg;}
+  return xg;
+}
+const elAnalystA=document.getElementById('analystA'),elAnalystB=document.getElementById('analystB'),elAnalystPhase=document.getElementById('analystphase');
+function analystStep(){
+  if((analystStep.f=(analystStep.f||0)+1)%8)return;
+  const pa=pct(stats.posA,stats.posB),pb=100-pa;
+  elAnalystA.textContent=`${pa}% · ${stats.shotsA} SH · ${stats.xgA.toFixed(2)} xG`;
+  elAnalystB.textContent=`${stats.xgB.toFixed(2)} xG · ${stats.shotsB} SH · ${pb}%`;
+  elAnalystA.style.color=hex6(TEAM_A.glow);elAnalystB.style.color=hex6(TEAM_B.glow);
+  let phase='MIDFIELD';
+  if(state.contextEvent?.label==='OFFSIDE')phase='OFFSIDE · FREE KICK';
+  else if(state.mode==='setpiece')phase=(state.setpiece?.kind||'SET PIECE').toUpperCase();
+  else if(state.mode!=='play')phase=state.mode.toUpperCase();
+  else if(Math.hypot(ball.vel.x,ball.vel.z)>7)phase='TRANSITION';
+  else if(state.lastTouchTeam){const sample=players.find(p=>p.team===state.lastTouchTeam),progress=sample?(-sample.dir*ball.pos.x):0;phase=progress>15?'FINAL THIRD':progress<-5?'BUILD-UP':'MIDFIELD';}
+  elAnalystPhase.textContent=phase;
+}
 
 // ============ JUMBOTRON ============
 const jumboCanvas = document.createElement('canvas'); jumboCanvas.width = 512; jumboCanvas.height = 256;
@@ -3381,6 +3496,8 @@ function matchStatsHTML() {
   return `<table><tbody>
     ${statRowHTML('POSSESSION', pct(stats.posA, stats.posB) + '%', pct(stats.posB, stats.posA) + '%')}
     ${statRowHTML('SHOTS', stats.shotsA, stats.shotsB)}
+    ${statRowHTML('EXPECTED GOALS', stats.xgA.toFixed(2), stats.xgB.toFixed(2))}
+    ${statRowHTML('OFFSIDES', stats.offsidesA, stats.offsidesB)}
     ${statRowHTML('DUELS WON', stats.duelsA, stats.duelsB)}
   </tbody></table>`;
 }
@@ -3705,6 +3822,7 @@ function startMatch() {
   state.ritual='opening'; state.contextEvent=null; state.lastTechnique=null;
   state.goalTechnique=null;
   state.spectacleLog=[]; state.spectacleCooldown=0; state.cameraBeat=null;
+  state.offsideWatch=null;state.lastOffside=null;offsideLine.visible=offsideBand.visible=false;
   state.tactical={ home:'BALANCED 2-1-2',away:'BALANCED 2-1-2',reason:'OPENING SHAPES',switches:0 };
   state._halfSwitchDone=false; state._lateSwitchA=false; state._lateSwitchB=false;
   for (const d of state.departures) {
@@ -4032,6 +4150,7 @@ function tick(forcedDt, skipRender) {
   technicalAreaStep(t,dt);
   updateDepartures(dt,t);
   contextStep();
+  offsideVisualStep();
   // the live ref and ball kids are anachronisms inside a recorded clip — freeze them and
   // hide the ref rig while the replay plays (he was never recorded)
   if (state.mode !== 'replay') {
@@ -4047,6 +4166,7 @@ function tick(forcedDt, skipRender) {
   elClock.textContent = fmtClock(state.clock);
   tickerStep(dt);
   momentumStep(dt);
+  analystStep();
   // headshot booth: ONE portrait per frame during the kickoff hold — the old synchronous
   // all-players loop was a multi-hundred-ms freeze at the start of every fixture
   if (headshotQueue.length) {
@@ -4211,8 +4331,23 @@ document.addEventListener('visibilitychange', startDriver);
 startDriver();
 
 // debug hook (harmless in prod, lets devtools poke the sim)
+function forceOffsideMoment(){
+  const passer=players.find(p=>p.team===TEAM_A&&p.role==='MID')||players.find(p=>p.team===TEAM_A&&p.role!=='GK');
+  const receiver=players.find(p=>p.team===TEAM_A&&p.role==='FWD'&&p!==passer)||players.find(p=>p.team===TEAM_A&&p!==passer&&p.role!=='GK');
+  if(!passer||!receiver)return false;
+  state.mode='play';state.setpiece=null;state.passTarget=null;state.offsideWatch=null;
+  const attackDir=-passer.dir;passer.pos.set(attackDir*1,0,0);receiver.pos.set(attackDir*18,0,1.5);
+  const opposition=players.filter(p=>p.team!==passer.team);
+  opposition.forEach((p,i)=>{const progress=p.role==='GK'?30:11-i*1.8;p.pos.x=attackDir*progress;p.pos.z=(i-2)*2.2;p.tgtSm.copy(p.pos);});
+  passer.tgtSm.copy(passer.pos);receiver.tgtSm.copy(receiver.pos);
+  ball.pos.set(passer.pos.x,.24,passer.pos.z);ball.vel.set(0,0,0);state.lastTouchTeam=passer.team;state.lastTouchPlayer=passer;state.carrier=passer;
+  watchOffsidePass(passer,receiver);const watch=state.offsideWatch;if(!watch)return false;
+  watch.armed=true;ball.pos.set(receiver.pos.x,.24,receiver.pos.z);state.carrier=receiver;
+  return callOffside(watch,'forced');
+}
 function forceSoccerMoment(type) {
   state.cameraBeat=null;
+  if(type==='offside')return forceOffsideMoment();
   if (type === 'tactical-switch') return triggerTacticalSwitch(TEAM_A,'FORCED QA BRANCH');
   if (type === 'injury') return markInjury(players.find(p=>p.role==='FWD'),'ANKLE KNOCK',8);
   if (type === 'red-walk') {
@@ -4258,6 +4393,8 @@ window.render_game_to_text = () => JSON.stringify({
   ball: { x: +ball.pos.x.toFixed(2), y: +ball.pos.y.toFixed(2), z: +ball.pos.z.toFixed(2) },
   tacticalContext: { ...state.tactical, ritual:state.ritual,
     event:state.contextEvent?{label:state.contextEvent.label,detail:state.contextEvent.detail}:null },
+  matchStats:{possession:{home:pct(stats.posA,stats.posB),away:pct(stats.posB,stats.posA)},shots:{home:stats.shotsA,away:stats.shotsB},xg:{home:+stats.xgA.toFixed(2),away:+stats.xgB.toFixed(2)},offsides:{home:stats.offsidesA,away:stats.offsidesB}},
+  offside:{watch:state.offsideWatch?{passer:state.offsideWatch.passer.name,receiver:state.offsideWatch.receiver.name,lineX:+state.offsideWatch.check.lineX.toFixed(2),armed:state.offsideWatch.armed}:null,last:state.lastOffside},
   spectacle: { last:state.lastTechnique, goalTechnique:state.goalTechnique,
     cooldown:+state.spectacleCooldown.toFixed(1), stats:{backheels:stats.backheels,volleys:stats.volleys,bicycles:stats.bicycles} },
   cameraBeat: state.cameraBeat?state.cameraBeat.type:null,

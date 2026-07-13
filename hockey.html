@@ -289,6 +289,12 @@ const FIXTURES=HOCKEY_CONTENT.createSeason('hockey','arena').rounds.flatMap(roun
 const ROSTERS=Object.fromEntries(HOCKEY_TEAMS.map(team=>[team.name,team.athletes.map(a=>a.name)])); // [goalie, C, W, W, D, D]
 const fixtureQuery = new URLSearchParams(location.search);
 const requestedFixture = parseInt(fixtureQuery.get('match') ?? fixtureQuery.get('fixture'), 10);
+const freshEntryRequested=fixtureQuery.get('fresh')==='1'||fixtureQuery.get('test')==='1';
+const requestedEntryBucket=parseInt(fixtureQuery.get('bucket'),10);
+const requestedTuneInParam=fixtureQuery.get('at');
+const requestedTuneInSeconds=requestedTuneInParam===null?NaN:Number(requestedTuneInParam);
+const entryBucket=Number.isFinite(requestedEntryBucket)?requestedEntryBucket:Math.floor(Date.now()/45000);
+function entryHash(value){let h=2166136261;for(const c of String(value)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 let fixtureIdx = (Number.isFinite(requestedFixture) && requestedFixture >= 0
   ? requestedFixture
   : (parseInt(localStorage.getItem('cl_ice_fx'), 10) || 0)) % FIXTURES.length;
@@ -440,7 +446,7 @@ function boardResolve(o, r, rest, tang) {
   return 0;
 }
 
-// ============ GOALS + LAMPS ============
+// ============ GOALS + NET-MOUNTED HORN / LAMPS ============
 const lampMats = [];
 for (const s of [-1, 1]) {
   const postMat = new THREE.MeshStandardMaterial({ color: 0xdd2238, emissive: 0xdd2238, emissiveIntensity: 0.5, roughness: 0.5 });
@@ -453,9 +459,25 @@ for (const s of [-1, 1]) {
   const net = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.15, NW),
     new THREE.MeshBasicMaterial({ color: 0x9fc4dd, wireframe: true, transparent: true, opacity: 0.3 }));
   net.position.set(s*(GLX + 0.55), 0.6, 0); scene.add(net);
+  // The beacon and horn are physically mounted to the rear cross-member. The
+  // old floating cylinder sat two metres behind the cage and read like a prop
+  // hanging in space, especially from the end-zone camera.
+  const hornMount=new THREE.Group();
+  hornMount.position.set(s*(GLX+1.02),0,0);
+  const bracketMat=new THREE.MeshStandardMaterial({color:0xb8c7d6,roughness:.42,metalness:.68});
+  const bracket=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.52,8),bracketMat);
+  bracket.position.y=1.42; hornMount.add(bracket);
+  const bridge=new THREE.Mesh(new THREE.BoxGeometry(.22,.07,.68),bracketMat);
+  bridge.position.set(-s*.08,1.65,0); hornMount.add(bridge);
   const lampMat = new THREE.MeshBasicMaterial({ color: 0x320a10 });
   const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.4, 10), lampMat);
-  lamp.position.set(s*(GLX + 2.2), 1.5, 0); scene.add(lamp);
+  lamp.position.set(0,1.9,0); hornMount.add(lamp);
+  const hornBell=new THREE.Mesh(new THREE.ConeGeometry(.28,.52,12,1,true),
+    new THREE.MeshStandardMaterial({color:0xdceaf4,roughness:.28,metalness:.78,side:THREE.DoubleSide}));
+  hornBell.rotation.z=s*Math.PI/2; hornBell.position.set(s*.28,1.66,0); hornMount.add(hornBell);
+  const hornThroat=new THREE.Mesh(new THREE.CylinderGeometry(.075,.11,.28,10),bracketMat);
+  hornThroat.rotation.z=Math.PI/2; hornThroat.position.set(-s*.04,1.66,0); hornMount.add(hornThroat);
+  scene.add(hornMount);
   lampMats.push(lampMat);
 }
 const goalLight = new THREE.PointLight(0xff2030, 0, 26, 1.8);
@@ -502,7 +524,7 @@ led.position.set(0, 8.2, -BZ - 6.2); scene.add(led);
 // A real lower bowl: individual torsos + heads, club-colour pockets, visible
 // seating risers and all four sides populated. Keeping it instanced makes the
 // fuller arena cheaper than a few dozen normal meshes.
-const crowdCount = 520;
+const crowdCount = 840;
 const crowdGeo = new THREE.CapsuleGeometry(0.24, .36, 3, 6);
 const crowdHeadGeo = new THREE.SphereGeometry(0.22, 6, 5);
 const crowdMat = new THREE.MeshBasicMaterial({ color:0xffffff });
@@ -513,14 +535,14 @@ const crowdDummy = new THREE.Object3D();
 const crowdHeadDummy = new THREE.Object3D();
 const crowdColors = [0x1e3857,0x2d5476,0x386d89,0x6b7890,0xdcecf4,0x00b9de,0xd93d9d,0xf2c94c];
 for (let i=0; i<crowdCount; i++) {
-  const side=Math.floor(i/130), local=i%130, row=local%5, seat=Math.floor(local/5);
-  const lane=(seat/25)*2-1, stagger=(row%2)*1.05;
+  const perSide=crowdCount/4, side=Math.floor(i/perSide), local=i%perSide, row=local%7, seat=Math.floor(local/7);
+  const lane=(seat/29)*2-1, stagger=(row%2)*.8;
   let x, z;
-  if (side === 0) { x = lane*32+stagger; z = -BZ-2.2-row*.74; }
-  else if (side === 1) { x = -BX-2.2-row*.72; z = lane*12+stagger; }
-  else if (side === 2) { x = BX+2.2+row*.72; z = lane*12+stagger; }
-  else { x = lane*31+stagger; z = BZ+3.35+row*.78; }
-  const baseY = 1.35+row*.54+(i%4)*.035;
+  if (side === 0) { x = lane*34+stagger; z = -BZ-2.2-row*.78; }
+  else if (side === 1) { x = -BX-2.2-row*.76; z = lane*13+stagger; }
+  else if (side === 2) { x = BX+2.2+row*.76; z = lane*13+stagger; }
+  else { x = lane*33+stagger; z = BZ+3.35+row*.82; }
+  const baseY = 1.35+row*.58+(i%4)*.035;
   crowdDummy.position.set(x, baseY, z);
   const s=(side===3?.66:.72)+(i%7)*.038; crowdDummy.scale.set(s,.92+(i%5)*.045,s);
   crowdDummy.updateMatrix(); crowdBodies.setMatrixAt(i,crowdDummy.matrix);
@@ -532,16 +554,50 @@ for (let i=0; i<crowdCount; i++) {
 crowdBodies.instanceColor.needsUpdate=true;
 scene.add(crowdBodies,crowdHeads);
 const riserMat=new THREE.MeshStandardMaterial({color:0x081326,roughness:.9,metalness:.1});
-for(let row=0;row<5;row++) {
+for(let row=0;row<7;row++) {
   const far=new THREE.Mesh(new THREE.BoxGeometry(RINK_W+18,.18,1.35),riserMat);
-  far.position.set(0,.35+row*.48,-BZ-2.35-row*.74); scene.add(far);
-  const near=far.clone(); near.position.z=BZ+3.2+row*.72; scene.add(near);
+  far.position.set(0,.35+row*.52,-BZ-2.35-row*.78); scene.add(far);
+  const near=far.clone(); near.position.z=BZ+3.2+row*.82; scene.add(near);
 }
 const bannerMat=new THREE.MeshBasicMaterial({color:0x29d8f3});
 for(const x of [-23,-8,8,23]) {
   const banner=new THREE.Mesh(new THREE.BoxGeometry(12,.16,.08),bannerMat.clone());
   banner.material.color.setHex(x<0?0x00d9ff:0xff45bd); banner.position.set(x,7.55,-BZ-6.05); scene.add(banner);
 }
+// Upper bowl, illuminated fascia and roof trusses establish a real arena
+// silhouette beyond the lower seats. These are static low-poly pieces so the
+// extra scale is inexpensive even on a phone.
+const upperBowlMat=new THREE.MeshStandardMaterial({color:0x071020,roughness:.9,metalness:.18});
+// Keep the broadcast-side bowl open for the camera; the far and end decks
+// imply the full horseshoe without placing opaque seating between lens and ice.
+for(const z of [-BZ-9.8]) {
+  const bowl=new THREE.Mesh(new THREE.BoxGeometry(RINK_W+24,5.2,5.8),upperBowlMat);
+  bowl.position.set(0,7.3,z); bowl.rotation.x=z<0?.13:-.13; scene.add(bowl);
+  const ribbon=new THREE.Mesh(new THREE.BoxGeometry(RINK_W+22,.52,.16),new THREE.MeshBasicMaterial({color:z<0?0x1fdaff:0xff45bd}));
+  ribbon.position.set(0,5.55,z+(z<0?2.94:-2.94)); scene.add(ribbon);
+}
+for(const x of [-BX-9.4,BX+9.4]) {
+  const bowl=new THREE.Mesh(new THREE.BoxGeometry(5.4,5.2,RINK_H+12),upperBowlMat);
+  bowl.position.set(x,7.1,0); bowl.rotation.z=x<0?-.11:.11; scene.add(bowl);
+  const ribbon=new THREE.Mesh(new THREE.BoxGeometry(.16,.48,RINK_H+10),new THREE.MeshBasicMaterial({color:x<0?0x00d9ff:0xff45bd}));
+  ribbon.position.set(x+(x<0?2.74:-2.74),5.45,0); scene.add(ribbon);
+}
+const trussMat=new THREE.MeshBasicMaterial({color:0x4a7898,transparent:true,opacity:.22,depthWrite:false});
+const roofTrusses=[];
+for(const x of [-25,-12.5,0,12.5,25]) {
+  const beam=new THREE.Mesh(new THREE.BoxGeometry(.10,.10,50),trussMat); beam.position.set(x,15.5,0); scene.add(beam);roofTrusses.push(beam);
+}
+for(const z of [-21,-10.5,0,10.5,21]) {
+  const beam=new THREE.Mesh(new THREE.BoxGeometry(78,.10,.10),trussMat); beam.position.set(0,15.5,z); scene.add(beam);roofTrusses.push(beam);
+}
+const scoreboard=new THREE.Group(); scoreboard.position.set(0,12.2,0);
+const scoreCore=new THREE.Mesh(new THREE.BoxGeometry(7.2,2.6,5.2),new THREE.MeshStandardMaterial({color:0x030711,roughness:.42,metalness:.5})); scoreboard.add(scoreCore);
+for(const [axis,pos,col] of [['z',2.64,0x18dfff],['z',-2.64,0xff45bd],['x',3.64,0x18dfff],['x',-3.64,0xff45bd]]) {
+  const panel=new THREE.Mesh(new THREE.PlaneGeometry(axis==='z'?6.4:4.45,1.85),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.25,side:THREE.DoubleSide}));
+  if(axis==='z'){panel.position.z=pos; if(pos<0)panel.rotation.y=Math.PI;} else {panel.position.x=pos;panel.rotation.y=pos>0?Math.PI/2:-Math.PI/2;}
+  scoreboard.add(panel);
+}
+scene.add(scoreboard);
 // Handheld club placards add a lively foreground layer to the lower bowl. They
 // sway as the building reacts without requiring per-frame updates for all 520
 // instanced supporters.
@@ -601,6 +657,13 @@ for (let i=0;i<2;i++) {
   const line = new THREE.Line(geo,new THREE.LineBasicMaterial({color:0x66f0ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
   scene.add(line); laneLines.push(line);
 }
+const shotAimGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
+const shotAimLine=new THREE.Line(shotAimGeo,new THREE.LineBasicMaterial({color:0xfff2ad,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+scene.add(shotAimLine);
+const focusRing=new THREE.Mesh(new THREE.RingGeometry(.72,.93,36),new THREE.MeshBasicMaterial({color:0x66f0ff,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+focusRing.rotation.x=-Math.PI/2; focusRing.position.y=.055; scene.add(focusRing);
+const dangerRing=new THREE.Mesh(new THREE.RingGeometry(.92,1.18,6),new THREE.MeshBasicMaterial({color:0xff405f,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+dangerRing.rotation.x=-Math.PI/2; dangerRing.position.y=.06; scene.add(dangerRing);
 
 const impactRings = [];
 for (let i = 0; i < 5; i++) {
@@ -779,6 +842,15 @@ function roleTexture(role, color) {
   g.font='900 28px Orbitron, sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillStyle='#efffff'; g.fillText(role,96,33);
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; roleTextureCache.set(key,t); return t;
 }
+const hockeyStickUp=new THREE.Vector3(0,1,0);
+const hockeyStickDelta=new THREE.Vector3();
+function localStickSegment(group,a,b,r,mat,radial=8){
+  const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r,r,1,radial),mat);
+  hockeyStickDelta.copy(b).sub(a); const len=hockeyStickDelta.length();
+  mesh.position.copy(a).addScaledVector(hockeyStickDelta,.5); mesh.scale.y=len;
+  mesh.quaternion.setFromUnitVectors(hockeyStickUp,hockeyStickDelta.normalize());
+  group.add(mesh); return mesh;
+}
 function mkPlayer(team, idx, name, teamDef) {
   const isGK = idx === 0;
   const rig = buildBlobRig({ kitColor: teamDef.kit, glowColor: teamDef.glow, isGK, captain: idx === 1 });
@@ -789,30 +861,61 @@ function mkPlayer(team, idx, name, teamDef) {
   // every other sport. The blade sits beside the actual carried puck and the
   // pivot sells pass/shot load, contact and follow-through.
   const gear=new THREE.Group();
-  const shaftMat=new THREE.MeshStandardMaterial({color:isGK?0xf2f7fb:0x151b25,roughness:.38,metalness:.15});
-  const tapeMat=new THREE.MeshStandardMaterial({color:teamDef.kit,emissive:teamDef.glow,emissiveIntensity:.22,roughness:.5});
-  // The shaft's lower endpoint lands inside the blade heel. Keeping the entire
-  // stick in one animated group prevents the floating-blade look during turns,
-  // checks and shot follow-throughs.
-  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.045,.06,1.82,7),shaftMat);
-  shaft.position.set(.42,.94,.38); shaft.rotation.set(-.48,0,.10); gear.add(shaft);
-  const blade=new THREE.Mesh(new THREE.BoxGeometry(isGK?.84:.72,.11,isGK?.30:.22),tapeMat);
-  blade.position.set(.58,.125,.91); blade.rotation.y=-.13; gear.add(blade);
-  const toe=new THREE.Mesh(new THREE.SphereGeometry(.115,7,5),tapeMat);
-  toe.position.set(isGK?.98:.92,.125,.865); toe.scale.set(1.25,.5,1); gear.add(toe);
+  const shaftMat=new THREE.MeshStandardMaterial({color:isGK?0xf5f8fb:0x141a22,roughness:.34,metalness:.22});
+  const tapeMat=new THREE.MeshStandardMaterial({color:teamDef.kit,emissive:teamDef.glow,emissiveIntensity:.28,roughness:.48});
+  // One continuous silhouette: taped handle -> shaft -> kicked hosel -> long
+  // flat blade. Every endpoint overlaps the next piece, so animation can never
+  // turn it into a disconnected broom head.
+  const top=new THREE.Vector3(.43,1.78,.02), lower=new THREE.Vector3(.50,.31,.79), heel=new THREE.Vector3(.52,.13,.98);
+  localStickSegment(gear,top,lower,isGK?.065:.052,shaftMat,8);
+  localStickSegment(gear,new THREE.Vector3(.43,1.8,.01),new THREE.Vector3(.45,1.51,.16),isGK?.073:.061,tapeMat,8);
+  localStickSegment(gear,lower,heel,isGK?.082:.06,tapeMat,8);
+  if(isGK){
+    const paddle=new THREE.Mesh(new THREE.BoxGeometry(.20,.72,.18),tapeMat);
+    paddle.position.set(.49,.55,.61); paddle.rotation.x=.33; gear.add(paddle);
+  }
+  const blade=new THREE.Mesh(new THREE.BoxGeometry(isGK?.22:.16,.13,isGK?.78:.66),tapeMat);
+  blade.position.set(isGK?.48:.50,.135,isGK?1.30:1.27); blade.rotation.y=isGK?-.10:-.16; gear.add(blade);
+  const toe=new THREE.Mesh(new THREE.SphereGeometry(isGK?.15:.13,9,6),tapeMat);
+  toe.position.set(isGK?.43:.45,.14,isGK?1.70:1.61); toe.scale.set(.72,.45,1.28); toe.rotation.y=-.2; gear.add(toe);
   const gloveGeo=new THREE.SphereGeometry(.13,7,5);
   const upperGlove=new THREE.Mesh(gloveGeo,tapeMat);
   upperGlove.position.set(.38,1.64,.02); upperGlove.scale.set(1.18,.9,1); gear.add(upperGlove);
   const lowerGlove=new THREE.Mesh(gloveGeo,tapeMat);
   lowerGlove.position.set(.40,1.28,.21); lowerGlove.scale.set(1.12,.9,1); gear.add(lowerGlove);
   if(isGK) {
-    const padMat=new THREE.MeshStandardMaterial({color:0xeaf6fb,emissive:teamDef.glow,emissiveIntensity:.10,roughness:.65});
-    for(const side of [-1,1]) {
-      const pad=new THREE.Mesh(new THREE.BoxGeometry(.32,.68,.22),padMat);
-      pad.position.set(side*.29,.43,.08); pad.rotation.z=side*.05; rig.group.add(pad);
+    const padMat=new THREE.MeshStandardMaterial({color:0xf2f6f8,emissive:teamDef.glow,emissiveIntensity:.12,roughness:.58});
+    const strapMat=new THREE.MeshStandardMaterial({color:teamDef.kit,emissive:teamDef.glow,emissiveIntensity:.32,roughness:.48});
+    const chest=new THREE.Mesh(new THREE.BoxGeometry(.92,.68,.34),padMat);
+    chest.position.set(0,1.23,.11); chest.rotation.x=-.08; rig.group.add(chest);
+    for(const side of [-1,1]){
+      const shoulder=new THREE.Mesh(new THREE.SphereGeometry(.31,9,7),padMat);
+      shoulder.position.set(side*.47,1.47,.08); shoulder.scale.set(1.16,.78,1); rig.group.add(shoulder);
     }
-    const blocker=new THREE.Mesh(new THREE.BoxGeometry(.34,.34,.18),tapeMat);
-    blocker.position.set(-.46,1.15,.2); rig.group.add(blocker);
+    for(const side of [-1,1]) {
+      const pad=new THREE.Mesh(new THREE.BoxGeometry(.38,.88,.30),padMat);
+      pad.position.set(side*.28,.48,.20); pad.rotation.z=side*.045; rig.group.add(pad);
+      for(const y of [.25,.48,.70]){
+        const stripe=new THREE.Mesh(new THREE.BoxGeometry(.40,.055,.315),strapMat);
+        stripe.position.set(side*.28,y,.205); stripe.rotation.z=side*.045; rig.group.add(stripe);
+      }
+    }
+    const blocker=new THREE.Mesh(new THREE.BoxGeometry(.40,.48,.25),padMat);
+    blocker.position.set(.49,1.16,.31); blocker.rotation.z=-.12; rig.group.add(blocker);
+    const catcher=new THREE.Mesh(new THREE.SphereGeometry(.30,10,7),padMat);
+    catcher.position.set(-.50,1.16,.30); catcher.scale.set(1.18,.92,.48); catcher.rotation.z=.28; rig.group.add(catcher);
+    const mask=new THREE.Mesh(new THREE.SphereGeometry(.37,12,9,0,Math.PI*2,0,Math.PI*.75),
+      new THREE.MeshStandardMaterial({color:0x172132,roughness:.35,metalness:.48,emissive:teamDef.glow,emissiveIntensity:.18}));
+    mask.position.set(0,1.99,.06); mask.scale.set(1,.96,.92); rig.group.add(mask);
+    const cageMat=new THREE.MeshStandardMaterial({color:0xe7f2f8,roughness:.28,metalness:.82});
+    for(const x of [-.22,-.11,0,.11,.22]){
+      const bar=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.48,6),cageMat);
+      bar.position.set(x,1.96,.37); rig.group.add(bar);
+    }
+    for(const y of [1.83,1.98,2.13]){
+      const bar=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.52,6),cageMat);
+      bar.position.set(0,y,.375); bar.rotation.z=Math.PI/2; rig.group.add(bar);
+    }
   }
   rig.group.add(gear);
   scene.add(rig.group);
@@ -843,7 +946,8 @@ const S = { state: 'FACEOFF', t: 0, period: 1, clock: PERIOD_LEN, score: [0, 0],
   zoneTime:[0,0], entries:[0,0], cycles:[0,0], lastZone:[0,0],
   scorerName: '', scoredSide: 1, scoringTeam: 0, noTouchT: 0, push: 0,
   eventText:'', eventKind:'', eventTTL:0, cameraBeat:0, cameraKind:'', cameraX:0, cameraZ:0, ledBeat:0, ledColor:0x66f0ff,
-  forceSave:'', forceCheck:false, forceOneTimer:false, forcePenalty:false };
+  forceSave:'', forceCheck:false, forceOneTimer:false, forcePenalty:false,
+  entryMode:'fresh', tuneInSeconds:0, entryTargetSeconds:0, entryBucket:null, entryRecued:false, entryPhase:null };
 let paused = false, completedGames = 0, lastFinal = null;
 function setState(s) { S.state = s; S.t = 0; }
 
@@ -869,6 +973,7 @@ function setupMatch(firstLoad) {
   S.systems=[(fixtureIdx+ia)%SYSTEMS.length,(fixtureIdx+ib+1)%SYSTEMS.length]; S.possessionTeam=null;
   S.zoneTime=[0,0]; S.entries=[0,0]; S.cycles=[0,0]; S.lastZone=[0,0];
   S.eventTTL = S.cameraBeat = S.ledBeat = 0; S.push = 0; elEvent.className = '';
+  S.entryMode='fresh';S.tuneInSeconds=0;S.entryTargetSeconds=0;S.entryBucket=null;S.entryRecued=false;S.entryPhase=null;
   S.forceSave = ''; S.forceCheck = false; S.forceOneTimer = false; S.forcePenalty=false;
   paused = false; elPause.textContent = 'PAUSE';
   applyTeamHUD();
@@ -1105,8 +1210,15 @@ function steerCarrier(p) {
     const shotWindow=d*p.x>BLX-1 && distGoal<18.5 && distGoal>3;
     const shotChance=clamp(.34+(pressured?.18:0)+(lane>1.5?.18:0)+Math.min(p.carryT,2.5)*.12+(distGoal<8?.18:0),.3,.9);
     if (shotWindow && Math.random()<shotChance) {
-      const setForSlap=distGoal>7 && distGoal<17 && lane>1.15 && Math.hypot(p.vx,p.vz)<6.4;
-      beginShot(p,false,setForSlap && Math.random()<.52); return;
+      // A point carrier settles inside beginShot(), so skating speed must not
+      // disqualify the windup before it can begin.  Favor defenders and the
+      // point-shot system, while still allowing a forward to hammer a clean
+      // circle look.  This produces an organic mix rather than only test-only
+      // slap shots.
+      const pointLook=distGoal>7 && distGoal<17.5 && lane>.8;
+      const pointCarrier=p.idx>=4 || sys.offense==='POINT SHOT + SCREEN';
+      const chooseSlap=pointLook && Math.random()<(pointCarrier?.58:.42);
+      beginShot(p,false,chooseSlap); return;
     }
     if(sys.entry==='CHIP + CHASE' && !zone && d*p.x>BLX-3 && Math.random()<.28) {
       releasePuck(p,d*(GLX-2),(p.z>=0?1:-1)*8.5,20); cueEvent('CHIP BEHIND THE DEFENSE','',.9); return;
@@ -1525,7 +1637,16 @@ function cameraStep(dt) {
   const portrait = innerWidth <= 700 && innerHeight > innerWidth*1.2;
   const rush = S.state === 'PLAY' ? players.find(p => p.breakaway && puck.carrier === p) : null;
   const mode = (S.state === 'GOAL_SEQ' && S.t < 3.1) ? 'over' : rush ? 'rush' : 'broadcast';
-  if (mode === 'over') {
+  camera.up.set(portrait?1:0,portrait?0:1,0);
+  roofTrusses.forEach(beam=>beam.visible=!portrait&&mode!=='over');
+  scoreboard.visible=!portrait&&mode!=='over';
+  if(portrait){
+    // Rotate the rink into portrait broadcast orientation: the 56m length runs
+    // vertically while the 26m width fills the phone, eliminating the huge
+    // dead bands produced by squeezing a landscape rink into a narrow screen.
+    const focusX=mode==='over'?S.scoredSide*4:mode==='rush'?rush.x*.14:puck.x*.06;
+    tmpP.set(focusX,42,7.5);tmpL.set(focusX,0,0);
+  } else if (mode === 'over') {
     const gx = S.scoredSide*GLX;
     tmpP.set(gx*(portrait?0.38:0.55), portrait?36:30, portrait?BZ+38:7); tmpL.set(gx*(portrait?0.62:0.8), 0, 0);
   } else if (mode === 'rush') {
@@ -1552,7 +1673,7 @@ function cameraStep(dt) {
     camera.position.x += Math.sin(simClockTotal*71)*shake;
     camera.position.y += Math.cos(simClockTotal*57)*shake*0.35;
   }
-  const desiredFov = portrait ? (mode === 'over' ? 72 : mode === 'rush' ? 70 : 74) : mode === 'rush' ? 35 : S.cameraBeat > 0 ? 38 : 40;
+  const desiredFov = portrait ? (mode === 'over' ? 66 : 68) : mode === 'rush' ? 35 : S.cameraBeat > 0 ? 38 : 40;
   camera.fov += (desiredFov-camera.fov)*dampK(7,dt); camera.updateProjectionMatrix();
   camera.lookAt(camLook);
 }
@@ -1620,6 +1741,27 @@ function updateFX(dt) {
   puckRing.material.opacity = 0.3 + clamp(pspd/30, 0, 1)*0.5;
   const puckColor = puck.lastTouch ? (puck.lastTouch.team === 0 ? TEAM_A : TEAM_B).glow : 0x66f0ff;
   puckRing.material.color.setHex(puckColor);
+  const activeShooter=players.find(p=>p.action && (p.action.type==='shot'||p.action.type==='slapShot'||p.action.type==='oneTimer'));
+  if(activeShooter){
+    const a=shotAimLine.geometry.attributes.position, d=ATT[activeShooter.team];
+    a.setXYZ(0,activeShooter.x,.18,activeShooter.z);
+    a.setXYZ(1,d*(GLX+.15),.18,activeShooter.action.aimZ||0); a.needsUpdate=true;
+    shotAimLine.material.color.setHex(activeShooter.team===0?TEAM_A.glow:TEAM_B.glow);
+    shotAimLine.material.opacity=.32+Math.sin(simClockTotal*18)*.16;
+  } else shotAimLine.material.opacity*=.76;
+  const focus=puck.carrier&&!puck.carrier.isGK?puck.carrier:activeShooter;
+  if(focus){
+    focusRing.position.x=focus.x; focusRing.position.z=focus.z;
+    focusRing.material.color.setHex(focus.team===0?TEAM_A.glow:TEAM_B.glow);
+    focusRing.material.opacity=.26+Math.sin(simClockTotal*9)*.09;
+    const fs=1+Math.sin(simClockTotal*7)*.05; focusRing.scale.set(fs,fs,1);
+  } else focusRing.material.opacity*=.8;
+  const danger=players.find(p=>p.checkReady>.18)||players.find(p=>p.fallT>0);
+  if(danger){
+    dangerRing.position.x=danger.x; dangerRing.position.z=danger.z;
+    dangerRing.material.opacity=danger.fallT>0?.42:.22+danger.checkReady*.35;
+    const ds=1+Math.sin(simClockTotal*12)*.12; dangerRing.scale.set(ds,ds,1);
+  } else dangerRing.material.opacity*=.76;
   const bladeLen = clamp(pspd*0.15,0,4.6), bladeNorm = pspd || 1;
   const bladePos = puckBlade.geometry.attributes.position;
   bladePos.setXYZ(0,puck.x,puck.y+0.05,puck.z);
@@ -1845,6 +1987,34 @@ function tick(dt, skipRender = false) {
   hudStep();
   composer.render();
 }
+function applyBroadcastTuneIn(){
+  if(freshEntryRequested)return;
+  const h=entryHash(`ice:${fixtureIdx}:${entryBucket}`);
+  const target=Number.isFinite(requestedTuneInSeconds)
+    ? clamp(requestedTuneInSeconds,0,330)
+    : 18+(h%270); // spans opening shifts, second period and late third-period hockey
+  const fixtureAtEntry=fixtureIdx, completedAtEntry=completedGames, lastFinalAtEntry=lastFinal;
+  const runTo=seconds=>{
+    const steps=Math.round(seconds/.05);let actual=0;
+    for(let i=0;i<steps;i++){
+      tick(.05,true);actual+=.05;
+      if(S.state==='FINAL'||fixtureIdx!==fixtureAtEntry)break;
+    }
+    return actual;
+  };
+  let actual=runTo(target), recued=S.state==='FINAL'||fixtureIdx!==fixtureAtEntry;
+  if(recued){
+    // A very long explicit QA offset may reach the final card. Re-cue the same
+    // fixture into a deterministic second-period window instead of presenting
+    // a dead broadcast or silently advancing to another matchup.
+    fixtureIdx=fixtureAtEntry;setupMatch(true);completedGames=completedAtEntry;lastFinal=lastFinalAtEntry;
+    actual=runTo(150+(h%66));
+  }
+  S.entryMode='live-tune-in';S.tuneInSeconds=actual;S.entryTargetSeconds=target;S.entryBucket=entryBucket;S.entryRecued=recued;
+  S.entryPhase={period:S.period,clock:+Math.max(0,S.clock).toFixed(1),state:S.state};
+  tick(0,false);
+}
+applyBroadcastTuneIn();
 // ============ TICK DRIVER (hidden-tab resilience, same pattern as index.html) ============
 // rAF stops entirely in hidden tabs, so a rAF-only loop would freeze the league.
 // When hidden we drive tick() from setInterval instead: browsers throttle hidden
@@ -1958,6 +2128,7 @@ window.__CYBERLIGA_HOCKEY_TEST__ = Object.freeze({ forceMoment:forceIceMoment, r
 window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'rink meters; origin center ice; +x right goal, +z far boards, +y up',
   mode: paused ? 'PAUSED' : S.state,
+  entry:{mode:S.entryMode,tuneInSeconds:+S.tuneInSeconds.toFixed(1),targetSeconds:+S.entryTargetSeconds.toFixed(1),bucket:S.entryBucket,recued:S.entryRecued,phase:S.entryPhase,freshURL:'?fresh=1',qaURL:'?at=285&bucket=2077'},
   completedGames,
   lastFinal,
   period: S.period,
