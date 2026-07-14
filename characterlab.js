@@ -957,7 +957,7 @@
   }
 
   function buildFilters() {
-    ['all', 'soccer', 'basketball', 'hockey', 'baseball', 'combat', 'american-football'].forEach(function (sport) {
+    ['all', 'soccer', 'basketball', 'hockey', 'baseball', 'american-football'].forEach(function (sport) {
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'filter-button';

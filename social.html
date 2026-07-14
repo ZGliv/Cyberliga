@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>CYBERLIGA WORLD WIRE — Live Stories From Six Leagues</title>
-<meta name="description" content="The live editorial desk for Cyberliga: six leagues, 48 clubs, 416 athletes, one shared UTC sports world." />
+<title>CYBERLIGA WORLD WIRE — Live Stories From Five Leagues</title>
+<meta name="description" content="The live editorial desk for Cyberliga: five public leagues, 40 clubs, 368 athletes, one shared UTC sports world." />
 <meta name="theme-color" content="#090b0e" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23090b0e'/%3E%3Cpath d='M13 17h38v8H21v14h30v8H13z' fill='%23ff4d38'/%3E%3C/svg%3E" />
 <style>
@@ -213,7 +213,7 @@
 <header class="masthead">
   <a class="brand" href="social.html">CYBERLIGA <span>/ WORLD WIRE</span></a>
   <div class="edition"><b>SEASON ZERO · GLOBAL EDITION</b><time id="utc-clock">--:--:-- UTC</time></div>
-  <nav class="mastnav"><span class="utc-label"><i class="pulse"></i><b data-cyberliga-presence>1 WATCHING · LOCAL</b></span><a href="menu.html">BROADCAST GUIDE</a><a href="league.html?sport=soccer">LEAGUE ATLAS</a><a href="moment.html">MOMENT MAKER</a><a class="world" href="world.html">WORLD MAP ↗</a></nav>
+  <nav class="mastnav"><span class="utc-label"><i class="pulse"></i><b data-cyberliga-presence>1 WATCHING · LOCAL</b></span><a href="league.html?sport=soccer">LEAGUE HQ</a><a href="moment.html">MOMENT MAKER</a><a class="world" href="world.html">WORLD MAP ↗</a></nav>
 </header>
 
 <div class="club-tape" aria-label="Trending clubs">
@@ -269,6 +269,7 @@
   if (!C) { document.body.innerHTML = '<p style="padding:40px;color:white;font-family:monospace">WORLD WIRE SIGNAL UNAVAILABLE</p>'; return; }
 
   var CYCLE_MS = 12 * 60 * 1000;
+  var PUBLIC_SPORTS = C.sports.filter(function (sport) { return sport.id !== 'combat'; });
   var sportColors = { soccer:'#70e4ff', 'american-football':'#c8ff44', basketball:'#ff984f', hockey:'#89cfff', baseball:'#61e7b2', combat:'#ff526a' };
   var sportLabels = { soccer:'THE COMMON GROUND', 'american-football':'THE SUNDAY ANIMAL', basketball:'THE HIGH ROOM', hockey:'THE COLD ARGUMENT', baseball:'THE LONG AFTERNOON', combat:'THE HANDMADE UNDERCARD' };
   var scoreRanges = { soccer:[0,5], 'american-football':[7,45], basketball:[74,124], hockey:[0,7], baseball:[0,12], combat:[1,3] };
@@ -279,6 +280,7 @@
   var focusScrolled = false;
 
   function now() { return Date.now() + offsetMs; }
+  function isPublicSport(sportId) { return PUBLIC_SPORTS.some(function (sport) { return sport.id === sportId; }); }
   function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   function pad(value) { return String(value).padStart(2,'0'); }
   function clock(ms) { var d=new Date(ms); return pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+' UTC'; }
@@ -312,7 +314,7 @@
   function makeWorld(current) {
     var cycle=Math.floor(current/CYCLE_MS), cycleStart=cycle*CYCLE_MS, progress=(current-cycleStart)/CYCLE_MS;
     var editionSeed='world-wire-'+cycle;
-    var order=C.sports.slice().sort(function(a,b){return C.hash(editionSeed+'|'+a.id)-C.hash(editionSeed+'|'+b.id);});
+    var order=PUBLIC_SPORTS.slice().sort(function(a,b){return C.hash(editionSeed+'|'+a.id)-C.hash(editionSeed+'|'+b.id);});
     var stories=order.map(function(sport, index){
       var season=C.createSeason(sport.id,'season-zero-'+Math.floor(cycle/14));
       var roundNumber=(Math.abs(cycle)%season.rounds.length)+1;
@@ -331,7 +333,7 @@
       return {id:id,sport:sport,home:home,away:away,score:scores,status:status,round:roundNumber,rivalry:marquee.rivalry,headline:story.title,deck:story.deck,hook:story.hook,athlete:athlete,team:team,event:event,publishedAt:cycleStart-(index*2+1)*60000,color:sportColors[sport.id]};
     });
     var ranked=stories.slice().sort(function(a,b){ return (b.rivalry?20:0)+C.hash(editionSeed+'|rank|'+b.id)%20-((a.rivalry?20:0)+C.hash(editionSeed+'|rank|'+a.id)%20); });
-    var allTeams=C.sports.reduce(function(out,sport){return out.concat(sport.teams);},[]);
+    var allTeams=PUBLIC_SPORTS.reduce(function(out,sport){return out.concat(sport.teams);},[]);
     var trends=allTeams.map(function(team){return {team:team,heat:52+(C.hash(editionSeed+'|trend|'+team.id)%47)};}).sort(function(a,b){return b.heat-a.heat;}).slice(0,8);
     var rivalries=ranked.slice().sort(function(a,b){return Number(b.rivalry)-Number(a.rivalry);}).slice(0,3);
     return {current:current,cycle:cycle,cycleStart:cycleStart,progress:progress,stories:stories,ranked:ranked,lead:ranked[0],trends:trends,rivalries:rivalries};
@@ -354,7 +356,7 @@
   }
 
   function renderFilters() {
-    var items=[{id:'all',name:'All six leagues',color:'#c8ff44'}].concat(C.sports.map(function(sport){return {id:sport.id,name:sport.name,color:sportColors[sport.id]};}));
+    var items=[{id:'all',name:'All five leagues',color:'#c8ff44'}].concat(PUBLIC_SPORTS.map(function(sport){return {id:sport.id,name:sport.name,color:sportColors[sport.id]};}));
     document.getElementById('filters').innerHTML=items.map(function(item){return '<button class="filter'+(selectedSport===item.id?' active':'')+'" type="button" data-filter="'+esc(item.id)+'" style="--filter:'+item.color+'">'+esc(item.name)+'</button>';}).join('');
   }
 
@@ -401,11 +403,11 @@
     if (!preserveCycle||!state||Math.floor(current/CYCLE_MS)!==state.cycle) state=makeWorld(current); else { state.current=current; state.progress=(current-state.cycleStart)/CYCLE_MS; }
     renderClockOnly(); renderLead(); renderSignals(); renderFilters(); renderStories(); renderTapeAndTrends(); renderFocus();
     document.getElementById('cycle-id').textContent='UTC EDITION '+state.cycle.toString(36).toUpperCase()+' · '+clock(state.cycleStart);
-    document.getElementById('wire-status').textContent='RECEIVING '+state.stories.length+'/'+C.sports.length;
+    document.getElementById('wire-status').textContent='RECEIVING '+state.stories.length+'/'+PUBLIC_SPORTS.length;
   }
 
   function setFilter(sportId, updateUrl) {
-    selectedSport=C.getSport(sportId)?sportId:'all';
+    selectedSport=isPublicSport(sportId)?sportId:'all';
     if (updateUrl) { var q=new URLSearchParams(location.search); if(selectedSport==='all')q.delete('sport');else q.set('sport',selectedSport);q.delete('team');q.delete('player');q.delete('story');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():''));params=q; }
     renderLead(); renderSignals(); renderFilters(); renderStories(); renderFocus();
   }
@@ -417,9 +419,9 @@
     if(share){var story=state.stories.filter(function(item){return item.id===share.dataset.share;})[0];if(!story)return;var url=new URL(queryFor({sport:story.sport.id,story:story.id},'story-'+story.id),location.href).href;copyText(url).then(function(){var old=share.textContent;share.textContent='COPIED';setTimeout(function(){share.textContent=old;},1100);});}
   });
 
-  selectedSport=C.getSport(params.get('sport'))?params.get('sport'):'all';
+  selectedSport=isPublicSport(params.get('sport'))?params.get('sport'):'all';
   var requestedTeam=C.getTeam(params.get('team'));
-  if(requestedTeam) selectedSport=requestedTeam.sportId;
+  if(requestedTeam&&requestedTeam.sportId!=='combat') selectedSport=requestedTeam.sportId;
   renderAll(false);
   var storyParam=params.get('story');
   if(storyParam) setTimeout(function(){var target=document.getElementById('story-'+storyParam);if(target)target.scrollIntoView({block:'center'});},0);

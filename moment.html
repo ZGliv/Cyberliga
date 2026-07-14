@@ -79,7 +79,7 @@
   <header class="mast">
     <a class="brand" href="world.html">CYBERLIGA <span>/ MOMENT MAKER</span></a>
     <div class="live"><span data-cyberliga-presence>1 WATCHING · LOCAL</span></div>
-    <nav><a href="menu.html">GUIDE</a><a href="replay.html">REPLAYS</a><a href="social.html">WORLD WIRE</a><a id="league-link" href="league.html">LEAGUE</a><a href="world.html">WORLD ↗</a></nav>
+    <nav><a id="league-link" href="league.html">LEAGUES</a><a href="replay.html">REPLAYS</a><a href="social.html">WORLD WIRE</a><a href="world.html">WORLD ↗</a></nav>
   </header>
 
   <main>
@@ -160,8 +160,10 @@
     function buildMoment(source,forceSeed){
       var current=Date.now()+clockOffset,cycle=Math.floor(current/CYCLE_MS),editionStart=cycle*CYCLE_MS;
       var params=source||new URLSearchParams(location.search);
+      var publicSports=C.sports.filter(function(item){return item.id!=='combat';});
       var requestedSport=C.getSport(params.get('sport'));
-      var sport=requestedSport||C.sports[hash('moment-sport|'+cycle)%C.sports.length];
+      if(requestedSport&&requestedSport.id==='combat')requestedSport=null;
+      var sport=requestedSport||publicSports[hash('moment-sport|'+cycle)%publicSports.length];
       var baseSeed=safe(forceSeed||params.get('seed')||('utc-'+cycle),72);
       var matchSeed=safe(forceSeed||params.get('match')||baseSeed,72);
       var storySeed=safe(forceSeed?('story-'+hash(forceSeed+'|story').toString(36)):(params.get('story')||baseSeed+'-story'),72);

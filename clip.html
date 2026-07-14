@@ -91,7 +91,7 @@
   <header class="mast">
     <a class="brand" href="world.html">CYBERLIGA <span>/ CLIP DIRECTOR</span></a>
     <div class="signal"><span data-cyberliga-presence>1 WATCHING · LOCAL</span></div>
-    <nav><a href="menu.html">GUIDE</a><a href="replay.html">REPLAYS</a><a href="social.html">WORLD WIRE</a><a href="moment.html">MOMENT MAKER</a><a href="world.html">WORLD ↗</a></nav>
+    <nav><a href="league.html">LEAGUES</a><a href="replay.html">REPLAYS</a><a href="social.html">WORLD WIRE</a><a href="moment.html">MOMENT MAKER</a><a href="world.html">WORLD ↗</a></nav>
   </header>
   <main>
     <div class="stage" id="stage">
@@ -171,7 +171,9 @@
     function momentURL(data){return 'moment.html?'+canonicalParams(data).toString();}
     function buildMoment(source,forced){
       var now=Date.now(),cycle=Math.floor(now/CYCLE_MS),p=source||new URLSearchParams(location.search);
-      var sport=C.getSport(p.get('sport'))||C.sports[hash('clip-sport|'+cycle)%C.sports.length];
+      var publicSports=C.sports.filter(function(item){return item.id!=='combat';});
+      var requested=C.getSport(p.get('sport'));if(requested&&requested.id==='combat')requested=null;
+      var sport=requested||publicSports[hash('clip-sport|'+cycle)%publicSports.length];
       var base=safe(forced||p.get('seed')||('utc-'+cycle),72),matchSeed=safe(forced||p.get('match')||base,72),storySeed=safe(forced?('story-'+hash(forced+'|story').toString(36)):(p.get('story')||base+'-story'),72);
       var season=C.createSeason(sport.id,'season-zero-'+Math.floor(cycle/14)),round=(hash(matchSeed+'|round')%season.rounds.length)+1,marquee=C.getMarqueeMatchup(sport.id,matchSeed,round);
       var home=C.getTeam(p.get('home'),sport.id)||marquee.home,away=C.getTeam(p.get('away'),sport.id)||marquee.away;
@@ -236,7 +238,7 @@
     function drawIntro(data,p){var enter=out(clamp(p/.65,0,1)),exit=1-out(clamp((p-.78)/.22,0,1));ctx.save();ctx.globalAlpha=enter*exit;ctx.translate(0,lerp(34,0,enter));ctx.fillStyle='#f4f0e7';ctx.font='950 64px Arial Narrow,Arial,sans-serif';ctx.fillText('ONE PLAY.',27,276);ctx.fillStyle=data.featuredTeam.colors.accent;ctx.fillText('NO REPLAY.',27,336);ctx.fillStyle='#f4f0e7';ctx.font='900 15px monospace';ctx.fillText(data.home.code+'  ×  '+data.away.code+' / ROUND '+data.round,30,374);ctx.restore();}
     function drawPlayLabel(data,p){var appear=out(clamp((p-.05)/.15,0,1));ctx.save();ctx.globalAlpha=appear;ctx.fillStyle='rgba(5,7,7,.78)';ctx.fillRect(20,96,500,83);ctx.fillStyle=data.featuredTeam.colors.accent;ctx.font='850 10px monospace';ctx.fillText(data.athlete.name.toUpperCase()+' / #'+data.athlete.number,34,124);ctx.fillStyle='#f4f0e7';ctx.font='950 27px Arial Narrow,Arial,sans-serif';ctx.fillText(signatures[data.sport.id],34,157);ctx.restore();}
     function drawScore(data,p){var e=out(p),winner=data.score[0]>=data.score[1]?data.home:data.away;ctx.save();ctx.fillStyle='rgba(5,7,7,'+(.86*e)+')';ctx.fillRect(0,0,W,H);ctx.translate(0,lerp(80,0,e));ctx.globalAlpha=e;ctx.fillStyle=winner.colors.accent;ctx.font='850 10px monospace';ctx.textAlign='center';ctx.fillText('FINAL SIGNAL / '+data.sport.name.toUpperCase(),270,232);ctx.fillStyle='#f4f0e7';ctx.font='950 52px Arial Narrow,Arial,sans-serif';ctx.fillText(data.home.code+'  '+Math.round(data.score[0]*e),270,338);ctx.fillText(data.away.code+'  '+Math.round(data.score[1]*e),270,408);line(94,435,446,435,alpha('#f4f0e7',.35),2);ctx.fillStyle=winner.colors.primary;ctx.font='950 31px Arial Narrow,Arial,sans-serif';ctx.fillText(winner.name,270,485);ctx.fillStyle='#aeb6af';ctx.font='750 10px monospace';ctx.fillText('THE WORLD SAW THE SAME ENDING.',270,518);ctx.restore();}
-    function drawCTA(data,p){var e=out(p),lines=wrap(data.headline.toUpperCase(),480,42,3);ctx.save();ctx.fillStyle='#080a0b';ctx.globalAlpha=.94*e;ctx.fillRect(0,0,W,H);ctx.globalAlpha=e;ctx.translate(0,lerp(80,0,e));ctx.fillStyle=data.featuredTeam.colors.primary;ctx.fillRect(0,0,16,H);ctx.fillStyle=data.featuredTeam.colors.accent;ctx.font='850 10px monospace';ctx.fillText(data.sport.name.toUpperCase()+' / '+data.athlete.name.toUpperCase(),38,170);ctx.fillStyle='#f4f0e7';ctx.font='950 42px Arial Narrow,Arial,sans-serif';lines.forEach(function(lineText,i){ctx.fillText(lineText,38,238+i*42);});line(38,395,502,395,alpha('#f4f0e7',.3),2);ctx.fillStyle='#f4f0e7';ctx.font='950 66px Arial Narrow,Arial,sans-serif';ctx.fillText('WATCH',38,566);ctx.fillText('THE WORLD.',38,626);ctx.fillStyle=data.featuredTeam.colors.accent;ctx.font='900 14px monospace';ctx.fillText('CYBERLIGA-TEN.VERCEL.APP',40,680);ctx.fillStyle='#949c96';ctx.font='750 9px monospace';ctx.fillText('ONE PLANET / SIX LEAGUES / ALWAYS ON',40,715);ctx.restore();}
+    function drawCTA(data,p){var e=out(p),lines=wrap(data.headline.toUpperCase(),480,42,3);ctx.save();ctx.fillStyle='#080a0b';ctx.globalAlpha=.94*e;ctx.fillRect(0,0,W,H);ctx.globalAlpha=e;ctx.translate(0,lerp(80,0,e));ctx.fillStyle=data.featuredTeam.colors.primary;ctx.fillRect(0,0,16,H);ctx.fillStyle=data.featuredTeam.colors.accent;ctx.font='850 10px monospace';ctx.fillText(data.sport.name.toUpperCase()+' / '+data.athlete.name.toUpperCase(),38,170);ctx.fillStyle='#f4f0e7';ctx.font='950 42px Arial Narrow,Arial,sans-serif';lines.forEach(function(lineText,i){ctx.fillText(lineText,38,238+i*42);});line(38,395,502,395,alpha('#f4f0e7',.3),2);ctx.fillStyle='#f4f0e7';ctx.font='950 66px Arial Narrow,Arial,sans-serif';ctx.fillText('WATCH',38,566);ctx.fillText('THE WORLD.',38,626);ctx.fillStyle=data.featuredTeam.colors.accent;ctx.font='900 14px monospace';ctx.fillText('CYBERLIGA-TEN.VERCEL.APP',40,680);ctx.fillStyle='#949c96';ctx.font='750 9px monospace';ctx.fillText('ONE PLANET / FIVE LEAGUES / ALWAYS ON',40,715);ctx.restore();}
     function drawGrain(seed){var r=rng(seed);ctx.save();for(var i=0;i<360;i++){ctx.fillStyle=r()>.5?'rgba(255,255,255,'+(.015+r()*.025)+')':'rgba(0,0,0,'+(.02+r()*.04)+')';var s=1+r()*2;ctx.fillRect(r()*W,r()*H,s,s);}ctx.restore();}
     function draw(){
       if(!moment)return;var phase=phaseAt(time),p=phaseProgress(time),scene=sceneFor(moment,time),arenaOpacity=phase==='intro'?clamp(time/1800,0,.18):1;
@@ -275,7 +277,7 @@
       lastFrame=now;requestAnimationFrame(tick);
     }
 
-    C.sports.forEach(function(sport){var option=document.createElement('option');option.value=sport.id;option.textContent=sport.name.toUpperCase()+' / '+sport.league;document.getElementById('sport').appendChild(option);});
+    C.sports.filter(function(sport){return sport.id!=='combat';}).forEach(function(sport){var option=document.createElement('option');option.value=sport.id;option.textContent=sport.name.toUpperCase()+' / '+sport.league;document.getElementById('sport').appendChild(option);});
     document.getElementById('play').addEventListener('click',function(){if(time>=DURATION)time=0;playing=!playing;lastFrame=performance.now();draw();updateUI();});
     document.getElementById('restart').addEventListener('click',function(){time=0;playing=true;lastFrame=performance.now();draw();updateUI();setStatus('CLIP RESTARTED FROM FRAME ZERO.');});
     document.getElementById('scrub').addEventListener('input',function(){time=Number(this.value)||0;playing=false;draw();updateUI();});

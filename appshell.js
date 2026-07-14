@@ -7,8 +7,7 @@
     { id:'american-football', code:'AMF', name:'American Football', league:'The Sunday Animal', href:'football.html', color:'#c8ff44' },
     { id:'basketball', code:'HPS', name:'Basketball', league:'The High Room', href:'hoops.html', color:'#ff8a3d' },
     { id:'hockey', code:'ICE', name:'Hockey', league:'The Cold Argument', href:'hockey.html', color:'#78dfff' },
-    { id:'baseball', code:'BSB', name:'Baseball', league:'The Long Afternoon', href:'baseball.html', color:'#58ffb4' },
-    { id:'combat', code:'FYT', name:'Combat', league:'The Handmade Undercard', href:'fight.html', color:'#ff3d5a' }
+    { id:'baseball', code:'BSB', name:'Baseball', league:'The Long Afternoon', href:'baseball.html', color:'#58ffb4' }
   ];
   var path = (root.location.pathname.split('/').pop() || 'world.html').toLowerCase();
   var params = new URLSearchParams(root.location.search);
@@ -20,7 +19,6 @@
 
   var NAV = [
     { id:'home', label:'HOME', href:'world.html', paths:['world.html'] },
-    { id:'watch', label:'WATCH', href:'menu.html', paths:['menu.html'] },
     { id:'leagues', label:'LEAGUES', href:'league.html', paths:['league.html','player.html','characterlab.html'] },
     { id:'community', label:'COMMUNITY', href:'social.html', paths:['social.html','moment.html','clip.html','ops.html'] },
     { id:'replays', label:'REPLAYS', href:'replay.html', paths:['replay.html'] }
@@ -31,7 +29,7 @@
     return href + (href.indexOf('?') === -1 ? '?' : '&') + 'sport=' + encodeURIComponent(activeSport.id);
   }
   function navLink(item) {
-    var href = item.id === 'home' || item.id === 'watch' ? item.href : contextual(item.href);
+    var href = item.id === 'home' ? item.href : contextual(item.href);
     return '<a href="' + href + '"' + (item.id === current.id ? ' aria-current="page"' : '') + '>' + item.label + '</a>';
   }
   function sportLink(sport) {
@@ -41,7 +39,7 @@
 
   var shell = root.document.createElement('div');
   shell.id = 'cyberliga-app-shell';
-  shell.innerHTML = '<a class="cas-brand" href="world.html" aria-label="Cyberliga home">CYBERLIGA <span>ONE WORLD · SIX LEAGUES</span></a>' +
+  shell.innerHTML = '<a class="cas-brand" href="world.html" aria-label="Cyberliga home">CYBERLIGA <span>ONE WORLD · FIVE LEAGUES</span></a>' +
     '<nav class="cas-primary" aria-label="Cyberliga primary navigation">' + NAV.map(navLink).join('') + '</nav>' +
     '<div class="cas-context"><a class="cas-continue" href="' + activeSport.href + '">LIVE ' + activeSport.name.toUpperCase() + '</a><button class="cas-arena-toggle" type="button" aria-controls="cas-drawer" aria-expanded="false">CHOOSE ARENA</button></div>';
 
@@ -59,7 +57,7 @@
   drawer.setAttribute('aria-hidden','true');
   drawer.setAttribute('aria-labelledby','cas-drawer-title');
   drawer.innerHTML = '<div class="cas-drawer-head"><div><small>LIVE SPORTS NETWORK</small><h2 id="cas-drawer-title">Choose your arena.</h2></div><button class="cas-close" type="button" aria-label="Close arena switcher">×</button></div>' +
-    '<span class="cas-drawer-label">SIX LEAGUES · ALWAYS PLAYING</span><nav class="cas-sports" aria-label="Sport arenas">' + SPORTS.map(sportLink).join('') + '</nav>' +
+    '<span class="cas-drawer-label">FIVE LEAGUES · ALWAYS PLAYING</span><nav class="cas-sports" aria-label="Sport arenas">' + SPORTS.map(sportLink).join('') + '</nav>' +
     '<span class="cas-drawer-label">EXPLORE THE WORLD</span><nav class="cas-more" aria-label="Cyberliga destinations"><a href="' + contextual('league.html') + '">TEAMS & LEAGUES</a><a href="' + contextual('player.html') + '">ATHLETE FILES</a><a href="' + contextual('replay.html') + '">REPLAY CENTER</a><a href="' + contextual('social.html') + '">COMMUNITY</a><a href="' + contextual('moment.html') + '">MAKE A POSTER</a><a href="' + contextual('clip.html') + '">CREATE A CLIP</a></nav>';
 
   var open = false;

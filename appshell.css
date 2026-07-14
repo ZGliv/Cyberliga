@@ -181,6 +181,8 @@ body.cyberliga-shell-enabled > header .page-links {
   right: 0;
   bottom: 0;
   width: min(560px, 100vw);
+  visibility: hidden;
+  pointer-events: none;
   overflow: auto;
   padding: 26px 24px calc(28px + env(safe-area-inset-bottom));
   transform: translateX(103%);
@@ -189,12 +191,12 @@ body.cyberliga-shell-enabled > header .page-links {
   color: var(--cas-paper);
   box-shadow: -30px 0 90px rgba(0,0,0,.55);
   font-family: Arial, Helvetica, sans-serif;
-  transition: transform .22s cubic-bezier(.2,.9,.24,1);
+  transition: transform .22s cubic-bezier(.2,.9,.24,1), visibility 0s linear .22s;
 }
 
 body.cas-open { overflow: hidden; }
 body.cas-open .cas-backdrop { opacity: 1; pointer-events: auto; }
-body.cas-open .cas-drawer { transform: translateX(0); }
+body.cas-open .cas-drawer { visibility: visible; pointer-events: auto; transform: translateX(0); transition-delay: 0s; }
 
 .cas-drawer-head {
   display: flex;
@@ -318,7 +320,6 @@ body.cas-open .cas-drawer { transform: translateX(0); }
   .cas-brand,.cas-context .cas-continue { display: none; }
   .cas-primary { display: grid; grid-template-columns: repeat(5,1fr); }
   .cas-primary a { justify-content: center; padding: 0 3px; font-size: 7px; text-align: center; }
-  .cas-primary a:last-child { display: none; }
   .cas-primary a[aria-current="page"]::after { top: 0; bottom: auto; right: 8px; left: 8px; }
   .cas-context { position: absolute; right: 6px; bottom: calc(7px + env(safe-area-inset-bottom)); }
   .cas-arena-toggle { width: calc((100vw - 12px) / 5); min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: #fff !important; font-size: 7px !important; }

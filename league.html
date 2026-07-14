@@ -1,235 +1,143 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>CYBERLIGA LEAGUE ATLAS</title>
-<meta name="description" content="Explore all six Cyberliga leagues, 48 clubs, 416 athletes, rivalries, fixtures, and live arenas." />
-<meta name="theme-color" content="#050607" />
-<link rel="icon" href="data:," />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="league.css" />
-<link rel="stylesheet" href="appshell.css" />
-<style>.page-links{display:flex;gap:7px}.mini-cast .roster-overflow{position:relative;z-index:3;align-self:center;display:grid;place-items:center;flex:0 0 34px;height:34px;margin-left:4px;border:1px solid var(--team);border-radius:50%;color:var(--team);background:#080a0b;font:800 9px/1 'Barlow Condensed',sans-serif;letter-spacing:.08em}.roster-filters{display:flex;gap:7px;margin:-18px 0 24px}.roster-filters[hidden]{display:none}.roster-filters button{min-height:36px;padding:0 14px;border:1px solid var(--line);color:var(--muted);background:#080a0b;cursor:pointer;font:800 9px/1 'Barlow Condensed',sans-serif;letter-spacing:.14em}.roster-filters button[aria-pressed="true"]{border-color:var(--team);color:var(--team);background:color-mix(in srgb,var(--team) 8%,#080a0b)}.athlete-wire{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:11px;border-top:1px solid var(--line);color:var(--team);font:800 8px/1 'Barlow Condensed',sans-serif;letter-spacing:.13em}.standings-shell{overflow:auto;border:1px solid var(--line);background:#080a0b}.standings-table{width:100%;border-collapse:collapse}.standings-table th,.standings-table td{padding:13px 14px;border-bottom:1px solid var(--line);text-align:right;font:800 9px/1 'Barlow Condensed',sans-serif;letter-spacing:.11em}.standings-table th{color:var(--muted);background:#0c0e10}.standings-table th:nth-child(2),.standings-table td:nth-child(2){text-align:left}.standings-table tr:last-child td{border-bottom:0}.standings-table td:first-child{color:var(--league)}.standings-table .club-pick{border:0;color:#fff;background:transparent;cursor:pointer;text-align:left;font:900 11px/1 'Barlow Condensed',sans-serif;letter-spacing:.08em}.standings-table .club-pick span{display:inline-block;min-width:38px;margin-right:10px;color:var(--team-color)}.standings-table .points{color:#fff;font-size:13px}.standings-empty{padding:26px;color:var(--muted);font:700 10px/1.5 'Barlow Condensed',sans-serif;letter-spacing:.12em}.fixture.live{background:color-mix(in srgb,var(--league) 9%,#080a0b);box-shadow:inset 0 2px var(--league)}.fixture.final{opacity:.72}@media(max-width:760px){.roster-filters{display:grid;grid-template-columns:repeat(3,1fr);margin-top:-12px}.roster-filters button{padding:0 7px}.standings-table th,.standings-table td{padding:11px 7px}.standings-table .club-pick{font-size:9px}.standings-table .club-pick span{min-width:28px;margin-right:4px}.standings-table th:nth-child(7),.standings-table td:nth-child(7),.standings-table th:nth-child(8),.standings-table td:nth-child(8){display:none}}</style>
-<style>.athlete-actions{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:12px;border-top:1px solid var(--line);background:var(--line)}.athlete-actions a{display:flex;align-items:center;justify-content:space-between;min-width:0;padding:11px 8px;color:var(--team);background:#080a0b;font:800 7px/1 'Barlow Condensed',sans-serif;letter-spacing:.1em}.athlete-actions a:hover,.athlete-actions a:focus-visible{background:color-mix(in srgb,var(--team) 10%,#080a0b);outline:none}</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>CYBERLIGA — League HQ</title>
+  <meta name="description" content="Explore five Cyberliga leagues, 40 city clubs, 20 live channels, stadiums, uniforms, supporters, rosters, rivalries, and results." />
+  <meta name="theme-color" content="#050607" />
+  <link rel="icon" href="data:," />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="appshell.css" />
+  <link rel="stylesheet" href="league.css" />
 </head>
 <body>
-<div class="grain" aria-hidden="true"></div>
-<header class="topbar">
-  <a class="brand" href="world.html">CYBERLIGA <span>/ LEAGUE ATLAS</span></a>
-  <div class="network-proof"><b>6</b> LEAGUES <i></i><b>48</b> CLUBS <i></i><b>416</b> ATHLETES</div>
-  <div class="page-links"><a class="world-link" href="world.html">HOME</a><a class="world-link" href="menu.html">WATCH</a><a class="world-link" href="social.html">COMMUNITY</a><a class="world-link" href="characterlab.html">PLAYERS</a></div>
-</header>
+  <a class="skip-link" href="#clubs">Skip to clubs</a>
+  <div class="site-grain" aria-hidden="true"></div>
 
-<main>
-  <nav class="sport-switcher" id="sport-switcher" aria-label="Choose a league"></nav>
+  <main id="league-hq">
+    <section class="league-hero" id="league-hero" aria-labelledby="league-name">
+      <img class="league-hero-image" id="league-hero-image" alt="" />
+      <div class="league-hero-shade" aria-hidden="true"></div>
 
-  <section class="hero" id="hero">
-    <div class="hero-copy">
-      <p class="eyebrow" id="sport-label"></p>
-      <h1 id="league-name"></h1>
-      <p class="thesis" id="league-thesis"></p>
-      <div class="hero-actions">
-        <a class="arena-link" id="arena-link" href="index.html">ENTER THE ARENA <span>↗</span></a>
-        <button id="share" type="button">COPY LEAGUE LINK</button>
+      <nav class="sport-switcher" id="sport-switcher" aria-label="Cyberliga leagues"></nav>
+
+      <div class="league-hero-copy">
+        <p class="network-kicker"><span id="league-code">SCL</span> / LEAGUE HQ / EPOCH 01</p>
+        <h1 id="league-name">THE COMMON GROUND</h1>
+        <p class="league-thesis" id="league-thesis"></p>
+        <p class="league-architecture" id="league-architecture"></p>
+        <div class="hero-actions">
+          <a class="primary-action" id="arena-link" href="index.html">ENTER LIVE ARENA <span>↗</span></a>
+          <a href="#clubs">EXPLORE 8 CLUBS <span>↓</span></a>
+          <button id="copy-league" type="button">COPY LEAGUE LINK</button>
+        </div>
       </div>
-    </div>
-    <aside class="marquee" id="marquee">
-      <p class="micro">TODAY'S MARQUEE SIGNAL</p>
-      <div class="matchup"><div><span id="home-code"></span><b id="home-name"></b></div><em>VS</em><div><span id="away-code"></span><b id="away-name"></b></div></div>
-      <p class="headline" id="headline"></p>
-      <div class="marquee-meta"><span id="match-id"></span><span>SIM-SEEDED · PUBLIC</span></div>
-    </aside>
-  </section>
 
-  <div class="wire"><b>WORLD WIRE</b><div id="wire-track"></div></div>
+      <div class="world-proof" aria-label="League network totals">
+        <div><strong>5</strong><span>CANON LEAGUES</span></div>
+        <div><strong>40</strong><span>CITY CLUBS</span></div>
+        <div><strong>20</strong><span>LIVE CHANNELS</span></div>
+        <div><strong>24/7</strong><span>SHARED WORLD</span></div>
+      </div>
+    </section>
 
-  <section class="section clubs-section">
-    <header class="section-head"><div><span>01 //</span><h2>THE CLUBS</h2></div><p>Eight distinct cultures. Select a club to meet its cast.</p></header>
-    <div class="club-grid" id="club-grid"></div>
-  </section>
+    <section class="live-slate" aria-labelledby="live-slate-title">
+      <header class="section-heading compact-heading">
+        <div><p>NOW PLAYING</p><h2 id="live-slate-title">FOUR FIELDS. ONE LEAGUE.</h2></div>
+        <span id="broadcast-language"></span>
+      </header>
+      <div class="channel-grid" id="channel-grid"></div>
+    </section>
 
-  <section class="section roster-section" id="roster-section">
-    <header class="roster-head">
-      <div class="club-ident"><span class="club-code" id="club-code"></span><div><p id="club-location"></p><h2 id="club-name"></h2></div></div>
-      <div class="club-dna"><span id="club-motif"></span><span id="club-motion"></span><span id="club-rivalry"></span></div>
-    </header>
-    <nav class="roster-filters" id="roster-filters" aria-label="Filter football roster" hidden></nav>
-    <div class="cast-grid" id="cast-grid"></div>
-  </section>
+    <section class="clubs-section" id="clubs" aria-labelledby="clubs-title">
+      <header class="section-heading">
+        <div><p>THE MAP / 01</p><h2 id="clubs-title">CHOOSE A CITY.</h2></div>
+        <span>Each club carries one local motif through its crest, uniforms, venue, crowd and motion language.</span>
+      </header>
+      <div class="club-grid" id="club-grid"></div>
+    </section>
 
-  <section class="section standings-section" id="standings-section">
-    <header class="section-head"><div><span>03 //</span><h2>THE TABLE</h2></div><p id="standings-source">CONNECTING TO LEAGUE STATE</p></header>
-    <div class="standings-shell" id="standings-shell"><p class="standings-empty">ACQUIRING STANDINGS SIGNAL…</p></div>
-  </section>
+    <section class="club-dossier" id="club-dossier" aria-labelledby="club-name">
+      <header class="dossier-header">
+        <div class="dossier-crest" id="dossier-crest"></div>
+        <div class="dossier-title">
+          <p id="club-location"></p>
+          <h2 id="club-name"></h2>
+          <span id="club-statement"></span>
+        </div>
+        <div class="color-system" id="color-system" aria-label="Club colors"></div>
+      </header>
 
-  <section class="section schedule-section">
-    <header class="section-head"><div><span>04 //</span><h2>WORLD FIXTURES</h2></div><p id="fixture-source">Previous, live, and upcoming games on every channel.</p></header>
-    <div class="fixture-grid" id="fixture-grid"></div>
-  </section>
-</main>
+      <div class="dossier-stage">
+        <div class="venue-scene" id="venue-scene"></div>
+        <div class="venue-caption">
+          <p>HOME VENUE</p>
+          <h3 id="venue-name"></h3>
+          <span id="venue-line"></span>
+          <a id="club-arena-link" href="index.html">ENTER THIS CLUB'S ARENA <b>↗</b></a>
+        </div>
+      </div>
 
-<footer><b>CYBERLIGA</b><p>Every club is a culture. Every athlete is a silhouette. Every result becomes history.</p><a href="world.html">BACK TO HOME ↑</a></footer>
+      <div class="club-world-grid">
+        <article>
+          <p>CROWD LANGUAGE</p>
+          <h3>THE HOME RITUAL</h3>
+          <span id="crowd-ritual"></span>
+        </article>
+        <article>
+          <p>PLAYING IDENTITY</p>
+          <h3 id="motion-title"></h3>
+          <span id="motion-line"></span>
+        </article>
+        <article>
+          <p>THE RIVAL</p>
+          <h3 id="rival-name"></h3>
+          <span id="rival-line"></span>
+        </article>
+      </div>
 
-<script src="worlddata.js"></script>
-<script src="appshell.js"></script>
-<script>
-(function () {
-  'use strict';
-  var C = window.CYBERLIGA_CONTENT;
-  if (!C) { document.body.innerHTML = '<p class="fatal">LEAGUE SIGNAL UNAVAILABLE</p>'; return; }
+      <section class="uniform-section" aria-labelledby="uniform-title">
+        <header class="subsection-heading">
+          <div><p>CLUB SYSTEM / 02</p><h3 id="uniform-title">THREE UNIFORMS. ONE SIGNAL.</h3></div>
+          <span>Every panel, trim line and pattern is rendered from the same exact club identity.</span>
+        </header>
+        <div class="kit-grid" id="kit-grid"></div>
+      </section>
 
-  var arenaBySport = {
-    soccer:'index.html', 'american-football':'football.html', basketball:'hoops.html',
-    hockey:'hockey.html', baseball:'baseball.html', combat:'fight.html'
-  };
-  var copyBySport = {
-    soccer:'Continuous-flow pressure, tiny bodies, impossible rebounds, and rivalries that can turn in a single touch.',
-    'american-football':'Route geometry, pocket panic, broken tackles, and one full-field decision on every snap.',
-    basketball:'Vertical speed and violent transitions in a league where every possession threatens the rim.',
-    hockey:'Cold speed, compressed space, open-ice collisions, and arenas built around sudden death.',
-    baseball:'A nocturnal duel league where one pitch can hold an entire city still.',
-    combat:'Style against style. Visible fatigue, scorecards, knockdowns, and nowhere to hide.'
-  };
-  var shapeNames = ['totem','ribbon','orb','wedge','stack','spring'];
-  var params = new URLSearchParams(location.search);
-  var sportId = params.get('sport');
-  if (!C.getSport(sportId)) sportId = 'soccer';
-  var sport = C.getSport(sportId);
-  var teams = C.getTeams(sportId);
-  var selectedTeam = teams[0];
-  var rosterFilter = sportId === 'american-football' ? 'offense' : 'all';
-  var daySeed = Math.floor(Date.now() / 86400000);
-  var season = C.createSeason(sportId, daySeed);
-  var round = season.rounds[daySeed % season.rounds.length];
-  var marquee = C.getMarqueeMatchup(sportId, daySeed, round.number);
-  var leagueState = { source:'loading', canonical:false, standings:[] };
+      <section class="roster-section" aria-labelledby="roster-title">
+        <header class="subsection-heading">
+          <div><p>THE PEOPLE / 03</p><h3 id="roster-title">ROSTER</h3></div>
+          <span id="roster-count"></span>
+        </header>
+        <nav class="roster-filters" id="roster-filters" aria-label="Filter roster" hidden></nav>
+        <div class="roster-grid" id="roster-grid"></div>
+      </section>
+    </section>
 
-  function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  function team(id) { return C.getTeam(id, sportId) || teams.find(function (item) { return item.id === id; }) || teams[0]; }
-  function colorStyle(item) { return '--team:' + item.colors.primary + ';--team2:' + item.colors.secondary + ';--accent:' + item.colors.accent; }
-  function athleteShape(athlete) { return shapeNames[C.hash(athlete.id) % shapeNames.length]; }
-  function avatar(athlete, index, labelled) {
-    return '<div class="avatar ' + athleteShape(athlete) + ' a' + (index % 6) + '"' + (labelled ? ' role="img" aria-label="' + esc(athlete.name) + ': ' + esc(athlete.silhouette) + '"' : '') + '><i></i><b></b><span></span></div>';
-  }
-  function athleteUnit(athlete) {
-    return /defensive|nose tackle|linebacker|safety|cornerback/i.test(athlete.role) ? 'defense' : 'offense';
-  }
+    <section class="league-record" aria-labelledby="record-title">
+      <header class="section-heading">
+        <div><p>THE RECORD / 04</p><h2 id="record-title">TABLE & FIXTURES.</h2></div>
+        <span id="record-source">CONNECTING TO SHARED LEAGUE STATE</span>
+      </header>
+      <div class="record-layout">
+        <div class="standings-shell" id="standings-shell"></div>
+        <div class="fixture-list" id="fixture-list"></div>
+      </div>
+    </section>
+  </main>
 
-  document.getElementById('sport-switcher').innerHTML = C.sports.map(function (item) {
-    return '<a class="sport-tab' + (item.id === sportId ? ' active' : '') + '" href="league.html?sport=' + encodeURIComponent(item.id) + '" style="--tab:' + item.teams[0].colors.primary + '"><span>' + esc(item.code) + '</span><b>' + esc(item.name) + '</b></a>';
-  }).join('');
-  document.getElementById('sport-label').textContent = sport.name.toUpperCase() + ' · ' + teams.length + ' CLUBS · ' + (teams.length * teams[0].athletes.length) + ' ATHLETES';
-  document.getElementById('league-name').textContent = sport.league;
-  document.getElementById('league-thesis').textContent = copyBySport[sportId];
-  document.getElementById('arena-link').href = arenaBySport[sportId];
-  document.documentElement.style.setProperty('--league', teams[0].colors.primary);
+  <footer class="league-footer">
+    <div><b>CYBERLIGA</b><span>ONE WORLD / FIVE LEAGUES / FORTY CITIES</span></div>
+    <p>The city is not a backdrop. It is the club, the venue, the crowd and the reason a result matters tomorrow.</p>
+    <a href="world.html">RETURN TO THE WORLD <span>↑</span></a>
+  </footer>
 
-  var home = team(marquee.homeId || marquee.home);
-  var away = team(marquee.awayId || marquee.away);
-  document.getElementById('home-code').textContent = home.code;
-  document.getElementById('home-name').textContent = home.name;
-  document.getElementById('away-code').textContent = away.code;
-  document.getElementById('away-name').textContent = away.name;
-  document.getElementById('match-id').textContent = marquee.id || ('ROUND ' + round.number);
-  var headlines = C.getHeadlines({sportId:sportId, homeId:home.id, awayId:away.id, round:round.number}, 4, daySeed);
-  document.getElementById('headline').textContent = headlines[0];
-  document.getElementById('wire-track').innerHTML = '<span>' + headlines.concat(headlines).map(esc).join(' &nbsp; ◆ &nbsp; ') + '</span>';
-
-  function renderClubs() {
-    document.getElementById('club-grid').innerHTML = teams.map(function (item, teamIndex) {
-      var faces = item.athletes.slice(0, 6).map(function (athlete, i) { return avatar(athlete, i, false); }).join('');
-      if (item.athletes.length > 6) faces += '<span class="roster-overflow" aria-label="' + (item.athletes.length - 6) + ' more athletes">+' + (item.athletes.length - 6) + '</span>';
-      return '<button class="club-card' + (item.id === selectedTeam.id ? ' selected' : '') + '" data-team="' + esc(item.id) + '" style="' + colorStyle(item) + '"><div class="club-top"><span>' + esc(item.code) + '</span><small>' + String(teamIndex + 1).padStart(2,'0') + '</small></div><h3>' + esc(item.name) + '</h3><p>' + esc(item.city) + ' · ' + esc(item.region) + '</p><div class="mini-cast">' + faces + '</div><div class="club-rule"><i></i><span>' + esc(item.motif) + '</span></div></button>';
-    }).join('');
-    Array.prototype.forEach.call(document.querySelectorAll('.club-card'), function (button) {
-      button.addEventListener('click', function () { selectedTeam = team(button.dataset.team); renderClubs(); renderRoster(); document.getElementById('roster-section').scrollIntoView({behavior:'smooth',block:'start'}); });
-    });
-  }
-
-  function renderRoster() {
-    var t = selectedTeam;
-    document.getElementById('club-code').textContent = t.code;
-    document.getElementById('club-code').style.cssText = colorStyle(t);
-    document.getElementById('club-location').textContent = t.city.toUpperCase() + ' · ' + t.region.toUpperCase();
-    document.getElementById('club-name').textContent = t.name;
-    document.getElementById('club-motif').textContent = 'MOTIF / ' + t.motif;
-    document.getElementById('club-motion').textContent = 'MOTION / ' + t.motion;
-    var rival = team(t.rivalryId);
-    document.getElementById('club-rivalry').textContent = 'RIVAL / ' + rival.name;
-    var filters = document.getElementById('roster-filters');
-    if (sportId === 'american-football') {
-      filters.hidden = false;
-      filters.style.setProperty('--team', t.colors.primary);
-      filters.innerHTML = [['all','ALL 22'],['offense','OFFENSE 11'],['defense','DEFENSE 11']].map(function (item) {
-        return '<button type="button" data-unit="' + item[0] + '" aria-pressed="' + (rosterFilter === item[0]) + '">' + item[1] + '</button>';
-      }).join('');
-      Array.prototype.forEach.call(filters.querySelectorAll('button'), function (button) {
-        button.addEventListener('click', function () { rosterFilter = button.dataset.unit; renderRoster(); });
-      });
-    } else filters.hidden = true;
-    var visibleAthletes = rosterFilter === 'all' ? t.athletes : t.athletes.filter(function (athlete) { return athleteUnit(athlete) === rosterFilter; });
-    document.getElementById('cast-grid').innerHTML = visibleAthletes.map(function (athlete, i) {
-      return '<article class="athlete-card" style="' + colorStyle(t) + '"><div class="athlete-stage">' + avatar(athlete, i, true) + '<span class="number">' + esc(athlete.number) + '</span></div><div class="athlete-copy"><p>' + esc(athlete.role) + ' · ' + esc(athlete.archetype) + '</p><h3>' + esc(athlete.name) + '</h3><span>' + esc(athlete.temperament) + '</span><em>' + esc(athlete.signature) + '</em><small>' + esc(athlete.silhouette) + '</small><div class="athlete-actions"><a href="player.html?sport=' + encodeURIComponent(sportId) + '&amp;team=' + encodeURIComponent(t.id) + '&amp;player=' + encodeURIComponent(athlete.id) + '"><b>ATHLETE FILE</b><i>↗</i></a><a href="social.html?sport=' + encodeURIComponent(sportId) + '&amp;team=' + encodeURIComponent(t.id) + '&amp;player=' + encodeURIComponent(athlete.id) + '#player-' + encodeURIComponent(athlete.id) + '"><b>WORLD WIRE</b><i>↗</i></a></div></div></article>';
-    }).join('');
-  }
-
-  function renderStandings(data) {
-    leagueState = data && Array.isArray(data.standings) ? data : { source:'unavailable', canonical:false, standings:[] };
-    document.getElementById('standings-source').textContent = leagueState.standings.length
-      ? (leagueState.canonical ? 'CANONICAL DATABASE' : 'SHARED DETERMINISTIC FALLBACK') + ' · ' + leagueState.standings.length + ' CLUBS'
-      : 'LEAGUE STATE UNAVAILABLE · ARENAS REMAIN PLAYABLE';
-    var shell = document.getElementById('standings-shell');
-    if (!leagueState.standings.length) { shell.innerHTML = '<p class="standings-empty">THE TABLE SIGNAL IS TEMPORARILY UNAVAILABLE. CLUBS, FIXTURES, AND ARENAS ARE STILL LOCAL-FIRST.</p>'; return; }
-    shell.innerHTML = '<table class="standings-table"><thead><tr><th>#</th><th>CLUB</th><th>P</th><th>W</th><th>D</th><th>L</th><th>FOR</th><th>AGAINST</th><th>DIFF</th><th>FORM</th><th>PTS</th></tr></thead><tbody>' + leagueState.standings.map(function (row) {
-      var localTeam = team(row.team.publicId);
-      var diff = row.scoreDifference == null ? Number(row.scoreFor) - Number(row.scoreAgainst) : Number(row.scoreDifference);
-      return '<tr><td>' + esc(row.rank) + '</td><td><button class="club-pick" type="button" data-standing-team="' + esc(row.team.publicId) + '" style="--team-color:' + esc(localTeam.colors.primary) + '"><span>' + esc(row.team.code) + '</span>' + esc(row.team.name) + '</button></td><td>' + esc(row.played) + '</td><td>' + esc(row.wins) + '</td><td>' + esc(row.draws) + '</td><td>' + esc(row.losses) + '</td><td>' + esc(row.scoreFor) + '</td><td>' + esc(row.scoreAgainst) + '</td><td>' + esc(diff > 0 ? '+' + diff : diff) + '</td><td>' + esc((row.form || []).join('')) + '</td><td class="points">' + esc(row.points) + '</td></tr>';
-    }).join('') + '</tbody></table>';
-    Array.prototype.forEach.call(shell.querySelectorAll('[data-standing-team]'), function (button) {
-      button.addEventListener('click', function () { selectedTeam = team(button.dataset.standingTeam); renderClubs(); renderRoster(); document.getElementById('roster-section').scrollIntoView({behavior:'smooth',block:'start'}); });
-    });
-  }
-
-  function renderFixtures(data) {
-    var fixtures = data && Array.isArray(data.fixtures) ? data.fixtures.slice() : [];
-    if (!fixtures.length) return;
-    var now = Date.now();
-    fixtures.sort(function (left, right) { return Math.abs(Date.parse(left.startsAt) - now) - Math.abs(Date.parse(right.startsAt) - now); });
-    fixtures = fixtures.slice(0, 12).sort(function (left, right) { return Date.parse(left.startsAt) - Date.parse(right.startsAt) || left.channel - right.channel; });
-    var summary = data.summary || {};
-    document.getElementById('fixture-source').textContent = (summary.liveGames || 0) + ' LIVE · ' + (summary.completedGames || 0) + ' COMPLETED · ' + (summary.scheduledGames || 0) + ' UPCOMING';
-    document.getElementById('fixture-grid').innerHTML = fixtures.map(function (match) {
-      var h = match.homeTeam || {}, a = match.awayTeam || {};
-      var status = String(match.status || 'scheduled').toUpperCase();
-      var center = status === 'FINAL' || status === 'LIVE' ? esc(match.homeScore) + '–' + esc(match.awayScore) : 'VS';
-      var cities = (h.city || h.name || 'HOME') + ' ↔ ' + (a.city || a.name || 'AWAY');
-      return '<article class="fixture ' + status.toLowerCase() + '"><span>ROUND ' + esc(match.roundNumber) + ' · CHANNEL ' + String(Number(match.channel || 0) + 1).padStart(2,'0') + ' · ' + esc(status) + '</span><div><b>' + esc(h.code || 'HOME') + '</b><i>' + center + '</i><b>' + esc(a.code || 'AWAY') + '</b></div><p>' + esc(cities) + '</p></article>';
-    }).join('');
-  }
-
-  function loadStandings() {
-    fetch('api/league?sport=' + encodeURIComponent(sportId), { headers:{accept:'application/json'} })
-      .then(function (response) { if (!response.ok) throw new Error('HTTP ' + response.status); return response.json(); })
-      .then(function (data) { renderStandings(data); renderFixtures(data); })
-      .catch(function () { renderStandings(null); });
-  }
-
-  document.getElementById('fixture-grid').innerHTML = round.matches.map(function (match, i) {
-    var h = team(match.homeId), a = team(match.awayId);
-    return '<article class="fixture"><span>CHANNEL ' + String(i + 1).padStart(2,'0') + (match.rivalry ? ' · RIVALRY' : '') + '</span><div><b>' + esc(h.code) + '</b><i>VS</i><b>' + esc(a.code) + '</b></div><p>' + esc(h.city) + ' ↔ ' + esc(a.city) + '</p></article>';
-  }).join('');
-
-  document.getElementById('share').addEventListener('click', function () {
-    navigator.clipboard.writeText(location.href).then(function () { var button=document.getElementById('share');button.textContent='COPIED';setTimeout(function(){button.textContent='COPY LEAGUE LINK';},1200); }).catch(function(){});
-  });
-  addEventListener('keydown', function (event) { if (event.key === 'Escape') location.href = 'world.html'; });
-  window.render_game_to_text = function () { return JSON.stringify({screen:'league-atlas',sport:{id:sport.id,name:sport.name,league:sport.league},rosterFilter:rosterFilter,selectedTeam:{id:selectedTeam.id,name:selectedTeam.name,city:selectedTeam.city,rivalry:selectedTeam.rivalryId,athletes:selectedTeam.athletes.map(function(a){return {name:a.name,role:a.role,archetype:a.archetype};})},standings:{source:leagueState.source,canonical:!!leagueState.canonical,clubs:leagueState.standings.length,leader:leagueState.standings[0] ? leagueState.standings[0].team.name : null},marquee:{home:home.name,away:away.name,headline:headlines[0]},round:round.number,fixtures:round.matches.length,totalTeams:teams.length,totalAthletes:teams.reduce(function(n,t){return n+t.athletes.length;},0)}); };
-  window.advanceTime = function () {};
-  renderClubs(); renderRoster(); loadStandings();
-})();
-</script>
+  <script src="worlddata.js"></script>
+  <script src="branddata.js"></script>
+  <script src="appshell.js"></script>
+  <script src="league-page.js"></script>
 </body>
 </html>

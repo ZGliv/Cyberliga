@@ -1,6 +1,7 @@
 {
   "redirects": [
-    { "source": "/", "destination": "/world.html", "permanent": false }
+    { "source": "/", "destination": "/world.html", "permanent": false },
+    { "source": "/menu.html", "destination": "/league.html", "permanent": false }
   ],
   "headers": [
     {

@@ -52,6 +52,7 @@ const arenas = [
   { id: 'baseball', file: 'baseball.html', label: /BASEBALL|DIAMOND/i },
   { id: 'combat', file: 'fight.html', label: /FIGHT|COMBAT|BOX/i }
 ];
+const publicArenas = arenas.filter((arena) => arena.id !== 'combat');
 
 let packageManifest;
 try {
@@ -63,9 +64,39 @@ try {
 if (packageManifest) {
   check(packageManifest.scripts?.dev === 'node server.mjs', 'npm run dev must use the project-owned dependency-free server');
   check(packageManifest.scripts?.['test:api'] === 'node --test api/canonical-server.test.mjs', 'npm run test:api must cover the canonical API boundary');
-  check(packageManifest.scripts?.verify === 'npm run test:api && node scripts/verify.mjs', 'npm run verify must cover APIs before static/data invariants');
+  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:soccer && node --test socceridentity.test.mjs soccersim.test.mjs && node scripts/verify.mjs', 'npm run verify must cover APIs, soccer identity, soccer contracts, deterministic simulation, and static/data invariants');
   check(Object.keys(packageManifest.dependencies || {}).length === 0, 'Runtime dependencies must remain empty');
   check(Object.keys(packageManifest.devDependencies || {}).length === 0, 'Development dependencies must remain empty');
+}
+
+// Soccer-first public vertical slice. The retired multi-sport prototype remains in the
+// repository as reference, but these are the only files allowed to define the root product.
+for (const file of ['home.html', 'home.css', 'home.js', 'match.html', 'match.css', 'match.js', 'soccerclubs.js', 'athleterig.js']) {
+  check(await exists(file), 'Missing soccer-first public artifact', file);
+}
+if (await exists('home.html') && await exists('home.js') && await exists('match.html') && await exists('match.js')) {
+  const soccerHome = `${await text('home.html')}\n${await text('home.js')}`;
+  const soccerMatch = `${await text('match.html')}\n${await text('match.js')}`;
+  check(!/six playable sports|choose a sport|sports world/i.test(soccerHome), 'Soccer-first home still markets the retired multi-sport product');
+  check(/match\.html\?/.test(soccerHome), 'Soccer-first home does not route into the live match');
+  check(/window\.render_game_to_text\s*=/.test(soccerMatch), 'Soccer-first match is missing window.render_game_to_text');
+  check(/window\.advanceTime\s*=/.test(soccerMatch), 'Soccer-first match is missing window.advanceTime');
+  check(/PLAYER SKINS/i.test(soccerMatch) && /applySkin/.test(soccerMatch), 'Soccer-first match does not expose live cosmetic switching');
+}
+if (await exists('soccerclubs.js')) {
+  const soccerWindow = evaluateBrowserScript(await text('soccerclubs.js'), 'soccerclubs.js');
+  const soccer = soccerWindow.CyberligaSoccer;
+  check(Boolean(soccer), 'soccerclubs.js did not expose CyberligaSoccer');
+  if (soccer) {
+    check(soccer.clubs?.length === 7, 'Soccer-first league must contain the seven approved clubs', String(soccer.clubs?.length));
+    check(soccer.fixtures?.length === 21, 'Seven-club single round robin must contain 21 fixtures', String(soccer.fixtures?.length));
+    check(soccer.clubs.every((club) => club.roster?.length === 7), 'Every soccer-first club must have seven athlete identities');
+    const athleteIds = soccer.clubs.flatMap((club) => club.roster.map((athlete) => athlete.id));
+    check(new Set(athleteIds).size === 49, 'Soccer-first athlete ids must be globally unique', String(new Set(athleteIds).size));
+    for (const club of soccer.clubs) for (const variant of ['home', 'away', 'third']) {
+      check(Boolean(soccer.createSkin(club.id, variant)?.jersey), `${club.id} is missing its ${variant} cosmetic loadout`);
+    }
+  }
 }
 
 for (const arena of arenas) {
@@ -81,11 +112,10 @@ for (const arena of arenas) {
 
 const supportingPages = [
   { file: 'world.html', screen: /screen\s*:\s*['"]world['"]/ },
-  { file: 'league.html', screen: /screen\s*:\s*['"]league-atlas['"]/ },
+  { file: 'league.html', scriptFile: 'league-page.js', screen: /screen\s*:\s*['"]league-hq['"]/ },
   { file: 'social.html', screen: /screen\s*:\s*['"](?:social|world-wire)['"]/ },
   { file: 'moment.html', screen: /screen\s*:\s*['"](?:moment|moment-maker)['"]/ },
   { file: 'clip.html', screen: /screen\s*:\s*['"]animated-clip-director['"]/ },
-  { file: 'menu.html', scriptFile: 'menu.js', screen: /screen\s*:\s*['"]broadcast-guide['"]/ },
   { file: 'replay.html', scriptFile: 'replay.js', screen: /screen\s*:\s*['"]replay-center['"]/ },
   { file: 'player.html', scriptFile: 'player.js', screen: /screen\s*:\s*['"]athlete-profile['"]/ },
   { file: 'characterlab.html', scriptFile: 'characterlab.js', screen: /screen\s*:\s*['"]character-laboratory['"]/ },
@@ -109,39 +139,48 @@ for (const page of supportingPages.filter((page) => page.file !== 'world.html'))
   check(source.includes('appshell.js'), `${page.file} does not load the shared application-shell behavior`);
 }
 const appShellSource = await text('appshell.js');
-for (const arena of arenas) {
+for (const arena of publicArenas) {
   check(appShellSource.includes(arena.id) && appShellSource.includes(arena.file), `Application shell does not expose the ${arena.id} arena`);
 }
-for (const route of ['world.html', 'menu.html', 'league.html', 'social.html', 'replay.html', 'player.html', 'moment.html', 'clip.html']) {
+check(!appShellSource.includes('fight.html') && !appShellSource.includes("id:'combat'"), 'Public application shell must keep Combat out of the five-sport rollout');
+for (const route of ['world.html', 'league.html', 'social.html', 'replay.html', 'player.html', 'moment.html', 'clip.html']) {
   check(appShellSource.includes(route), `Application shell does not expose ${route}`);
 }
+check(!appShellSource.includes('menu.html') && !/label\s*:\s*['"]WATCH['"]/.test(appShellSource), 'Application shell must retire the standalone Watch destination');
 
 const worldSource = await text('world.html');
 const atlasSource = await text('league.html');
+const atlasScript = await text('league-page.js');
+const brandSource = await text('branddata.js');
+const atlasBundle = `${atlasSource}\n${atlasScript}\n${brandSource}`;
 const socialSource = await text('social.html');
 const momentSource = await text('moment.html');
 const clipSource = await text('clip.html');
 const menuSource = await text('menu.html');
-const menuScript = await text('menu.js');
 const replaySource = await text('replay.html');
 const replayScript = await text('replay.js');
 const playerSource = await text('player.html');
 const playerScript = await text('player.js');
 const footballSource = await text('football.html');
+const footballScript = await text('football.js');
 const baseballSource = await text('baseball.html');
 const hockeySource = await text('hockey.html');
 const fightSource = await text('fight.html');
 check(/football\.html/.test(worldSource), 'World map does not route to American football');
-check(/['"]american-football['"]\s*:\s*['"]football\.html['"]/.test(atlasSource), 'League atlas does not route American football to football.html');
-check(/id=["']standings-section["']/.test(atlasSource), 'League atlas is missing its standings table');
-check(/api\/league\?sport=/.test(atlasSource), 'League atlas does not load the shared league-state API');
-check(/id=["']roster-filters["']/.test(atlasSource), 'League atlas is missing football offense/defense roster filters');
-check(/class=["']athlete-actions["']/.test(atlasSource) && /player\.html\?sport=/.test(atlasSource) && /social\.html\?sport=/.test(atlasSource), 'League atlas does not connect athletes to permanent profile and World Wire URLs');
-for (const arena of arenas) {
+check(/arena:\s*['"]football\.html['"]/.test(brandSource), 'League HQ does not route American football to football.html');
+check(/id=["']standings-shell["']/.test(atlasSource) && /standings-table/.test(atlasScript), 'League HQ is missing its standings table');
+check(/api\/league\?sport=/.test(atlasScript), 'League HQ does not load the shared league-state API');
+check(/id=["']roster-filters["']/.test(atlasSource) && /data-roster-unit/.test(atlasScript), 'League HQ is missing football offense/defense roster filters');
+check(/player\.html\?sport=/.test(atlasScript) && /social\.html\?sport=/.test(atlasScript), 'League HQ does not connect athletes to permanent profile and World Wire URLs');
+check(/branddata\.js/.test(atlasSource) && /crestSvg/.test(atlasScript) && /kitSvg/.test(atlasScript) && /sceneSvg/.test(atlasScript), 'League HQ is missing the shared city/crest/uniform identity layer');
+check(/publicWorld:\{sports:5,clubs:40,simultaneousGames:20,combatPublic:false\}/.test(atlasScript), 'League HQ state must expose the five-sport, 40-club, 20-channel public contract');
+for (const arena of publicArenas) {
   check(worldSource.includes(arena.id), `World map does not expose ${arena.id}`);
   check(worldSource.includes(arena.file), `World map does not link the ${arena.id} arena`, arena.file);
-  check(atlasSource.includes(arena.file), `League atlas does not link the ${arena.id} arena`, arena.file);
+  check(atlasBundle.includes(arena.file), `League HQ does not link the ${arena.id} arena`, arena.file);
 }
+check(!/contentId:\s*['"]combat['"]/.test(worldSource) && !worldSource.includes('fight.html'), 'World map must keep Combat out of the public five-sport rollout');
+check(!brandSource.includes("combat: {") && !brandSource.includes("arena: 'fight.html'"), 'League HQ must keep Combat out of the public five-sport rollout');
 for (const page of ['world.html', 'index.html', 'social.html', 'moment.html', 'clip.html']) {
   const source = await text(page);
   check(source.includes('presence.js'), `${page} does not load the shared spectator presence client`);
@@ -153,29 +192,27 @@ check(momentSource.includes('clip.html?'), 'Moment Maker does not preserve its c
 check(/canvas\.captureStream\(30\)/.test(clipSource), 'Clip Director must capture a real 30fps canvas stream');
 check(/new MediaRecorder/.test(clipSource), 'Clip Director must use MediaRecorder for WebM output');
 check(/DURATION\s*=\s*12000/.test(clipSource), 'Clip Director must keep the 12-second viral format');
-check(/id=["']channel-grid["']/.test(menuSource), 'Broadcast Guide must expose the canonical live channel grid');
-check(/id=["']sport-grid["']/.test(menuSource), 'Broadcast Guide must expose every playable arena');
-check(/UNIVERSE\.liveMatches/.test(menuScript), 'Broadcast Guide must use the shared UTC match schedule');
-check(/\^\[1-4\]\$/.test(menuScript), 'Broadcast Guide must keep keyboard tuning for the four soccer channels');
-for (const arena of arenas) check(menuScript.includes(arena.file), `Broadcast Guide does not link ${arena.id}`, arena.file);
-check(menuSource.includes('replay.html') && menuSource.includes('player.html'), 'Broadcast Guide does not expose Replay Center and Athlete Files');
+check(/http-equiv=["']refresh["']/.test(menuSource) && /location\.replace\(destination\)/.test(menuSource) && /league\.html/.test(menuSource), 'Retired Broadcast Guide must remain a safe compatibility redirect to League HQ');
 check(/U\.liveMatches/.test(replayScript) && /selectionURL/.test(replayScript), 'Replay Center must use shared UTC matches and permanent selection URLs');
 check(/CANONICAL BOUNDARY/.test(replayScript) && /EXHIBITION BOUNDARY/.test(replayScript), 'Replay Center must label canonical and exhibition provenance');
 check(/player\.html\?sport=/.test(replayScript), 'Replay Center does not hand highlights into Athlete Files');
 check(/416/.test(playerScript) || (/C\.getSport/.test(playerScript) && /C\.getTeam/.test(playerScript) && /C\.getAthlete/.test(playerScript)), 'Athlete Files must resolve the shared world roster');
 check(/player\.html\?/.test(playerScript) && /canonical/.test(playerScript), 'Athlete Files must expose permanent canonical profile URLs');
-check(/id=["']playPanel["']/.test(footballSource) && /aria-pressed/.test(footballSource), 'Football must expose an accessible pre-snap play-call panel');
-check(/window\._footballTest\s*=/.test(footballSource) && /select[\s\S]*snap[\s\S]*forceSituation[\s\S]*forceOutcome[\s\S]*finishPlay/.test(footballSource), 'Football must expose deterministic play-call, situation, snap, outcome, and finish helpers');
-check(/chooseAutonomousPlay/.test(footballSource) && /AUTO_CADENCE/.test(footballSource) && /state\.phase===['"]preplay['"][\s\S]*snap\(\)/.test(footballSource), 'Football must choose and snap plays autonomously');
-check(/visibilitychange/.test(footballSource) && /hiddenTimer/.test(footballSource), 'Football must keep simulating autonomously in hidden tabs');
+check(!/id=["']playPanel["']/.test(footballSource) && !/snap the ball/i.test(footballSource), 'Football must not expose the retired manual snap/play-call interface');
+check(/type=["']importmap["']/.test(footballSource) && /\.\/vendor\/three\/three\.module\.js/.test(footballSource) && /src=["'](?:\.\/)?football\.js["']/.test(footballSource), 'Football must load the local Three.js-only broadcast');
+check(/window\._footballTest\s*=/.test(footballScript) && /forceSituation[\s\S]*forcePlay[\s\S]*forceCatch[\s\S]*forceTackle[\s\S]*forceFieldGoal[\s\S]*finishPlay/.test(footballScript), 'Football must expose deterministic catch, tackle, kick, situation, and finish helpers');
+check(/function choosePlay/.test(footballScript) && /PREPLAY_SECONDS/.test(footballScript) && /state\.phase === 'preplay'[\s\S]*startAutomaticPlay\(\)/.test(footballScript), 'Football must choose and start plays autonomously');
+check(/mode: 'dead'[\s\S]*ownerId[\s\S]*intendedId/.test(footballScript) && /'pass'[\s\S]*'contested'[\s\S]*'loose'[\s\S]*'kick'[\s\S]*'punt'/.test(footballScript), 'Football must model authoritative possession and physical ball states');
+check(/GOAL_PLANE/.test(footballScript) && /CROSSBAR_HEIGHT/.test(footballScript) && /UPRIGHT_HALF/.test(footballScript) && /ruleGoalPlaneCrossing/.test(footballScript) && /kick\.crossing/.test(footballScript), 'Football field-goal scoring must come from the visible goal-plane crossing');
 check(/window\._baseballTest\s*=/.test(baseballSource) && /double_play|sac_fly/.test(baseballSource), 'Baseball must expose deterministic force-play branch helpers');
 check(/id=["']pitchtrail["']/.test(baseballSource) && /pitchHistory/.test(baseballSource), 'Baseball must expose an accessible pitch sequence and structured pitch history');
 check(/window\.__CYBERLIGA_HOCKEY_TEST__\s*=/.test(hockeySource) && /penalty[\s\S]*powerplay[\s\S]*overtime[\s\S]*final/.test(hockeySource), 'Hockey must expose penalty, power-play, overtime, and final branch helpers');
 check(/window\._fightTest\s*=/.test(fightSource) && /forceDecision[\s\S]*forceStoppage/.test(fightSource), 'Combat must expose deterministic decision and stoppage branch helpers');
-check(await exists('gamehub.js'), 'Missing shared in-game navigation hub');
+check(await exists('watchonly.js'), 'Missing shared watch-only arena policy');
 for (const arena of arenas) {
   const arenaSource = await text(arena.file);
-  check(arenaSource.includes('gamehub.js'), `${arena.file} does not load the shared in-game navigation hub`);
+  check(arenaSource.includes('watchonly.js'), `${arena.file} does not load the shared watch-only arena policy`);
+  check(!arenaSource.includes('gamehub.js'), `${arena.file} still loads interactive in-game navigation`);
 }
 const characterLabSource = await text('characterlab.html');
 const characterLabScript = await text('characterlab.js');
@@ -254,6 +291,33 @@ if (content) {
   check(athleteIds.size === 416, 'Worlddata must have 416 unique athlete ids', String(athleteIds.size));
 }
 
+evaluateBrowserScript(await text('branddata.js'), 'branddata.js', contentWindow);
+const branding = contentWindow.CyberligaBrand;
+check(Boolean(branding), 'branddata.js did not expose CyberligaBrand');
+if (branding && content) {
+  const publicSports = branding.getPublicSports(content);
+  const publicTeams = publicSports.flatMap((sport) => sport.teams);
+  check(publicSports.length === 5, 'Public world must expose exactly five leagues', String(publicSports.length));
+  check(publicTeams.length === 40, 'Public world must expose exactly 40 clubs', String(publicTeams.length));
+  check(!publicSports.some((sport) => sport.id === 'combat'), 'Combat must stay outside the public league identity rollout');
+  check(Object.keys(branding.teams || {}).length === 40, 'Brand manifest must define all 40 public clubs', String(Object.keys(branding.teams || {}).length));
+  for (const sport of publicSports) {
+    const leagueBrand = branding.getLeague(sport.id);
+    check(Boolean(leagueBrand?.hero), `${sport.id} is missing its generated league venue plate`);
+    if (leagueBrand?.hero) check(await exists(leagueBrand.hero), `${sport.id} generated league venue plate is missing`, leagueBrand.hero);
+    check(Boolean(leagueBrand?.arena), `${sport.id} is missing its arena route`);
+  }
+  for (const team of publicTeams) {
+    const identity = branding.getTeam(team.id);
+    check(Boolean(identity?.venue && identity?.ritual && identity?.statement), `${team.id} is missing venue, crowd, or identity copy`);
+    check(/<svg/.test(branding.crestSvg(team)) && branding.crestSvg(team).includes(team.code), `${team.id} crest SVG is invalid`);
+    for (const variant of ['home', 'away', 'night']) {
+      check(/<svg/.test(branding.kitSvg(team, variant)), `${team.id} ${variant} uniform SVG is invalid`);
+    }
+    check(/<svg/.test(branding.sceneSvg(team)) && branding.sceneSvg(team).includes(identity.venue), `${team.id} city/venue scene SVG is invalid`);
+  }
+}
+
 const universeWindow = {};
 evaluateBrowserScript(await text('worlddata.js'), 'worlddata.js', universeWindow);
 evaluateBrowserScript(await text('universe.js'), 'universe.js', universeWindow);
@@ -283,7 +347,7 @@ try {
 if (vercel) {
   const rootRedirects = (vercel.redirects || []).filter((redirect) => redirect.source === '/');
   check(rootRedirects.length === 1, 'vercel.json must define exactly one root redirect', String(rootRedirects.length));
-  check(rootRedirects[0]?.destination === '/world.html', 'Vercel root redirect must target /world.html', String(rootRedirects[0]?.destination));
+  check(rootRedirects[0]?.destination === '/world.html', 'Vercel root redirect must target the five-sport world', String(rootRedirects[0]?.destination));
   check(rootRedirects[0]?.permanent === false, 'Vercel root redirect should remain temporary during iteration');
   if (rootRedirects[0]?.destination) {
     check(await exists(rootRedirects[0].destination.replace(/^\//, '')), 'Vercel root redirect target does not exist', rootRedirects[0].destination);
@@ -303,7 +367,10 @@ function localReference(raw) {
 async function collectFiles(directory = ROOT) {
   const found = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (entry.name === '.git' || entry.name === 'node_modules' || entry.name === '.playwright-cli' || entry.name === 'output') continue;
+    // Third-party source may contain documentation snippets such as
+    // `assets/models/model.gltf`; only app-owned files belong in our dangling-
+    // asset scan.
+    if (entry.name === '.git' || entry.name === 'node_modules' || entry.name === '.playwright-cli' || entry.name === 'output' || entry.name === 'vendor') continue;
     const absolute = path.join(directory, entry.name);
     if (entry.isDirectory()) found.push(...await collectFiles(absolute));
     else if (entry.isFile()) found.push(absolute);
@@ -342,5 +409,5 @@ if (failures.length) {
   failures.forEach((failure, index) => console.error(`${index + 1}. ${failure}`));
   process.exitCode = 1;
 } else {
-  console.log(`Cyberliga verification passed: ${checks} checks across 6 arenas, 6 leagues, 48 teams, 416 athletes, routes, schedules, hooks, deployment config, and local assets.`);
+  console.log(`Cyberliga verification passed: ${checks} checks across 6 preserved arenas, 5 public leagues, 40 branded city clubs, 20 live channels, 368 public athletes, routes, schedules, hooks, deployment config, and local assets.`);
 }

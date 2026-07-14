@@ -408,8 +408,9 @@
       return;
     }
     var edition = validEdition(queryValue('edition'));
-    cards = C.sports.map(function (sport) { return buildHighlight(sport, edition); });
-    var wantedSport = C.getSport(queryValue('sport')) || cards[C.hash('replay-lead|' + edition) % cards.length].sport;
+    cards = C.sports.filter(function (sport) { return sport.id !== 'combat'; }).map(function (sport) { return buildHighlight(sport, edition); });
+    var wantedSport = C.getSport(queryValue('sport'));
+    if (!wantedSport || !cards.some(function (item) { return item.sport.id === wantedSport.id; })) wantedSport = cards[C.hash('replay-lead|' + edition) % cards.length].sport;
     var highlight = cards.filter(function (item) { return item.sport.id === wantedSport.id; })[0];
     var eventIndex = validEventIndex(queryValue('event'), 2);
     renderChannels();
@@ -468,7 +469,7 @@
       canonicalSoccerChannels: channels.map(function (match) { return { channel: match.channel + 1, id: match.id, home: match.home.name, away: match.away.name, elapsedMs: match.elapsedMs, href: U.sharePath(match) }; }),
       recentHighlights: cards.map(function (item) { return { sport: item.sport.id, matchId: item.matchId, status: item.status.toLowerCase(), home: item.home.name, away: item.away.name }; }),
       truthBoundary: 'soccer uses the canonical shared UTC fixture schedule with a deterministic desk reconstruction; all other sports are deterministic exhibition recaps',
-      destinations: { arena: byId('arena-link').getAttribute('href'), wire: byId('wire-link').getAttribute('href'), moment: byId('moment-link').getAttribute('href'), clip: byId('clip-link').getAttribute('href'), profile: byId('profile-link').getAttribute('href'), atlas: byId('atlas-link').getAttribute('href'), guide: 'menu.html', world: 'world.html' },
+      destinations: { arena: byId('arena-link').getAttribute('href'), wire: byId('wire-link').getAttribute('href'), moment: byId('moment-link').getAttribute('href'), clip: byId('clip-link').getAttribute('href'), profile: byId('profile-link').getAttribute('href'), atlas: byId('atlas-link').getAttribute('href'), guide: 'league.html', world: 'world.html' },
       controls: ['Space play/pause', 'R restart', 'Left/Right scrub one second', 'timeline and range controls']
     });
   };
