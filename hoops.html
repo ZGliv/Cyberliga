@@ -664,7 +664,11 @@ let phase='PLAY', q=1, qClock=Q_LEN, shotClock=24, breakT=0, possArrow=1;
 const play={state:'BRINGUP',t:0,offense:0,passes:0,wait:.55,windKind:'jumper',windDur:.3,released:false,decided:false,
   stealChecked:false,dunk:null,saidReb:false,scorer:null,driveLane:1,driveKind:'rim',schemeId:'EARLY_DRAG',coverageId:'MAN',
   step:0,possessionNo:0,actionLabel:'PUSHING THE BREAK',shotQuality:0,shotContext:'',lastPasser:null,lastPassAt:-99,
-  reboundClaimed:false,freeThrow:null,possessionReason:'TIP',transitionT:0,seenSchemes:new Set(),seenCoverages:new Set(),decision:'ORGANIZE',
+  reboundClaimed:false,freeThrow:null,possessionReason:'TIP',transition:false,transitionT:0,
+  createdAdvantage:0,paintTouches:0,decision:'ORGANIZE',helpPlayer:null,helpTarget:null,kickTarget:null,
+  catchAndShoot:null,catchKind:'jumper',screenContact:false,driveStart:null,readMade:false,
+  shootingFoulPending:false,foulDefender:null,lastOutcome:'TIP',outcomeRecorded:false,
+  teamFouls:[0,0],schemeResults:{},coverageResults:{},seenSchemes:new Set(),seenCoverages:new Set(),
   inbound:null,inboundsCompleted:0,lastInbound:null};
 function setState(s){ play.state=s; play.t=0; }
 const offT=()=>teams[play.offense], defT=()=>teams[1-play.offense];
@@ -725,8 +729,13 @@ function callPossession(reason='INBOUND'){
   play.schemeId=scheme.id; play.coverageId=coverage.id; play.step=0; play.passes=0; play.wait=.48+rand()*.3;
   play.actionLabel=reason==='STEAL'?'NUMBERS ADVANTAGE · FIND THE OPEN LANE':scheme.actions[0][2];
   play.shotQuality=0; play.shotContext=''; play.lastPasser=null; play.lastPassAt=-99; play.possessionReason=reason;
+  play.transition=liveBall;
   play.transitionT=liveBall?3.8:0;
+  play.createdAdvantage=liveBall?.12:0;play.paintTouches=0;
   play.decision=liveBall?'RIM RUN · BOTH WINGS WIDE':q>=4&&qClock<24?(margin<0?'CREATE A QUICK ADVANTAGE':'VALUE THE CLOCK'):'ORGANIZE';
+  play.helpPlayer=null;play.helpTarget=null;play.kickTarget=null;play.catchAndShoot=null;play.catchKind='jumper';
+  play.screenContact=false;play.driveStart=null;play.readMade=false;play.shootingFoulPending=false;play.foulDefender=null;
+  play.lastOutcome='LIVE';play.outcomeRecorded=false;
   play.seenSchemes.add(scheme.id); play.seenCoverages.add(coverage.id);
   say(`${attacking.def.name} CALL ${scheme.label} — ${defending.def.name} ANSWER WITH ${coverage.label}`);
   updateGamePlan();
@@ -744,6 +753,7 @@ function newMatch(){
   q=1; qClock=Q_LEN; shotClock=24; phase='PLAY'; possArrow=1; quarterPending=false;
   tGlobal=0;
   play.possessionNo=0; play.seenSchemes.clear(); play.seenCoverages.clear(); play.freeThrow=null;
+  play.teamFouls=[0,0];play.schemeResults={};play.coverageResults={};
   play.inbound=null; play.inboundsCompleted=0; play.lastInbound=null; ball.inbound=false;
   play.transitionT=0;
   hideCard(); updateHUDTeams();
