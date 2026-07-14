@@ -86,7 +86,7 @@ for (const arena of arenas) {
 
 const supportingPages = [
   { file: 'world.html', screen: /screen\s*:\s*['"]world['"]/ },
-  { file: 'league.html', screen: /screen\s*:\s*['"]league-atlas['"]/ },
+  { file: 'league.html', scriptFile: 'league-page.js', screen: /screen\s*:\s*['"]league-hq['"]/ },
   { file: 'social.html', screen: /screen\s*:\s*['"](?:social|world-wire)['"]/ },
   { file: 'moment.html', screen: /screen\s*:\s*['"](?:moment|moment-maker)['"]/ },
   { file: 'clip.html', screen: /screen\s*:\s*['"]animated-clip-director['"]/ },
@@ -107,7 +107,7 @@ for (const page of supportingPages) {
 }
 
 const worldSource = await text('world.html');
-const atlasSource = await text('league.html');
+const atlasSource = `${await text('league.html')}\n${await text('league-page.js')}\n${await text('branddata.js')}`;
 const socialSource = await text('social.html');
 const momentSource = await text('moment.html');
 const clipSource = await text('clip.html');
@@ -123,11 +123,11 @@ const baseballSource = await text('baseball.html');
 const hockeySource = await text('hockey.html');
 const fightSource = await text('fight.html');
 check(/football\.html/.test(worldSource), 'World map does not route to American football');
-check(/['"]american-football['"]\s*:\s*['"]football\.html['"]/.test(atlasSource), 'League atlas does not route American football to football.html');
-check(/id=["']standings-section["']/.test(atlasSource), 'League atlas is missing its standings table');
+check(/['"]american-football['"]\s*:\s*\{[\s\S]{0,500}?arena\s*:\s*['"]football\.html['"]/.test(atlasSource), 'League HQ does not route American football to football.html');
+check(/id=["']standings-shell["']/.test(atlasSource) && /class=["']standings-table["']/.test(atlasSource), 'League HQ is missing its standings table');
 check(/api\/league\?sport=/.test(atlasSource), 'League atlas does not load the shared league-state API');
 check(/id=["']roster-filters["']/.test(atlasSource), 'League atlas is missing football offense/defense roster filters');
-check(/class=["']athlete-actions["']/.test(atlasSource) && /player\.html\?sport=/.test(atlasSource) && /social\.html\?sport=/.test(atlasSource), 'League atlas does not connect athletes to permanent profile and World Wire URLs');
+check(/class=["']athlete-links["']/.test(atlasSource) && /player\.html\?sport=/.test(atlasSource) && /social\.html\?sport=/.test(atlasSource), 'League HQ does not connect athletes to permanent profile and World Wire URLs');
 for (const arena of arenas) {
   check(worldSource.includes(arena.id), `World map does not expose ${arena.id}`);
   check(worldSource.includes(arena.file), `World map does not link the ${arena.id} arena`, arena.file);
