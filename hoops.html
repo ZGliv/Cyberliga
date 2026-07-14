@@ -1467,6 +1467,32 @@ function resolveRebound(){
   }else{ gainPossession(winner,offensive?'SET':'BRINGUP',offensive?'OFFENSIVE REBOUND':'DEFENSIVE REBOUND');if(offensive)shotClock=14; }
 }
 
+function resolveDriveRead(car,rim){
+  if(play.readMade)return false;
+  const rimDist=dxz(car.pos.x,car.pos.z,rim.x,0);
+  if(rimDist>4.45)return false;
+  play.readMade=true;play.paintTouches++;
+  const helper=play.helpPlayer,helpDist=helper?dxz(helper.pos.x,helper.pos.z,car.pos.x,car.pos.z):99;
+  const kick=bestKickTarget(car);
+  const roller=offT().players[4],rollerOpen=roller!==car?opennessOf(roller):0;
+  if((play.schemeId==='HIGH_PNR'||play.schemeId==='SPAIN')&&roller!==car&&rollerOpen>2.0&&helpDist<2.5){
+    play.createdAdvantage+=.14;play.kickTarget=roller;play.catchAndShoot=roller;play.catchKind='layup';
+    play.actionLabel=play.schemeId==='SPAIN'?'BACK-SCREEN OPENS THE LOB':'POCKET PASS · ROLLER FREE';play.decision=play.actionLabel;updateGamePlan();
+    startPass(roller,'SET');return true;
+  }
+  if(helper&&helpDist<2.35&&kick&&kick.open>1.75&&chance(.72)){
+    play.createdAdvantage+=clamp((kick.open-1.5)*.09,.08,.2);play.kickTarget=kick.p;play.catchAndShoot=kick.p;play.catchKind='jumper';
+    play.actionLabel=`HELP COMMITS · KICK TO ${kick.p.roleName}`;play.decision=`${helper.name} TAGS · ${kick.p.name} LIFTS`;updateGamePlan();
+    startPass(kick.p,'SET');return true;
+  }
+  if(play.coverageId==='DROP'&&car.role<=1&&rimDist>2.45&&chance(.55)){
+    play.createdAdvantage+=.035;play.actionLabel='DROP CONCEDES THE FLOATER';play.decision='TWO FEET IN THE PAINT · SOFT TOUCH';updateGamePlan();
+    startWindup(car,'floater');return true;
+  }
+  play.createdAdvantage+=helper?.025:.075;play.decision=helper?'ABSORB THE HELP · FINISH THROUGH TRAFFIC':'NAIL IS EMPTY · GET TO THE CUP';
+  return false;
+}
+
 // ---------- flow state machine ----------
 function flow(dt){
   play.t+=dt;
