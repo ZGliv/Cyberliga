@@ -76,6 +76,9 @@ for (const arena of arenas) {
   const htmlSource = await text(arena.file);
   const source = arena.file === 'football.html' ? `${htmlSource}\n${await text('football.js')}` : htmlSource;
   check(arena.label.test(source), `${arena.file} does not identify its sport`);
+  check(/<script\s+src=["']watchonly\.js["']><\/script>/i.test(htmlSource), `${arena.file} must load the shared watch-only guard`);
+  const arenaAnchors = htmlSource.match(/<a\b[^>]*>/gi) || [];
+  check(arenaAnchors.length > 0 && arenaAnchors.every((anchor) => /class=["'][^"']*watch-only-exit/.test(anchor)), `${arena.file} must expose only exempt Home/League exit links`);
   check(/(?:href\s*=\s*["']world\.html|location\.href\s*=\s*["']world\.html)/i.test(source), `${arena.file} has no route back to world.html`);
   check(/window\.render_game_to_text\s*=/.test(source), `${arena.file} is missing window.render_game_to_text`);
   check(/window\.advanceTime\s*=/.test(source), `${arena.file} is missing window.advanceTime`);
@@ -108,6 +111,10 @@ for (const page of supportingPages) {
 
 const worldSource = await text('world.html');
 const atlasSource = `${await text('league.html')}\n${await text('league-page.js')}\n${await text('branddata.js')}`;
+const leagueMarkupSource = await text('league.html');
+const soccerSource = await text('index.html');
+const hoopsSource = await text('hoops.html');
+const blobRigSource = await text('blobrig.js');
 const socialSource = await text('social.html');
 const momentSource = await text('moment.html');
 const clipSource = await text('clip.html');
@@ -122,6 +129,33 @@ const footballScript = await text('football.js');
 const baseballSource = await text('baseball.html');
 const hockeySource = await text('hockey.html');
 const fightSource = await text('fight.html');
+
+const worldPrimaryNav = worldSource.match(/<nav class=["']nav["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
+const leaguePrimaryNav = leagueMarkupSource.match(/<nav class=["']league-nav["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
+for (const [label, nav] of [['World', worldPrimaryNav], ['League HQ', leaguePrimaryNav]]) {
+  check((nav.match(/<a\b/gi) || []).length === 2, `${label} primary navigation must expose exactly Home and Leagues`);
+  check(/world\.html/i.test(nav) && /league\.html/i.test(nav), `${label} primary navigation must link Home and Leagues`);
+  check(!/(?:menu\.html|social\.html|COMMUNITY|LIVE NOW|>\s*WATCH\s*<\/)/i.test(nav), `${label} primary navigation restored a removed destination`);
+}
+
+check(/export const CLASSIC_PLAYER_COLORS\s*=\s*Object\.freeze\(\[0x00e5ff,\s*0xff45d6\]\)/i.test(blobRigSource), 'Shared rig must preserve the canonical cyan/hot-pink athlete palette');
+check(/export function classicPlayerColor\s*\(/.test(blobRigSource), 'Shared rig must expose side-stable classic athlete colors');
+check(/hasClassicSide[\s\S]{0,500}resolvedKitColor/.test(blobRigSource), 'Shared rig must prevent implicit white athlete bloom');
+
+const classicArenaSources = [
+  ['soccer', soccerSource],
+  ['american-football', footballScript],
+  ['basketball', hoopsSource],
+  ['hockey', hockeySource],
+  ['baseball', baseballSource],
+  ['combat', fightSource]
+];
+for (const [sportId, source] of classicArenaSources) {
+  check(source.includes('classicPlayerColor'), `${sportId} arena is not bound to the classic cyan/hot-pink player signal`);
+  check(/(?:buildBlobRig|buildRig)\s*\(\s*\{[\s\S]{0,240}?\bside\b/.test(source), `${sportId} arena does not assign athlete color by matchup side`);
+}
+check(!/buildAthleteRig/.test(footballScript) && /from\s+['"]\.\/blobrig\.js['"]/.test(footballScript), 'Football must render the accepted classic capsule athletes');
+
 check(/football\.html/.test(worldSource), 'World map does not route to American football');
 check(/['"]american-football['"]\s*:\s*\{[\s\S]{0,500}?arena\s*:\s*['"]football\.html['"]/.test(atlasSource), 'League HQ does not route American football to football.html');
 check(/id=["']standings-shell["']/.test(atlasSource) && /class=["']standings-table["']/.test(atlasSource), 'League HQ is missing its standings table');

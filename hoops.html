@@ -237,7 +237,9 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { buildBlobRig } from './blobrig.js';
+import { buildBlobRig, CLASSIC_PLAYER_COLORS, classicPlayerColor } from './blobrig.js';
+
+const classicSideVisual = side => classicPlayerColor(Number(side) % CLASSIC_PLAYER_COLORS.length);
 
 // ---------- helpers ----------
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
@@ -606,7 +608,7 @@ function addHoopsSilhouette(rig,role,color){
   const grp=new THREE.Group();
   const accent=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.22,roughness:.72});
   const uniform=new THREE.MeshStandardMaterial({color:0x111728,roughness:.8,metalness:0});
-  const skin=new THREE.MeshStandardMaterial({color:0xc78b69,roughness:.88});
+  const skin=new THREE.MeshStandardMaterial({color:new THREE.Color(color).multiplyScalar(.68),emissive:color,emissiveIntensity:.12,roughness:.88});
   const shoe=new THREE.MeshStandardMaterial({color:0x20283a,emissive:color,emissiveIntensity:.07,roughness:.7});
   const limbs={arms:[],legs:[]};
   const armGeo=new THREE.CapsuleGeometry(.105,.46,4,8),legGeo=new THREE.CapsuleGeometry(.13,.48,4,8);
@@ -638,8 +640,9 @@ function makeTeam(def, dir, side){
   const lineup=[def.roster[1],def.roster[2],def.roster[3],def.roster[4],def.roster[0]];
   const players=[];
   for (let r=0;r<5;r++){
-    const rig=buildBlobRig({ kitColor:def.col, glowColor:def.glow, captain:r===0 });
-    const signature=addHoopsSilhouette(rig,r,def.glow);
+    const playerColor=classicSideVisual(side);
+    const rig=buildBlobRig({ side, kitColor:playerColor, glowColor:playerColor, captain:r===0 });
+    const signature=addHoopsSilhouette(rig,r,playerColor);
     scene.add(rig.group);
     const athlete=lineup[r], shape=ROLE_SHAPES[r];
     const renderScale=identityScale(athlete,shape),identity=hash32(athlete.id);
@@ -1004,7 +1007,7 @@ function setTargets(dt){
   matchupLines.forEach(line=>line.visible=false);
   spacingRings.forEach((ring,i)=>{
     ring.visible=showBoard;ring.position.set(spots[i].x,.045,spots[i].z);
-    ring.material.color.setHex(off.def.glow);ring.material.opacity=action[1]===i?.62:.15;
+    ring.material.color.setHex(classicSideVisual(play.offense));ring.material.opacity=action[1]===i?.62:.15;
     ring.scale.setScalar(action[1]===i?1.35:1);
   });
   if(play.inbound&&play.state.startsWith('INBOUND_')){
@@ -1032,7 +1035,7 @@ function setTargets(dt){
     if(showInboundLane){
       const bend=V3(lerp(inbounder.pos.x,receiver.pos.x,.48),.08,lerp(inbounder.pos.z,receiver.pos.z,.48)+(receiveZ>0?.45:-.45));
       actionRoute.geometry.setFromPoints([V3(inbounder.pos.x,.08,inbounder.pos.z),bend,V3(receiver.pos.x,.08,receiver.pos.z)]);
-      actionRoute.computeLineDistances();actionRoute.material.color.setHex(off.def.glow);
+      actionRoute.computeLineDistances();actionRoute.material.color.setHex(classicSideVisual(play.offense));
     }
     if(play.state==='INBOUND_BASELINE')inbounder.rig.poseThrowIn(.28);
     else if(play.state==='INBOUND_READY')inbounder.rig.poseThrowIn(.34+clamp(play.t/.72,0,1)*.20);
@@ -1043,7 +1046,7 @@ function setTargets(dt){
   if(car&&routeTarget&&['SET','BRINGUP','DRIVE'].includes(play.state)){
     const bend=V3(lerp(car.pos.x,routeTarget.x,.52),.06,lerp(car.pos.z,routeTarget.z,.52)+(play.possessionNo%2?1:-1)*.55);
     actionRoute.geometry.setFromPoints([V3(car.pos.x,.06,car.pos.z),bend,V3(routeTarget.x,.06,routeTarget.z)]);
-    actionRoute.computeLineDistances();actionRoute.material.color.setHex(off.def.glow);actionRoute.visible=true;
+    actionRoute.computeLineDistances();actionRoute.material.color.setHex(classicSideVisual(play.offense));actionRoute.visible=true;
   }else actionRoute.visible=false;
   if(play.state==='FREE_THROW'&&play.freeThrow){
     const sh=play.freeThrow.shooter;
@@ -1128,7 +1131,7 @@ function setTargets(dt){
       if (dxz(d.pos.x,d.pos.z,d.target.x,d.target.z)<1.6 && !d.air){ d.air=true; d.jumpV=6.2; d.contest=false; } }
     const readLine=matchupLines[d.role];
     if(readLine){
-      readLine.visible=play.state==='SET';readLine.material.color.setHex(def.def.glow);
+      readLine.visible=play.state==='SET';readLine.material.color.setHex(classicSideVisual(1-play.offense));
       readLine.geometry.setFromPoints([V3(d.pos.x,.035,d.pos.z),V3(mark.pos.x,.035,mark.pos.z)]);readLine.computeLineDistances();
     }
   }
@@ -1188,10 +1191,10 @@ function setTargets(dt){
   const actionTarget=action[0]==='cut'||action[0]==='screen' ? off.players[action[1]] : car;
   const end=actionTarget?.target||rim,start=car?.pos||spots[0];
   routeLine.geometry.setFromPoints([V3(start.x,.06,start.z),V3(lerp(start.x,end.x,.52),.06,lerp(start.z,end.z,.52)),V3(end.x,.06,end.z)]);
-  routeLine.computeLineDistances();routeLine.material.color.setHex(off.def.glow);routeLine.visible=phase==='PLAY'&&['SET','DRIVE','BRINGUP'].includes(play.state);
+  routeLine.computeLineDistances();routeLine.material.color.setHex(classicSideVisual(play.offense));routeLine.visible=phase==='PLAY'&&['SET','DRIVE','BRINGUP'].includes(play.state);
   const screener=action[0]==='screen'?off.players[action[1]]:null;
-  screenHalo.visible=!!screener&&play.state==='SET';if(screener){screenHalo.position.x=screener.pos.x;screenHalo.position.z=screener.pos.z;screenHalo.material.color.setHex(off.def.glow);screenHalo.rotation.z=tGlobal*.8;}
-  helpHalo.visible=!!play.helpPlayer&&play.state==='DRIVE';if(play.helpPlayer){helpHalo.position.x=play.helpPlayer.pos.x;helpHalo.position.z=play.helpPlayer.pos.z;helpHalo.material.color.setHex(def.def.glow);helpHalo.rotation.z=-tGlobal;}
+  screenHalo.visible=!!screener&&play.state==='SET';if(screener){screenHalo.position.x=screener.pos.x;screenHalo.position.z=screener.pos.z;screenHalo.material.color.setHex(classicSideVisual(screener.side));screenHalo.rotation.z=tGlobal*.8;}
+  helpHalo.visible=!!play.helpPlayer&&play.state==='DRIVE';if(play.helpPlayer){helpHalo.position.x=play.helpPlayer.pos.x;helpHalo.position.z=play.helpPlayer.pos.z;helpHalo.material.color.setHex(classicSideVisual(play.helpPlayer.side));helpHalo.rotation.z=-tGlobal;}
 }
 
 // ---------- player physics ----------
@@ -1768,7 +1771,7 @@ function fxStep(dt){
   carrierRing.visible=!!car && phase==='PLAY';
   if (car){
     carrierRing.position.set(car.pos.x,0.04,car.pos.z);
-    carrierRing.material.color.setHex(car.td.glow);
+    carrierRing.material.color.setHex(classicSideVisual(car.side));
     carrierRing.rotation.z+=dt*0.9;
   }
   ballShadow.position.x=ball.pos.x; ballShadow.position.z=ball.pos.z;

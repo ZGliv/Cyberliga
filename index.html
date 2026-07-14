@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>CYBERLIGA SOCCER</title>
+<script src="watchonly.js"></script>
 <link rel="icon" href="data:," />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
@@ -311,7 +312,7 @@
   <div id="clockwrap"><span class="live"></span><span id="clock">00:00</span><span id="half">1ST HALF</span></div>
   <div id="matchcontext"><span class="phase">KICKOFF RITUAL</span><span class="sep">◆</span><span class="plans">CLUB ANTHEMS · OPENING SHAPES</span></div>
   <div id="analyststrip"><span id="analystA">50% · 0 SH · 0.00 xG</span><span id="analystphase">OPENING SHAPES</span><span id="analystB">0.00 xG · 0 SH · 50%</span></div>
-  <div id="badge"><a id="leaguepill" href="world.html" aria-label="Back to Cyberliga globe"><span aria-hidden="true">◉</span><span class="pill-full">GLOBE</span><span class="pill-short">GLOBE</span></a><span id="wordmark">CYBERLIGA <em>SOCCER</em></span></div>
+  <div id="badge"><a id="leaguepill" class="watch-only-exit" href="world.html" aria-label="Back to Cyberliga globe"><span aria-hidden="true">◉</span><span class="pill-full">GLOBE</span><span class="pill-short">GLOBE</span></a><span id="wordmark">CYBERLIGA <em>SOCCER</em></span></div>
   <div id="broadcasttag"><span data-cyberliga-presence>1 WATCHING · LOCAL</span><b id="broadcastid">SYNCING</b></div>
   <div id="goalflash"><div id="goaltext">GOAL</div><div id="goalsub"></div></div>
   <div id="penstinger"><div class="pflash"></div><div class="ptext">PENALTY!</div><div class="psub" id="pensub"></div></div>
@@ -350,8 +351,9 @@ import { createGoalkeeper } from './goalkeeper.js';
 import { createBoundarySystem } from './boundary.js';
 import { createPossession } from './possession.js';
 import { createReplaySystem, SKILL_MOVES } from './replaysys.js';
-import { buildBlobRig } from './blobrig.js';
+import { buildBlobRig, CLASSIC_PLAYER_COLORS, classicPlayerColor } from './blobrig.js';
 import { createStoryEngine } from './story.js';
+const classicSideVisual = side => classicPlayerColor(Number(side) % CLASSIC_PLAYER_COLORS.length);
 const UNIVERSE = window.CyberligaUniverse;
 const QUERY = new URLSearchParams(location.search);
 // `?exhibition=1&seed=...` is the deterministic rehearsal room used by the release gate.
@@ -573,7 +575,8 @@ const crowd = createCrowd(scene, { teamA: TEAM_A, teamB: TEAM_B });
 const technicalAreas = [];
 function buildTechnicalArea(side, team) {
   const group = new THREE.Group();
-  const kit = new THREE.MeshStandardMaterial({ color:team.color, emissive:glow3(team), emissiveIntensity:.18, roughness:.72 });
+  const playerColor = classicSideVisual(side < 0 ? 0 : 1);
+  const kit = new THREE.MeshStandardMaterial({ color:playerColor, emissive:playerColor, emissiveIntensity:.18, roughness:.72 });
   const dark = new THREE.MeshStandardMaterial({ color:0x111827, roughness:.9 });
   const bench = new THREE.Mesh(new THREE.BoxGeometry(9,.22,1.25), dark);
   bench.position.y = .45; group.add(bench);
@@ -598,8 +601,9 @@ buildTechnicalArea(-1, TEAM_A); buildTechnicalArea(1, TEAM_B);
 function setTechnicalTeams(a, b) {
   const teams = [a,b];
   technicalAreas.forEach((area,i) => {
-    area.team = teams[i]; area.kit.color.setHex(teams[i].color);
-    area.kit.emissive.setHex(glow3(teams[i]));
+    const playerColor = classicSideVisual(i);
+    area.team = teams[i]; area.kit.color.setHex(playerColor);
+    area.kit.emissive.setHex(playerColor);
   });
 }
 function benchReaction(kind, team, duration=2.8) {
@@ -799,7 +803,9 @@ function makeNameTagTexture(name, number, colorCss) {
   const numStr = String(number), gapStr = '  ';
   const wNum = g.measureText(numStr).width, wGap = g.measureText(gapStr).width, wName = g.measureText(name).width;
   const x0 = (c.width - (wNum + wGap + wName)) / 2;
-  g.fillStyle = '#ffffff'; g.shadowColor = '#ffffff'; g.shadowBlur = 14;
+  // Keep athlete-attached labels out of the white bloom range. The number is a
+  // muted neutral and the name uses the same cyan/pink signal as the body.
+  g.fillStyle = '#8da0af'; g.shadowColor = 'transparent'; g.shadowBlur = 0;
   g.fillText(numStr, x0, 60);
   g.fillStyle = colorCss; g.shadowColor = colorCss;
   g.fillText(name, x0 + wNum + wGap, 60);
@@ -810,7 +816,9 @@ function makeNumberTexture(number) {
   const g = c.getContext('2d');
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.font = '900 170px Orbitron, sans-serif';
-  g.fillStyle = '#ffffff'; g.shadowColor = '#ffffff'; g.shadowBlur = 10;
+  // Dark ink stays readable on both fluorescent bodies without becoming a
+  // second emissive source at broadcast distance.
+  g.fillStyle = '#08111b'; g.shadowColor = 'transparent'; g.shadowBlur = 0;
   g.fillText(String(number), 128, 138);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
@@ -830,10 +838,12 @@ function mountAtBoneAnchor(anchor, plane, root) {
 }
 function buildPlayer(team, isGK, r, captain) {
   const name = r.n, number = r.num;
+  const side = team === TEAM_A ? 0 : 1;
+  const playerColor = classicSideVisual(side);
   // Player identity stays in names, numbers, stats, behavior, and story while the
   // public simulation uses the readable blob vocabulary.
   const rig = buildRig({
-    kitColor: team.color, glowColor: team.glow,
+    side, kitColor: playerColor, glowColor: playerColor,
     skinTone: SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)],
     hairColor: HAIR_COLORS[Math.floor(Math.random()*HAIR_COLORS.length)],
     isGK, headband: r.hb ?? (Math.random() < 0.35),
@@ -865,7 +875,7 @@ function buildPlayer(team, isGK, r, captain) {
     }
   }
 
-  const colorCss = '#' + new THREE.Color(team.glow).getHexString();
+  const colorCss = '#' + new THREE.Color(playerColor).getHexString();
   const tag = new THREE.Sprite(new THREE.SpriteMaterial({
     map: makeNameTagTexture(name, number, colorCss), transparent: true, depthWrite: false, opacity: 0 }));
   tag.scale.set(2.35, 0.52, 1); tag.position.y = rig.anchors.tagY ?? 2.55;

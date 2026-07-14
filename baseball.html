@@ -248,7 +248,9 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { buildBlobRig } from './blobrig.js';
+import { buildBlobRig, CLASSIC_PLAYER_COLORS, classicPlayerColor } from './blobrig.js';
+
+const classicSideVisual = side => classicPlayerColor(Number(side) % CLASSIC_PLAYER_COLORS.length);
 
 // ---------- helpers ----------
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
@@ -759,10 +761,11 @@ function addBaseballGear(rig, role, color){
 }
 function makeClub(def, side){
   const players=[];
+  const playerColor=classicSideVisual(side);
   def.roster.forEach((name,i)=>{
-    const rig=buildBlobRig({ kitColor:def.col, glowColor:def.glow, captain:i===0 });
+    const rig=buildBlobRig({ side, kitColor:playerColor, glowColor:playerColor, captain:i===0 });
     const position=POSITION_NAMES[i] || `UTIL${i-8}`;
-    const gear=addBaseballGear(rig,position,def.col);
+    const gear=addBaseballGear(rig,position,playerColor);
     scene.add(rig.group);
     players.push({ rig, gear, name, side, role:i, position, x:-6, z:(side?-1:1)*(9+i*0.9), vx:0, vz:0,
       heading:0, tx:0, tz:0, sprint:6, duty:'dugout', baseIdx:-1, path:null, pathI:0,
@@ -2305,7 +2308,7 @@ function markerStep(){
   if (p) {
     fielderMarker.visible=true;
     fielderMarker.position.set(p.x,0.075,p.z);
-    fielderMarker.material.color.setHex(fldTeam().def.glow);
+    fielderMarker.material.color.setHex(classicSideVisual(p.side));
     fielderMarker.material.opacity=0.32+Math.sin(tGlobal*7)*0.1;
   } else {
     fielderMarker.material.opacity*=0.82;

@@ -254,7 +254,7 @@
 </head>
 <body>
 <div id="hud">
-  <div id="badge"><a id="leaguepill" href="world.html">← HOME</a><span id="wordmark">CYBERLIGA <em>FIGHT NIGHT</em></span><span id="erapill">EXHIBITION ERA</span></div>
+  <div id="badge"><a id="leaguepill" class="watch-only-exit" href="world.html">← HOME</a><span id="wordmark">CYBERLIGA <em>FIGHT NIGHT</em></span><span id="erapill">EXHIBITION ERA</span></div>
   <div id="roundwrap"><span class="live"></span><span id="round">ROUND 1 / 3</span><span id="clock">1:00</span></div>
   <div id="playstatus">FIGHTERS WALKING</div>
   <div class="fpanel" id="fpA">
@@ -304,7 +304,9 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { buildBlobRig } from './blobrig.js';
+import { buildBlobRig, CLASSIC_PLAYER_COLORS, classicPlayerColor } from './blobrig.js';
+
+const classicSideVisual = side => classicPlayerColor(Number(side) % CLASSIC_PLAYER_COLORS.length);
 
 // ============ HELPERS / CONSTANTS ============
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
@@ -708,13 +710,13 @@ function roundStat(){ return {landed:0,head:0,body:0,jabs:0,feints:0,setups:0,bl
 // shoulder pivot → upper-arm capsule → elbow pivot → forearm capsule → oversized glove sphere.
 // blobrig.js stays untouched: we add children to rig.group and drive joint rotations here.
 const ARM_UP = 0.38, ARM_FORE = 0.38, GLOVE_R = 0.215, SH_Y = 1.52, SH_Z = 0.12, SH_X = 0.5;
-function buildArms(rig, club) {
+function buildArms(rig, playerColor) {
   const mkSide = (sx) => {
     const armMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(club.kit).multiplyScalar(0.5), roughness: 0.5, metalness: 0.1,
-      emissive: club.kit, emissiveIntensity: 0.12 });
+      color: new THREE.Color(playerColor).multiplyScalar(0.5), roughness: 0.5, metalness: 0.1,
+      emissive: playerColor, emissiveIntensity: 0.12 });
     const gloveMat = new THREE.MeshStandardMaterial({
-      color: club.kit, roughness: 0.35, emissive: club.glow, emissiveIntensity: 0.55 });
+      color: playerColor, roughness: 0.35, emissive: playerColor, emissiveIntensity: 0.55 });
     const sh = new THREE.Group(); sh.position.set(sx, SH_Y, SH_Z); sh.rotation.order = 'YXZ';
     const up = new THREE.Mesh(new THREE.CapsuleGeometry(0.085, ARM_UP - 0.17, 4, 8), armMat);
     up.position.y = -ARM_UP/2; sh.add(up);
@@ -737,13 +739,13 @@ function buildArms(rig, club) {
   };
   return { L: mkSide(-SH_X), R: mkSide(SH_X) };  // disposed with the rig (group traverse)
 }
-function buildBoxerDetails(rig, club) {
+function buildBoxerDetails(rig, playerColor) {
   const shellMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(club.kit).multiplyScalar(0.78), roughness:0.48, metalness:0.1,
-    emissive: club.glow, emissiveIntensity:0.18
+    color: new THREE.Color(playerColor).multiplyScalar(0.78), roughness:0.48, metalness:0.1,
+    emissive: playerColor, emissiveIntensity:0.18
   });
-  const trimMat = new THREE.MeshBasicMaterial({ color: club.glow, transparent:true, opacity:0.78 });
-  const darkMat = new THREE.MeshStandardMaterial({ color:0x080b14, roughness:0.5, emissive:club.glow, emissiveIntensity:0.06 });
+  const trimMat = new THREE.MeshBasicMaterial({ color: playerColor, transparent:true, opacity:0.78 });
+  const darkMat = new THREE.MeshStandardMaterial({ color:0x080b14, roughness:0.5, emissive:playerColor, emissiveIntensity:0.06 });
   const detail = new THREE.Group();
   const chest = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.42, 6, 14), shellMat);
   chest.position.set(0, 1.15, 0.015); chest.scale.set(1.18, 0.72, 0.82);
@@ -787,12 +789,13 @@ let fighters = [], cornerCrew=[];
 function mkFighter(side, clubIdx) {
   const club = LEAGUE_TEAMS[clubIdx];
   const name = CLUB_FIGHTERS[clubIdx][frand() < 0.35 ? 1 : 0];
-  const rig = buildBlobRig({ kitColor: club.kit, glowColor: club.glow, captain: true });
+  const playerColor=classicSideVisual(side);
+  const rig = buildBlobRig({ side, kitColor:playerColor, glowColor:playerColor, captain: true });
   scene.add(rig.group);
   const r = nameRng(name); // style is identity: seeded from the name, tiny per-fight jitter
   const style=styleFor(name), j = () => (frand() - 0.5) * 0.04;
   const fighter={
-    side, club, name, rig, arms: buildArms(rig, club), kit: buildBoxerDetails(rig, club),
+    side, club, name, rig, arms: buildArms(rig, playerColor), kit: buildBoxerDetails(rig, playerColor),
     style, plan:style.plans[0], cornerNote:'OPENING READ', guardType:style.guard, stance:style.stance,
     x: CORNER[side].x, z: CORNER[side].z, y: RING_Y, vx: 0, vz: 0, heading: 0,
     hp: 100, stam: 100, guard: 100,
@@ -825,7 +828,7 @@ function mkFighter(side, clubIdx) {
   fighter.kit.chest.scale.x*=style.id==='BRAWLER'?1.16:style.id==='OUTBOXER'?.92:1;
   fighter.kit.trunks.scale.x*=style.id==='PRESSURE'?1.08:1;
   for(const arm of Object.values(fighter.arms)) arm.glove.scale.multiplyScalar(style.id==='BRAWLER'?1.12:style.id==='OUTBOXER'?.92:1);
-  fighter.punchTrail=buildPunchTrail(club.glow);
+  fighter.punchTrail=buildPunchTrail(playerColor);
   return fighter;
 }
 const refRig = buildBlobRig({ kitColor: 0x39414f, glowColor: 0xffb13d });
@@ -884,8 +887,9 @@ function setupCard() {
   localStorage.setItem('cl_fight_fx', String((fixtureIdx + 1) % FIXTURES.length));
   fighters = [mkFighter(0, ia), mkFighter(1, ib)];
   fighters.forEach((f,side)=>{
+    const playerColor=classicSideVisual(side);
     for(let i=0;i<2;i++){
-      const rig=buildBlobRig({kitColor:i?0x141924:f.club.kit,glowColor:f.club.glow}); scene.add(rig.group);
+      const rig=buildBlobRig({side,kitColor:playerColor,glowColor:playerColor}); scene.add(rig.group);
       rig.group.scale.setScalar(.72); cornerCrew.push({rig,side,i,phase:frand()*6});
     }
   });
@@ -1075,7 +1079,7 @@ function resolveStrike(f) {
   impactFlash.position.set(ix, iy, iz);
   impactFlash.material.color.setHex(blocked ? 0x9fb4cc : 0xffffff);
   impactT = blocked ? 0.1 : 0.18;
-  spawnSparks(ix, iy, iz, blocked ? 3 : 7, f.club.glow, blocked ? 1.6 : 3.2);
+  spawnSparks(ix, iy, iz, blocked ? 3 : 7, classicSideVisual(f.side), blocked ? 1.6 : 3.2);
   if (blocked) {
     blockClack(); o.vx += (o.x - f.x)*0.4; o.vz += (o.z - f.z)*0.4;
     f.lastOutcome=`BLOCKED · ${o.guardFocus.toUpperCase()} SHELL`;o.lastOutcome=`ABSORBED ON ${o.guardType}`;

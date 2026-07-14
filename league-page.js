@@ -90,8 +90,6 @@
       image.alt = '';
     }
     byId('arena-link').href = league.arena;
-    byId('nav-live').href = league.arena;
-    byId('nav-live').setAttribute('aria-label','Watch ' + sport.name + ' live');
     setLeagueColor(league.accent);
   }
 

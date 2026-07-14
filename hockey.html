@@ -208,7 +208,9 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { buildBlobRig } from './blobrig.js';
+import { buildBlobRig, CLASSIC_PLAYER_COLORS, classicPlayerColor } from './blobrig.js';
+
+const classicSideVisual = side => classicPlayerColor(Number(side) % CLASSIC_PLAYER_COLORS.length);
 
 // ============ CONSTANTS ============
 const RINK_W = 56, RINK_H = 26;          // x = length, z = width
@@ -555,14 +557,14 @@ for(let i=0;i<18;i++) {
   scene.add(card); fanCards.push({mesh:card,baseY:card.position.y,phase:i*1.73});
 }
 const benchMat = new THREE.MeshStandardMaterial({ color:0x10243a, roughness:.58, metalness:.2 });
-const benchTrim = new THREE.MeshBasicMaterial({ color:0x35dff5 });
-for (const x of [-12,12]) {
+for (const [side,x] of [-12,12].entries()) {
+  const playerColor=classicSideVisual(side);
   const shell = new THREE.Mesh(new THREE.BoxGeometry(15,.7,2.5),benchMat);
   shell.position.set(x,.35,BZ+1.45); scene.add(shell);
-  const rail = new THREE.Mesh(new THREE.BoxGeometry(15,.1,.12),benchTrim);
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(15,.1,.12),new THREE.MeshBasicMaterial({color:playerColor}));
   rail.position.set(x,1.18,BZ+.24); scene.add(rail);
   for(let i=0;i<5;i++) {
-    const helmet = new THREE.Mesh(new THREE.SphereGeometry(.3,8,6),new THREE.MeshBasicMaterial({color:i%2?0xd5effa:0x55738c}));
+    const helmet = new THREE.Mesh(new THREE.SphereGeometry(.3,8,6),new THREE.MeshBasicMaterial({color:i%2?playerColor:0x26374a}));
     helmet.position.set(x-5.2+i*2.55,1.08,BZ+1.35); scene.add(helmet);
   }
 }
@@ -591,7 +593,7 @@ const puckBlade = new THREE.Line(puckBladeGeo, new THREE.LineBasicMaterial({
 }));
 scene.add(puckBlade);
 const receiverRing = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.92, 28),
-  new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0, side:THREE.DoubleSide,
+  new THREE.MeshBasicMaterial({ color:classicSideVisual(0), transparent:true, opacity:0, side:THREE.DoubleSide,
     blending:THREE.AdditiveBlending, depthWrite:false }));
 receiverRing.rotation.x = -Math.PI/2; receiverRing.position.y = 0.045; scene.add(receiverRing);
 
@@ -759,7 +761,7 @@ function roleTexture(role, color) {
   const c=document.createElement('canvas'); c.width=192; c.height=64; const g=c.getContext('2d');
   g.fillStyle='rgba(2,7,18,.82)'; g.beginPath(); g.roundRect(15,7,162,50,23); g.fill();
   g.strokeStyle=color; g.lineWidth=4; g.stroke();
-  g.font='900 28px Orbitron, sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillStyle='#efffff'; g.fillText(role,96,33);
+  g.font='900 28px Orbitron, sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillStyle=color; g.fillText(role,96,33);
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; roleTextureCache.set(key,t); return t;
 }
 const hockeyStickUp=new THREE.Vector3(0,1,0);
@@ -773,16 +775,18 @@ function localStickSegment(group,a,b,r,mat,radial=8){
 }
 function mkPlayer(team, idx, name, teamDef) {
   const isGK = idx === 0;
-  const rig = buildBlobRig({ kitColor: teamDef.kit, glowColor: teamDef.glow, isGK, captain: idx === 1 });
+  const playerColor=classicSideVisual(team);
+  const rig = buildBlobRig({ side:team, kitColor:playerColor, glowColor:playerColor, isGK, captain: idx === 1 });
   const role=ROLES[idx]||`L${idx}`;
-  const badge=new THREE.Sprite(new THREE.SpriteMaterial({map:roleTexture(role,teamDef.css),transparent:true,depthTest:false,depthWrite:false}));
+  const playerCss=`#${new THREE.Color(playerColor).getHexString()}`;
+  const badge=new THREE.Sprite(new THREE.SpriteMaterial({map:roleTexture(role,playerCss),transparent:true,depthTest:false,depthWrite:false}));
   badge.position.set(0,isGK?2.8:2.55,0); badge.scale.set(1.55,.52,1); rig.group.add(badge);
   // Hockey equipment is page-local so the shared athlete rig remains usable by
   // every other sport. The blade sits beside the actual carried puck and the
   // pivot sells pass/shot load, contact and follow-through.
   const gear=new THREE.Group();
-  const shaftMat=new THREE.MeshStandardMaterial({color:isGK?0xf5f8fb:0x141a22,roughness:.34,metalness:.22});
-  const tapeMat=new THREE.MeshStandardMaterial({color:teamDef.kit,emissive:teamDef.glow,emissiveIntensity:.28,roughness:.48});
+  const shaftMat=new THREE.MeshStandardMaterial({color:0x141a22,roughness:.34,metalness:.22});
+  const tapeMat=new THREE.MeshStandardMaterial({color:playerColor,emissive:playerColor,emissiveIntensity:.28,roughness:.48});
   // One continuous silhouette: taped handle -> shaft -> kicked hosel -> long
   // flat blade. Every endpoint overlaps the next piece, so animation can never
   // turn it into a disconnected broom head.
@@ -804,8 +808,8 @@ function mkPlayer(team, idx, name, teamDef) {
   const lowerGlove=new THREE.Mesh(gloveGeo,tapeMat);
   lowerGlove.position.set(.40,1.28,.21); lowerGlove.scale.set(1.12,.9,1); gear.add(lowerGlove);
   if(isGK) {
-    const padMat=new THREE.MeshStandardMaterial({color:0xf2f6f8,emissive:teamDef.glow,emissiveIntensity:.12,roughness:.58});
-    const strapMat=new THREE.MeshStandardMaterial({color:teamDef.kit,emissive:teamDef.glow,emissiveIntensity:.32,roughness:.48});
+    const padMat=new THREE.MeshStandardMaterial({color:0x243241,emissive:playerColor,emissiveIntensity:.12,roughness:.58});
+    const strapMat=new THREE.MeshStandardMaterial({color:playerColor,emissive:playerColor,emissiveIntensity:.32,roughness:.48});
     const chest=new THREE.Mesh(new THREE.BoxGeometry(.92,.68,.34),padMat);
     chest.position.set(0,1.23,.11); chest.rotation.x=-.08; rig.group.add(chest);
     for(const side of [-1,1]){
@@ -825,9 +829,9 @@ function mkPlayer(team, idx, name, teamDef) {
     const catcher=new THREE.Mesh(new THREE.SphereGeometry(.30,10,7),padMat);
     catcher.position.set(-.50,1.16,.30); catcher.scale.set(1.18,.92,.48); catcher.rotation.z=.28; rig.group.add(catcher);
     const mask=new THREE.Mesh(new THREE.SphereGeometry(.37,12,9,0,Math.PI*2,0,Math.PI*.75),
-      new THREE.MeshStandardMaterial({color:0x172132,roughness:.35,metalness:.48,emissive:teamDef.glow,emissiveIntensity:.18}));
+      new THREE.MeshStandardMaterial({color:0x172132,roughness:.35,metalness:.48,emissive:playerColor,emissiveIntensity:.18}));
     mask.position.set(0,1.99,.06); mask.scale.set(1,.96,.92); rig.group.add(mask);
-    const cageMat=new THREE.MeshStandardMaterial({color:0xe7f2f8,roughness:.28,metalness:.82});
+    const cageMat=new THREE.MeshStandardMaterial({color:0x526674,roughness:.28,metalness:.82});
     for(const x of [-.22,-.11,0,.11,.22]){
       const bar=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.48,6),cageMat);
       bar.position.set(x,1.96,.37); rig.group.add(bar);
@@ -1742,13 +1746,13 @@ function updateFX(dt) {
     const a=shotAimLine.geometry.attributes.position, d=ATT[activeShooter.team];
     a.setXYZ(0,activeShooter.x,.18,activeShooter.z);
     a.setXYZ(1,d*(GLX+.15),.18,activeShooter.action.aimZ||0); a.needsUpdate=true;
-    shotAimLine.material.color.setHex(activeShooter.team===0?TEAM_A.glow:TEAM_B.glow);
+    shotAimLine.material.color.setHex(classicSideVisual(activeShooter.team));
     shotAimLine.material.opacity=.32+Math.sin(simClockTotal*18)*.16;
   } else shotAimLine.material.opacity*=.76;
   const focus=puck.carrier&&!puck.carrier.isGK?puck.carrier:activeShooter;
   if(focus){
     focusRing.position.x=focus.x; focusRing.position.z=focus.z;
-    focusRing.material.color.setHex(focus.team===0?TEAM_A.glow:TEAM_B.glow);
+    focusRing.material.color.setHex(classicSideVisual(focus.team));
     focusRing.material.opacity=.26+Math.sin(simClockTotal*9)*.09;
     const fs=1+Math.sin(simClockTotal*7)*.05; focusRing.scale.set(fs,fs,1);
   } else focusRing.material.opacity*=.8;
@@ -1766,7 +1770,7 @@ function updateFX(dt) {
   puckBlade.material.opacity = clamp((pspd-7)/19,0,0.86);
   if (puck.passTarget && !puck.carrier) {
     receiverRing.position.x = puck.passTarget.x; receiverRing.position.z = puck.passTarget.z;
-    receiverRing.material.color.setHex(puck.passTarget.team === 0 ? TEAM_A.glow : TEAM_B.glow);
+    receiverRing.material.color.setHex(classicSideVisual(puck.passTarget.team));
     receiverRing.material.opacity = 0.38+Math.sin(simClockTotal*13)*0.2;
     const rr = 1+Math.sin(simClockTotal*13)*0.1; receiverRing.scale.set(rr,rr,1);
   } else receiverRing.material.opacity = 0;
@@ -1776,9 +1780,9 @@ function updateFX(dt) {
     laneLines.forEach((line,i)=>{
       const o=opts[i]; if(!o){line.material.opacity=0;return;}
       const a=line.geometry.attributes.position; a.setXYZ(0,c.x,.17,c.z); a.setXYZ(1,o.p.x,.17,o.p.z); a.needsUpdate=true;
-      line.material.color.setHex((c.team===0?TEAM_A:TEAM_B).glow); line.material.opacity=clamp((o.clear-.45)/3.2,.06,.42);
+      line.material.color.setHex(classicSideVisual(c.team)); line.material.opacity=clamp((o.clear-.45)/3.2,.06,.42);
     });
-    if(shape.mates.length===2){const pos=supportGeo.attributes.position,pts=[c,...shape.mates];pts.forEach((p,i)=>pos.setXYZ(i,p.x,.12,p.z));pos.needsUpdate=true;supportTriangle.material.color.setHex((c.team===0?TEAM_A:TEAM_B).glow);supportTriangle.material.opacity=.08+shape.quality*.2;}else supportTriangle.material.opacity=0;
+    if(shape.mates.length===2){const pos=supportGeo.attributes.position,pts=[c,...shape.mates];pts.forEach((p,i)=>pos.setXYZ(i,p.x,.12,p.z));pos.needsUpdate=true;supportTriangle.material.color.setHex(classicSideVisual(c.team));supportTriangle.material.opacity=.08+shape.quality*.2;}else supportTriangle.material.opacity=0;
     const d=ATT[c.team],goalX=d*GLX,clear=segmentClearance(c.x,c.z,goalX,0,1-c.team),sa=shotLaneGeo.attributes.position;sa.setXYZ(0,c.x,.14,c.z);sa.setXYZ(1,goalX,.14,0);sa.needsUpdate=true;shotLane.material.color.setHex(clear>1.2?0x70ffb8:0xff5578);shotLane.material.opacity=ATT[c.team]*c.x>BLX-2?clamp(.08+clear*.08,.1,.38):0;
   } else {laneLines.forEach(line=>line.material.opacity=0);supportTriangle.material.opacity=0;shotLane.material.opacity=0;}
   trailHist.push({ x: puck.x, z: puck.z });

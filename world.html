@@ -313,7 +313,7 @@
 
 <header class="topbar">
   <a class="brand" href="world.html"><strong>CYBERLIGA</strong><i></i><span>THE AUTONOMOUS SPORTS WORLD</span></a>
-  <nav class="nav" aria-label="Primary navigation"><a class="active" href="world.html" aria-current="page">HOME</a><a href="menu.html">WATCH</a><a class="secondary" href="league.html?sport=soccer">LEAGUES</a><a class="secondary" href="social.html">COMMUNITY</a><a class="live" id="watch-primary" href="index.html"><span class="dot"></span>LIVE NOW</a></nav>
+  <nav class="nav" aria-label="Primary navigation"><a class="active" href="world.html" aria-current="page">HOME</a><a class="secondary" href="league.html?sport=soccer">LEAGUES</a></nav>
 </header>
 
 <section class="intro">
@@ -592,7 +592,6 @@ function refreshRenderedSoccerCards(soccerCards){
 }
 function tickNetwork(){
   matches=U.liveMatches(Date.now());
-  document.getElementById('watch-primary').href=U.sharePath(matches[0]);
   const soccerCards=fixtureCards.filter(card=>card.league.id==='soccer');
   matches.forEach((match,index)=>{const card=soccerCards[index];card.liveMatch=match;card.home=match.home;card.away=match.away;card.href=U.sharePath(match);});
   if(activeFilter==='all'||activeFilter==='soccer'){

@@ -6,6 +6,20 @@ import * as THREE from 'three';
 
 export async function preloadClassic() { /* nothing to load — instant */ }
 
+// The original broadcast matchup used cyan against hot pink. Pink needs a bluer
+// render feed than its #ff2d78 brand swatch so ACES tone mapping + bloom still
+// reads as hot pink instead of clipping toward red.
+export const CLASSIC_PLAYER_COLORS = Object.freeze([0x00e5ff, 0xff45d6]);
+
+const classicSideIndex = side => {
+  const numeric = Number(side);
+  return Number.isFinite(numeric) ? Math.abs(Math.trunc(numeric)) % CLASSIC_PLAYER_COLORS.length : 0;
+};
+
+export function classicPlayerColor(side = 0) {
+  return CLASSIC_PLAYER_COLORS[classicSideIndex(side)];
+}
+
 const clamp01 = v => THREE.MathUtils.clamp(v, 0, 1);
 const ease = v => {
   const x = clamp01(v);
@@ -21,28 +35,69 @@ const POSE_CHANNELS = [
   'headX', 'headY', 'headZ', 'headPitch', 'headRoll', 'ring',
 ];
 
-export function buildBlobRig({ kitColor, glowColor, isGK = false, captain = false } = {}) {
-  const g = new THREE.Group();
-  const kit = new THREE.Color(kitColor);
-  if (isGK) kit.lerp(new THREE.Color(0xc8ff4d), 0.5);
+const normalizeClassicAction = name => {
+  const raw = String(name || 'idle').toLowerCase().replace(/[_\s]+/g, '-');
+  const aliases = {
+    run: 'idle', locomotion: 'idle', none: 'idle',
+    shoot: 'kick', shot: 'kick', pass: 'kick', strike: 'kick', volley: 'kick',
+    'short-pass': 'kick', 'driven-pass': 'kick', 'lofted-pass': 'kick',
+    'power-shot': 'kick', 'finesse-shot': 'kick', penalty: 'kick', 'keeper-distribution': 'kick',
+    throw: 'throw-in', throwin: 'throw-in', 'touchline-throw': 'throw-in',
+    celebration: 'celebrate', goal: 'celebrate',
+    slide: 'tackle', 'slide-tackle': 'tackle',
+    knocked: 'fall', knockdown: 'fall',
+    trap: 'receive', control: 'receive', cushion: 'receive',
+    brace: 'block', 'shot-block': 'block',
+    gkset: 'keeper-ready', 'gk-set': 'keeper-ready', keeper: 'keeper-ready', ready: 'keeper-ready',
+    'gk-dive': 'dive', 'keeper-dive': 'dive', save: 'dive',
+    catch: 'keeper-catch', 'gk-catch': 'keeper-catch', keepercatch: 'keeper-catch',
+  };
+  return aliases[raw] || raw;
+};
 
+export function buildBlobRig({ kitColor, glowColor, side, isGK = false, captain = false } = {}) {
+  const g = new THREE.Group();
+  const hasClassicSide = side !== undefined && side !== null;
+  const classicColor = hasClassicSide ? classicPlayerColor(side) : null;
+  // Neutral callers (officials and old preview tools) may omit colors. Never let
+  // Three.js' implicit white default become a full-strength bloom source.
+  const resolvedKitColor = hasClassicSide ? classicColor : (kitColor ?? 0x39414f);
+  const resolvedGlowColor = hasClassicSide ? classicColor : (glowColor ?? 0x66d9ef);
+  const kit = new THREE.Color(resolvedKitColor);
+  // Side-assigned athletes—including keepers—must remain the exact cyan/pink
+  // matchup colors. Keep the legacy lime keeper treatment only for old callers.
+  if (isGK && !hasClassicSide) kit.lerp(new THREE.Color(0xc8ff4d), 0.5);
+
+  // Intentionally opaque. The soft, almost-translucent read comes from emissive
+  // color and bloom, not alpha blending (which causes sorting artifacts in crowds).
   const bodyMat = new THREE.MeshStandardMaterial({
     color: kit, roughness: 0.45, emissive: kit, emissiveIntensity: 0.35 });
   const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 0.85, 6, 12), bodyMat);
+  body.name = 'torso';
   body.position.y = 1.05;
   body.castShadow = true;
+
+  // Compatibility sockets for sport-specific equipment. They live on the soft
+  // mass so gloves/props inherit its squash, lean, and impact animation.
+  const leftHand = new THREE.Group();
+  leftHand.name = 'left-hand-anchor';
+  leftHand.position.set(-0.43, 0.25, 0.08);
+  const rightHand = new THREE.Group();
+  rightHand.name = 'right-hand-anchor';
+  rightHand.position.set(0.43, 0.25, 0.08);
+  body.add(leftHand, rightHand);
 
   const headPivot = new THREE.Group();
   headPivot.position.y = 1.98;
   const headMat = new THREE.MeshStandardMaterial({
-    color: 0x10141f, roughness: 0.4, emissive: glowColor, emissiveIntensity: 0.15 });
+    color: 0x10141f, roughness: 0.4, emissive: resolvedGlowColor, emissiveIntensity: 0.15 });
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 12), headMat);
   const visor = new THREE.Mesh(new THREE.SphereGeometry(0.305, 14, 8, -0.7, 2.1, 0.95, 0.9),
-    new THREE.MeshBasicMaterial({ color: glowColor }));
+    new THREE.MeshBasicMaterial({ color: resolvedGlowColor }));
   headPivot.add(head, visor);
 
   const ringMat = new THREE.MeshBasicMaterial({
-    color: glowColor, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+    color: resolvedGlowColor, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.62, 24), ringMat);
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.03;
@@ -52,7 +107,7 @@ export function buildBlobRig({ kitColor, glowColor, isGK = false, captain = fals
   let captainBand = null;
   if (captain) {
     captainBand = new THREE.Mesh(new THREE.TorusGeometry(0.43, 0.035, 6, 18),
-      new THREE.MeshBasicMaterial({ color: glowColor }));
+      new THREE.MeshBasicMaterial({ color: resolvedGlowColor }));
     captainBand.rotation.x = Math.PI / 2;
     captainBand.position.y = 1.45;
     g.add(captainBand);
@@ -87,10 +142,22 @@ export function buildBlobRig({ kitColor, glowColor, isGK = false, captain = fals
     intent.headPitch *= d; intent.headRoll *= d; intent.ring *= d;
   };
 
+  const anchors = {
+    back: { x: 0, y: 1.25, z: -0.44 },
+    chest: { x: 0, y: 1.3, z: 0.44 },
+    tagY: 2.6,
+    leftHand,
+    rightHand,
+    head: headPivot,
+  };
+  let disposed = false;
+  let actionState = { name: 'idle', progress: 0, side: 1, variant: 0 };
+
   const api = {
     group: g,
     headPivot,
-    anchors: { back: { x: 0, y: 1.25, z: -0.44 }, chest: { x: 0, y: 1.3, z: 0.44 }, tagY: 2.6 },
+    anchors,
+    ready: null,
 
     update(dt, speedNorm = 0, opts = {}) {
       const run = clamp01(speedNorm);
@@ -159,6 +226,74 @@ export function buildBlobRig({ kitColor, glowColor, isGK = false, captain = fals
       decayIntent(Math.pow(0.85, dt * 60));
     },
 
+    // AthleteRig-compatible action adapter. Existing arenas may keep calling the
+    // authored pose methods directly; football can use one generic surface.
+    setAction(name, progress = 0, actionSide = 1, variant = 0) {
+      if (actionSide && typeof actionSide === 'object') {
+        variant = actionSide.variant ?? variant;
+        actionSide = actionSide.side ?? actionSide.foot ?? 1;
+      }
+      const normalized = normalizeClassicAction(name);
+      const k = clamp01(Number.isFinite(Number(progress)) ? Number(progress) : 0);
+      const poseSide = typeof actionSide === 'string'
+        ? (/left|^-/.test(actionSide.toLowerCase()) ? -1 : 1)
+        : (Number(actionSide) < 0 ? -1 : 1);
+      const poseVariant = THREE.MathUtils.clamp(Math.trunc(Number(variant) || 0), 0, 3);
+      actionState = { name: normalized, progress: k, side: poseSide, variant: poseVariant };
+
+      switch (normalized) {
+        case 'kick': api.poseKick(k, poseSide > 0 ? 1 : 0); break;
+        case 'header': api.poseHeader(k); break;
+        case 'throw-in': api.poseThrowIn(k); break;
+        case 'dive': api.poseDive(poseSide, k); break;
+        case 'fall': api.poseFall(k); break;
+        case 'get-up': api.poseGetUp(k); break;
+        case 'celebrate': api.poseCelebrate(k, poseVariant); break;
+        case 'skill': {
+          const moves = ['stepover', 'bodyfeint', 'dragback', 'roulette'];
+          api.poseSkill(moves[poseVariant], k);
+          break;
+        }
+        case 'tackle': api.poseSlideTackle(k); break;
+        case 'receive':
+        case 'block': api.poseShield(k, poseSide); break;
+        case 'jockey': api.poseJockey(k * 4, poseSide); break;
+        case 'keeper-ready': api.poseGKSet(k * 4); break;
+        case 'keeper-shuffle': api.poseGKShuffle(k * 4, poseSide); break;
+        case 'keeper-catch': api.poseGKCatch(k); break;
+        case 'keeper-scoop': api.poseGKScoop(k); break;
+        case 'keeper-punch': api.poseGKPunch(k); break;
+        case 'limp': api.poseLimp(k * 4); break;
+        case 'trudge': api.poseTrudge(k * 4); break;
+        case 'exhausted': api.poseExhausted(k * 4); break;
+        case 'knee-slide': api.poseKneeSlide(k); break;
+        case 'argue': api.poseArgue(k * 4); break;
+        case 'point-to-spot': api.posePointToSpot(k * 4); break;
+        case 'whistle': api.poseWhistle(k * 4); break;
+        default: setPose({}); break;
+      }
+      return api;
+    },
+
+    // Classic blobs deliberately ignore authored skins, LOD requests, and gaze/ball
+    // context. Returning the rig keeps compatibility hooks safely chainable.
+    setBallContext() { return api; },
+    setDetailLevel() { return api; },
+    applySkin() { return api; },
+    getState() {
+      return {
+        renderer: 'classic-blob',
+        disposed,
+        detailLevel: 'classic',
+        side: hasClassicSide ? classicSideIndex(side) : null,
+        colors: {
+          kit: kit.getHex(),
+          glow: new THREE.Color(resolvedGlowColor).getHex(),
+        },
+        action: { ...actionState },
+      };
+    },
+
     clearOverlay() {
       intent = neutral(); shown = neutral(); accelS = 0; turnS = 0;
       body.position.y = 1.05; body.scale.set(1, 1, 1); body.rotation.set(0, 0, 0);
@@ -167,6 +302,8 @@ export function buildBlobRig({ kitColor, glowColor, isGK = false, captain = fals
     },
 
     dispose() {
+      if (disposed) return;
+      disposed = true;
       g.traverse(o => {
         if (o.geometry) o.geometry.dispose();
         if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
@@ -407,5 +544,8 @@ export function buildBlobRig({ kitColor, glowColor, isGK = false, captain = fals
         ring: pulse * 0.34 });
     },
   };
+  api.ready = Promise.resolve(api);
+  g.userData.athleteRig = api;
+  g.userData.athleteRenderer = 'classic-blob';
   return api;
 }

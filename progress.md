@@ -543,3 +543,27 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - Required desktop client and a 390×844 mobile render show the field unobstructed, with no game-plan
   DOM, no horizontal overflow and no console/page errors. Final regression verification passes all
   9 API tests and 1,004 application checks.
+
+## Canonical Fluorescent Athlete Integration — 2026-07-14
+- Selectively transplanted the accepted original-player treatment into the current six-sport release:
+  opaque emissive capsule athletes use fixed cyan (`0x00e5ff`) versus hot pink (`0xff45d6`) while club
+  colors remain intact for HUDs, crowds, fields/rinks, venue identity and league branding.
+- Football now uses the classic rig through an AthleteRig-compatible adapter without changing its
+  current 11v11 simulation, autonomous controls or phase-aware cameras. Soccer, hockey, basketball,
+  baseball and combat use the same side palette for athletes, equipment and player-attached signals;
+  hockey's pale goalie equipment is darkened to prevent white bloom.
+- Preserved the canonical page script envelopes and all newer camera, gamehub/watch-only, mobile and
+  fixture logic. JavaScript plus all five inline arena modules pass syntax checks, and `git diff --check`
+  is clean.
+- Reconciled every reachable release surface against all surviving worktrees and reflogs. The only
+  missing accepted visual delta was the fluorescent athlete treatment; rejected five-sport pages,
+  obsolete menus, manual play controls and stale camera/simulation code remain quarantined.
+- Standardized the public primary navigation to Home and Leagues, and made the watch-only guard plus
+  intentional exit links consistent across all six arenas. Added repository-level release contracts
+  and verifier assertions so future feature work cannot silently swap the canonical lineage, remove
+  a sport, restore user controls or regress the classic palette.
+- Final exact-source validation passes 9/9 API tests, 1,036/1,036 repository checks and 28/28 football
+  rules/brain tests. Desktop and 390×844 mobile browser matrices cover Home, League HQ and all six
+  arenas with HTTP 200, finite autonomous/view-only state, no horizontal overflow and zero console,
+  page or request errors. Every final screenshot was visually inspected and shows cyan versus hot-pink
+  athletes while preserving club identity in HUDs, venues and crowds.

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { buildAthleteRig } from './athleterig.js';
+import { buildBlobRig, classicPlayerColor } from './blobrig.js';
 import { FootballAudioDirector, FootballReplayBuffer } from './footballpresentation.js';
 import {
   chooseDefensiveCall,
@@ -538,13 +538,6 @@ const playerShadows = new THREE.InstancedMesh(
 playerShadows.frustumCulled = false;
 scene.add(playerShadows);
 
-function roleProfile(role) {
-  if (lineRoles.has(role)) return { build: 'powerful', height: role === 'NT' || role === 'DT' ? 1.91 : 1.94, shoulderScale: 1.2, muscleScale: 1.18 };
-  if (['RB', 'MIKE', 'WILL', 'SAM', 'TE'].includes(role)) return { build: 'compact', height: role === 'TE' ? 1.94 : 1.84, shoulderScale: 1.1, muscleScale: 1.12 };
-  if (['X', 'Z', 'SLOT', 'LCB', 'RCB', 'FS', 'SS'].includes(role)) return { build: 'rangy', height: 1.88, legRatio: 1.05 };
-  return { build: 'athletic', height: 1.91 };
-}
-
 function playerRating(athlete, trait) { return 0.62 + (hash32(`${athlete.name}|${trait}`) % 3500) / 10000; }
 function athleteFor(side, roleIndex) {
   const teamIndex = side === 'off' ? state.possession : 1 - state.possession;
@@ -554,7 +547,6 @@ function athleteFor(side, roleIndex) {
 
 function createPlayer(side, role, roleIndex) {
   const { teamIndex, athlete } = athleteFor(side, roleIndex);
-  const profile = roleProfile(role);
   const traits = derivePlayerTraits(athlete, role, teamDNA[teamIndex]);
   const ratings = traits.ratings;
   const condition = playerConditions.get(athlete.id) || { stamina: 1, wear: 0, brain: { fatigue: 0, wear: 0, snaps: 0, driveSnaps: 0 } };
@@ -585,7 +577,7 @@ function makeBadge(text, color) {
     context.fillStyle = 'rgba(2,8,12,.91)';
     context.beginPath(); context.roundRect(5, 5, width - 10, height - 10, 22); context.fill();
     context.strokeStyle = color; context.lineWidth = 7; context.stroke();
-    context.fillStyle = '#f3fffb'; context.font = '900 43px Orbitron, sans-serif';
+    context.fillStyle = color; context.font = '900 43px Orbitron, sans-serif';
     context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(text, width / 2, height / 2 + 2);
   });
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false }));
@@ -599,10 +591,16 @@ function cylinderBetween(radius, length, material) {
 }
 
 function equipFootballPlayer(rig, player) {
-  const team = teams[player.teamIndex];
-  const primary = new THREE.MeshStandardMaterial({ color: colorValue(team.colors.primary, '#ffffff'), roughness: 0.55, metalness: 0.04 });
-  const accent = new THREE.MeshStandardMaterial({ color: colorValue(team.colors.accent, '#ffffff'), emissive: colorValue(team.colors.accent, '#ffffff'), emissiveIntensity: 0.12, roughness: 0.42 });
-  const metal = new THREE.MeshStandardMaterial({ color: 0xeaf3ef, metalness: 0.45, roughness: 0.3 });
+  const signal = colorValue(classicPlayerColor(player.teamIndex), 0x00e5ff);
+  const shellColor = signal.clone().multiplyScalar(0.66);
+  const primary = new THREE.MeshStandardMaterial({
+    color: shellColor, emissive: signal, emissiveIntensity: 0.18, roughness: 0.48, metalness: 0.025,
+  });
+  const accent = new THREE.MeshStandardMaterial({
+    color: signal, emissive: signal, emissiveIntensity: 0.24, roughness: 0.38,
+  });
+  // Dark steel keeps facemasks legible without reintroducing a white bloom source.
+  const metal = new THREE.MeshStandardMaterial({ color: 0x526674, metalness: 0.4, roughness: 0.36 });
   const torso = rig.group.getObjectByName('torso') || rig.group;
   const pads = new THREE.Mesh(new THREE.CapsuleGeometry(0.31, 0.35, 4, 12), primary);
   const gearMeshes = [pads];
@@ -630,22 +628,16 @@ function equipFootballPlayer(rig, player) {
 }
 
 function buildPlayerView(player) {
-  const team = teams[player.teamIndex];
-  const profile = roleProfile(player.role);
-  const rig = buildAthleteRig({
-    athlete: { ...player.athlete, ...profile, id: player.athlete.id, name: player.athlete.name },
-    broadcastReadability: true,
-    skin: {
-      primary: team.colors.primary, secondary: team.colors.secondary, accent: team.colors.accent,
-      shorts: team.colors.secondary, socks: '#edf5f2', boots: '#10161a', number: player.number, name: player.name,
-    },
+  const rig = buildBlobRig({
+    side: player.teamIndex,
+    captain: player.role === 'QB' || player.role === 'MIKE',
   });
   const widthScale = lineRoles.has(player.role) ? 1.18 : ['RB', 'MIKE', 'WILL', 'SAM', 'TE'].includes(player.role) ? 1.13 : 1.09;
   rig.group.scale.x *= widthScale;
   rig.group.scale.z *= widthScale;
   const gear = equipFootballPlayer(rig, player);
-  rig.setDetailLevel(innerWidth < 700 || lineRoles.has(player.role) ? 'low' : 'medium');
-  const badge = makeBadge(`${player.role}  ${player.number}`, team.colors.accent);
+  rig.setDetailLevel?.(innerWidth < 700 || lineRoles.has(player.role) ? 'low' : 'medium');
+  const badge = makeBadge(`${player.role}  ${player.number}`, colorValue(classicPlayerColor(player.teamIndex), 0x00e5ff).getStyle());
   scene.add(rig.group, badge);
   return { rig, badge, gearMaterials: gear.materials, gearGeometries: gear.geometries, lastSpeed: 0, lastFacing: player.facing, motion: {} };
 }
