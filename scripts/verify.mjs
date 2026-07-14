@@ -73,7 +73,8 @@ for (const arena of arenas) {
   const present = await exists(arena.file);
   check(present, `Missing ${arena.id} arena`, arena.file);
   if (!present) continue;
-  const source = await text(arena.file);
+  const htmlSource = await text(arena.file);
+  const source = arena.file === 'football.html' ? `${htmlSource}\n${await text('football.js')}` : htmlSource;
   check(arena.label.test(source), `${arena.file} does not identify its sport`);
   check(/(?:href\s*=\s*["']world\.html|location\.href\s*=\s*["']world\.html)/i.test(source), `${arena.file} has no route back to world.html`);
   check(/window\.render_game_to_text\s*=/.test(source), `${arena.file} is missing window.render_game_to_text`);
@@ -117,6 +118,7 @@ const replayScript = await text('replay.js');
 const playerSource = await text('player.html');
 const playerScript = await text('player.js');
 const footballSource = await text('football.html');
+const footballScript = await text('football.js');
 const baseballSource = await text('baseball.html');
 const hockeySource = await text('hockey.html');
 const fightSource = await text('fight.html');
@@ -154,19 +156,18 @@ check(/player\.html\?sport=/.test(replayScript), 'Replay Center does not hand hi
 check(/416/.test(playerScript) || (/C\.getSport/.test(playerScript) && /C\.getTeam/.test(playerScript) && /C\.getAthlete/.test(playerScript)), 'Athlete Files must resolve the shared world roster');
 check(/player\.html\?/.test(playerScript) && /canonical/.test(playerScript), 'Athlete Files must expose permanent canonical profile URLs');
 check(!/id=["']playPanel["']/.test(footballSource) && !/id=["']snap["']/.test(footballSource), 'Football must remain an autonomous broadcast without coach or snap controls');
-check(/window\._footballTest\s*=/.test(footballSource) && /select[\s\S]*snap[\s\S]*forceSituation[\s\S]*forceOutcome[\s\S]*finishPlay/.test(footballSource), 'Football must expose deterministic play-call, situation, snap, outcome, and finish helpers');
-check(/chooseAutonomousPlay/.test(footballSource) && /AUTO_CADENCE/.test(footballSource) && /state\.phase===['"]preplay['"][\s\S]*snap\(\)/.test(footballSource), 'Football must choose and snap plays autonomously');
-check(/visibilitychange/.test(footballSource) && /hiddenTimer/.test(footballSource), 'Football must keep simulating autonomously in hidden tabs');
+check(/window\._footballTest\s*=/.test(footballScript) && /forceSituation[\s\S]*forcePlay[\s\S]*startAutomaticPlay[\s\S]*finishPlay/.test(footballScript), 'Football must expose deterministic situation, play-call, automatic snap, outcome, and finish helpers');
+check(/beginPreplay/.test(footballScript) && /PREPLAY_SECONDS/.test(footballScript) && /startAutomaticPlay\(\)/.test(footballScript), 'Football must choose and snap plays autonomously');
+check(/visibilitychange/.test(footballScript) && /hiddenTimer/.test(footballScript), 'Football must keep simulating autonomously in hidden tabs');
 check(/window\._baseballTest\s*=/.test(baseballSource) && /double_play|sac_fly/.test(baseballSource), 'Baseball must expose deterministic force-play branch helpers');
 check(!/id=["']gameplan["']/.test(baseballSource), 'Baseball must not restore the removed game-plan header overlay');
 check(/pitchHistory/.test(baseballSource) && /render_game_to_text/.test(baseballSource), 'Baseball must retain structured pitch history in its machine-readable broadcast state');
 check(/window\.__CYBERLIGA_HOCKEY_TEST__\s*=/.test(hockeySource) && /penalty[\s\S]*powerplay[\s\S]*overtime[\s\S]*final/.test(hockeySource), 'Hockey must expose penalty, power-play, overtime, and final branch helpers');
 check(/window\._fightTest\s*=/.test(fightSource) && /forceDecision[\s\S]*forceStoppage/.test(fightSource), 'Combat must expose deterministic decision and stoppage branch helpers');
 check(await exists('gamehub.js'), 'Missing shared in-game navigation hub');
-for (const arena of arenas) {
-  const arenaSource = await text(arena.file);
-  check(arenaSource.includes('gamehub.js'), `${arena.file} does not load the shared in-game navigation hub`);
-}
+const gameHubSource = await text('gamehub.js');
+check(/removeLegacyCyberligaGameHub/.test(gameHubSource), 'Legacy gamehub compatibility file must remain removal-only');
+for (const arena of arenas) check(!(await text(arena.file)).includes('gamehub.js'), `${arena.file} must not restore the removed Navigate menu`);
 const characterLabSource = await text('characterlab.html');
 const characterLabScript = await text('characterlab.js');
 check(/Marquee 12/i.test(characterLabSource), 'Character Lab must expose the first twelve marquee athletes');
@@ -293,7 +294,7 @@ function localReference(raw) {
 async function collectFiles(directory = ROOT) {
   const found = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (entry.name === '.git' || entry.name === 'node_modules' || entry.name === '.playwright-cli' || entry.name === 'output') continue;
+    if (entry.name === '.git' || entry.name === 'node_modules' || entry.name === 'vendor' || entry.name === '.playwright-cli' || entry.name === 'football-artifacts' || entry.name === 'output') continue;
     const absolute = path.join(directory, entry.name);
     if (entry.isDirectory()) found.push(...await collectFiles(absolute));
     else if (entry.isFile()) found.push(absolute);
