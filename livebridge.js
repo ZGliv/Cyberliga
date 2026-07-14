@@ -42,7 +42,8 @@
       leagueId: league,
       matchId: match,
       page: page,
-      clubLean: clean(overrides && (overrides.clubLean || overrides.clubId), null, 64)
+      clubLean: clean(overrides && (overrides.clubLean || overrides.clubId), null, 64),
+      clubLeanInput: !overrides || overrides.clubLeanInput !== false
     };
   }
 
@@ -129,7 +130,7 @@
     lastOptions = Object.assign({}, inferred, config);
     if (unsubscribe) unsubscribe();
     unsubscribe = root.CyberligaPresence.subscribe(render);
-    bindClubLean();
+    if (inferred.clubLeanInput) bindClubLean();
     started = true;
     await root.CyberligaPresence.connect(lastOptions);
     return root.CyberligaPresence.getSnapshot();

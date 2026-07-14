@@ -30,6 +30,7 @@
   button { border:0; }
   button:focus-visible,a:focus-visible { outline:2px solid #fff; outline-offset:3px; }
   #globe { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab; }
+  #globe.pin-hover:not(.dragging) { cursor:pointer; }
   #globe.dragging { cursor:grabbing; }
   body::before { content:''; position:fixed; inset:0; z-index:2; pointer-events:none; background:linear-gradient(90deg,rgba(2,3,4,.9),rgba(2,3,4,.24) 42%,rgba(2,3,4,.05) 65%,rgba(2,3,4,.58)); }
   body::after { content:''; position:fixed; inset:0; z-index:12; pointer-events:none; opacity:.03; background:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px); }
@@ -57,10 +58,6 @@
   .intro .proof div { padding-left:10px; border-left:1px solid var(--line); }
   .intro .proof b { display:block; color:#fff; font:800 18px/1 'Barlow Condensed',sans-serif; }
   .intro .proof span { display:block; margin-top:4px; color:var(--muted); font:700 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.17em; }
-  .intro-actions { display:flex; gap:9px; margin-top:25px; pointer-events:auto; }
-  .intro-actions a { min-height:44px; display:inline-flex; align-items:center; justify-content:center; padding:0 17px; border:1px solid rgba(255,255,255,.28); font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.15em; }
-  .intro-actions .primary { border-color:var(--club); background:var(--club); color:#020304; }
-  .intro-actions a:hover,.intro-actions a:focus-visible { border-color:#fff; }
 
   #labels { position:fixed; inset:0; z-index:16; pointer-events:none; }
   .marker { position:absolute; transform:translate(-50%,-100%); pointer-events:auto; display:flex; align-items:center; gap:6px; padding:6px 8px; cursor:pointer; border:1px solid rgba(255,255,255,.14); background:rgba(2,3,4,.8); backdrop-filter:blur(8px); opacity:0; transition:opacity .18s,background .18s; font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
@@ -80,16 +77,25 @@
   .league-row small { display:block; margin-top:5px; color:var(--muted); font:700 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; }
   .league-state { color:var(--muted); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; text-align:right; white-space:nowrap; }
   .league-row[data-live="true"] .league-state { color:#fff; }
-  .signal-card { margin-top:14px; border-top:1px solid var(--club); padding:17px; background:linear-gradient(135deg,rgba(4,6,8,.94),rgba(4,6,8,.68)); backdrop-filter:blur(18px); }
-  .signal-card .sport { color:var(--club); font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.2em; }
-  .signal-card h2 { margin-top:7px; font-size:28px; font-stretch:120%; line-height:.88; letter-spacing:-.05em; text-transform:uppercase; }
-  .signal-card .route { margin-top:9px; color:#fff; font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.14em; }
-  .signal-card .copy { margin-top:10px; color:var(--muted); font:600 12px/1.45 'Barlow Condensed',sans-serif; }
-  .signal-actions { display:flex; gap:8px; margin-top:15px; }
-  .signal-actions a,.signal-actions button { min-height:38px; display:inline-flex; align-items:center; justify-content:center; padding:0 13px; cursor:pointer; font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.16em; }
-  .signal-actions a { flex:1; color:#020304; background:#fff; }
-  .signal-actions #signal-explore { color:#fff; border:1px solid var(--line); background:transparent; }
-  .signal-actions button { color:var(--muted); border:1px solid var(--line); background:transparent; }
+  .game-preview[hidden] { display:none; }
+  .game-preview { --preview-c:#fff; position:fixed; z-index:55; left:50%; bottom:max(20px,env(safe-area-inset-bottom)); width:min(430px,calc(100vw - 40px)); overflow:hidden; padding:17px; border:1px solid rgba(255,255,255,.24); border-top:2px solid var(--preview-c); background:radial-gradient(circle at 8% -20%,color-mix(in srgb,var(--preview-c) 18%,transparent),transparent 42%),linear-gradient(135deg,rgba(12,17,21,.98),rgba(2,4,6,.97)); box-shadow:0 22px 55px rgba(0,0,0,.66),inset 0 1px rgba(255,255,255,.05); backdrop-filter:blur(22px) saturate(1.16); transform:translateX(-50%); animation:preview-in .18s ease-out both; }
+  .game-preview::before { content:''; position:absolute; top:-2px; left:0; width:92px; height:3px; background:var(--preview-c); box-shadow:0 0 18px color-mix(in srgb,var(--preview-c) 70%,transparent); }
+  @keyframes preview-in { from { opacity:0; transform:translate(-50%,8px); } }
+  .preview-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .preview-league { color:var(--preview-c); font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.18em; }
+  .preview-close { min-width:62px; min-height:28px; cursor:pointer; color:var(--muted); border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.03); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.12em; }
+  .preview-close:hover,.preview-close:focus-visible { color:#fff; border-color:rgba(255,255,255,.4); }
+  .preview-status { margin-top:8px; color:var(--muted); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.15em; }
+  .preview-teams { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:10px; margin-top:12px; }
+  .preview-team { min-width:0; }
+  .preview-team:last-child { text-align:right; }
+  .preview-team b { display:block; color:var(--preview-c); font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.14em; }
+  .preview-team strong { display:block; margin-top:5px; overflow:hidden; color:#fff; font:800 17px/.95 'Barlow Condensed',sans-serif; letter-spacing:.025em; text-overflow:ellipsis; text-transform:uppercase; }
+  .preview-team small { display:block; margin-top:6px; color:var(--muted); font:700 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; }
+  .preview-versus { width:28px; height:28px; display:grid; place-items:center; color:rgba(255,255,255,.5); border:1px solid rgba(255,255,255,.16); font:800 8px/1 'Barlow Condensed',sans-serif; }
+  .preview-route { margin-top:13px; padding-top:11px; color:rgba(255,255,255,.7); border-top:1px solid rgba(255,255,255,.12); font:700 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; }
+  .preview-watch { min-height:42px; display:flex; align-items:center; justify-content:center; margin-top:13px; color:#020304; background:var(--preview-c); font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.15em; }
+  .preview-watch:hover,.preview-watch:focus-visible { filter:brightness(1.16); }
   /* Fixture network: one filter rail, then the real arena schedule. */
   .liveboard { top:88px; width:min(440px,35vw); }
   .filter-tabs { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:1px; margin-top:10px; background:var(--line); }
@@ -113,6 +119,7 @@
   .fixture-enter { color:var(--muted); font:800 8px/1.25 'Barlow Condensed',sans-serif; letter-spacing:.12em; text-align:right; white-space:nowrap; }
   .fixture-enter b { display:block; margin-top:5px; color:#fff; font-size:9px; }
   .empty-games { padding:22px; color:var(--muted); background:rgba(4,6,8,.9); font:700 10px/1.4 'Barlow Condensed',sans-serif; letter-spacing:.12em; text-align:center; }
+  .network-close { display:none; }
 
   .loading { position:fixed; inset:0; z-index:100; display:grid; place-items:center; background:#020304; transition:opacity .55s,visibility .55s; }
   .loading.done { opacity:0; visibility:hidden; }
@@ -128,7 +135,7 @@
     .intro { top:76px; left:12px; width:calc(100vw - 24px); transform:none; }
     .intro h1 { margin-top:7px; width:auto; font-size:30px; line-height:.88; letter-spacing:-.055em; }
     .intro h1 span { display:none; }
-    .intro .lede,.intro .proof,.intro-actions { display:none; }
+    .intro .lede,.intro .proof { display:none; }
     .liveboard { top:136px; left:10px; right:10px; bottom:auto; width:auto; }
     .panel-label { padding:0 2px; }
     .sport-stage { position:relative; display:block; margin-top:9px; }
@@ -162,6 +169,92 @@
   @media (max-width:540px) {
     .panel-label span:last-child { display:none; }
   }
+  /* Compact network mode: keep the selector contained on phones/tablets whose
+     browser CSS viewport is wider than the physical screen width. */
+  @media (max-width:1200px) {
+    html,body { overflow-x:hidden; }
+    .intro { top:76px; left:12px; width:calc(100vw - 24px); transform:none; z-index:12; }
+    .intro h1 { margin-top:7px; width:auto; font-size:clamp(30px,5vw,52px); line-height:.88; letter-spacing:-.055em; }
+    .intro h1 span,.intro .lede,.intro .proof { display:none; }
+    .liveboard { top:clamp(136px,calc(112px + 3vw),150px); left:10px; right:10px; bottom:auto; width:auto; max-height:min(68dvh,620px); overflow:hidden; padding:10px; border:1px solid rgba(255,255,255,.2); background:radial-gradient(circle at 8% -80%,color-mix(in srgb,var(--club) 19%,transparent),transparent 38%),linear-gradient(145deg,rgba(12,18,22,.96),rgba(2,5,7,.98)); box-shadow:0 18px 52px rgba(0,0,0,.64),inset 0 1px rgba(255,255,255,.055); backdrop-filter:blur(22px) saturate(1.18); opacity:1; pointer-events:auto; transform:none; }
+    .liveboard::before { content:''; position:absolute; z-index:2; top:-1px; left:10px; width:92px; height:3px; background:linear-gradient(90deg,var(--club),color-mix(in srgb,var(--club) 22%,transparent)); box-shadow:0 0 20px color-mix(in srgb,var(--club) 72%,transparent); }
+    .liveboard::after { content:''; position:absolute; inset:0; pointer-events:none; background:linear-gradient(105deg,rgba(255,255,255,.025),transparent 24%,transparent 72%,rgba(255,255,255,.018)); }
+    .liveboard > * { position:relative; z-index:1; }
+    .panel-label { display:none; }
+    .panel-label span:last-child { max-width:42%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .network-close { width:28px; height:26px; display:grid; place-items:center; cursor:pointer; color:#fff; border:1px solid var(--line); background:transparent; font:800 12px/1 'Barlow Condensed',sans-serif; }
+    .sport-stage { position:relative; display:block; margin:0; border:0; }
+    .sport-stage::before { content:'01 / SELECT SPORT'; min-height:26px; display:flex; align-items:center; padding:0 3px; color:color-mix(in srgb,var(--club) 70%,#8b949a); font:800 9px/1 'Barlow Condensed',sans-serif; letter-spacing:.17em; }
+    .mobile-sport-toggle { display:none; }
+    .mobile-step { color:var(--muted); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.14em; }
+    .mobile-sport-toggle strong { overflow:hidden; color:var(--club); font:800 12px/1 'Barlow Condensed',sans-serif; letter-spacing:.08em; text-overflow:ellipsis; white-space:nowrap; }
+    .mobile-change { color:#fff; font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.1em; }
+    .filter-tabs,.filter-tabs.mobile-open { position:static; display:flex; gap:8px; margin:0; padding:0 0 10px; overflow-x:auto; overflow-y:hidden; border:0; background:transparent; box-shadow:none; scroll-behavior:smooth; scroll-snap-type:x mandatory; scrollbar-width:none; }
+    .filter-tabs::-webkit-scrollbar { display:none; }
+    .filter-tab { flex:1 0 128px; min-width:0; min-height:52px; display:grid; grid-template-rows:auto auto; place-content:center start; gap:5px; padding:7px 12px; border:1px solid rgba(255,255,255,.14); border-left:2px solid rgba(255,255,255,.13); color:#818a90; background:linear-gradient(135deg,rgba(10,14,17,.9),rgba(3,6,8,.72)); font-size:0; scroll-snap-align:start; transition:color .16s,border-color .16s,background .16s,transform .16s; }
+    .filter-tab:hover { color:#fff; border-color:rgba(255,255,255,.3); transform:translateY(-1px); }
+    .filter-tab.active { color:var(--c,#fff); border-color:color-mix(in srgb,var(--c,#fff) 58%,rgba(255,255,255,.14)); border-left-color:var(--c,#fff); background:linear-gradient(115deg,color-mix(in srgb,var(--c,#fff) 15%,#11181c),rgba(5,8,10,.92) 68%); box-shadow:inset 0 -2px var(--c,#fff),0 8px 20px rgba(0,0,0,.28); }
+    .filter-tab[data-sport="all"] { grid-column:auto; min-height:52px; }
+    .filter-tab::after { content:attr(data-mobile-name); grid-row:1; color:inherit; overflow:hidden; font:800 10px/1.05 'Barlow Condensed',sans-serif; letter-spacing:.045em; text-align:left; text-overflow:ellipsis; white-space:nowrap; }
+    .filter-tab::before { content:attr(data-mobile-count); grid-row:2; color:currentColor; opacity:.58; font:700 7px/1 'Barlow Condensed',sans-serif; letter-spacing:.13em; text-align:left; }
+    .mobile-match-head { min-height:34px; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:6px; margin:0 -10px; padding:0 13px; border-top:1px solid rgba(255,255,255,.11); border-bottom:1px solid rgba(255,255,255,.11); background:linear-gradient(90deg,rgba(1,3,5,.74),rgba(7,11,14,.64)); }
+    .mobile-match-head strong { min-width:68px; padding:5px 8px; color:var(--club); border:1px solid color-mix(in srgb,var(--club) 28%,rgba(255,255,255,.08)); background:color-mix(in srgb,var(--club) 7%,transparent); font:800 8px/1 'Barlow Condensed',sans-serif; letter-spacing:.11em; text-align:center; }
+    .mobile-match-nav { display:none; }
+    .game-drawer { max-height:none; height:auto; margin-top:9px; overflow-x:auto; overflow-y:hidden; border:0; scroll-behavior:smooth; scroll-snap-type:x mandatory; scrollbar-width:none; }
+    .game-drawer::-webkit-scrollbar { display:none; }
+    .game-list { width:max-content; min-width:100%; display:flex; gap:9px; padding-right:34px; background:transparent; }
+    .fixture-card { flex:0 0 clamp(340px,45vw,500px); width:auto; min-height:90px; grid-template-columns:52px minmax(0,1fr) auto; gap:11px; padding:10px 12px; border:1px solid rgba(255,255,255,.16); border-left:3px solid var(--c); background:linear-gradient(118deg,color-mix(in srgb,var(--c) 10%,#0d1418),rgba(4,7,9,.97) 62%); box-shadow:0 10px 26px rgba(0,0,0,.3),inset 0 1px rgba(255,255,255,.025); scroll-snap-align:start; }
+    .fixture-card:hover,.fixture-card:focus-visible,.fixture-card.is-current { border-color:color-mix(in srgb,var(--c) 58%,rgba(255,255,255,.16)); border-left-color:var(--c); background:linear-gradient(118deg,color-mix(in srgb,var(--c) 17%,#11191e),rgba(5,8,10,.98) 64%); box-shadow:0 12px 30px rgba(0,0,0,.34),inset 0 1px color-mix(in srgb,var(--c) 14%,transparent); }
+    .fixture-meta b { margin-bottom:6px; padding:6px 2px; border-color:color-mix(in srgb,var(--c) 68%,transparent); color:var(--c); background:color-mix(in srgb,var(--c) 10%,transparent); font-size:10px; }
+    .fixture-meta span { font-size:8px; }
+    .fixture-team { gap:7px; }
+    .fixture-team + .fixture-team { margin-top:6px; }
+    .fixture-team strong { flex-basis:31px; font-size:9px; }
+    .fixture-team span { font-size:12px; letter-spacing:.035em; }
+    .fixture-team span::after { display:none; }
+    .fixture-enter { color:#818a90; font-size:8px; letter-spacing:.09em; }
+    .fixture-enter b { margin-top:7px; padding:6px 7px; color:var(--c); border:1px solid color-mix(in srgb,var(--c) 42%,rgba(255,255,255,.08)); background:color-mix(in srgb,var(--c) 7%,transparent); font-size:8px; }
+    .game-preview { bottom:max(10px,env(safe-area-inset-bottom)); width:min(520px,calc(100vw - 20px)); padding:14px; }
+    .preview-team strong { font-size:15px; }
+    .preview-watch { min-height:44px; }
+  }
+  /* Phone-only network browser. Keep the desktop rail intact while making the
+     two mobile choices read as short, obvious swipe rows over the globe. */
+  @media (max-width:760px) {
+    .liveboard { padding:7px; }
+    .liveboard::before { left:7px; width:74px; }
+    .sport-stage::before { content:'SPORTS  ·  SWIPE →'; min-height:17px; padding:0 2px; color:#aeb7bc; font-size:10px; letter-spacing:.12em; }
+    .filter-tabs,.filter-tabs.mobile-open { gap:6px; padding:0 0 5px; }
+    .filter-tab { flex:0 0 108px; min-height:42px; grid-template-rows:auto; place-content:center start; gap:0; padding:6px 9px; }
+    .filter-tab[data-sport="all"] { min-height:42px; }
+    .filter-tab::after { font-size:11px; line-height:1.05; letter-spacing:.035em; }
+    .filter-tab::before { display:none; }
+    .mobile-match-head { min-height:23px; margin:0 -7px; padding:0 9px; }
+    .mobile-match-head .mobile-step { font-size:0; }
+    .mobile-match-head .mobile-step::after { content:'MATCHES  ·  SWIPE →'; color:#aeb7bc; font:800 10px/1 'Barlow Condensed',sans-serif; letter-spacing:.12em; }
+    .mobile-match-head strong { min-width:0; padding:0; color:#fff; border:0; background:transparent; font-size:10px; letter-spacing:.08em; text-align:right; }
+    .game-drawer { margin-top:5px; }
+    .game-list { gap:7px; padding-right:22px; }
+    .fixture-card { flex:0 0 clamp(260px,calc(100vw - 74px),360px); min-height:72px; grid-template-columns:42px minmax(0,1fr) 52px; gap:8px; padding:7px 8px; }
+    .fixture-meta b { margin-bottom:4px; padding:4px 1px; font-size:10px; }
+    .fixture-meta span { font-size:8px; }
+    .fixture-team { gap:6px; }
+    .fixture-team + .fixture-team { margin-top:5px; }
+    .fixture-team strong { flex-basis:28px; font-size:10px; }
+    .fixture-team span { min-width:0; font-size:0; }
+    .fixture-team span::after { content:attr(data-mobile-name); display:block; overflow:hidden; color:#fff; font:800 13px/1 'Barlow Condensed',sans-serif; letter-spacing:.025em; text-overflow:ellipsis; white-space:nowrap; }
+    .fixture-enter { font-size:0; }
+    .fixture-enter b { margin:0; padding:8px 5px; font-size:10px; letter-spacing:.06em; }
+  }
+  @media (max-width:360px) {
+    .liveboard { top:154px; padding:6px; }
+    .liveboard::before { left:6px; }
+    .mobile-match-head { margin:0 -6px; padding-inline:8px; }
+    .fixture-card { flex-basis:calc(100vw - 54px); grid-template-columns:39px minmax(0,1fr) 48px; gap:6px; padding:6px; }
+    .fixture-team span { font-size:0; }
+    .fixture-team span::after { font-size:12px; }
+    .fixture-enter { font-size:0; }
+  }
   @media (prefers-reduced-motion:reduce) { * { animation-duration:.01ms!important; animation-iteration-count:1!important; } }
 </style>
 </head>
@@ -180,12 +273,11 @@
   <p class="eyebrow">24 GAMES · 48 CLUBS · ONE WORLD</p>
   <h1>CHOOSE A GAME. <span>ENTER THE ACTION.</span></h1>
   <p class="lede">Filter the world by sport, then enter any of 24 games already staged across the six Cyberliga leagues.</p>
-  <div class="intro-actions"><a class="primary" id="hero-watch" href="index.html">WATCH LIVE SOCCER →</a><a href="#network">CHOOSE A SPORT ↓</a></div>
   <div class="proof"><div><b>6</b><span>SPORTS LEAGUES</span></div><div><b>48</b><span>CLUBS</span></div><div><b>416</b><span>ATHLETES</span></div></div>
 </section>
 
 <aside class="liveboard" id="network">
-  <div class="panel-label"><span><strong>LIVE GAME NETWORK</strong> · <span data-cyberliga-presence>1 WATCHING · LOCAL</span></span><span id="round-label">24 GAMES</span></div>
+  <div class="panel-label"><span><strong>LIVE GAME NETWORK</strong> · <span data-cyberliga-presence>1 WATCHING · LOCAL</span></span><span id="round-label">24 GAMES</span><button class="network-close" id="network-close" type="button" aria-label="Close game network">↓</button></div>
   <div class="sport-stage">
     <button class="mobile-sport-toggle" id="mobile-sport-toggle" type="button" aria-controls="filter-tabs" aria-expanded="false"><span class="mobile-step">1 · SPORT</span><strong id="mobile-sport-label">ALL SPORTS</strong><span class="mobile-change">CHANGE ↓</span></button>
     <div class="filter-tabs" id="filter-tabs" role="tablist" aria-label="Filter games by sport"></div>
@@ -193,6 +285,18 @@
   <div class="mobile-match-head"><span class="mobile-step">2 · PICK A GAME</span><strong id="mobile-match-position">GAME 1 / 24</strong><button class="mobile-match-nav" id="mobile-match-prev" type="button" aria-label="Previous game">←</button><button class="mobile-match-nav" id="mobile-match-next" type="button" aria-label="Next game">→</button></div>
   <div class="game-drawer" id="game-drawer"><div class="game-list" id="game-list"></div></div>
 </aside>
+
+<section class="game-preview" id="game-preview" role="dialog" aria-modal="false" aria-labelledby="preview-title" hidden>
+  <div class="preview-head"><p class="preview-league" id="preview-league"></p><button class="preview-close" id="preview-close" type="button" aria-label="Close game preview">CLOSE ×</button></div>
+  <p class="preview-status" id="preview-status"></p>
+  <h2 class="preview-teams" id="preview-title">
+    <span class="preview-team"><b id="preview-home-code"></b><strong id="preview-home-name"></strong><small id="preview-home-city"></small></span>
+    <span class="preview-versus">VS</span>
+    <span class="preview-team"><b id="preview-away-code"></b><strong id="preview-away-name"></strong><small id="preview-away-city"></small></span>
+  </h2>
+  <p class="preview-route" id="preview-route"></p>
+  <a class="preview-watch" id="preview-watch" href="index.html">WATCH GAME FULLSCREEN ↗</a>
+</section>
 
 <script src="worlddata.js"></script>
 <script src="universe.js"></script>
@@ -256,23 +360,32 @@ function buildFixtureCards(){
 }
 fixtureCards=buildFixtureCards();
 
+let hoverSnapCount=0,lastSnapSource='none';
+function startGlobeSnap(card,place,source='explicit'){
+  lastSnapSource=source;
+  if(source==='hover')hoverSnapCount++;
+  highlightFixture(card);
+  flyTo(place);
+}
+
 function makeFixtureCard(card){
   const link=document.createElement('a');link.className='fixture-card';link.href=card.href;link.dataset.sport=card.league.id;link.dataset.index=String(card.index);link.style.setProperty('--c',card.league.color);
   link.setAttribute('aria-label',`${card.league.sport}: ${card.home.name} versus ${card.away.name}`);
   link.innerHTML=`<span class="fixture-meta"><b>${card.league.code}</b><span>GAME ${String(card.index+1).padStart(2,'0')}</span></span><span class="fixture-teams"><span class="fixture-team"><strong>${card.home.code}</strong><span data-mobile-name="${card.home.name}">${card.home.city} · ${card.home.name}</span></span><span class="fixture-team"><strong>${card.away.code}</strong><span data-mobile-name="${card.away.name}">${card.away.city} · ${card.away.name}</span></span></span><span class="fixture-enter">${card.league.live?`LIVE ${U.clock(card.liveMatch.elapsedMs)}`:'PLAYABLE'}<b>ENTER ↗</b></span>`;
-  link.addEventListener('pointerenter',()=>focusFixture(card));
-  link.addEventListener('focus',()=>focusFixture(card));
+  link.addEventListener('pointerenter',event=>{if(!event.pointerType||event.pointerType==='mouse')focusFixture(card,'selector');});
+  link.addEventListener('focus',()=>startGlobeSnap(card,placeFor(card.home)));
   return link;
 }
 function visibleCards(){return activeFilter==='all'?fixtureCards:fixtureCards.filter(card=>card.league.id===activeFilter);}
-const mobileSelectorMedia=matchMedia('(max-width:900px)');
+const mobileSelectorMedia=matchMedia('(max-width:1200px)');
 const gameDrawer=document.getElementById('game-drawer');
 const gameList=document.getElementById('game-list');
 function mobileCardElements(){return [...gameList.querySelectorAll('.fixture-card')];}
 function currentMobileCardIndex(){
   if(!mobileSelectorMedia.matches)return 0;
   const cards=mobileCardElements();if(!cards.length)return 0;
-  return cards.reduce((best,card,index)=>Math.abs(card.offsetLeft-gameDrawer.scrollLeft)<best.distance?{index,distance:Math.abs(card.offsetLeft-gameDrawer.scrollLeft)}:best,{index:0,distance:Infinity}).index;
+  const origin=cards[0].offsetLeft;
+  return cards.reduce((best,card,index)=>Math.abs((card.offsetLeft-origin)-gameDrawer.scrollLeft)<best.distance?{index,distance:Math.abs((card.offsetLeft-origin)-gameDrawer.scrollLeft)}:best,{index:0,distance:Infinity}).index;
 }
 function updateMobileMatchCursor({focus=false}={}){
   if(!mobileSelectorMedia.matches)return;
@@ -286,7 +399,7 @@ function updateMobileMatchCursor({focus=false}={}){
 function moveToMobileCard(index,{behavior='smooth',focus=true}={}){
   const cards=mobileCardElements();if(!mobileSelectorMedia.matches||!cards.length)return;
   const next=Math.max(0,Math.min(cards.length-1,index));
-  gameDrawer.scrollTo({left:cards[next].offsetLeft,behavior});
+  gameDrawer.scrollTo({left:cards[next].offsetLeft-cards[0].offsetLeft,behavior});
   cards.forEach((card,cardIndex)=>card.classList.toggle('is-current',cardIndex===next));
   document.getElementById('mobile-match-position').textContent=`GAME ${next+1} / ${cards.length}`;
   document.getElementById('mobile-match-prev').disabled=next<=0;
@@ -298,26 +411,36 @@ function renderGames({resetMobile=false}={}){
   gameList.replaceChildren(...visibleCards().map(makeFixtureCard));
   if(mobileSelectorMedia.matches)requestAnimationFrame(()=>moveToMobileCard(preserved,{behavior:'auto',focus:false}));
 }
-function focusFixture(card){
+function highlightFixture(card){
   document.querySelectorAll('.marker').forEach(label=>label.classList.toggle('selected',label.dataset.team===card.home.id||label.dataset.team===card.away.id));
-  flyTo(placeFor(card.home));
+}
+function focusFixture(card,source='explicit'){
+  startGlobeSnap(card,placeFor(card.home),source);
 }
 function setFilter(next,{push=false}={}){
-  const valid=FILTERS.some(filter=>filter.id===next)?next:'all';activeFilter=valid;
+  const valid=FILTERS.some(filter=>filter.id===next)?next:'all';closeGamePreview({restoreFocus:false});activeFilter=valid;
   const definition=FILTERS.find(filter=>filter.id===valid);document.documentElement.style.setProperty('--club',definition.color);
   document.querySelectorAll('.filter-tab').forEach(button=>{const on=button.dataset.sport===valid;button.classList.toggle('active',on);button.setAttribute('aria-selected',String(on));});
   document.getElementById('round-label').textContent=`${visibleCards().length} GAMES · ${visibleCards().length*2} CITIES`;
   renderGames({resetMobile:true});gameDrawer.scrollTop=0;gameDrawer.scrollLeft=0;
   document.getElementById('mobile-sport-label').textContent=valid==='all'?'ALL SPORTS':definition.sport;
   setMobileSportPicker(false);
+  if(mobileSelectorMedia.matches){const activeTab=tabs.querySelector('.filter-tab.active');if(activeTab)requestAnimationFrame(()=>tabs.scrollTo({left:Math.max(0,activeTab.offsetLeft-(tabs.clientWidth-activeTab.offsetWidth)/2),behavior:push?'smooth':'auto'}));}
   if(typeof markers!=='undefined')markers.forEach(marker=>{marker.filtered=valid!=='all'&&marker.league.id!==valid;marker.label.classList.remove('selected');});
   if(typeof routes!=='undefined')routes.forEach(route=>route.mesh.visible=valid==='all'||route.league.id===valid);
   if(push){const url=new URL(location.href);if(valid==='all')url.searchParams.delete('sport');else url.searchParams.set('sport',valid);history.pushState({sport:valid},'',url);}
 }
 const tabs=document.getElementById('filter-tabs');
 const mobileSportToggle=document.getElementById('mobile-sport-toggle');
-const MOBILE_FILTER_NAMES={all:'ALL SPORTS',soccer:'SOCCER','american-football':'AMERICAN FOOTBALL',basketball:'BASKETBALL',hockey:'HOCKEY',baseball:'BASEBALL',combat:'COMBAT'};
+const MOBILE_FILTER_NAMES={all:'ALL SPORTS',soccer:'SOCCER','american-football':'FOOTBALL',basketball:'HOOPS',hockey:'HOCKEY',baseball:'BASEBALL',combat:'COMBAT'};
 function setMobileSportPicker(open){
+  if(mobileSelectorMedia.matches){
+    tabs.classList.remove('mobile-open');
+    tabs.setAttribute('aria-hidden','false');
+    mobileSportToggle.setAttribute('aria-expanded','false');
+    mobileSportToggle.querySelector('.mobile-change').textContent='CHANGE ↓';
+    return;
+  }
   const visible=mobileSelectorMedia.matches&&open;
   tabs.classList.toggle('mobile-open',visible);
   mobileSportToggle.setAttribute('aria-expanded',String(visible));
@@ -335,9 +458,40 @@ gameDrawer.addEventListener('scroll',()=>{
   clearTimeout(mobileScrollTimer);mobileScrollTimer=setTimeout(()=>updateMobileMatchCursor({focus:true}),120);
 },{passive:true});
 document.addEventListener('pointerdown',event=>{if(mobileSelectorMedia.matches&&!event.target.closest('.sport-stage'))setMobileSportPicker(false);});
-document.addEventListener('keydown',event=>{if(event.key==='Escape')setMobileSportPicker(false);});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){setMobileSportPicker(false);closeGamePreview();}});
 mobileSelectorMedia.addEventListener('change',()=>{setMobileSportPicker(false);if(mobileSelectorMedia.matches)requestAnimationFrame(()=>moveToMobileCard(0,{behavior:'auto',focus:false}));});
 addEventListener('popstate',()=>setFilter(new URLSearchParams(location.search).get('sport')||'all'));
+
+const gamePreview=document.getElementById('game-preview');
+const previewWatch=document.getElementById('preview-watch');
+let previewCard=null,previewHost=null,previewReturnFocus=null;
+function fillGamePreview(card){
+  if(!card)return;
+  gamePreview.style.setProperty('--preview-c',card.league.color);
+  document.getElementById('preview-league').textContent=`${card.league.code} / ${card.league.sport}`;
+  document.getElementById('preview-status').textContent=`GAME ${String(card.index+1).padStart(2,'0')} · ${card.league.live?`LIVE ${U.clock(card.liveMatch.elapsedMs)}`:'PLAYABLE NOW'}`;
+  document.getElementById('preview-home-code').textContent=card.home.code;
+  document.getElementById('preview-home-name').textContent=card.home.name;
+  document.getElementById('preview-home-city').textContent=card.home.city.toUpperCase();
+  document.getElementById('preview-away-code').textContent=card.away.code;
+  document.getElementById('preview-away-name').textContent=card.away.name;
+  document.getElementById('preview-away-city').textContent=card.away.city.toUpperCase();
+  document.getElementById('preview-route').textContent=`${card.home.city.toUpperCase()} ↔ ${card.away.city.toUpperCase()}${previewHost?` · SELECTED ${previewHost.city.toUpperCase()}`:''}`;
+  previewWatch.href=card.href;
+}
+function openGamePreview(card,host,_anchor,{returnFocus=null,focusWatch=false}={}){
+  previewCard=card;previewHost=host;previewReturnFocus=returnFocus;
+  startGlobeSnap(card,host,'pin-click');fillGamePreview(card);gamePreview.hidden=false;
+  if(focusWatch)requestAnimationFrame(()=>previewWatch.focus({preventScroll:true}));
+}
+function closeGamePreview({restoreFocus=true}={}){
+  if(gamePreview.hidden)return;
+  gamePreview.hidden=true;previewCard=null;previewHost=null;
+  const returnTarget=previewReturnFocus;previewReturnFocus=null;
+  if(restoreFocus){const focusTarget=returnTarget?.isConnected&&returnTarget.classList.contains('visible')?returnTarget:document.querySelector('.brand');requestAnimationFrame(()=>focusTarget?.focus({preventScroll:true}));}
+}
+document.getElementById('preview-close').addEventListener('click',()=>closeGamePreview());
+
 function refreshRenderedSoccerCards(soccerCards){
   gameList.querySelectorAll('.fixture-card[data-sport="soccer"]').forEach(link=>{
     const card=soccerCards[Number(link.dataset.index)];if(!card)return;
@@ -351,13 +505,14 @@ function refreshRenderedSoccerCards(soccerCards){
 }
 function tickNetwork(){
   matches=U.liveMatches(Date.now());
-  document.getElementById('watch-primary').href=U.sharePath(matches[0]);document.getElementById('hero-watch').href=U.sharePath(matches[0]);
+  document.getElementById('watch-primary').href=U.sharePath(matches[0]);
   const soccerCards=fixtureCards.filter(card=>card.league.id==='soccer');
   matches.forEach((match,index)=>{const card=soccerCards[index];card.liveMatch=match;card.home=match.home;card.away=match.away;card.href=U.sharePath(match);});
   if(activeFilter==='all'||activeFilter==='soccer'){
     if(matches[0].slot!==lastSoccerSlot)renderGames();
     else refreshRenderedSoccerCards(soccerCards);
   }
+  if(previewCard)fillGamePreview(previewCard);
   lastSoccerSlot=matches[0].slot;
 }
 
@@ -370,7 +525,8 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x020304);
 scene.fog = new THREE.FogExp2(0x020304, .027);
 const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, .1, 80);
-camera.position.set(0, .1, 8.1);
+let mobileGlobeView=innerWidth<700;
+camera.position.set(0, .1, mobileGlobeView?9.25:8.1);
 const planet = new THREE.Group();
 planet.rotation.set(.08, -.82, 0);
 scene.add(planet);
@@ -404,57 +560,99 @@ const routes = [];
 const labelRoot = document.getElementById('labels');
 fixtureCards.forEach(card => [card.home,card.away].forEach((team,hostIndex) => {
   const league=card.league,host=placeFor(team);
-  const group=new THREE.Group();const pos=point(host,.025);group.position.copy(pos);group.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),pos.clone().normalize());
+  const group=new THREE.Group();const pos=point(host,.07);group.position.copy(pos);group.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),pos.clone().normalize());
   const color=new THREE.Color(league.color);
-  const stem=new THREE.Mesh(new THREE.CylinderGeometry(.012,.025,.17,8),new THREE.MeshBasicMaterial({color}));stem.position.y=.08;group.add(stem);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.045,14,10),new THREE.MeshBasicMaterial({color}));head.position.y=.18;group.add(head);
-  const halo=new THREE.Mesh(new THREE.RingGeometry(.06,.085,28),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.7,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.008;group.add(halo);
+  const beaconMaterial=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.94,depthTest:true,depthWrite:false});
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(.012,.024,.16,8),beaconMaterial);stem.position.y=.075;stem.renderOrder=20;group.add(stem);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.05,16,12),beaconMaterial);head.position.y=.17;head.renderOrder=21;group.add(head);
+  const halo=new THREE.Mesh(new THREE.RingGeometry(.065,.098,32),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.68,depthTest:true,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.009;halo.renderOrder=19;group.add(halo);
+  const beacon=new THREE.Mesh(new THREE.RingGeometry(.108,.128,36),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.2,depthTest:true,depthWrite:false}));beacon.rotation.x=-Math.PI/2;beacon.position.y=.01;beacon.renderOrder=18;group.add(beacon);
   planet.add(group);
-  const label=document.createElement('a');label.href=card.href;label.className='marker';label.dataset.league=league.id;label.dataset.team=team.id;label.style.setProperty('--c',league.color);label.textContent=`${league.code} · ${team.code} · ${host.city.toUpperCase()}`;label.setAttribute('aria-label',`Open ${league.sport}: ${card.home.name} versus ${card.away.name}`);label.addEventListener('pointerenter',()=>focusFixture(card));labelRoot.appendChild(label);
-  markers.push({league,card,team,host,hostIndex,group,halo,label,filtered:false});
+  const label=document.createElement('button');label.type='button';label.className='marker';label.dataset.league=league.id;label.dataset.team=team.id;label.style.setProperty('--c',league.color);label.textContent=`${league.code} · ${team.code} · ${host.city.toUpperCase()}`;label.setAttribute('aria-label',`Preview ${league.sport}: ${card.home.name} versus ${card.away.name}`);label.setAttribute('aria-haspopup','dialog');label.setAttribute('aria-controls','game-preview');
+  label.addEventListener('pointerenter',event=>{if(!event.pointerType||event.pointerType==='mouse')startGlobeSnap(card,host,'hover');});
+  label.addEventListener('focus',()=>startGlobeSnap(card,host));
+  label.addEventListener('click',event=>{event.preventDefault();const rect=label.getBoundingClientRect();openGamePreview(card,host,{x:rect.left+rect.width/2,y:rect.bottom+8},{returnFocus:label,focusWatch:event.detail===0});});
+  labelRoot.appendChild(label);
+  markers.push({league,card,team,host,hostIndex,group,core:beaconMaterial,halo,beacon,label,filtered:false});
 }));
 
 fixtureCards.forEach(card => {
   const league=card.league,a=point(placeFor(card.home),.035).normalize(),b=point(placeFor(card.away),.035).normalize();
   let mid=a.clone().add(b);if(mid.lengthSq()<.05)mid=new THREE.Vector3(0,1,0);mid.normalize().multiplyScalar(R*1.26);
   const curve=new THREE.QuadraticBezierCurve3(a.clone().multiplyScalar(R*1.02),mid,b.clone().multiplyScalar(R*1.02));
-  const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,64,.008,6,false),new THREE.MeshBasicMaterial({color:league.color,transparent:true,opacity:league.live ? .58 : .31,blending:THREE.AdditiveBlending}));planet.add(tube);routes.push({league,card,mesh:tube});
+  const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,64,.0065,6,false),new THREE.MeshBasicMaterial({color:league.color,transparent:true,opacity:league.live ? .42 : .2,depthWrite:false,blending:THREE.AdditiveBlending}));tube.renderOrder=1;tube.userData.interactive=false;tube.raycast=()=>{};planet.add(tube);routes.push({league,card,mesh:tube});
 });
 
 let targetRotation = null;
 function flyTo(place) { const p=point(place).normalize(); targetRotation={x:THREE.MathUtils.clamp(Math.asin(p.y),-1,1),y:-Math.atan2(p.x,p.z)}; }
-let down=null,dragging=false,lastMove=performance.now();
-canvas.addEventListener('pointerdown',event=>{down={x:event.clientX,y:event.clientY,rx:planet.rotation.x,ry:planet.rotation.y};dragging=false;targetRotation=null;canvas.setPointerCapture(event.pointerId);});
-canvas.addEventListener('pointermove',event=>{if(!down)return;const dx=event.clientX-down.x,dy=event.clientY-down.y;if(Math.hypot(dx,dy)>4)dragging=true;planet.rotation.y=down.ry+dx*.006;planet.rotation.x=THREE.MathUtils.clamp(down.rx+dy*.005,-1.15,1.15);canvas.classList.toggle('dragging',dragging);lastMove=performance.now();});
-canvas.addEventListener('pointerup',()=>{down=null;dragging=false;canvas.classList.remove('dragging');});
-canvas.addEventListener('wheel',event=>{event.preventDefault();camera.position.z=THREE.MathUtils.clamp(camera.position.z+event.deltaY*.0045,5.7,10.5);lastMove=performance.now();},{passive:false});
+let down=null,dragging=false,canvasHoverMarker=null;
+function setCanvasHoverMarker(marker){
+  if(canvasHoverMarker===marker)return;
+  canvasHoverMarker=marker;canvas.classList.toggle('pin-hover',Boolean(marker));
+  if(marker&&!dragging)startGlobeSnap(marker.card,marker.host,'hover');
+}
+function pinAtPointer(event){
+  let nearest=null,nearestDistance=24*24;
+  markers.forEach(marker=>{
+    if(marker.filtered||!marker.group.visible||!marker.frontFacing||!Number.isFinite(marker.screenX))return;
+    const distance=(marker.screenX-event.clientX)**2+(marker.screenY-event.clientY)**2;
+    if(distance<nearestDistance){nearest=marker;nearestDistance=distance;}
+  });
+  return nearest;
+}
+canvas.addEventListener('pointerdown',event=>{const pin=event.isPrimary&&event.button===0?pinAtPointer(event):null;setCanvasHoverMarker(null);down={pointerId:event.pointerId,x:event.clientX,y:event.clientY,rx:planet.rotation.x,ry:planet.rotation.y,pin};dragging=false;targetRotation=null;canvas.setPointerCapture(event.pointerId);});
+canvas.addEventListener('pointermove',event=>{if(!down){if(!event.pointerType||event.pointerType==='mouse')setCanvasHoverMarker(pinAtPointer(event));return;}if(event.pointerId!==down.pointerId)return;const dx=event.clientX-down.x,dy=event.clientY-down.y;if(Math.hypot(dx,dy)>4)dragging=true;planet.rotation.y=down.ry+dx*.006;planet.rotation.x=THREE.MathUtils.clamp(down.rx+dy*.005,-1.15,1.15);canvas.classList.toggle('dragging',dragging);});
+canvas.addEventListener('pointerup',event=>{if(!down||event.pointerId!==down.pointerId)return;const clickedPin=!dragging?down.pin:null,wasDragging=dragging;down=null;dragging=false;canvas.classList.remove('dragging');if(clickedPin)openGamePreview(clickedPin.card,clickedPin.host,{x:event.clientX,y:event.clientY});else if(!wasDragging)closeGamePreview({restoreFocus:false});});
+canvas.addEventListener('pointercancel',()=>{down=null;dragging=false;canvas.classList.remove('dragging');});
+canvas.addEventListener('lostpointercapture',event=>{if(down?.pointerId===event.pointerId){down=null;dragging=false;canvas.classList.remove('dragging');}});
+canvas.addEventListener('pointerleave',()=>setCanvasHoverMarker(null));
+canvas.addEventListener('wheel',event=>{event.preventDefault();camera.position.z=THREE.MathUtils.clamp(camera.position.z+event.deltaY*.0045,5.7,10.5);},{passive:false});
 
 function updateLabels(now) {
   const view = new THREE.Vector3().subVectors(camera.position,planet.position).normalize();
+  const compact=mobileSelectorMedia.matches;
+  const selectorTop=compact?document.getElementById('network').getBoundingClientRect().top:innerHeight;
   markers.forEach(marker => {
     if(marker.filtered){marker.group.visible=false;marker.label.classList.remove('visible');return;}
+    marker.group.visible=true;
     const world = marker.group.localToWorld(new THREE.Vector3(0,.23,0));
-    const front = world.clone().sub(planet.position).normalize().dot(view)>.08;
+    const facing=world.clone().sub(planet.position).normalize().dot(view),front=facing>.08;
+    const faceStrength=THREE.MathUtils.smoothstep(facing,-.2,.22);
     const projected = world.clone().project(camera);
     const sx=(projected.x*.5+.5)*innerWidth,sy=(-projected.y*.5+.5)*innerHeight;
-    const protectedUI=innerWidth<700
-      ? sy<390 || sy>innerHeight-82
-      : sy<76 || (sx<540&&sy<485) || sx>innerWidth-420 || sy>innerHeight-92;
-    const visible = front && !protectedUI && Math.abs(projected.x)<1.08 && Math.abs(projected.y)<1.08;
-    marker.group.visible=visible;
-    marker.label.classList.toggle('visible',visible);
-    if(visible){marker.label.style.left=`${sx}px`;marker.label.style.top=`${sy}px`;}
-    const active=marker.label.classList.contains('selected'),live=marker.league.live;
-    marker.halo.scale.setScalar(active?1.28+Math.sin(now*.004)*.18:live?1.12+Math.sin(now*.004)*.1:1);
-    marker.halo.material.opacity=active ? .9 : live ? .72 : .38;
+    const labelProtectedUI=compact
+      ? sy<175 || sy>selectorTop-20
+      : sy<76 || sx>innerWidth-420 || sy>innerHeight-92 || (sx<540&&sy<485);
+    const projectedOnScreen=Math.abs(projected.x)<1.08&&Math.abs(projected.y)<1.08;
+    const labelMargin=compact?72:88;
+    const labelVisible = front && projectedOnScreen && !labelProtectedUI && sx>labelMargin && sx<innerWidth-labelMargin;
+    marker.frontFacing=front;marker.screenX=sx;marker.screenY=sy;
+    marker.label.classList.toggle('visible',labelVisible);
+    marker.label.tabIndex=labelVisible?0:-1;marker.label.setAttribute('aria-hidden',String(!labelVisible));
+    if(labelVisible){marker.label.style.left=`${sx}px`;marker.label.style.top=`${sy}px`;}
+    const active=marker.label.classList.contains('selected'),hovered=marker===canvasHoverMarker,live=marker.league.live;
+    const baseScale=.82+faceStrength*.18;
+    marker.group.scale.setScalar(active||hovered ? 1 : .66+faceStrength*.34);
+    marker.core.opacity=active||hovered?1:.34+faceStrength*.6;
+    marker.halo.scale.setScalar(active?1.28+Math.sin(now*.004)*.18:hovered?1.3:baseScale*(live?1.08+Math.sin(now*.004)*.08:1));
+    marker.halo.material.opacity=active||hovered ? .95 : .2+faceStrength*(live ? .52 : .34);
+    marker.beacon.scale.setScalar(active?1.22+Math.sin(now*.0035)*.12:hovered?1.28:baseScale*(1+Math.sin(now*.0025+marker.hostIndex)*.07));
+    marker.beacon.material.opacity=active ? .52 : hovered ? .46 : .11+faceStrength*(live ? .19 : .11);
   });
 }
 let last=performance.now();
-function render(now){requestAnimationFrame(render);const dt=Math.min((now-last)/1000,.05);last=now;if(targetRotation){planet.rotation.x=THREE.MathUtils.lerp(planet.rotation.x,targetRotation.x,1-Math.exp(-3.4*dt));let dy=((targetRotation.y-planet.rotation.y+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;planet.rotation.y+=dy*(1-Math.exp(-3.4*dt));if(Math.abs(dy)<.003)targetRotation=null;}else if(!down&&now-lastMove>2200&&!matchMedia('(prefers-reduced-motion:reduce)').matches){planet.rotation.y+=dt*.025;}clouds.rotation.y+=dt*.007;updateLabels(now);renderer.render(scene,camera);}
-function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<700?1.35:1.75));renderer.setSize(innerWidth,innerHeight,false);} addEventListener('resize',resize);resize();
+function render(now){requestAnimationFrame(render);const dt=Math.min((now-last)/1000,.05);last=now;if(targetRotation){planet.rotation.x=THREE.MathUtils.lerp(planet.rotation.x,targetRotation.x,1-Math.exp(-3.4*dt));let dy=((targetRotation.y-planet.rotation.y+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;planet.rotation.y+=dy*(1-Math.exp(-3.4*dt));if(Math.abs(dy)<.003)targetRotation=null;}clouds.rotation.y+=dt*.007;updateLabels(now);renderer.render(scene,camera);}
+function resize(){const nextMobile=innerWidth<700;if(nextMobile!==mobileGlobeView){mobileGlobeView=nextMobile;camera.position.z=mobileGlobeView?9.25:8.1;}camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,mobileGlobeView?1.35:1.75));renderer.setSize(innerWidth,innerHeight,false);} addEventListener('resize',resize);resize();
 tickNetwork();setFilter(new URLSearchParams(location.search).get('sport')||'all');requestAnimationFrame(render);setTimeout(()=>document.getElementById('loading').classList.add('done'),260);
 setInterval(tickNetwork,1000);
-window.render_game_to_text=()=>JSON.stringify({screen:'world',activeFilter,fixtureCount:visibleCards().length,cityEndpointCount:visibleCards().length*2,totalFixtureCount:fixtureCards.length,totalCityEndpointCount:markers.length,coordinateSystem:'globe latitude/longitude; fixture drawer top to bottom',fixtures:visibleCards().map(card=>({sport:card.league.id,index:card.index,home:card.home.name,away:card.away.name,cities:[card.home.city,card.away.city],href:card.href})),filters:FILTERS.map(filter=>filter.id),canonicalSoccer:{round:matches[0].round,signals:matches.map(match=>({id:match.id,home:match.home.name,away:match.away.name,elapsed:U.clock(match.elapsedMs)}))}});
+window.render_game_to_text=()=>JSON.stringify({
+  screen:'world',activeFilter,fixtureCount:visibleCards().length,cityEndpointCount:visibleCards().length*2,totalFixtureCount:fixtureCards.length,totalCityEndpointCount:markers.length,
+  coordinateSystem:'globe latitude/longitude; fixture drawer top to bottom',
+  globe:{rotationX:Number(planet.rotation.x.toFixed(4)),rotationY:Number(planet.rotation.y.toFixed(4)),flyToActive:Boolean(targetRotation),hoverSnapPending:false,hoverSnapLocked:false,hoverSnapCount,lastSnapSource,hoveredPin:canvasHoverMarker?.team.id||null,visiblePins:markers.filter(marker=>marker.group.visible&&marker.frontFacing).length,frontPins:markers.filter(marker=>marker.group.visible&&marker.frontFacing).length,activePinGroups:markers.filter(marker=>marker.group.visible).length,visibleLabels:markers.filter(marker=>marker.label.classList.contains('visible')).length,selectedPins:markers.filter(marker=>marker.label.classList.contains('selected')).length,interactiveRoutes:routes.filter(route=>route.mesh.userData.interactive!==false).length,pinTargets:markers.filter(marker=>marker.group.visible&&marker.frontFacing).slice(0,12).map(marker=>({team:marker.team.id,city:marker.host.city,x:Math.round(marker.screenX),y:Math.round(marker.screenY),front:true}))},
+  preview:previewCard?{open:true,sport:previewCard.league.id,index:previewCard.index,home:previewCard.home.name,away:previewCard.away.name,selectedCity:previewHost?.city||null,href:previewCard.href}:{open:false},
+  fixtures:visibleCards().map(card=>({sport:card.league.id,index:card.index,home:card.home.name,away:card.away.name,cities:[card.home.city,card.away.city],href:card.href})),
+  filters:FILTERS.map(filter=>filter.id),canonicalSoccer:{round:matches[0].round,signals:matches.map(match=>({id:match.id,home:match.home.name,away:match.away.name,elapsed:U.clock(match.elapsedMs)}))}
+});
 window.advanceTime=ms=>{planet.rotation.y+=ms*.000025;updateLabels(performance.now()+ms);renderer.render(scene,camera);};
 </script>
 </body>

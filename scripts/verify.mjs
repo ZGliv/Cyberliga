@@ -52,6 +52,7 @@ const arenas = [
   { id: 'baseball', file: 'baseball.html', label: /BASEBALL|DIAMOND/i },
   { id: 'combat', file: 'fight.html', label: /FIGHT|COMBAT|BOX/i }
 ];
+const arenaInputHandler = /addEventListener\s*\(\s*['"](?:click|dblclick|auxclick|keydown|keyup|keypress|pointerdown|pointerup|pointermove|pointercancel|pointerenter|pointerleave|touchstart|touchmove|touchend|mousedown|mousemove|mouseup|wheel|contextmenu|beforeinput|input|change|submit)['"]|\.onclick\s*=/i;
 
 let packageManifest;
 try {
@@ -77,6 +78,9 @@ for (const arena of arenas) {
   check(/(?:href\s*=\s*["']world\.html|location\.href\s*=\s*["']world\.html)/i.test(source), `${arena.file} has no route back to world.html`);
   check(/window\.render_game_to_text\s*=/.test(source), `${arena.file} is missing window.render_game_to_text`);
   check(/window\.advanceTime\s*=/.test(source), `${arena.file} is missing window.advanceTime`);
+  check(/autonomous\s*:\s*true/.test(source) && /interaction\s*:\s*['"]view-only['"]/.test(source), `${arena.file} does not declare its autonomous view-only contract`);
+  check(!/<(?:button|input|select|textarea)\b/i.test(source), `${arena.file} must not expose interactive game controls`);
+  check(!arenaInputHandler.test(source), `${arena.file} must not bind user-input gameplay handlers`);
 }
 
 const supportingPages = [
@@ -149,12 +153,13 @@ check(/CANONICAL BOUNDARY/.test(replayScript) && /EXHIBITION BOUNDARY/.test(repl
 check(/player\.html\?sport=/.test(replayScript), 'Replay Center does not hand highlights into Athlete Files');
 check(/416/.test(playerScript) || (/C\.getSport/.test(playerScript) && /C\.getTeam/.test(playerScript) && /C\.getAthlete/.test(playerScript)), 'Athlete Files must resolve the shared world roster');
 check(/player\.html\?/.test(playerScript) && /canonical/.test(playerScript), 'Athlete Files must expose permanent canonical profile URLs');
-check(/id=["']playPanel["']/.test(footballSource) && /aria-pressed/.test(footballSource), 'Football must expose an accessible pre-snap play-call panel');
+check(!/id=["']playPanel["']/.test(footballSource) && !/id=["']snap["']/.test(footballSource), 'Football must remain an autonomous broadcast without coach or snap controls');
 check(/window\._footballTest\s*=/.test(footballSource) && /select[\s\S]*snap[\s\S]*forceSituation[\s\S]*forceOutcome[\s\S]*finishPlay/.test(footballSource), 'Football must expose deterministic play-call, situation, snap, outcome, and finish helpers');
 check(/chooseAutonomousPlay/.test(footballSource) && /AUTO_CADENCE/.test(footballSource) && /state\.phase===['"]preplay['"][\s\S]*snap\(\)/.test(footballSource), 'Football must choose and snap plays autonomously');
 check(/visibilitychange/.test(footballSource) && /hiddenTimer/.test(footballSource), 'Football must keep simulating autonomously in hidden tabs');
 check(/window\._baseballTest\s*=/.test(baseballSource) && /double_play|sac_fly/.test(baseballSource), 'Baseball must expose deterministic force-play branch helpers');
-check(/id=["']pitchtrail["']/.test(baseballSource) && /pitchHistory/.test(baseballSource), 'Baseball must expose an accessible pitch sequence and structured pitch history');
+check(!/id=["']gameplan["']/.test(baseballSource), 'Baseball must not restore the removed game-plan header overlay');
+check(/pitchHistory/.test(baseballSource) && /render_game_to_text/.test(baseballSource), 'Baseball must retain structured pitch history in its machine-readable broadcast state');
 check(/window\.__CYBERLIGA_HOCKEY_TEST__\s*=/.test(hockeySource) && /penalty[\s\S]*powerplay[\s\S]*overtime[\s\S]*final/.test(hockeySource), 'Hockey must expose penalty, power-play, overtime, and final branch helpers');
 check(/window\._fightTest\s*=/.test(fightSource) && /forceDecision[\s\S]*forceStoppage/.test(fightSource), 'Combat must expose deterministic decision and stoppage branch helpers');
 check(await exists('gamehub.js'), 'Missing shared in-game navigation hub');

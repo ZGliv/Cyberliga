@@ -64,14 +64,6 @@
   #vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,10,.55) 100%); }
   #scanlines { position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px); mix-blend-mode:overlay; }
   #watermark { position:absolute; bottom:46px; right:18px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(255,170,100,.45); }
-  #controls { position:absolute; left:18px; bottom:46px; display:flex; gap:7px; z-index:75; pointer-events:auto; }
-  #controls button {
-    appearance:none; border:1px solid rgba(255,138,61,.34); border-radius:999px; padding:5px 10px;
-    color:#ffc38e; background:rgba(4,8,20,.76); font:700 11px/1 'Rajdhani',sans-serif; letter-spacing:1.4px;
-    cursor:pointer; box-shadow:0 7px 20px rgba(0,0,0,.3); transition:.15s ease;
-  }
-  #controls button:hover, #controls button:focus-visible { color:#fff; border-color:#ff8a3d; background:rgba(255,138,61,.15); outline:none; }
-
   #gameplan {
     position:absolute; top:118px; left:20px; width:248px; overflow:hidden;
     border:1px solid rgba(255,138,61,.24); border-radius:12px;
@@ -93,37 +85,6 @@
   #qualitybar { height:4px; margin-top:6px; overflow:hidden; border-radius:9px; background:rgba(255,255,255,.08); }
   #qualityfill { height:100%; width:0; border-radius:inherit; background:#8b9bb2; box-shadow:0 0 10px currentColor; transition:width .18s,color .18s,background .18s; }
   #actionread { padding:8px 11px 10px; border-top:1px solid rgba(255,255,255,.06); font:700 10px/1.15 'Rajdhani',sans-serif; letter-spacing:1.25px; color:#8fa1bb; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-  #navopen {
-    position:absolute; top:22px; right:20px; z-index:90; pointer-events:auto;
-    appearance:none; border:1px solid rgba(255,138,61,.34); border-radius:999px; padding:7px 13px;
-    color:#ffc38e; background:rgba(4,8,20,.78); font:700 11px/1 'Rajdhani',sans-serif; letter-spacing:1.6px; cursor:pointer;
-    box-shadow:0 7px 22px rgba(0,0,0,.32); backdrop-filter:blur(8px);
-  }
-  #navopen:hover,#navopen:focus-visible { color:#fff; border-color:#ff8a3d; outline:none; }
-  #matchnav {
-    position:absolute; inset:0 0 0 auto; z-index:110; width:min(390px,100vw); transform:translateX(105%);
-    padding:22px; pointer-events:auto; overflow:auto;
-    background:linear-gradient(165deg,rgba(7,11,27,.985),rgba(2,3,10,.99));
-    border-left:1px solid rgba(255,138,61,.26); box-shadow:-24px 0 70px rgba(0,0,0,.48); transition:transform .24s ease;
-  }
-  #matchnav.open { transform:translateX(0); }
-  #matchnav h2 { margin:20px 0 7px; font:900 18px/1.1 'Orbitron',sans-serif; letter-spacing:3px; color:#ffb87a; }
-  #matchnav p { font:600 14px/1.35 'Rajdhani',sans-serif; color:#aebbd0; }
-  .navtop { display:flex; align-items:center; justify-content:space-between; }
-  .navtop strong { font:900 12px/1 'Orbitron',sans-serif; letter-spacing:2.4px; color:#fff; }
-  #navclose { appearance:none; border:1px solid rgba(255,255,255,.16); border-radius:50%; width:34px; height:34px; color:#fff; background:rgba(255,255,255,.05); cursor:pointer; font-size:18px; }
-  .navlinks { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:15px; }
-  .navlinks a { display:flex; min-height:45px; align-items:center; justify-content:center; text-decoration:none; border:1px solid rgba(255,138,61,.23); border-radius:9px; color:#ffd1a8; background:rgba(255,138,61,.07); font:800 12px/1 'Rajdhani',sans-serif; letter-spacing:1.2px; }
-  .navlinks a:hover,.navlinks a:focus-visible { border-color:#ff8a3d; color:#fff; outline:none; }
-  #navlineups { display:grid; gap:7px; margin-top:10px; }
-  .lineupteam { border:1px solid rgba(255,255,255,.08); border-radius:9px; padding:9px 11px; }
-  .lineupteam b { display:block; margin-bottom:5px; font:800 10px/1 'Orbitron',sans-serif; letter-spacing:1.3px; }
-  .lineupteam span { display:block; font:600 12px/1.35 'Rajdhani',sans-serif; color:#aebbd0; }
-  #schemelegend { display:grid; gap:6px; margin-top:9px; }
-  .schemechip { display:grid; grid-template-columns:96px 1fr; gap:8px; padding:7px 8px; border-radius:8px; background:rgba(255,255,255,.035); }
-  .schemechip b { font:800 10px/1.2 'Orbitron',sans-serif; letter-spacing:.7px; color:#ffca9c; }
-  .schemechip span { font:600 12px/1.2 'Rajdhani',sans-serif; color:#8f9db2; }
 
   #badge { position:absolute; top:22px; left:22px; display:flex; gap:12px; align-items:center; z-index:60; }
   #wordmark { font-family:'Orbitron'; font-weight:900; font-size:16px; letter-spacing:3px; color:#ffb87a; text-shadow:0 0 14px rgba(255,138,61,.55); }
@@ -212,12 +173,7 @@
     }
     #tickerlabel { padding:0 10px; font-size:10px; letter-spacing:2px; }
     #tickertext { font-size:13px; letter-spacing:.6px; }
-    #controls { left:10px; bottom:calc(43px + env(safe-area-inset-bottom, 0px)); gap:5px; }
-    #controls button { min-height:29px; padding:5px 9px; font-size:10px; letter-spacing:1px; background:rgba(4,8,20,.88); }
-    #controls .widehint { display:none; }
     #watermark { display:none; }
-    #navopen { top:auto; right:10px; bottom:calc(43px + env(safe-area-inset-bottom, 0px)); min-height:29px; padding:5px 10px; font-size:10px; background:rgba(4,8,20,.9); }
-    #matchnav { padding:calc(env(safe-area-inset-top,0px) + 16px) 18px calc(env(safe-area-inset-bottom,0px) + 20px); }
     #gameplan {
       top:calc(env(safe-area-inset-top, 0px) + 147px); left:50%; transform:translateX(-50%);
       width:auto; min-width:230px; max-width:calc(100vw - 20px); border-radius:999px;
@@ -257,7 +213,6 @@
   <div id="flash"><div id="flashtext"></div><div id="flashsub"></div></div>
   <div id="ticker"><div id="tickerlabel">HOOPS</div><div id="tickertext"></div></div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
-  <div id="controls"><button id="pausebtn" type="button">PAUSE</button><button id="restartbtn" type="button">REMATCH</button><button id="fullbtn" class="widehint" type="button">F FULLSCREEN</button></div>
   <div id="gameplan" aria-live="polite">
     <div class="gphead"><span class="gplabel">GAME PLAN</span><span id="possessions">POSS 0</span></div>
     <div class="gprow"><span class="gpkey">CALL</span><span class="gpvalue" id="scheme">EARLY DRAG</span></div>
@@ -265,15 +220,6 @@
     <div id="qualityrow"><div id="qualitymeta"><span>SHOT READ</span><span id="qualitylabel">BUILDING</span></div><div id="qualitybar"><div id="qualityfill"></div></div></div>
     <div id="actionread">FIVE OUT · FLOWING TO THE SCREEN</div>
   </div>
-  <button id="navopen" type="button" aria-controls="matchnav" aria-expanded="false">GAME PLAN</button>
-  <aside id="matchnav" aria-hidden="true">
-    <div class="navtop"><strong>CYBERLIGA HOOPS</strong><button id="navclose" type="button" aria-label="Close game plan">&times;</button></div>
-    <h2>THE HIGH ROOM</h2><p>A proper five-on-five tactical exhibition. Watch the active call and coverage above the floor, then follow every rotation through the broadcast.</p>
-    <div class="navlinks"><a href="world.html">HOME</a><a href="league.html?sport=basketball">TEAMS &amp; LEAGUE</a><a href="social.html?sport=basketball">COMMUNITY</a><a href="moment.html?sport=basketball">MAKE A POSTER</a></div>
-    <h2>TONIGHT'S FIVES</h2><div id="navlineups"></div>
-    <h2>PLAYBOOK</h2><div id="schemelegend"></div>
-    <p style="margin-top:16px">P / SPACE pause &nbsp;·&nbsp; R rematch &nbsp;·&nbsp; F fullscreen &nbsp;·&nbsp; ESC world</p>
-  </aside>
   <div id="vignette"></div><div id="scanlines"></div>
   <div id="watermark">CYBERLIGA HOOPS</div>
 </div>
@@ -600,9 +546,7 @@ for(let i=0;i<5;i++){
 const $=id=>document.getElementById(id);
 const elScore=$('score'), elSA=$('sA'), elSB=$('sB'), elClock=$('clock'), elQtr=$('qtr'), elSclock=$('sclock'), elStatus=$('playstatus');
 const elFlash=$('flash'), elFT=$('flashtext'), elFS=$('flashsub'), elTicker=$('tickertext'), elCard=$('bigcard'), elPanel=$('cardpanel');
-const elPause=$('pausebtn'), elRestart=$('restartbtn'), elFull=$('fullbtn');
 const elScheme=$('scheme'), elCoverage=$('coverage'), elPossessions=$('possessions'), elQuality=$('qualitylabel'), elQualityFill=$('qualityfill'), elAction=$('actionread');
-const elNav=$('matchnav'), elNavOpen=$('navopen'), elNavClose=$('navclose'), elLineups=$('navlineups'), elSchemeLegend=$('schemelegend');
 let flashTimer=0;
 function flashMsg(big, sub, color){
   elFT.textContent=big; elFS.textContent=sub; elFlash.style.setProperty('--fc', color);
@@ -627,10 +571,6 @@ function tickerStep(dt){
 function showCard(html){ elPanel.innerHTML=html; elCard.classList.add('show'); }
 function hideCard(){ elCard.classList.remove('show'); }
 function popScore(){ elScore.classList.add('pop'); setTimeout(()=>elScore.classList.remove('pop'),140); }
-function setNav(open){ elNav.classList.toggle('open',open); elNav.setAttribute('aria-hidden',String(!open)); elNavOpen.setAttribute('aria-expanded',String(open)); }
-elNavOpen.addEventListener('click',()=>setNav(true));
-elNavClose.addEventListener('click',()=>setNav(false));
-elSchemeLegend.innerHTML=PLAYBOOKS.map(p=>`<div class="schemechip"><b>${p.short}</b><span>${p.desc}</span></div>`).join('');
 function qualityLabel(q){ return q>=.68?'WIDE OPEN':q>=.54?'CLEAN':q>=.41?'TOUGH':q>0?'SMOTHERED':'BUILDING'; }
 function updateGamePlan(){
   const scheme=PLAYBOOK_BY_ID[play.schemeId]||PLAYBOOKS[0], cover=COVERAGE_BY_ID[play.coverageId]||COVERAGES[0];
@@ -715,7 +655,7 @@ const offT=()=>teams[play.offense], defT=()=>teams[1-play.offense];
 const atkRim=t=>V3(t.dir*RIM_X, RIM_Y, 0);
 const carrier=()=>ball.holder;
 let quarterPending=false;
-let paused=false, completedGames=0, lastFinal=null;
+let completedGames=0, lastFinal=null;
 
 // camera
 let camPos=V3(0,11.4,17.6), lookPt=V3(0,1,0), pendingCut=false, lowCam=false, shake=0, crowdHype=0, tGlobal=0;
@@ -735,7 +675,6 @@ function updateHUDTeams(){
     crowdFlags.forEach((f,i)=>f.material.color.setHex(teams[i%2].def.col));
     heroFans.forEach((f,i)=>{const color=teams[i%2].def.col;for(const child of f.children)if(child.material&&child!==f.children[1])child.material.color.setHex(color);});
   }
-  elLineups.innerHTML=teams.map(t=>`<div class="lineupteam"><b style="color:${t.def.css}">${t.def.name}</b>${t.players.map(p=>`<span>${p.roleName} · ${p.name}</span>`).join('')}<span>SIXTH SPARK · ${t.bench.name}</span></div>`).join('');
   updateCenterCube();
 }
 function updateCenterCube(){
@@ -795,7 +734,6 @@ function newMatch(){
   say(`MATCHDAY — ${teams[0].def.name} VS ${teams[1].def.name} — TIP-OFF IN THE HOOPDOME`);
   flashMsg('TIP-OFF', `${teams[0].def.name} VS ${teams[1].def.name}`, '#ff8a3d');
   ball.pos.set(0,1.4,0); ball.vel.set(0,0,0); ball.shot=null;
-  paused=false; elPause.textContent='PAUSE';
   outlet(chance(.5)?0:1,'TIP');
   cut();
 }
@@ -1676,7 +1614,7 @@ function fxStep(dt){
   ballShadow.position.x=ball.pos.x; ballShadow.position.z=ball.pos.z;
   const shadowScale=clamp(1-ball.pos.y/12,0.25,1);
   ballShadow.scale.setScalar(shadowScale); ballShadow.material.opacity=0.12+shadowScale*0.24;
-  const status = paused ? 'PAUSED' : phase==='FINAL' ? 'FINAL' : phase==='BREAK' ? 'INTERMISSION' :
+  const status = phase==='FINAL' ? 'FINAL' : phase==='BREAK' ? 'INTERMISSION' :
     play.state==='FREE_THROW' ? 'AT THE LINE' :
     play.state==='INBOUND_RETRIEVE' ? 'RETRIEVING THE MAKE' :
     play.state==='INBOUND_BASELINE' ? 'STEPPING OUT OF BOUNDS' :
@@ -1707,10 +1645,6 @@ function tuneIntoHoopsBroadcast(){
 }
 tuneIntoHoopsBroadcast();
 function tick(dt, skipRender=false){
-  if (paused){
-    if (!skipRender){ updateCamera(Math.min(dt,.016)); fxStep(0); composer.render(); }
-    return;
-  }
   tGlobal+=dt;
   if (phase==='PLAY') flow(dt); else breakFlow(dt);
   setTargets(dt);
@@ -1754,25 +1688,11 @@ function startDriver(){
 document.addEventListener('visibilitychange', startDriver);
 startDriver();
 
-function togglePause(){
-  paused=!paused;
-  elPause.textContent=paused?'RESUME':'PAUSE';
-  elStatus.textContent=paused?'PAUSED':play.state.replace('_',' ');
-}
-function restartMatch(){
-  matchNo=Math.max(0,matchNo-1);
-  newMatch();
-}
-async function toggleFullscreen(){
-  if (document.fullscreenElement) await document.exitFullscreen();
-  else await document.documentElement.requestFullscreen();
-}
-elPause.addEventListener('click', togglePause);
-elRestart.addEventListener('click', restartMatch);
-elFull.addEventListener('click', toggleFullscreen);
 window.render_game_to_text=()=>JSON.stringify({
   coordinateSystem:'court meters; origin center court; +x right basket, +z far sideline, +y up',
-  mode:paused?'PAUSED':phase,
+  autonomous:true,
+  interaction:'view-only',
+  mode:phase,
   completedGames,
   lastFinal,
   quarter:q,
@@ -1801,15 +1721,11 @@ window.render_game_to_text=()=>JSON.stringify({
   teams:teams.map(t=>({name:t.def.name,score:t.score,fg:`${t.fgm}/${t.fga}`,rebounds:t.rebounds,assists:t.assists,steals:t.steals,blocks:t.blocks,turnovers:t.turnovers,fouls:t.fouls})),
   arena:{name:'THE HIGH ROOM',spectators:(crowdBodies?.count||0)+heroFans.length,centerHungScoreboard:true,upperLightTruss:true},
   ball:{state:ball.state,x:+ball.pos.x.toFixed(2),y:+ball.pos.y.toFixed(2),z:+ball.pos.z.toFixed(2),holder:ball.holder?.name||null},
-  players:allPlayers().map(p=>({name:p.name,team:p.td.name,role:p.roleName,x:+p.pos.x.toFixed(2),z:+p.pos.z.toFixed(2),bodyScale:{x:+p.renderScale[0].toFixed(2),y:+p.renderScale[1].toFixed(2),z:+p.renderScale[2].toFixed(2)},points:p.pts,rebounds:p.reb,assists:p.ast,fouls:p.fouls,fg:`${p.fgm}/${p.fga}`,hasBall:ball.holder===p})),
-  navigationOpen:elNav.classList.contains('open')
+  players:allPlayers().map(p=>({name:p.name,team:p.td.name,role:p.roleName,x:+p.pos.x.toFixed(2),z:+p.pos.z.toFixed(2),bodyScale:{x:+p.renderScale[0].toFixed(2),y:+p.renderScale[1].toFixed(2),z:+p.renderScale[2].toFixed(2)},points:p.pts,rebounds:p.reb,assists:p.ast,fouls:p.fouls,fg:`${p.fgm}/${p.fga}`,hasBall:ball.holder===p}))
 });
 window.advanceTime=(ms)=>{
-  const wasPaused=paused; paused=false;
   const steps=Math.max(1,Math.round(ms/(1000/60)));
   for(let i=0;i<steps;i++) tick(1/60,i<steps-1);
-  paused=wasPaused;
-  if(paused){ elPause.textContent='RESUME'; elStatus.textContent='PAUSED'; }
 };
 window.__CYBERLIGA_HOOPS_TEST__={
   forceScheme(id){ if(!PLAYBOOK_BY_ID[id])throw new Error(`Unknown play ${id}`);play.schemeId=id;play.step=0;play.actionLabel=PLAYBOOK_BY_ID[id].actions[0][2];play.seenSchemes.add(id);setState('SET');updateGamePlan(); },
@@ -1844,14 +1760,6 @@ function resizeView(){
 }
 addEventListener('resize',resizeView);
 resizeView();
-
-addEventListener('keydown', e=>{
-  if (e.key.toLowerCase()==='f'){ e.preventDefault(); toggleFullscreen(); }
-  else if (e.key.toLowerCase()==='p' || e.code==='Space'){ e.preventDefault(); togglePause(); }
-  else if (e.key.toLowerCase()==='r'){ e.preventDefault(); restartMatch(); }
-  else if (e.key==='Escape'&&elNav.classList.contains('open')){e.preventDefault();setNav(false);}
-  else if (e.key==='Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && !document.fullscreenElement) location.href='world.html';
-});
 </script>
 <script src="gamehub.js"></script>
 </body>

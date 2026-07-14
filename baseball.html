@@ -43,29 +43,6 @@
     box-shadow:0 0 18px rgba(88,255,180,.12); transition:color .15s, border-color .15s, box-shadow .15s;
   }
   #playstatus.hot { color:#fff3a8; border-color:rgba(255,211,77,.7); box-shadow:0 0 25px rgba(255,211,77,.32); }
-  #gameplan {
-    position:absolute; top:156px; right:18px; width:244px; padding:12px 14px;
-    color:#dfffee; background:linear-gradient(150deg,rgba(7,13,29,.9),rgba(3,7,17,.83));
-    border:1px solid rgba(88,255,180,.24); border-radius:12px; backdrop-filter:blur(8px);
-    box-shadow:0 12px 38px rgba(0,0,0,.35), inset 0 1px rgba(255,255,255,.05);
-  }
-  #gameplan .gp-kicker { font:900 9px/1 'Orbitron'; letter-spacing:2.5px; color:#72ffc0; margin-bottom:9px; }
-  #gameplan .gp-row { display:grid; grid-template-columns:52px 1fr; gap:8px; align-items:baseline; margin-top:5px; }
-  #gameplan .gp-label { font:700 9px/1.1 'Orbitron'; letter-spacing:1.1px; color:#7f93a8; }
-  #gameplan .gp-value { min-width:0; font:700 13px/1.15 'Rajdhani'; letter-spacing:.7px; color:#effff7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #gameplan .gp-value.hot { color:#ffd34d; text-shadow:0 0 10px rgba(255,211,77,.34); }
-  #gameplan .gp-meter { height:3px; margin-top:9px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.08); }
-  #gameplan .gp-meter i { display:block; height:100%; width:0; background:linear-gradient(90deg,#58ffb4,#ffd34d,#ff5e75); box-shadow:0 0 8px #58ffb4; transition:width .2s; }
-  #pitchtrail { display:flex; align-items:center; gap:5px; min-height:22px; margin-top:10px; overflow:hidden; }
-  #pitchtrail .pitch-empty { font:700 9px/1 'Orbitron'; letter-spacing:1.2px; color:#617287; }
-  #pitchtrail b {
-    flex:0 0 auto; display:grid; place-items:center; width:22px; height:22px; border-radius:50%;
-    font:900 8px/1 'Orbitron'; color:#b9cad8; border:1px solid rgba(185,202,216,.28); background:rgba(255,255,255,.035);
-  }
-  #pitchtrail b.strike { color:#ff8b9b; border-color:rgba(255,94,117,.6); background:rgba(255,94,117,.1); }
-  #pitchtrail b.ball { color:#8affc5; border-color:rgba(88,255,180,.55); background:rgba(88,255,180,.08); }
-  #pitchtrail b.live { color:#ffe48a; border-color:rgba(255,211,77,.66); background:rgba(255,211,77,.1); animation:none; }
-  #pitchtrail b.out { color:#d8b4ff; border-color:rgba(190,130,255,.6); background:rgba(190,130,255,.1); }
   .live { width:7px; height:7px; border-radius:50%; background:#ff2d55; animation:pulse 1.2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1; box-shadow:0 0 8px #ff2d55;} 50%{opacity:.3;} }
   #inn { font-family:'Orbitron'; font-weight:700; font-size:14px; color:#9dffd0; letter-spacing:2px; }
@@ -115,7 +92,7 @@
 
   #vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,10,.55) 100%); }
   #scanlines { position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px); mix-blend-mode:overlay; }
-  #watermark { position:absolute; bottom:50px; right:162px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(142,255,200,.42); }
+  #watermark { position:absolute; bottom:50px; right:18px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(142,255,200,.42); }
 
   #badge { position:absolute; top:22px; left:22px; display:flex; gap:12px; align-items:center; z-index:60; }
   #wordmark { font-family:'Orbitron'; font-weight:900; font-size:16px; letter-spacing:3px; color:#8effc8; text-shadow:0 0 14px rgba(88,255,180,.55); }
@@ -146,14 +123,6 @@
   #bigcard th { color:#7dffc0; font-size:11px; letter-spacing:2px; }
   #bigcard td.n { text-align:left; font-weight:700; }
 
-  #soundpill { position:absolute; bottom:46px; left:18px; font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px; color:#8effc8; border:1px solid rgba(88,255,180,.35); padding:4px 12px; border-radius:99px; background:rgba(4,8,20,.7); }
-  #controls { position:absolute; bottom:44px; right:18px; display:flex; gap:6px; pointer-events:auto; }
-  #controls button {
-    min-width:36px; height:28px; padding:0 9px; border-radius:999px; cursor:pointer;
-    font-family:'Orbitron'; font-weight:700; font-size:9px; letter-spacing:1px; color:#bfffe0;
-    border:1px solid rgba(88,255,180,.32); background:rgba(4,8,20,.76);
-  }
-  #controls button:hover, #controls button:focus-visible { color:#fff; border-color:#58ffb4; outline:none; box-shadow:0 0 14px rgba(88,255,180,.35); }
   @media (max-width:700px) {
     #hud { isolation:isolate; min-height:100dvh; }
     #vignette {
@@ -199,20 +168,6 @@
       top:calc(env(safe-area-inset-top, 0px) + 145px); min-width:168px; max-width:calc(100vw - 24px);
       padding:5px 11px; font-size:9px; letter-spacing:1.7px; z-index:60; background:rgba(5,9,22,.82);
     }
-    #gameplan {
-      top:calc(env(safe-area-inset-top, 0px) + 180px); left:10px; right:10px; width:auto;
-      display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px 8px; align-items:center;
-      padding:8px 10px; border-radius:10px; z-index:58; background:rgba(4,9,20,.78);
-    }
-    #gameplan .gp-kicker { grid-column:1 / -1; margin:0; font-size:7px; letter-spacing:1.8px; }
-    #gameplan .gp-row { display:none; margin:0; min-width:0; }
-    #gameplan .gp-row:nth-of-type(2), #gameplan .gp-row:nth-of-type(4), #gameplan .gp-row:nth-of-type(5) { display:block; }
-    #gameplan .gp-label { display:block; margin-bottom:2px; font-size:7px; letter-spacing:.6px; }
-    #gameplan .gp-value { display:block; font-size:10px; }
-    #gameplan .gp-meter { display:none; }
-    #pitchtrail { grid-column:1 / -1; min-height:18px; margin-top:1px; gap:4px; }
-    #pitchtrail b { width:18px; height:18px; font-size:7px; }
-    #pitchtrail .pitch-empty { font-size:7px; }
     #inn, #count { font-size:12px; letter-spacing:1.2px; white-space:nowrap; }
     #count em { font-size:9px; }
     #outs i { width:8px; height:8px; }
@@ -238,15 +193,6 @@
     }
     #tickerlabel { padding:0 10px; font-size:10px; letter-spacing:2px; }
     #tickertext { font-size:13px; letter-spacing:.6px; }
-    #soundpill {
-      left:10px; right:10px; bottom:calc(42px + env(safe-area-inset-bottom, 0px)); z-index:66;
-      min-height:30px; display:flex; align-items:center; justify-content:center;
-      padding:6px 10px; font-size:11px; letter-spacing:1.3px;
-      background:rgba(4,8,20,.82); box-shadow:0 8px 22px rgba(0,0,0,.35);
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
-    #controls { right:10px; bottom:calc(79px + env(safe-area-inset-bottom, 0px)); z-index:67; gap:4px; }
-    #controls button { min-width:32px; height:27px; padding:0 8px; font-size:8px; background:rgba(4,8,20,.84); }
     #watermark { display:none; }
   }
   @media (max-width:380px) {
@@ -261,7 +207,6 @@
     #inn, #count { font-size:11px; }
     #tickerlabel { padding:0 8px; font-size:9px; letter-spacing:1.4px; }
     #tickertext { font-size:12px; }
-    #soundpill { left:8px; right:8px; font-size:10px; letter-spacing:1px; }
   }
 </style>
 </head>
@@ -280,21 +225,10 @@
     <span id="minibases"><b id="mb3"></b><b id="mb2"></b><b id="mb1"></b></span>
   </div>
   <div id="playstatus">FIRST PITCH LOADING</div>
-  <aside id="gameplan" aria-label="Live baseball game plan">
-    <div class="gp-kicker">LIVE GAME PLAN</div>
-    <div class="gp-row"><span class="gp-label">PITCH</span><span class="gp-value hot" id="gpPitch">SCOUTING</span></div>
-    <div class="gp-row"><span class="gp-label">INTENT</span><span class="gp-value" id="gpIntent">SET THE TONE</span></div>
-    <div class="gp-row"><span class="gp-label">HITTER</span><span class="gp-value" id="gpApproach">READ &amp; REACT</span></div>
-    <div class="gp-row"><span class="gp-label">DEFENSE</span><span class="gp-value" id="gpDefense">STRAIGHT UP</span></div>
-    <div class="gp-meter" title="Pitcher workload"><i id="gpFatigue"></i></div>
-    <div id="pitchtrail" aria-label="Current at-bat pitch sequence"><span class="pitch-empty">AWAITING FIRST PITCH</span></div>
-  </aside>
   <div id="pitchcall" role="status" aria-live="polite"><strong id="pitchcalltext"></strong><span id="pitchcallsub"></span></div>
   <div id="flash"><div id="flashtext"></div><div id="flashsub"></div></div>
   <div id="ticker"><div id="tickerlabel">DIAMOND</div><div id="tickertext"></div></div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
-  <div id="soundpill">&#128266; CLICK ANYWHERE FOR SOUND</div>
-  <div id="controls" aria-label="Game controls"><button id="pausebtn" type="button" title="Pause or resume (P)">P</button><button id="rematchbtn" type="button" title="Start a new fixture (R)">R</button><button id="fullbtn" type="button" title="Toggle fullscreen (F)">F</button></div>
   <div id="vignette"></div><div id="scanlines"></div>
   <div id="watermark">CYBERLIGA DIAMOND</div>
 </div>
@@ -704,21 +638,10 @@ function sparkStep(dt){
   }
 }
 
-// ---------- audio (WebAudio synth — armed on first click) ----------
+// ---------- audio ----------
+// View-only broadcasts never wait for or install an activation gesture. Keep
+// the optional synth dormant so simulation timing is wholly autonomous.
 let AC=null, crowdGain=null, crowdLevel=0.05;
-addEventListener('pointerdown', ()=>{
-  if (AC) return;
-  AC=new (window.AudioContext||window.webkitAudioContext)();
-  const master=AC.createGain(); master.gain.value=0.6; master.connect(AC.destination); AC._m=master;
-  const len=AC.sampleRate*1.5, buf=AC.createBuffer(1,len,AC.sampleRate), d=buf.getChannelData(0);
-  for (let i=0;i<len;i++) d[i]=Math.random()*2-1;
-  AC._noise=buf;
-  const src=AC.createBufferSource(); src.buffer=buf; src.loop=true;
-  const bp=AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=300; bp.Q.value=0.5;
-  crowdGain=AC.createGain(); crowdGain.gain.value=0;
-  src.connect(bp); bp.connect(crowdGain); crowdGain.connect(master); src.start();
-  document.getElementById('soundpill').style.display='none';
-}, { once:true });
 function noiseBurst(filterType, freq, dur, peak){
   if (!AC) return;
   const t=AC.currentTime, src=AC.createBufferSource(); src.buffer=AC._noise;
@@ -765,9 +688,6 @@ const elOuts=[...document.querySelectorAll('#outs i')];
 const elMB=[$('mb1'),$('mb2'),$('mb3')];
 const elFlash=$('flash'), elFT=$('flashtext'), elFS=$('flashsub'), elTicker=$('tickertext');
 const elCard=$('bigcard'), elPanel=$('cardpanel'), elPlayStatus=$('playstatus');
-const elPauseBtn=$('pausebtn'), elRematchBtn=$('rematchbtn'), elFullBtn=$('fullbtn');
-const elGpPitch=$('gpPitch'), elGpIntent=$('gpIntent'), elGpApproach=$('gpApproach'), elGpDefense=$('gpDefense'), elGpFatigue=$('gpFatigue');
-const elPitchTrail=$('pitchtrail');
 const elPitchCall=$('pitchcall'), elPitchCallText=$('pitchcalltext'), elPitchCallSub=$('pitchcallsub');
 let flashTimer=0;
 function flashMsg(big, sub, color){
@@ -871,7 +791,6 @@ const S={ state:'SETUP', t:0, inning:1, half:0, outs:0, balls:0, strikes:0,
   approach:'READ & REACT', defense:'STRAIGHT UP', intent:'ESTABLISH THE ZONE', lastPitch:null, pitchHistory:[], forceNext:null, playLog:[],
   callLabel:'', callDetail:'', callTone:'live', callT:0,
   transition:null, strikeoutHold:null, entryMode:'fresh', tuneInSeconds:0, entryTargetSeconds:0, entryBucket:null, entryRecued:false, entryPhase:null };
-let paused=false;
 function logPlay(type,detail={}){
   S.playLog.push({type,inning:S.inning,half:S.half,outs:S.outs,score:teams.map(t=>t.runs),...detail});
   if(S.playLog.length>32) S.playLog.shift();
@@ -907,8 +826,7 @@ function hudStep(){
   elMB.forEach((b,i)=>b.classList.toggle('on', !!S.bases[i]));
   for (let i=0;i<3;i++) baseMats[i].emissiveIntensity = S.bases[i] ? 1.5+Math.sin(tGlobal*6)*0.5 : 0.3;
   let status='RESETTING THE DIAMOND', hot=false;
-  if (paused) status='PAUSED · P TO RESUME';
-  else if (S.state==='SETUP') status=`${S.batter ? S.batter.name : 'NEXT BATTER'} AT BAT`;
+  if (S.state==='SETUP') status=`${S.batter ? S.batter.name : 'NEXT BATTER'} AT BAT`;
   else if (S.state==='WINDUP') status=`${pitcherP().name} DEALING`;
   else if (S.state==='PITCH') status=`PITCH LIVE · ${S.pitchPlan ? Math.round(S.pitchPlan.speed*4) : '--'} MPH`;
   else if (S.state==='LIVE' || S.state==='THROW') { status=`BALL IN PLAY · ${S.play ? S.play.type : 'LIVE'}`; hot=true; }
@@ -918,25 +836,9 @@ function hudStep(){
   else if (S.state==='BATTER_CHANGE') status=`NEXT HITTER · ${S.transition?.incoming?.name || 'ON DECK'} WALKING IN`;
   else if (S.state==='SIDECHG') status='SIDE RETIRED · FIELD FLIP';
   else if (S.state==='FINAL') status='FINAL · NEXT FIXTURE LOADING';
-  if (!paused && S.clipT>0 && S.clipMoment) { status=S.clipMoment; hot=true; }
+  if (S.clipT>0 && S.clipMoment) { status=S.clipMoment; hot=true; }
   elPlayStatus.textContent=status;
   elPlayStatus.classList.toggle('hot',hot);
-  const pp=S.pitchPlan;
-  elGpPitch.textContent=pp ? `${pp.name} · ${Math.round(pp.speed*4)} MPH · ${pp.location}` : 'SCOUTING';
-  elGpIntent.textContent=S.intent;
-  elGpApproach.textContent=S.approach;
-  elGpDefense.textContent=S.defense;
-  if(teams.length) elGpFatigue.style.width=`${Math.min(100,fldTeam().pitches/1.05)}%`;
-  const trailKey=S.pitchHistory.map(p=>`${p.name}:${p.result}:${p.count}`).join('|');
-  if(elPitchTrail.dataset.key!==trailKey){
-    elPitchTrail.dataset.key=trailKey;
-    if(!S.pitchHistory.length) elPitchTrail.innerHTML='<span class="pitch-empty">AWAITING FIRST PITCH</span>';
-    else elPitchTrail.innerHTML=S.pitchHistory.slice(-8).map((p,i)=>{
-      const abbrev=p.tone==='ball'?'B':p.tone==='strike'?'S':p.tone==='out'?'O':'◆';
-      const title=`Pitch ${Math.max(1,S.pitchHistory.length-7)+i}: ${p.name}, ${p.speedMph} MPH, ${p.location}, ${p.result}, count ${p.count}`;
-      return `<b class="${p.tone}" title="${title}" aria-label="${title}">${abbrev}</b>`;
-    }).join('');
-  }
 }
 
 function setupMatch(){
@@ -2099,8 +2001,8 @@ function gameSnapshot(){
   const [nextA,nextB]=FIXTURES[(fixtureIdx+1)%FIXTURES.length];
   return {
     note:'Coordinates are diamond-space x/z meters: home plate is (0,0), center field is +x, first base is +z, third base is -z.',
-    paused, fullscreen:!!document.fullscreenElement,
-    controls:{pause:'P',rematch:'R',fullscreen:'F',exit:'Escape'},
+    autonomous:true,
+    interaction:'view-only',
     fixture:{index:fixtureIdx,total:FIXTURES.length,teams:teams.map(t=>t.def.name),next:[TEAMS[nextA].name,TEAMS[nextB].name]},
     entry:{mode:S.entryMode,tuneInSeconds:+S.tuneInSeconds.toFixed(1),targetSeconds:+S.entryTargetSeconds.toFixed(1),bucket:S.entryBucket,recued:S.entryRecued,phase:S.entryPhase,freshURL:'?fresh=1',qaURL:'?at=465&bucket=2077'},
     status:elPlayStatus.textContent, clipMoment:S.clipMoment || null, clipSeconds:+S.clipT.toFixed(1), clipsThisGame:S.clips.slice(),
@@ -2151,7 +2053,7 @@ window._baseballTest={
   deterministic(seed='cyberliga-baseball-twin'){
     if(rafId){ cancelAnimationFrame(rafId); rafId=0; }
     if(hiddenTimer){ clearInterval(hiddenTimer); hiddenTimer=0; }
-    paused=false; tGlobal=0; window._games.length=0; setupMatch(); seedSim(seed); return gameSnapshot();
+    tGlobal=0; window._games.length=0; setupMatch(); seedSim(seed); return gameSnapshot();
   },
   scenario(result,pitch='FOUR-SEAM'){
     forceSettle();
@@ -2170,7 +2072,6 @@ window._baseballTest={
   getSeed(){ return simSeed>>>0; }
 };
 function tick(dt, skipRender = false) {
-  if (paused) { if (!skipRender) { hudStep(); composer.render(); } return; }
   tGlobal += dt;
   steerIdle();          // duty stations first; live-play steering overrides below
   stateStep(dt);
@@ -2249,7 +2150,7 @@ function startDriver() {
       const steps = Math.min(Math.floor((now - lastFire)/50), 20);
       if (steps <= 0) return;
       lastFire = now;
-      prevT = now; // so foreground resume doesn't inherit a huge delta
+      prevT = now; // so a foreground return does not inherit a huge delta
       for (let i = 0; i < steps; i++) tick(0.05, i < steps - 1);
     }, 50);
   } else { prevT = performance.now(); rafLoop(prevT); }
@@ -2264,28 +2165,7 @@ function resizeScene() {
   renderer.setSize(innerWidth, innerHeight);
   composer.setSize(innerWidth, innerHeight);
 }
-function togglePause(){ paused=!paused; elPauseBtn.textContent=paused?'▶':'P'; hudStep(); }
-function rematch(){ paused=false; elPauseBtn.textContent='P'; setupMatch(); hudStep(); }
-async function toggleFullscreen(){
-  try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }
-  catch(e) { say('FULLSCREEN IS UNAVAILABLE IN THIS BROWSER'); }
-}
-elPauseBtn.addEventListener('click',e=>{e.stopPropagation();togglePause();});
-elRematchBtn.addEventListener('click',e=>{e.stopPropagation();rematch();});
-elFullBtn.addEventListener('click',e=>{e.stopPropagation();toggleFullscreen();});
 addEventListener('resize',resizeScene);
-document.addEventListener('fullscreenchange',()=>{ resizeScene(); elFullBtn.textContent=document.fullscreenElement?'×':'F'; });
-addEventListener('keydown',e=>{
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  const k=e.key.toLowerCase();
-  if (k==='p') { e.preventDefault(); togglePause(); }
-  else if (k==='r') { e.preventDefault(); rematch(); }
-  else if (k==='f') { e.preventDefault(); toggleFullscreen(); }
-  else if (e.key==='Escape') {
-    if (document.fullscreenElement) { e.preventDefault(); document.exitFullscreen(); }
-    else location.href='world.html';
-  }
-});
 </script>
 <script src="gamehub.js"></script>
 </body>

@@ -106,15 +106,7 @@
 
   #vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,10,.55) 100%); }
   #scanlines { position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px); mix-blend-mode:overlay; }
-  #watermark { position:absolute; bottom:50px; right:162px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(255,150,165,.45); }
-  #soundpill { position:absolute; bottom:46px; left:18px; font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px; color:#ff9aa9; border:1px solid rgba(255,61,90,.35); padding:4px 12px; border-radius:99px; background:rgba(4,8,20,.7); }
-  #controls { position:absolute; bottom:44px; right:18px; display:flex; gap:6px; pointer-events:auto; }
-  #controls button {
-    min-width:36px; height:28px; padding:0 9px; border-radius:999px; cursor:pointer;
-    font-family:'Orbitron'; font-weight:700; font-size:9px; letter-spacing:1px; color:#ffc1cb;
-    border:1px solid rgba(255,61,90,.34); background:rgba(4,8,20,.76);
-  }
-  #controls button:hover, #controls button:focus-visible { color:#fff; border-color:#ff6f85; outline:none; box-shadow:0 0 14px rgba(255,61,90,.36); }
+  #watermark { position:absolute; bottom:50px; right:18px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(255,150,165,.45); }
 
   #fightread {
     position:absolute; left:50%; bottom:45px; transform:translateX(-50%); width:min(560px,48vw);
@@ -228,18 +220,9 @@
     }
     #tickerlabel { padding:0 10px; font-size:10px; letter-spacing:2px; }
     #tickertext { font-size:13px; letter-spacing:.6px; }
-    #soundpill {
-      left:10px; right:10px; bottom:calc(42px + env(safe-area-inset-bottom, 0px)); z-index:66;
-      min-height:30px; display:flex; align-items:center; justify-content:center;
-      padding:6px 10px; font-size:11px; letter-spacing:1.3px;
-      background:rgba(4,8,20,.82); box-shadow:0 8px 22px rgba(0,0,0,.35);
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
-    #controls { right:10px; bottom:calc(79px + env(safe-area-inset-bottom, 0px)); z-index:67; gap:4px; }
-    #controls button { min-width:32px; height:27px; padding:0 8px; font-size:8px; background:rgba(4,8,20,.84); }
     #watermark { display:none; }
     #fightread {
-      left:10px; right:10px; bottom:calc(113px + env(safe-area-inset-bottom, 0px)); transform:none; width:auto; z-index:64;
+      left:10px; right:10px; bottom:calc(43px + env(safe-area-inset-bottom, 0px)); transform:none; width:auto; z-index:64;
       grid-template-columns:1fr auto 1fr; gap:6px; padding:6px 9px; background:rgba(4,8,20,.86);
     }
     .readside { font-size:8px; letter-spacing:.65px; }
@@ -259,14 +242,12 @@
     .barlbl { font-size:8.5px; letter-spacing:.7px; }
     #tickerlabel { padding:0 8px; font-size:9px; letter-spacing:1.2px; }
     #tickertext { font-size:12px; }
-    #soundpill { left:8px; right:8px; font-size:10px; letter-spacing:1px; }
   }
   @media (max-width:700px) and (max-height:720px) {
     #roundwrap { top:calc(env(safe-area-inset-top, 0px) + 50px); }
     .fpanel { top:calc(env(safe-area-inset-top, 0px) + 94px); padding-top:8px; padding-bottom:8px; }
     .barlbl { margin-top:4px; }
     #banner { bottom:calc(72px + env(safe-area-inset-bottom, 0px)); }
-    #soundpill { bottom:calc(39px + env(safe-area-inset-bottom, 0px)); }
   }
 </style>
 </head>
@@ -304,9 +285,7 @@
   <div id="banner"><div id="bannername"></div><div id="bannersub"></div></div>
   <div id="ticker"><div id="tickerlabel">FIGHT NIGHT</div><div id="tickertext"></div></div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
-  <div id="soundpill">&#128266; CLICK ANYWHERE FOR SOUND</div>
   <div id="fightread"><div class="readside" id="readA">SETTING RANGE</div><div id="rangechip">OUTSIDE</div><div class="readside" id="readB">SETTING RANGE</div></div>
-  <div id="controls" aria-label="Fight controls"><button id="pausebtn" type="button" title="Pause or resume (P)">P</button><button id="rematchbtn" type="button" title="Start a new bout (R)">R</button><button id="fullbtn" type="button" title="Toggle fullscreen (F)">F</button></div>
   <div id="vignette"></div><div id="scanlines"></div>
   <div id="watermark">CYBERLIGA FIGHT NIGHT</div>
 </div>
@@ -603,21 +582,10 @@ const impactFlash = new THREE.Sprite(new THREE.SpriteMaterial({ map:dotTex, colo
 scene.add(impactFlash);
 let impactT = 0;
 
-// ============ AUDIO (WebAudio synth — armed on first click) ============
+// ============ AUDIO ============
+// View-only broadcasts never wait for or install an activation gesture. Keep
+// the optional synth dormant so simulation timing is wholly autonomous.
 let AC = null, crowdGain = null, crowdLevel = 0.05, thudCd = 0;
-addEventListener('pointerdown', () => {
-  if (AC) return;
-  AC = new (window.AudioContext || window.webkitAudioContext)();
-  const master = AC.createGain(); master.gain.value = 0.6; master.connect(AC.destination); AC._m = master;
-  const len = AC.sampleRate * 1.5, buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = Math.random()*2 - 1;
-  AC._noise = buf;
-  const src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
-  const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 300; bp.Q.value = 0.5;
-  crowdGain = AC.createGain(); crowdGain.gain.value = 0;
-  src.connect(bp); bp.connect(crowdGain); crowdGain.connect(master); src.start();
-  document.getElementById('soundpill').style.display = 'none';
-}, { once: true });
 function noiseBurst(filterType, freq, dur, peak) {
   if (!AC) return;
   const t = AC.currentTime, src = AC.createBufferSource(); src.buffer = AC._noise;
@@ -664,7 +632,7 @@ function koHorn() {
 // ============ HUD / TICKER / COMMENTARY ============
 const el = id => document.getElementById(id);
 const elRound = el('round'), elClock = el('clock');
-const elPlayStatus=el('playstatus'), elPauseBtn=el('pausebtn'), elRematchBtn=el('rematchbtn'), elFullBtn=el('fullbtn');
+const elPlayStatus=el('playstatus');
 const elFlash = el('flash'), elFlashText = el('flashtext'), elFlashSub = el('flashsub');
 const elCount = el('count'), elBanner = el('banner'), elBannerName = el('bannername'), elBannerSub = el('bannersub');
 const elTicker = el('tickertext'), elCard = el('bigcard'), elPanel = el('cardpanel');
@@ -869,7 +837,6 @@ const S = {
   slowmo: 0, noAction: 0, fightT: 0, winner: null, method: '', cardShown: false, clinchT: 0,
   clipMoment:'', clipT:0, clips:[], roundStats:[], cards:null, seed:0,
 };
-let paused=false;
 function recordClip(label,dur=3.5){ S.clipMoment=label; S.clipT=dur; S.clips.push({label,round:S.round,clock:+S.clock.toFixed(1)}); if(S.clips.length>10)S.clips.shift(); }
 function setState(s) { S.state = s; S.t = 0; }
 let punchHeat = 0, shake = 0, camCut = false;
@@ -1916,8 +1883,7 @@ function hudStep() {
   const read=f=>f.act==='strike'?`${f.strikeK} → ${f.targetZone.toUpperCase()}`:f.act==='block'?f.guardType:f.act==='dodge'?'SLIP · COUNTER ARMED':f.recovT>0?'RECOVERING · OPEN':f.stam<25?'GAS CRITICAL':f.cornerNote;
   el('readA').textContent=read(fighters[0]); el('readB').textContent=read(fighters[1]);
   let status='CARD LOADING', hot=false;
-  if (paused) status='PAUSED · P TO RESUME';
-  else if (S.state==='WALKON') status=`WALKOUT · ${fighters[Math.min(S.walkIdx,1)].name}`;
+  if (S.state==='WALKON') status=`WALKOUT · ${fighters[Math.min(S.walkIdx,1)].name}`;
   else if (S.state==='INTRO') status='STAREDOWN · BELL IMMINENT';
   else if (S.state==='FIGHT') {
     const d=Math.hypot(fighters[0].x-fighters[1].x,fighters[0].z-fighters[1].z);
@@ -1932,7 +1898,7 @@ function hudStep() {
   else if (S.state==='ROUND_END') status='BETWEEN ROUNDS · CORNERS';
   else if (S.state==='KO_SEQ') { status=`${S.method} · ${S.winner ? S.winner.name : 'WINNER'}`; hot=true; }
   else if (S.state==='DECISION') status=S.method ? `${S.method} · ${S.winner ? S.winner.name : 'DRAW'}` : 'JUDGES SCORING';
-  if (!paused && S.clipT>0 && S.clipMoment) { status=S.clipMoment; hot=true; }
+  if (S.clipT>0 && S.clipMoment) { status=S.clipMoment; hot=true; }
   elPlayStatus.textContent=status; elPlayStatus.classList.toggle('hot',hot);
 }
 
@@ -1943,8 +1909,8 @@ function fightSnapshot() {
   const [nextA,nextB]=FIXTURES[(fixtureIdx+1)%FIXTURES.length];
   return {
     note: 'Coordinates are ring-space x/z meters with origin at center ring; fighters enter from -x/+x tunnels.',
-    paused, fullscreen:!!document.fullscreenElement,
-    controls:{pause:'P',rematch:'R',fullscreen:'F',exit:'Escape'},
+    autonomous:true,
+    interaction:'view-only',
     deterministicSeed:S.seed,
     tuneIn:{...fightTuneMeta},
     fixture:{index:fixtureIdx,total:FIXTURES.length,clubs:fighters.map(f=>f.club.name),next:[LEAGUE_TEAMS[nextA].name,LEAGUE_TEAMS[nextB].name]},
@@ -2026,7 +1992,6 @@ window._fightTest={
   fresh(){setupCard();fightTuneMeta.mode='forced-fresh';fightTuneMeta.targetOffsetSeconds=0;fightTuneMeta.offsetSeconds=0;fightTuneMeta.entryState='WALKON';fightTuneMeta.round=1;fightTuneMeta.clock=ROUND_LEN;return fightSnapshot();}
 };
 function tick(dt, skipRender = false) {
-  if (paused) { if (!skipRender) { hudStep(); composer.render(); } return; }
   simClockTotal += dt;
   const simDt = S.slowmo > 0 ? dt*0.24 : dt;   // slow-mo on knockdowns / the final blow
   S.slowmo = Math.max(0, S.slowmo - dt);
@@ -2068,7 +2033,7 @@ function startDriver() {
       const steps = Math.min(Math.floor((now - lastFire)/50), 20);
       if (steps <= 0) return;
       lastFire = now;
-      prevT = now; // so foreground resume doesn't inherit a huge delta
+      prevT = now; // so a foreground return does not inherit a huge delta
       for (let i = 0; i < steps; i++) tick(0.05, i < steps - 1);
     }, 50);
   } else { prevT = performance.now(); rafLoop(prevT); }
@@ -2083,29 +2048,8 @@ function resizeScene() {
   renderer.setSize(innerWidth, innerHeight);
   composer.setSize(innerWidth, innerHeight);
 }
-function togglePause(){ paused=!paused; elPauseBtn.textContent=paused?'▶':'P'; hudStep(); }
-function rematch(){ paused=false; elPauseBtn.textContent='P'; setupCard(); hudStep(); }
-async function toggleFullscreen(){
-  try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }
-  catch(e) { say('FULLSCREEN IS UNAVAILABLE IN THIS BROWSER',true); }
-}
-elPauseBtn.addEventListener('click',e=>{e.stopPropagation();togglePause();});
-elRematchBtn.addEventListener('click',e=>{e.stopPropagation();rematch();});
-elFullBtn.addEventListener('click',e=>{e.stopPropagation();toggleFullscreen();});
 addEventListener('resize',resizeScene);
 resizeScene();
-document.addEventListener('fullscreenchange',()=>{ resizeScene(); elFullBtn.textContent=document.fullscreenElement?'×':'F'; });
-addEventListener('keydown',e=>{
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  const k=e.key.toLowerCase();
-  if (k==='p') { e.preventDefault(); togglePause(); }
-  else if (k==='r') { e.preventDefault(); rematch(); }
-  else if (k==='f') { e.preventDefault(); toggleFullscreen(); }
-  else if (e.key==='Escape') {
-    if (document.fullscreenElement) { e.preventDefault(); document.exitFullscreen(); }
-    else location.href='world.html';
-  }
-});
 </script>
 <script src="gamehub.js"></script>
 </body>

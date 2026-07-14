@@ -122,21 +122,6 @@
   #bigcard th, #bigcard td { padding:5px 10px; text-align:center; border-bottom:1px solid rgba(255,255,255,.08); }
   #bigcard th { color:#6fe3ff; font-size:11px; letter-spacing:2px; }
   #bigcard td.tname { text-align:left; font-weight:700; }
-  /* FT share-poster button (appended to the FT card by attachPosterButton).
-     pointer-events:auto re-arms clicks under #hud's pointer-events:none — same
-     pattern as #leaguepill. */
-  #posterbtn {
-    pointer-events:auto; cursor:pointer; margin-top:18px;
-    font-family:'Rajdhani', sans-serif; font-weight:700; font-size:13px; letter-spacing:3px;
-    color:#7ef0ff; background:rgba(0,229,255,.06);
-    border:1px solid rgba(0,229,255,.35); border-radius:6px; padding:10px 24px;
-    transition:color .15s, border-color .15s, background .15s, box-shadow .15s;
-  }
-  #posterbtn:hover { color:#fff; background:rgba(0,229,255,.16); border-color:rgba(0,229,255,.8); box-shadow:0 0 18px rgba(0,229,255,.4); }
-  #posterbtn:disabled { opacity:.55; cursor:default; box-shadow:none; }
-
-  /* Sound pill */
-  #soundpill { position:absolute; bottom:46px; left:18px; font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px; color:#7ef0ff; border:1px solid rgba(0,229,255,.35); padding:4px 12px; border-radius:99px; background:rgba(4,8,20,.7); }
   /* Momentum bar — thin team-color blend under the scoreboard */
   #momentum {
     position:absolute; top:71px; left:50%; transform:translateX(-50%);
@@ -292,12 +277,6 @@
     #ticker { height:34px; }
     #tickerlabel { padding:0 10px; font-size:10px; letter-spacing:2px; }
     #tickertext { font-size:13px; letter-spacing:.6px; }
-    #soundpill {
-      left:10px; right:10px; bottom:84px;
-      display:flex; justify-content:center;
-      padding:6px 10px; font-size:11px; letter-spacing:1.4px;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
     #watermark { display:none; }
   }
   @media (max-width: 390px) {
@@ -316,10 +295,6 @@
   #scanlines { opacity:.62; }
   @media (max-width:700px) {
     #clockwrap { top:calc(env(safe-area-inset-top, 0px) + 102px); }
-    #soundpill {
-      left:10px; right:auto; bottom:44px; width:auto;
-      min-height:30px; padding:5px 10px; font-size:10px; letter-spacing:1.1px;
-    }
     #broadcasttag { top:auto; right:10px; bottom:82px; font-size:8px; }
   }
 </style>
@@ -344,7 +319,6 @@
   <div id="ticker"><div id="tickerlabel">CYBERLIGA</div><div id="tickertext">WELCOME TO THE CYBERLIGA SOCCER ARENA — EIGHT CLUBS · FOUR LIVE CHANNELS · ONE SHARED TIMELINE — NO HUMANS WERE CONSULTED IN THE MAKING OF THESE TACTICS — SEASON ZERO —</div></div>
   <div id="replaytag">◉ REPLAY</div>
   <div id="bigcard"><div class="panel" id="cardpanel"></div></div>
-  <div id="soundpill">🔊 CLICK ANYWHERE FOR SOUND</div>
   <div id="lineup"><div class="panel" id="lineuppanel"></div></div>
   <div id="vignette"></div><div id="scanlines"></div>
   <div id="watermark">CYBERLIGA SOCCER</div>
@@ -384,7 +358,8 @@ if (window.CyberligaLiveBridge) {
   window.CyberligaLiveBridge.start({
     leagueId: 'soccer',
     matchId: LIVE_BROADCAST ? LIVE_BROADCAST.id : 'soccer-local-preview',
-    page: 'live-soccer'
+    page: 'live-soccer',
+    clubLeanInput: false
   });
 }
 if (LIVE_BROADCAST) Math.random = UNIVERSE.seededRandom(LIVE_BROADCAST.seed);
@@ -393,19 +368,6 @@ const story = createStoryEngine();
 // Public soccer is blobs-only until a genuinely ownable character language exists.
 // The rejected humanoid experiments remain in Git history, not in the product surface.
 const buildRig = buildBlobRig;
-addEventListener('keydown', e => {
-  // Escape backs out to the league hub
-  if (e.key === 'Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-    location.href = 'world.html';
-    return;
-  }
-  if (e.key === 'p' || e.key === 'P') {
-    const card = document.getElementById('bigcard'), panel = document.getElementById('cardpanel');
-    if (card.classList.contains('show')) { card.classList.remove('show'); }
-    else { panel.innerHTML = story.leagueWrapHTML(TEAM_A.name, TEAM_B.name); card.classList.add('show'); }
-    return;
-  }
-});
 
 // ============ CONSTANTS ============
 const FIELD_W = 64, FIELD_H = 40;          // pitch dims (x = length, z = width)
@@ -3329,25 +3291,8 @@ function animatePlayers(dt, t) {
   }
 }
 
-// ============ AUDIO (fully synthesized — no asset files) ============
+// ============ AUDIO EVENT SHAPES (disabled in the view-only broadcast) ============
 let AC = null, masterGain = null, crowdGain = null, roarUntil = 0;
-function initAudio() {
-  if (AC) return;
-  AC = new (window.AudioContext || window.webkitAudioContext)();
-  masterGain = AC.createGain(); masterGain.gain.value = 0.9; masterGain.connect(AC.destination);
-  // crowd bed: looped noise through a bandpass — gain rides the excitement level
-  const len = AC.sampleRate * 2;
-  const buf = AC.createBuffer(1, len, AC.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = Math.random()*2 - 1;
-  const src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
-  const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 700; bp.Q.value = 0.6;
-  crowdGain = AC.createGain(); crowdGain.gain.value = 0.05;
-  src.connect(bp); bp.connect(crowdGain); crowdGain.connect(masterGain);
-  src.start();
-  const pill = document.getElementById('soundpill'); if (pill) pill.remove();
-}
-addEventListener('pointerdown', initAudio, { once: true });
 
 function thump(power) { // ball contact — pitch and volume scale with kick power
   if (!AC) return;
@@ -3530,9 +3475,8 @@ function stopForBreak() {
 }
 
 // ============ FULL-TIME SHARE POSTER ============
-// The shareable artifact: a 1080×1350 (4:5) PNG match poster rendered on an offscreen
-// 2D canvas, built LAZILY when the FT-card button is clicked — full time itself stays
-// cheap. Palette mirrors the hub's broadcast-editorial system (league.css tokens: ink
+// The QA poster hook renders a 1080×1350 (4:5) PNG on an offscreen 2D canvas. It is not
+// exposed in the view-only broadcast UI. Palette mirrors the hub's editorial system (ink
 // #08090c, text #e9edf4, muted #98a1b3, hairlines at .09–.18 white) but uses the font
 // families THIS document loads (Orbitron/Rajdhani) — canvas can only draw document
 // fonts, so the hub's Archivo/Barlow stay in the hub. Output is a data URL (no object
@@ -3734,37 +3678,6 @@ async function buildMatchPoster(snap) {
   return c.toDataURL('image/png');
 }
 
-// the button lives on the FT card; the next showCard() overwrite removes it naturally.
-// Snapshot is bound at the whistle, so a click that races the 11s card timeout still
-// renders the finished match. href is a data URL — nothing to revoke afterwards.
-function attachPosterButton(snap) {
-  const btn = document.createElement('button');
-  btn.id = 'posterbtn';
-  btn.type = 'button';
-  btn.textContent = '⤓ SAVE MATCH POSTER';
-  btn.addEventListener('click', async () => {
-    if (btn.disabled) return;
-    btn.disabled = true;
-    btn.textContent = 'RENDERING…';
-    try {
-      const url = await buildMatchPoster(snap);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `CYBERLIGA_${snap.teamA.name.replace(/\s+/g, '-')}_${snap.scoreA}-${snap.scoreB}_${snap.teamB.name.replace(/\s+/g, '-')}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      btn.textContent = '✓ POSTER SAVED';
-      setTimeout(() => { btn.textContent = '⤓ SAVE MATCH POSTER'; btn.disabled = false; }, 1600);
-    } catch (e) {
-      console.warn('match poster failed', e);
-      btn.textContent = '⤓ SAVE MATCH POSTER';
-      btn.disabled = false;
-    }
-  });
-  elPanel.appendChild(btn);
-}
-
 function finishMatch() {
   whistle(3);
   stopForBreak();
@@ -3790,7 +3703,6 @@ function finishMatch() {
     }
   }
   showCard('FULL TIME', `${TEAM_A.name} ${state.scoreA} — ${state.scoreB} ${TEAM_B.name}`, true);
-  attachPosterButton(posterSnapshot()); // ⤓ SAVE MATCH POSTER — the share artifact (lazy render on click)
   commentate(`FULL TIME: ${TEAM_A.name} ${state.scoreA}-${state.scoreB} ${TEAM_B.name}`, true);
   state.mode = 'fulltime'; state.modeT = 0; state.ritual='final';
   benchReaction('goal',state.scoreA===state.scoreB?null:(state.scoreA>state.scoreB?TEAM_A:TEAM_B),5.5);
@@ -4385,6 +4297,8 @@ window.CL = { state, ball, players, goalScored, ref, beginFoul, sendOff, markInj
   stats, replaySys, buildMatchPoster, posterSnapshot };
 window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'pitch center is 0,0; +x attacks toward the right goal; +z points toward the near touchline',
+  autonomous: true,
+  interaction: 'view-only',
   broadcast: LIVE_BROADCAST ? { id: LIVE_BROADCAST.id, round: LIVE_BROADCAST.round, channel: LIVE_BROADCAST.channel } : null,
   mode: state.mode,
   clock: Math.round(state.clock * 10) / 10,
