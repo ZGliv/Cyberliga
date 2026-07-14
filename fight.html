@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" href="data:," />
 <title>CYBERLIGA FIGHT NIGHT — AUTONOMOUS AI FIGHTING</title>
+<script src="watchonly.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -499,6 +500,27 @@ addStand(46, 0, 16, Math.PI);
 addStand(34, -17, 0, Math.PI/2);
 addStand(34, 17, 0, -Math.PI/2);
 
+// Readable lower bowl: actual silhouettes close to the ring, not only a flat crowd texture.
+const lowerCrowd=new THREE.Group();scene.add(lowerCrowd);
+let crowdBodies=null,crowdHeads=null;
+{
+  const N=320,bodyGeo=new THREE.CapsuleGeometry(.14,.28,3,6),headGeo=new THREE.SphereGeometry(.17,6,5);
+  crowdBodies=new THREE.InstancedMesh(bodyGeo,new THREE.MeshBasicMaterial({color:0xffffff}),N);
+  crowdHeads=new THREE.InstancedMesh(headGeo,new THREE.MeshBasicMaterial({color:0xffffff}),N);
+  const m=new THREE.Matrix4(),col=new THREE.Color();
+  for(let i=0;i<N;i++){
+    const side=i%4,row=Math.floor(i/4)%4,k=Math.floor(i/16),along=-10.8+k*1.12+(Math.random()-.5)*.3;
+    const depth=7.5+row*1.05+(Math.random()-.5)*.18,y=1.35+row*.62+Math.random()*.1;
+    const x=side<2?along:(side===2?-depth:depth),z=side<2?(side===0?-depth:depth):along;
+    m.makeScale(1,1.05+Math.random()*.3,1);m.setPosition(x,y,z);crowdBodies.setMatrixAt(i,m);
+    m.makeScale(1,1,1);m.setPosition(x,y+.43,z);crowdHeads.setMatrixAt(i,m);
+    col.setHSL(.62+Math.random()*.08,.18,.08+Math.random()*.06);crowdBodies.setColorAt(i,col);crowdHeads.setColorAt(i,col.clone().offsetHSL(0,-.08,.16));
+  }
+  crowdBodies.instanceMatrix.needsUpdate=crowdHeads.instanceMatrix.needsUpdate=true;
+  crowdBodies.instanceColor.needsUpdate=crowdHeads.instanceColor.needsUpdate=true;
+  lowerCrowd.add(crowdBodies,crowdHeads);
+}
+
 function softDot() {
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const g = c.getContext('2d');
@@ -546,6 +568,9 @@ const impactFlash = new THREE.Sprite(new THREE.SpriteMaterial({ map:dotTex, colo
   transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false }));
 scene.add(impactFlash);
 let impactT = 0;
+const rangeLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineDashedMaterial({color:0x6c829f,transparent:true,opacity:.52,dashSize:.18,gapSize:.14,depthWrite:false}));
+rangeLine.position.y=RING_Y+.045;rangeLine.computeLineDistances();scene.add(rangeLine);
+const intentRings=[0,1].map(()=>{const m=new THREE.Mesh(new THREE.RingGeometry(.5,.62,28),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.58,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));m.rotation.x=-Math.PI/2;m.position.y=RING_Y+.052;scene.add(m);return m;});
 
 // ============ AUDIO (WebAudio synth — armed on first click) ============
 let AC = null, crowdGain = null, crowdLevel = 0.05, thudCd = 0;
@@ -677,7 +702,7 @@ const STYLE_BOOK = [
    plans:['BREAK THE GUARD · HOOK','STEP THROUGH · HEAD/BODY','ROPE THEM · DETONATE']}
 ];
 function styleFor(name){ return STYLE_BOOK[hashText(name)%STYLE_BOOK.length]; }
-function roundStat(){ return {landed:0,head:0,body:0,blocked:0,missed:0,counters:0,clinch:0,damage:0}; }
+function roundStat(){ return {landed:0,head:0,body:0,jabs:0,feints:0,setups:0,blocked:0,missed:0,counters:0,clinch:0,exits:0,center:0,pressure:0,defense:0,clean:0,power:0,damage:0}; }
 
 // ============ ARMS — page-local articulated assemblies bolted onto the blob rig ============
 // shoulder pivot → upper-arm capsule → elbow pivot → forearm capsule → oversized glove sphere.
@@ -772,7 +797,7 @@ function mkFighter(side, clubIdx) {
     reachPref: style.range/2.05,
     act: 'move', actT: 0, strike: null, strikeK: 0, strikeDone: false,
     strikeArm: 'L', strikeDur: 0.4, strikeLanded: false, comboQ: null, targetZone: 'head',
-    feintArm: 'L', slipDir: 1,
+    feintArm: 'L', slipDir: 1, guardFocus:'head',
     openT: 0, counterT: 0, recovT: 0, armJolt: 0, headSnap: 0, bodyShot: 0, hitSide: 0, hitStun: 0.32,
     torsoShock: 0, walkPh: frand()*6,
     twistCur: 0,
@@ -780,7 +805,11 @@ function mkFighter(side, clubIdx) {
     decT: 0.4 + frand()*0.6, circ: frand() < 0.5 ? 1 : -1, wantDist: style.range,
     downs: 0, invulnT: 0, comboN: 0, comboT: 0, gasSaid: false,
     lastStand: false, surgeT: 0, cut:0, swelling:0, landed:0, headLanded:0, bodyLanded:0, counters:0,
+    baseAggr:0,paceMod:1,bodyBias:style.body,risk:1,setupT:0,bodyOpenT:0,feintRead:0,countering:false,
+    attackQuality:0,lastOutcome:'SETTING RANGE',intent:'READ THE FEET',comboName:'',clinchIntent:false,
+    headDamage:0,bodyDamage:0,legs:100,resolve:100,centerTime:0,ropeTime:0,successfulExits:0,
   };
+  fighter.baseAggr=fighter.aggr;
   const scale=style.id==='BRAWLER'?1.1:style.id==='OUTBOXER'?.94:style.id==='PRESSURE'?1.04:1;
   fighter.rig.group.scale.set(scale,style.id==='OUTBOXER'?1.05:1,scale);
   fighter.kit.chest.scale.x*=style.id==='BRAWLER'?1.16:style.id==='OUTBOXER'?.92:1;
@@ -800,6 +829,7 @@ const S = {
   walkIdx: 0, count: 0, countT: 0, downF: null, getUpAt: 11, threeKD: false,
   slowmo: 0, noAction: 0, fightT: 0, winner: null, method: '', cardShown: false, clinchT: 0,
   clipMoment:'', clipT:0, clips:[], roundStats:[], cards:null, seed:0,
+  lastImpact:null,exchangeNo:0,clinchOwner:null,roundEdge:[0,0],judgeDetail:[],completedBouts:0,
 };
 let paused=false;
 function recordClip(label,dur=3.5){ S.clipMoment=label; S.clipT=dur; S.clips.push({label,round:S.round,clock:+S.clock.toFixed(1)}); if(S.clips.length>10)S.clips.shift(); }
@@ -822,6 +852,7 @@ function applyFighterHUD() {
   postMats[0].color.set(A.club.kit); postMats[0].emissive.set(A.club.kit);
   postMats[2].color.set(B.club.kit); postMats[2].emissive.set(B.club.kit);
   cornerSpots[0].color.set(A.club.glow); cornerSpots[1].color.set(B.club.glow);
+  if(crowdBodies&&crowdHeads){const c=new THREE.Color();for(let i=0;i<crowdBodies.count;i++){const f=i%2?A:B;c.setHex(f.club.kit).offsetHSL(0,-.08,-.22+(i%7)*.015);crowdBodies.setColorAt(i,c);crowdHeads.setColorAt(i,c.clone().offsetHSL(0,-.04,.18));}crowdBodies.instanceColor.needsUpdate=crowdHeads.instanceColor.needsUpdate=true;}
 }
 function setupCard() {
   for (const f of fighters) { scene.remove(f.rig.group); f.rig.dispose(); }
@@ -840,6 +871,7 @@ function setupCard() {
   S.round = 1; S.clock = ROUND_LEN; S.roundDmg = [[0,0]]; S.kdRound = [[0,0]]; S.roundStats=[[roundStat(),roundStat()]]; S.cards=null;
   S.walkIdx = 0; S.downF = null; S.slowmo = 0; S.noAction = 0; S.fightT = 0;
   S.winner = null; S.method = ''; S.cardShown = false; S.clinchT = 0; S.threeKD = false;
+  S.lastImpact=null;S.exchangeNo=0;S.clinchOwner=null;S.roundEdge=[0,0];S.judgeDetail=[];
   S.clipMoment=''; S.clipT=0; S.clips=[];
   punchHeat = 0;
   applyFighterHUD();
@@ -858,17 +890,23 @@ const leadArm=f=>(f.side===0) === (f.stance!=='SOUTHPAW') ? 'L':'R';
 const rearArm=f=>leadArm(f)==='L'?'R':'L';
 function startStrike(f, kindKey) {
   const k = STRIKES[kindKey];
+  const o=opp(f),dx=o.x-f.x,dz=o.z-f.z,d=Math.hypot(dx,dz)||1e-6;
   f.act = 'strike'; f.actT = 0; f.strike = k; f.strikeK = kindKey;
   f.strikeDone = false; f.strikeLanded = false;
   f.targetZone = k.zone || 'head';
+  f.countering=o.recovT>0||o.act==='stun'||f.counterT>0;
+  const rangeRead=clamp(1-Math.abs(d-(k.reach-.18))/.95,0,1),setup=clamp(f.setupT/1.8+f.feintRead*.65+f.bodyOpenT*.18,0,1);
+  f.attackQuality=clamp(.18+rangeRead*.46+setup*.27+(f.stam/100)*.12+(f.countering?.14:0)-(k.heavy&&setup<.25?.12:0),.08,.96);
+  f.intent=f.countering?`COUNTER ${kindKey} · WINDOW OPEN`:kindKey==='JAB'?'JAB · BUILD THE ENTRY':f.targetZone==='body'?`${kindKey} · TAX THE GAS`:`${kindKey} · ${setup>.45?'SETUP READY':'RAW COMMITMENT'}`;
+  if(kindKey!=='JAB'){f.setupT=Math.max(0,f.setupT-.8);f.feintRead=Math.max(0,f.feintRead-.65);}
   // lead hand jabs, rear hand crosses/uppercuts, hooks come from either side
   f.strikeArm = kindKey === 'JAB' ? leadArm(f)
               : (kindKey === 'HOOK' || kindKey === 'BODY') ? (frand() < 0.5 ? 'L' : 'R')
               : rearArm(f);
   f.strikeDur = k.dur * (1 + (1 - f.stam/100)*0.4);   // tired punches travel slower
   f.stam = Math.max(0, f.stam - k.stam);
-  const o = opp(f), dx = o.x - f.x, dz = o.z - f.z, d = Math.hypot(dx, dz) || 1e-6;
-  f.vx += dx/d * k.lunge; f.vz += dz/d * k.lunge;  // lunge into it
+  const lunge=k.lunge*clamp((d-k.reach+.7)/.8,.55,1.15);
+  f.vx += dx/d * lunge; f.vz += dz/d * lunge;  // lunge into it
   S.noAction = 0;
 }
 function startFeint(f) {
@@ -876,9 +914,13 @@ function startFeint(f) {
   f.act = 'feint'; f.actT = 0; f.feintArm = frand() < 0.62 ? leadArm(f) : rearArm(f);
   f.stam = Math.max(0, f.stam - 1.2);
   f.decT = 0.18 + frand()*0.18;
+  const rs=S.roundStats[S.round-1]?.[f.side];if(rs)rs.feints++;
+  f.intent='FEINT · READ THE REACTION';f.lastOutcome='SHOWING THE LEAD HAND';
   if (o.act === 'move' && Math.hypot(o.x - f.x, o.z - f.z) < 2.45) {
-    if (frand() < o.blockTend*0.22) { o.act = 'block'; o.actT = 0; o.decT = 0.35; o.openT = Math.max(o.openT, 0.65); }
-    else if (frand() < o.slipTend*0.08) { o.act = 'dodge'; o.actT = 0; o.slipDir = -o.circ; o.openT = Math.max(o.openT, 0.35); }
+    const bite=clamp(.16+o.blockTend*.1+(o.stam<35?.1:0)-(o.style.id==='COUNTER'?.08:0),.1,.42);
+    if (frand() < bite) { o.act = 'block'; o.actT = 0; o.decT = 0.35; o.openT = Math.max(o.openT, 0.75);o.guardFocus=frand()<.75?'head':'body';f.feintRead=1;f.setupT=Math.max(f.setupT,1.5);f.lastOutcome=`${o.name} BITES · ${o.guardFocus.toUpperCase()} GUARD`;if(rs)rs.setups++; }
+    else if (frand() < o.slipTend*0.08) { o.act = 'dodge'; o.actT = 0; o.slipDir = -o.circ; o.openT = Math.max(o.openT, 0.35);f.feintRead=.65;f.setupT=Math.max(f.setupT,1);f.lastOutcome=`${o.name} SHOWS THE EXIT`;if(rs)rs.setups++; }
+    else f.lastOutcome=`${o.name} DOES NOT BITE`;
   }
   if (frand() < 0.45) say(fill(pick(COMM.feint), f.name, o.name));
 }
@@ -898,47 +940,55 @@ function strikeGlovePos(f, out) {
 }
 function resolveStrike(f) {
   const k = f.strike, o = opp(f);
-  const miss=()=>{const rs=S.roundStats[S.round-1]&&S.roundStats[S.round-1][f.side];if(rs)rs.missed++;};
+  const miss=(reason='MISS')=>{const rs=S.roundStats[S.round-1]&&S.roundStats[S.round-1][f.side];if(rs)rs.missed++;f.lastOutcome=reason;S.lastImpact={exchange:++S.exchangeNo,attacker:f.name,strike:f.strikeK,target:f.targetZone,outcome:reason,quality:+f.attackQuality.toFixed(2),range:+Math.hypot(o.x-f.x,o.z-f.z).toFixed(2),damage:0};};
   if (S.state !== 'FIGHT') { whiff(); miss(); return; } // nothing lands after the bell — keeps the state machine clean
   const d = Math.hypot(o.x - f.x, o.z - f.z);
   const rangeFit = clamp((k.reach + 0.32 - d) / 0.78, 0, 1);
-  if (d > k.reach + 0.32 || o.invulnT > 0 || o.act === 'down' || o.act === 'getup') { whiff(); miss(); return; }
+  if (d > k.reach + 0.32 || o.invulnT > 0 || o.act === 'down' || o.act === 'getup') { whiff(); miss('OUT OF RANGE'); return; }
+  if(f.attackQuality<.31&&frand()>f.attackQuality+.28){whiff();miss('POOR ENTRY · SHORT');return;}
   const stamF = o.stam / 100;
   const bodyShot = f.targetZone === 'body' || k.zone === 'body';
   // mid-slip: early window dodges clean and arms a counter; late window = caught recovering
   let caughtSlipping = false;
   if (o.act === 'dodge') {
     if (!bodyShot && o.actT < 0.26) {
-      whiff(); miss(); say(fill(pick(COMM.dodge), f.name, o.name));
+      whiff(); miss('SLIPPED CLEAN'); say(fill(pick(COMM.dodge), f.name, o.name));
       o.counterT = 0.9; f.comboN = 0; f.comboQ = null;
+      S.roundStats[S.round-1][o.side].defense++;
       return;
     }
     caughtSlipping = true;
   }
   const stunned = o.act === 'stun';
   // fresh slip attempt — head movement is a read, not a coin flip: style + stamina + already-armed counters
-  const slipChance = ((0.06 + stamF*0.10) * o.slipTend + (o.counterT > 0 ? 0.06 : 0)) * (bodyShot ? 0.35 : 1);
+  const telegraphed=k.heavy&&f.attackQuality<.48?.09:0;
+  const slipChance = ((0.045 + stamF*0.085) * o.slipTend + (o.counterT > 0 ? 0.05 : 0)+telegraphed) * (bodyShot ? 0.3 : 1)*(1-f.feintRead*.42);
   if (o.act === 'move' && frand() < slipChance) {
     o.act = 'dodge'; o.actT = 0; o.circ = -o.circ; o.slipDir = frand() < 0.5 ? -1 : 1;
     const away = Math.atan2(o.x - f.x, o.z - f.z);
     o.vx += Math.sin(away)*2.2 + Math.cos(away)*o.slipDir*0.85; o.vz += Math.cos(away)*2.2 - Math.sin(away)*o.slipDir*0.85;
-    whiff(); miss(); say(fill(pick(COMM.dodge), f.name, o.name));
+    whiff(); miss('READ AND SLIPPED'); say(fill(pick(COMM.dodge), f.name, o.name));
     o.counterT = 0.85;            // slipping earns the counter window
+    o.lastOutcome=`SLIP SUCCESS · COUNTER WINDOW`;o.intent='COUNTER WINDOW · FIRE';S.roundStats[S.round-1][o.side].defense++;
     f.comboN = 0; f.comboQ = null;
     return;
   }
   let dmg = k.dmg * FIGHT_DMG * f.pow * (0.85 + frand()*0.3);
   if (f.surgeT > 0) dmg *= 1.16;
   dmg *= 0.86 + rangeFit*0.18;                 // short/long shots lose sting at the edge of range
+  dmg *= .82+f.attackQuality*.3;
   dmg *= 1 + (1 - o.stam/100)*0.3;          // tired fighters take more
   if (f.stam < 25) dmg *= 0.7;              // gassed punches lose steam
   if (o.openT > 0) dmg *= 1.12;             // the jab opened the door
   if (caughtSlipping || stunned) dmg *= 1.3; // clean shot on a compromised head
+  if(f.countering)dmg*=1.16;
   if (bodyShot) dmg *= 0.82;
   // block check — blocking is real defense but it spends the guard meter
   let blocked = false;
   if (o.act === 'block' || o.act === 'move') {
     let bc = o.act === 'block' ? 0.8 : (0.16 + stamF*0.12) * o.blockTend;
+    const focusMatch=o.guardFocus===(bodyShot?'body':'head');
+    if(o.act==='block')bc*=focusMatch?1.12:.48;
     if (o.openT > 0) bc *= 0.45;            // opening = the line is unguarded
     if (o.stam < 20) bc *= 0.5;             // tired hands drop
     if (bodyShot) bc *= 0.68;               // body shots sneak under the high shell
@@ -949,11 +999,13 @@ function resolveStrike(f) {
       o.stam = Math.max(0, o.stam - 2.5);
       o.armJolt = 1;                        // the guard jolts under the shot
       S.roundStats[S.round-1][f.side].blocked++;
+      S.roundStats[S.round-1][o.side].defense++;
     }
   }
   o.hp = Math.max(0, o.hp - dmg);
   o.stam = Math.max(0, o.stam - dmg*(bodyShot ? 1.25 : 0.4) - (bodyShot ? 3 : 0));
   if (bodyShot) o.guard = Math.max(0, o.guard - 3.5);
+  if(bodyShot){o.bodyDamage+=dmg;o.legs=Math.max(0,o.legs-dmg*1.35);}else{o.headDamage+=dmg;o.resolve=Math.max(0,o.resolve-dmg*.85);}
   S.roundDmg[S.round-1][f.side] += dmg;
   // visuals + audio between the striking glove and the target's head
   strikeGlovePos(f, gloveTmp);
@@ -967,6 +1019,8 @@ function resolveStrike(f) {
   spawnSparks(ix, iy, iz, blocked ? 3 : 7, f.club.glow, blocked ? 1.6 : 3.2);
   if (blocked) {
     blockClack(); o.vx += (o.x - f.x)*0.4; o.vz += (o.z - f.z)*0.4;
+    f.lastOutcome=`BLOCKED · ${o.guardFocus.toUpperCase()} SHELL`;o.lastOutcome=`ABSORBED ON ${o.guardType}`;
+    S.lastImpact={exchange:++S.exchangeNo,attacker:f.name,strike:f.strikeK,target:f.targetZone,outcome:'BLOCKED',quality:+f.attackQuality.toFixed(2),range:+d.toFixed(2),damage:+dmg.toFixed(2),guardDamage:+((k.heavy?7:3)+dmg*2.8).toFixed(1)};
     if (o.guard <= 0) guardBreak(o, f);
     else say(fill(pick(COMM.block), f.name, o.name));
     f.comboN = 0; f.comboQ = null;
@@ -974,8 +1028,11 @@ function resolveStrike(f) {
   }
   f.strikeLanded = true; f.landed++;
   const rs=S.roundStats[S.round-1][f.side]; rs.landed++; rs.damage+=dmg;
+  if(k.comm==='jab')rs.jabs++;if(k.heavy)rs.power++;if(f.attackQuality>.68)rs.clean++;
   if(bodyShot){f.bodyLanded++;rs.body++;} else {f.headLanded++;rs.head++;}
   if(caughtSlipping||stunned||o.recovT>0){f.counters++;rs.counters++;}
+  f.lastOutcome=`LANDED ${f.strikeK} · ${dmg.toFixed(1)} DAMAGE`;o.lastOutcome=bodyShot?'BODY COMPROMISED':'HEAD SNAPPED';
+  S.lastImpact={exchange:++S.exchangeNo,attacker:f.name,strike:f.strikeK,target:bodyShot?'body':'head',outcome:f.countering?'CLEAN COUNTER':'LANDED',quality:+f.attackQuality.toFixed(2),range:+d.toFixed(2),damage:+dmg.toFixed(2),defenderHP:+o.hp.toFixed(1),defenderStamina:+o.stam.toFixed(1)};
   punchThud(k.heavy ? 0.9 : 0.45);
   punchHeat = 1; shake = Math.min(1, shake + (k.heavy ? 0.5 : 0.22));
   crowdLevel = Math.min(0.4, crowdLevel + (k.heavy ? 0.12 : 0.05));
@@ -990,13 +1047,15 @@ function resolveStrike(f) {
   o.vx += dx/dd*(bodyShot ? kb*0.45 : kb); o.vz += dz/dd*(bodyShot ? kb*0.45 : kb);
   f.vx -= dx/dd*(k.heavy ? 0.65 : 0.32); f.vz -= dz/dd*(k.heavy ? 0.65 : 0.32);
   // jabs probe and build openings; landed shots can chain a combo
-  if (k.comm === 'jab' && frand() < 0.8) o.openT = Math.max(o.openT, 1.7);
-  if (bodyShot && frand() < 0.65) o.openT = Math.max(o.openT, 0.9);
-  if (!k.heavy && frand() < f.comboTend && f.stam > 18)
-    f.comboQ = (f.style.id==='PRESSURE' ? pick([['CROSS','BODY','HOOK'],['BODY','HOOK'],['JAB','CROSS','BODY']])
+  if (k.comm === 'jab'){o.openT = Math.max(o.openT, 1.7);f.setupT=Math.max(f.setupT,1.8);}
+  if (bodyShot){o.openT = Math.max(o.openT, 0.9);f.bodyOpenT=Math.max(f.bodyOpenT,1.6);}
+  if (!k.heavy && frand() < f.comboTend*(.55+f.attackQuality*.45) && f.stam > 18){
+    const sequence=(f.style.id==='PRESSURE' ? pick([['CROSS','BODY','HOOK'],['BODY','HOOK'],['JAB','CROSS','BODY']])
              : f.style.id==='OUTBOXER' ? pick([['CROSS'],['JAB','CROSS'],['CROSS','JAB']])
              : f.style.id==='COUNTER' ? pick([['CROSS','HOOK'],['BODY','CROSS'],['CROSS','UPPER']])
-             : pick([['HOOK'],['CROSS','HOOK'],['BODY','UPPER']])).slice();
+             : pick([['HOOK'],['CROSS','HOOK'],['BODY','UPPER']]));
+    f.comboQ=sequence.slice();f.comboName=[f.strikeK,...sequence].join('–');f.intent=`COMBINATION · ${f.comboName}`;
+  }
   // combo bookkeeping
   f.comboN = (f.comboT > 0 ? f.comboN : 0) + 1; f.comboT = 2.2;
   if ((caughtSlipping || stunned) && k.heavy) {
@@ -1011,6 +1070,7 @@ function resolveStrike(f) {
   const hurt = 1 - o.hp/100;
   let pKD = ((k.heavy ? 0.032 : 0.007) + hurt*0.075 + (o.stam < 30 ? 0.025 : 0)
             + (caughtSlipping ? 0.065 : 0) + (stunned ? 0.075 : 0)) / o.chin;
+  pKD+=(1-o.legs/100)*.035+(1-o.resolve/100)*.04+(f.attackQuality>.72?.025:0);
   if (bodyShot) pKD *= o.stam < 18 ? 0.62 : 0.28;
   if (k.heavy && (caughtSlipping || stunned)) pKD = Math.max(pKD, 0.27);
   if (o.hp <= 0) pKD = 1;
@@ -1030,13 +1090,15 @@ function knockdown(att, vic) {
   S.downF = vic; S.count = 0; S.countT = 0;
   // three-knockdown rule: the third trip to the canvas in one round ends it
   S.threeKD = S.kdRound[S.round-1][att.side] >= 3;
-  // theater: decide the script now — comeback chance scales with what's left
+  // Survival is leg/resolve/chin driven; the count reveals the recovery calculation.
   if (vic.hp <= 0 || S.threeKD) S.getUpAt = 11;
   else {
-    const hurt = 1 - vic.hp/100;
-    const stayDown = frand() < clamp(hurt*0.14 - (vic.chin - 1)*0.25, 0.03, 0.12);
-    S.getUpAt = stayDown ? 11 : clamp(3 + Math.floor(hurt*6 + frand()*2), 3, 8);
+    const hurt=1-vic.hp/100,collapse=hurt*.46+(1-vic.legs/100)*.26+(1-vic.resolve/100)*.2+vic.downs*.07-(vic.chin-1)*.18;
+    const stayDown=collapse>.86||(collapse>.68&&frand()<.24);
+    S.getUpAt=stayDown?11:clamp(4+Math.floor(collapse*5+frand()*1.5),4,9);
   }
+  vic.lastOutcome=S.getUpAt>10?'LEGS GONE · COUNT IN DANGER':`RECOVERY TARGET · COUNT ${S.getUpAt}`;
+  att.lastOutcome=`KNOCKDOWN · ${vic.name}`;S.lastImpact={...(S.lastImpact||{}),outcome:'KNOCKDOWN',getUpAt:S.getUpAt,legs:+vic.legs.toFixed(1),resolve:+vic.resolve.toFixed(1)};
   if (S.threeKD) say('THAT IS THREE KNOCKDOWNS THIS ROUND — THE REF IS WAVING IT OFF', true);
   flashMsg('KNOCKDOWN!', `${vic.name} IS DOWN`, att.club.css, 1.6);
   say(fill(pick(COMM.kd), att.name, vic.name), true);
@@ -1050,12 +1112,20 @@ function knockdown(att, vic) {
 
 // ============ FIGHTER AI + MOVEMENT ============
 // range model: >2.6 out (footwork) · 1.9–2.6 jab range · 1.1–1.9 power range · <1.1 clinch (auto-split)
+function startClinch(f){
+  const o=opp(f),dx=o.x-f.x,dz=o.z-f.z,d=Math.hypot(dx,dz)||1;
+  f.act='clinch';f.actT=0;f.clinchIntent=true;f.intent='CLINCH · KILL THE EXCHANGE';f.lastOutcome='REACHING FOR CONTROL';
+  f.vx+=dx/d*3.2;f.vz+=dz/d*3.2;S.clinchOwner=f;S.noAction=0;
+}
 function fighterBrain(f, dt) {
   const o = opp(f);
   const d = Math.hypot(o.x - f.x, o.z - f.z);
   f.decT -= dt;
   if (f.decT > 0) return;
   f.decT = 0.28 + frand()*0.55;
+  if(d<1.62&&(f.stam<22||f.hp<24||f.legs<26)&&!f.clinchIntent&&o.act!=='strike'){
+    startClinch(f);return;
+  }
   // combo continuation: a landed shot chains the next punch immediately
   if (f.comboQ && f.comboQ.length && f.stam > 10) {
     const next = f.comboQ.shift();
@@ -1080,11 +1150,11 @@ function fighterBrain(f, dt) {
   // read: shell up against an incoming heavy
   if (o.act === 'strike' && o.strike && o.strike.heavy && f.act === 'move' &&
       frand() < f.blockTend*0.5) {
-    f.act = 'block'; f.actT = 0; f.decT = 0.45;
+    f.act = 'block'; f.actT = 0; f.decT = 0.45;f.guardFocus=o.targetZone==='body'?'body':'head';f.intent=`READ ${o.strikeK} · ${f.guardFocus.toUpperCase()} SHELL`;
     return;
   }
   // urgency: behind on the cards late ⇒ swing for the fences
-  let aggr = f.aggr + (S.round === ROUNDS && f.hp < o.hp ? 0.3 : 0) + (1 - S.clock/ROUND_LEN)*0.12 + (f.surgeT>0 ? 0.42 : 0);
+  let aggr = f.aggr*f.paceMod*f.risk + (S.round === ROUNDS && f.hp < o.hp ? 0.3 : 0) + (1 - S.clock/ROUND_LEN)*0.12 + (f.surgeT>0 ? 0.42 : 0);
   if (f.stam < 18) aggr *= 0.4;                       // gassed — buy time
   if (S.noAction > 5) aggr = 1;                       // forced engage: crowd wants blood
   if (d < 2.45 && frand() < aggr) {
@@ -1095,12 +1165,12 @@ function fighterBrain(f, dt) {
     // pick a punch by range: power range ⇒ hooks/uppercuts, jab range ⇒ jab/cross
     const r = frand();
     let kind;
-    const bodyBias=f.style.body+(f.plan.includes('BODY')?.16:0);
+    const bodyBias=f.bodyBias+(f.plan.includes('BODY')?.16:0)+(o.stam<32?.08:0);
     if (d < 1.75) kind = r < bodyBias ? 'BODY' : r < bodyBias+.27 ? 'HOOK' : r < bodyBias+.43 ? 'UPPER' : r < .9 ? 'CROSS' : 'JAB';
     else if (d < 2.12) kind = r < bodyBias*.65 ? 'BODY' : r < .48 ? 'JAB' : r < .82 ? 'CROSS' : 'HOOK';
     else kind = r < (f.style.id==='OUTBOXER'?.78:.65) ? 'JAB' : 'CROSS';
     // no opening yet? probe with the jab before committing power
-    if (o.openT <= 0 && STRIKES[kind].heavy && frand() < (f.style.id==='BRAWLER'?.22:.5)) kind = 'JAB';
+    if (o.openT <= 0 && f.setupT<.45 && STRIKES[kind].heavy && frand() < (f.style.id==='BRAWLER'?.24:.62)) kind = 'JAB';
     if (f.stam < STRIKES[kind].stam + 4) kind = 'JAB';
     startStrike(f, kind);
     return;
@@ -1114,7 +1184,7 @@ function fighterBrain(f, dt) {
 function moveFighter(f, dt) {
   const o = opp(f);
   f.actT += dt; f.invulnT -= dt; f.comboT -= dt;
-  f.openT -= dt; f.counterT -= dt; f.recovT -= dt;
+  f.openT -= dt; f.counterT -= dt; f.recovT -= dt;f.setupT=Math.max(0,f.setupT-dt);f.bodyOpenT=Math.max(0,f.bodyOpenT-dt);f.feintRead=Math.max(0,f.feintRead-dt);
   f.surgeT=Math.max(0,f.surgeT-dt);
   f.bodyShot = Math.max(0, f.bodyShot - dt*2.4);
   f.torsoShock = Math.max(0, f.torsoShock - dt*3.2);
@@ -1156,7 +1226,7 @@ function moveFighter(f, dt) {
       const radial = (d - f.wantDist);                  // + ⇒ close in
       const weave = Math.sin(simClockTotal*4.7 + f.side*2.1) * clamp((2.4 - d)/1.2, 0, 1) * 0.65;
       const tangX = -nz*(f.circ + weave), tangZ = nx*(f.circ + weave);      // circle the opponent
-      const spd = f.stam < 20 ? 4.5 : 7;
+      const spd = (f.stam < 20 ? 4.35 : 7)*(.58+.42*f.legs/100);
       const pressure = o.openT > 0 ? 1.2 : 0;
       f.vx += (nx*clamp(radial + pressure*0.18, -1, 1)*spd + tangX*(2.25 + pressure))*dt*2.35;
       f.vz += (nz*clamp(radial + pressure*0.18, -1, 1)*spd + tangZ*(2.25 + pressure))*dt*2.35;
@@ -1177,6 +1247,12 @@ function moveFighter(f, dt) {
       const vn = f.vx*nx + f.vz*nz;
       if (vn > 0) { f.vx -= 1.6*vn*nx; f.vz -= 1.6*vn*nz; }  // rope bounce
     }
+  }
+  if(S.state==='FIGHT'){
+    const rs=S.roundStats[S.round-1]?.[f.side],rr=Math.hypot(f.x,f.z),orr=Math.hypot(o.x,o.z);
+    if(rs){if(rr<1.85){rs.center+=dt;f.centerTime+=dt;}if(rr>3.25){rs.pressure+=0;f.ropeTime+=dt;}if(orr>3.15&&rr<orr-.35)rs.pressure+=dt;}
+    if(rr>3.3)f.wasRoped=true;
+    else if(f.wasRoped&&rr<2.65){f.wasRoped=false;f.successfulExits++;if(rs)rs.exits++;f.lastOutcome='PIVOT EXIT · BACK TO SPACE';}
   }
   if (!isFinite(f.x) || !isFinite(f.z)) { f.x = CORNER[f.side].x; f.z = CORNER[f.side].z; f.vx = f.vz = 0; }
   // separation — no clipping through each other
@@ -1220,13 +1296,23 @@ function startRound() {
   refP.tx = 0; refP.tz = FIGHT_R + 0.3;
   setState('FIGHT'); cut();
 }
+function meritFor(s,d,profile='balanced'){
+  const clean=d*1.36+s.clean*.5+s.counters*.72+s.power*.16;
+  const effectiveAggression=s.pressure*.035+s.body*.1+s.landed*.12;
+  const defense=s.defense*.32+s.exits*.2;
+  const ring=s.center*.022+s.jabs*.08;
+  if(profile==='damage')return clean*1.16+effectiveAggression*.78+defense*.62+ring*.7;
+  if(profile==='accuracy'){const acc=s.landed/Math.max(1,s.landed+s.missed);return clean*.92+effectiveAggression*.7+defense*.9+ring*.7+acc*4;}
+  return clean*.88+effectiveAggression*.9+defense*.85+ring*1.18;
+}
 function cornerAdjust(f) {
   const o=opp(f), mine=S.roundStats[S.round-1][f.side], theirs=S.roundStats[S.round-1][o.side];
-  const behind=(mine.damage+mine.landed*.32)<(theirs.damage+theirs.landed*.32);
-  if(f.stam<34){ f.plan='BUY SPACE · JAB AND BREATHE'; f.wantDist=3.05; f.aggr*=.92; f.cornerNote='CORNER: SAVE THE GAS'; }
-  else if(o.cut>=2){ f.plan='TOUCH THE CUT · STRAIGHTS'; f.aggr*=1.06; f.cornerNote='CORNER: RED TARGET'; }
-  else if(behind){ f.plan=f.style.id==='OUTBOXER'?'TAKE CENTER · DOUBLE JAB':'PRESS NOW · BODY TO HEAD'; f.aggr*=1.08; f.cornerNote='CORNER: ROUND NEEDED'; }
-  else { f.plan=f.style.plans[Math.min(S.round,f.style.plans.length-1)]; f.cornerNote='CORNER: STAY DISCIPLINED'; }
+  const myEdge=meritFor(mine,S.roundDmg[S.round-1][f.side]),theirEdge=meritFor(theirs,S.roundDmg[S.round-1][o.side]),behind=myEdge<theirEdge;
+  f.aggr=f.baseAggr;f.paceMod=1;f.risk=1;f.bodyBias=f.style.body;
+  if(f.stam<34){ f.plan='BUY SPACE · JAB AND BREATHE'; f.wantDist=3.05; f.paceMod=.76;f.risk=.82;f.cornerNote='CORNER: SAVE GAS · EXIT AFTER ONE'; }
+  else if(o.cut>=2){ f.plan='TOUCH THE CUT · STRAIGHTS'; f.risk=1.08;f.cornerNote='CORNER: RED TARGET · STRAIGHTS'; }
+  else if(behind){ f.plan=f.style.id==='OUTBOXER'?'TAKE CENTER · DOUBLE JAB':'PRESS NOW · BODY TO HEAD'; f.paceMod=1.08;f.risk=1.16;f.bodyBias+=.1;f.cornerNote=`CORNER: ROUND NEEDED · EDGE ${Math.round(myEdge)}–${Math.round(theirEdge)}`; }
+  else { f.plan=f.style.plans[Math.min(S.round,f.style.plans.length-1)];f.risk=.9;f.wantDist=Math.max(f.style.range,2.05);f.cornerNote=`CORNER: BANKED IT · EDGE ${Math.round(myEdge)}–${Math.round(theirEdge)}`; }
   if(f.cut>0){ const treated=Math.min(f.cut,frand()<.72?1:.5); f.cut=Math.max(0,f.cut-treated); f.cornerNote+=` · CUT ${f.cut.toFixed(1)}`; }
 }
 function endRound() {
@@ -1247,9 +1333,10 @@ function endRound() {
 function beatCount() {
   const vic = S.downF, att = opp(vic);
   vic.act = 'getup'; vic.actT = 0;
-  vic.hp = Math.max(vic.hp, 44 + frand()*18);   // the comeback: recovered legs, not a fresh fighter —
-  vic.stam = Math.max(vic.stam, 50);                   // enough to fight on without an instant re-drop spiral
-  vic.guard = Math.max(vic.guard, 60);
+  vic.hp = Math.max(vic.hp, 16 + vic.chin*8);   // survival reserve, never a full durability refill
+  vic.stam = Math.max(vic.stam, 34 + vic.resolve*.12);
+  vic.guard = Math.max(vic.guard, 48);
+  vic.legs=Math.max(vic.legs,34);vic.resolve=Math.max(8,vic.resolve-10);vic.lastOutcome=`BEAT COUNT ${S.count} · LEGS ${Math.round(vic.legs)}`;
   say(fill(pick(COMM.getup), att.name, vic.name, String(S.count)), true);
   elCount.classList.remove('show');
   flashBurst = Math.max(flashBurst, 1); crowdLevel = 0.4;
@@ -1278,29 +1365,30 @@ function winFight(w, method) {
   setState('KO_SEQ'); cut();
 }
 function judgeDecision() {
-  const cards = []; let vA = 0, vB = 0;
+  const cards = []; let vA = 0, vB = 0,drawVotes=0;S.judgeDetail=[];
   for (let j = 0; j < 3; j++) {
-    let a = 0, b = 0;
+    let a = 0, b = 0;const rounds=[];
     for (let r = 0; r < S.roundDmg.length; r++) {
       const sa=S.roundStats[r][0],sb=S.roundStats[r][1];
       const pref=j===0?'damage':j===1?'accuracy':'ringcraft';
-      const score=(s,d)=>d*1.5+s.landed*.36+s.counters*.65+s.body*.08+(pref==='accuracy'?(s.landed/Math.max(1,s.landed+s.missed))*3:0)+(pref==='ringcraft'?s.counters*.28:0);
-      const da = score(sa,S.roundDmg[r][0]), db = score(sb,S.roundDmg[r][1]);
+      const da=meritFor(sa,S.roundDmg[r][0],pref),db=meritFor(sb,S.roundDmg[r][1],pref),edge=da-db;
       let ra = 10, rb = 10;
-      if (da > db + .25) rb = 9; else if (db > da + .25) ra = 9;
-      else if(((S.seed+r+j)&1)===0) rb=9; else ra=9;
+      if (edge > .12) rb = 9; else if (edge < -.12) ra = 9;
+      else if(((S.seed+r+j)&3)===0){/* rare even round */}else if(((S.seed+r+j)&1)===0) rb=9; else ra=9;
       ra -= S.kdRound[r][1]; rb -= S.kdRound[r][0];           // a knockdown costs the point
       ra=Math.max(7,ra);rb=Math.max(7,rb);
       a += ra; b += rb;
+      rounds.push({round:r+1,score:[ra,rb],edge:+edge.toFixed(2),read:Math.abs(edge)<.12?'RAZOR CLOSE':edge>0?`${fighters[0].name} CLEANER`:`${fighters[1].name} CLEANER`});
     }
     cards.push([a, b]);
-    if (a > b) vA++; else if (b > a) vB++;
+    S.judgeDetail.push({judge:j+1,lens:j===0?'DAMAGE':j===1?'ACCURACY / DEFENSE':'RING GENERALSHIP',rounds,total:[a,b]});
+    if (a > b) vA++; else if (b > a) vB++; else drawVotes++;
   }
   let w = null, method = 'SPLIT DRAW';
   if (vA !== vB) {
     w = fighters[vA > vB ? 0 : 1];
     method = Math.max(vA, vB) === 3 ? 'UNANIMOUS DECISION'
-           : Math.min(vA, vB) === 0 ? 'MAJORITY DECISION' : 'SPLIT DECISION';
+           : drawVotes>0 ? 'MAJORITY DECISION' : 'SPLIT DECISION';
     recOf(w.name).w++; recOf(opp(w).name).l++; saveRecs();
   }
   S.winner = w; S.method = method;
@@ -1384,15 +1472,20 @@ function stateStep(dt) {
       { // clinch-too-close: linger chest-to-chest and the ref splits them
         const [A, B] = fighters;
         const dAB = Math.hypot(A.x - B.x, A.z - B.z);
-        S.clinchT = dAB < 1.18 && A.act !== 'down' && B.act !== 'down' ? S.clinchT + dt : 0;
-        if (S.clinchT > 1.1) {
+        const tied=dAB<1.2&&A.act!=='down'&&B.act!=='down';
+        if(tied&&S.clinchOwner){const other=opp(S.clinchOwner);other.act='clinch';other.actT=0;S.clinchOwner.stam=Math.min(100,S.clinchOwner.stam+dt*5.5);other.stam=Math.max(0,other.stam-dt*1.2);}
+        S.clinchT = tied ? S.clinchT + dt : 0;
+        if (S.clinchT > (S.clinchOwner?.82:1.1)) {
           S.clinchT = 0;
           const dx = (A.x - B.x), dz = (A.z - B.z), dd = Math.hypot(dx, dz) || 1e-6;
           A.vx += dx/dd*3.4; A.vz += dz/dd*3.4; B.vx -= dx/dd*3.4; B.vz -= dz/dd*3.4;
-          A.wantDist = B.wantDist = 2.6;
-          S.roundStats[S.round-1][0].clinch++; S.roundStats[S.round-1][1].clinch++;
+          A.wantDist = B.wantDist = 2.6;A.act=B.act='move';A.actT=B.actT=0;A.clinchIntent=B.clinchIntent=false;
+          if(S.clinchOwner){S.roundStats[S.round-1][S.clinchOwner.side].clinch++;S.clinchOwner.lastOutcome='CLINCH SUCCESS · RESET LEGS';opp(S.clinchOwner).lastOutcome='TIED UP · REF BREAK';}
+          else {S.roundStats[S.round-1][0].clinch++; S.roundStats[S.round-1][1].clinch++;}
+          S.clinchOwner=null;
           say(pick(COMM.clinch));
         }
+        if(!tied&&S.clinchOwner&&S.clinchOwner.actT>1){S.clinchOwner.act='move';S.clinchOwner.clinchIntent=false;S.clinchOwner=null;}
       }
       { // ref orbits just outside the pocket
         const mx = (fighters[0].x + fighters[1].x)/2, mz = (fighters[0].z + fighters[1].z)/2;
@@ -1527,6 +1620,7 @@ function armTargetsFor(f, armKey, dt) {
     k = 28;
   }
   else if (f.act === 'block') T = { sx: -1.02, sy: -sgnX*0.62, sz: sgnX*0.05, ex: -2.3 };
+  else if (f.act === 'clinch') T = { sx:-1.48,sy:-sgnX*.26,sz:sgnX*.04,ex:-1.15 };
   else if (f.act === 'hit')   { T = f.bodyShot > 0.05 ? { sx: -0.9, sy: -sgnX*0.38, sz: sgnX*0.2, ex: -2.15 } : { sx: -0.4, sy: sgnX*0.35, sz: sgnX*0.55, ex: -0.9 }; k = 18; }
   else if (f.act === 'stun')  T = { sx: -0.15 + Math.sin(t*7 + f.side)*0.08, sy: 0, sz: sgnX*0.4, ex: -0.6 };
   else if (f.act === 'down')  { T = { sx: -0.12, sy: 0, sz: sgnX*1.3, ex: -0.12 }; k = 7; }  // arms splay on the canvas
@@ -1597,6 +1691,7 @@ function updateRigs(dt) {
     }
     else if (f.act === 'hit') f.rig.poseFall(0.42*clamp(f.actT*3, 0, 1));
     else if (f.act === 'block') f.rig.poseShield(1, f.circ);
+    else if (f.act === 'clinch') f.rig.poseShield(.72, f.circ);
     else if (f.act === 'stun') f.rig.poseLimp(simClockTotal + f.side);
     else if (f.act === 'dodge') f.rig.poseDive(f.circ, Math.sin(clamp(f.actT/0.4, 0, 1)*Math.PI)*0.85);
     else if (f.act === 'down') f.rig.poseFall(clamp(f.actT*1.7, 0, 1));      // squash flat on the canvas
@@ -1681,9 +1776,12 @@ function cameraStep(dt) {
   } else if (S.state === 'KO_SEQ' || S.state === 'DECISION') {
     tmpP.set(Math.cos(orbA*0.6)*9.5, RING_Y + 4.2, Math.sin(orbA*0.6)*9.5);
     tmpL.set(0, RING_Y + 1, 0);
+  } else if(S.clinchT>.15){
+    tmpP.set(mx+Math.cos(orbA)*7.6,RING_Y+6.8,mz+Math.sin(orbA)*7.6);tmpL.set(mx,RING_Y+.9,mz);
   } else {                                               // broadcast orbit, punch-in when leather flies
     const portrait=innerWidth<700;
-    const rad = (portrait?15.2:11.6) - punchHeat*(portrait?1.5:2.8), h = (portrait?6.8:5.6) - punchHeat*(portrait?.7:1.6);
+    const counterHot=fighters.some(f=>f.countering&&f.act==='strike');
+    const rad = (portrait?15.2:11.6) - punchHeat*(portrait?1.5:2.8)-(counterHot?1.2:0), h = (portrait?6.8:5.6) - punchHeat*(portrait?.7:1.6)-(counterHot?.5:0);
     tmpP.set(mx*0.4 + Math.cos(orbA)*rad, h, mz*0.4 + Math.sin(orbA)*rad);
     tmpL.set(mx, RING_Y + 1.05, mz);
   }
@@ -1723,6 +1821,12 @@ function updateFX(dt) {
     ropeMats[i].opacity = clamp(0.55 + 0.2*Math.sin(simClockTotal*2.1 + i*1.7) + punchHeat*0.25, 0, 1);
   punchHeat = Math.max(0, punchHeat - dt*1.1);
   shake = Math.max(0, shake - dt*1.8);
+  if(fighters.length===2){
+    const [A,B]=fighters,d=Math.hypot(A.x-B.x,A.z-B.z),col=d<1.2?0xff385c:d<1.85?0xffb23d:d<2.5?0x62e8ff:0x56647e;
+    rangeLine.geometry.setFromPoints([new THREE.Vector3(A.x,0,A.z),new THREE.Vector3(B.x,0,B.z)]);rangeLine.computeLineDistances();rangeLine.material.color.setHex(col);
+    intentRings.forEach((ring,i)=>{const f=fighters[i];ring.position.x=f.x;ring.position.z=f.z;ring.rotation.z+=(i?-.8:.8)*dt;ring.material.color.setHex(f.act==='strike'?0xffc24d:f.act==='dodge'?0x62e8ff:f.act==='clinch'?0xff3d5a:f.club.glow);ring.scale.setScalar(1+(f.attackQuality||0)*.18);});
+    const crowdPulse=.015+crowdLevel*.34;lowerCrowd.position.y=Math.abs(Math.sin(simClockTotal*(5+crowdLevel*8)))*crowdPulse;
+  }
   thudCd -= dt;
   if (AC && crowdGain) {
     crowdLevel += (0.05 + 0.01*Math.sin(simClockTotal*0.6) - crowdLevel)*dampK(0.4, dt);
@@ -1747,9 +1851,13 @@ function hudStep() {
   el('planA').textContent=`${fighters[0].plan}${fighters[0].cut?` · CUT ${fighters[0].cut.toFixed(1)}`:''}`;
   el('planB').textContent=`${fighters[1].plan}${fighters[1].cut?` · CUT ${fighters[1].cut.toFixed(1)}`:''}`;
   const dist=Math.hypot(fighters[0].x-fighters[1].x,fighters[0].z-fighters[1].z);
-  el('rangechip').textContent=dist<1.2?'CLINCH':dist<1.82?'POCKET':dist<2.5?'STRIKE RANGE':'OUTSIDE';
-  const read=f=>f.act==='strike'?`${f.strikeK} → ${f.targetZone.toUpperCase()}`:f.act==='block'?f.guardType:f.act==='dodge'?'SLIP · COUNTER ARMED':f.recovT>0?'RECOVERING · OPEN':f.stam<25?'GAS CRITICAL':f.cornerNote;
+  const rangeName=dist<1.2?'CLINCH':dist<1.82?'POCKET':dist<2.5?'STRIKE RANGE':'OUTSIDE';
+  el('rangechip').textContent=`${rangeName} · ${dist.toFixed(1)}M`;
+  const read=f=>f.act==='strike'?`${f.intent} · ${Math.round(f.attackQuality*100)}% ENTRY`:f.act==='block'?`${f.guardType} · ${f.guardFocus.toUpperCase()}`:f.act==='dodge'?'SLIP · COUNTER ARMED':f.act==='clinch'?'CLINCH · RECOVER':f.recovT>0?'RECOVERING · OPEN':f.stam<25?'GAS CRITICAL':f.lastOutcome||f.cornerNote;
   el('readA').textContent=read(fighters[0]); el('readB').textContent=read(fighters[1]);
+  if(S.state==='FIGHT'){
+    const rs=S.roundStats[S.round-1];S.roundEdge=[meritFor(rs[0],S.roundDmg[S.round-1][0]),meritFor(rs[1],S.roundDmg[S.round-1][1])];
+  }
   let status='CARD LOADING', hot=false;
   if (paused) status='PAUSED · P TO RESUME';
   else if (S.state==='WALKON') status=`WALKOUT · ${fighters[Math.min(S.walkIdx,1)].name}`;
@@ -1775,6 +1883,7 @@ function hudStep() {
 setupCard();
 function fightSnapshot() {
   const [nextA,nextB]=FIXTURES[(fixtureIdx+1)%FIXTURES.length];
+  const distance=fighters.length===2?Math.hypot(fighters[0].x-fighters[1].x,fighters[0].z-fighters[1].z):0;
   return {
     note: 'Coordinates are ring-space x/z meters with origin at center ring; fighters enter from -x/+x tunnels.',
     paused, fullscreen:!!document.fullscreenElement,
@@ -1794,6 +1903,8 @@ function fightSnapshot() {
     slowMotionSeconds:+S.slowmo.toFixed(2),
     noActionSeconds:+S.noAction.toFixed(1),
     clinchSeconds:+S.clinchT.toFixed(2),
+    range:{meters:+distance.toFixed(2),band:distance<1.2?'CLINCH':distance<1.82?'POCKET':distance<2.5?'STRIKE':'OUTSIDE'},
+    exchange:S.exchangeNo,lastImpact:S.lastImpact,liveRoundEdge:S.roundEdge.map(v=>+v.toFixed(2)),completedBouts:S.completedBouts,
     fighters: fighters.map(f => ({
       name: f.name,
       club: f.club.name,
@@ -1808,11 +1919,15 @@ function fightSnapshot() {
       position: { x: +f.x.toFixed(2), z: +f.z.toFixed(2) },
       velocity:{x:+f.vx.toFixed(2),z:+f.vz.toFixed(2)},
       desiredRange:+f.wantDist.toFixed(2),
+      intent:f.intent,entryQuality:+f.attackQuality.toFixed(2),lastOutcome:f.lastOutcome,
+      guardFocus:f.guardFocus,setupSeconds:+f.setupT.toFixed(2),bodyOpeningSeconds:+f.bodyOpenT.toFixed(2),feintRead:+f.feintRead.toFixed(2),
       openingSeconds:+Math.max(0,f.openT).toFixed(2),
       counterSeconds:+Math.max(0,f.counterT).toFixed(2),
       recoverySeconds:+Math.max(0,f.recovT).toFixed(2),
       comboQueued:f.comboQ ? f.comboQ.slice() : [],
-      striking:{landed:f.landed,head:f.headLanded,body:f.bodyLanded,counters:f.counters,cut:+f.cut.toFixed(1),swelling:+f.swelling.toFixed(1)},
+      striking:{landed:f.landed,head:f.headLanded,body:f.bodyLanded,counters:f.counters,combo:f.comboName,cut:+f.cut.toFixed(1),swelling:+f.swelling.toFixed(1)},
+      damageState:{head:+f.headDamage.toFixed(1),body:+f.bodyDamage.toFixed(1),legs:+f.legs.toFixed(1),resolve:+f.resolve.toFixed(1)},
+      ringcraft:{centerSeconds:+f.centerTime.toFixed(1),ropeSeconds:+f.ropeTime.toFixed(1),exits:f.successfulExits},
       downs: f.downs,
       lastStand:!!f.lastStand,
       surgeSeconds:+f.surgeT.toFixed(2)
@@ -1820,7 +1935,7 @@ function fightSnapshot() {
     roundDamage: S.roundDmg.map(r => r.map(v => +v.toFixed(1))),
     roundStats:S.roundStats,
     knockdowns: S.kdRound,
-    scorecards:S.cards
+    scorecards:S.cards,judgeDetail:S.judgeDetail
   };
 }
 window._dbg = fightSnapshot;
@@ -1937,6 +2052,5 @@ addEventListener('keydown',e=>{
   }
 });
 </script>
-<script src="gamehub.js"></script>
 </body>
 </html>

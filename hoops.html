@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" href="data:," />
 <title>CYBERLIGA HOOPS — AUTONOMOUS AI BASKETBALL</title>
+<script src="watchonly.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -594,28 +595,32 @@ const ROLE_SHAPES=[
   {scale:[1.04,1.00,.98],speed:5.35,label:'FORWARD'},
   {scale:[1.19,1.12,1.13],speed:5.05,label:'CENTER'}
 ];
-function addRoleSignature(rig,role,color){
+function addHoopsSilhouette(rig,role,color){
   const grp=new THREE.Group();
-  const mat=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.32,roughness:.68,metalness:0});
-  if(role===0){
-    const loop=new THREE.Mesh(new THREE.TorusGeometry(.34,.035,6,18),mat); loop.rotation.x=Math.PI/2; loop.position.y=1.25; grp.add(loop);
-  } else if(role===1){
-    for(const s of [-1,1]){ const fin=new THREE.Mesh(new THREE.SphereGeometry(.20,8,6),mat); fin.scale.set(.42,1.7,.28); fin.position.set(s*.46,1.15,-.04); fin.rotation.z=s*.35; grp.add(fin); }
-  } else if(role===2){
-    const ribbon=new THREE.Mesh(new THREE.ConeGeometry(.13,.48,7),mat); ribbon.position.set(0,2.42,-.02); ribbon.rotation.z=.12; grp.add(ribbon);
-  } else if(role===3){
-    const mantle=new THREE.Mesh(new THREE.TorusGeometry(.46,.075,6,18,Math.PI*1.45),mat); mantle.rotation.x=Math.PI/2; mantle.rotation.z=.75; mantle.position.y=1.45; grp.add(mantle);
-  } else {
-    for(let i=0;i<3;i++){ const root=new THREE.Mesh(new THREE.SphereGeometry(.19,8,6),mat); root.scale.set(1.5,.62,1.05); root.position.set((i-1)*.31,.24,(i%2?-.13:.1)); grp.add(root); }
+  const accent=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.22,roughness:.72});
+  const uniform=new THREE.MeshStandardMaterial({color:0x111728,roughness:.8,metalness:0});
+  const skin=new THREE.MeshStandardMaterial({color:0xc78b69,roughness:.88});
+  const shoe=new THREE.MeshStandardMaterial({color:0x20283a,emissive:color,emissiveIntensity:.07,roughness:.7});
+  const limbs={arms:[],legs:[]};
+  const armGeo=new THREE.CapsuleGeometry(.105,.46,4,8),legGeo=new THREE.CapsuleGeometry(.13,.48,4,8);
+  for(const s of [-1,1]){
+    const arm=new THREE.Group(), upper=new THREE.Mesh(armGeo,skin), wrist=new THREE.Mesh(new THREE.TorusGeometry(.105,.022,5,12),accent);
+    upper.position.y=-.31; wrist.position.y=-.59; wrist.rotation.x=Math.PI/2; arm.add(upper,wrist);
+    arm.position.set(s*.43,1.46,.02); arm.rotation.z=s*.12; grp.add(arm); limbs.arms.push(arm);
+    const leg=new THREE.Group(), calf=new THREE.Mesh(legGeo,uniform), sneaker=new THREE.Mesh(new THREE.CapsuleGeometry(.09,.15,4,8),shoe);
+    calf.position.y=-.35; sneaker.rotation.x=Math.PI/2; sneaker.position.set(0,-.67,.08); sneaker.scale.set(1.05,1,1.22);
+    leg.add(calf,sneaker); leg.position.set(s*.22,.77,0); grp.add(leg); limbs.legs.push(leg);
   }
-  rig.group.add(grp); return {group:grp,material:mat};
+  const collar=new THREE.Mesh(new THREE.TorusGeometry(.31,.03,6,18),accent); collar.rotation.x=Math.PI/2; collar.position.y=1.7; grp.add(collar);
+  const waistband=new THREE.Mesh(new THREE.TorusGeometry(.39,.035,6,18),accent); waistband.rotation.x=Math.PI/2; waistband.position.y=.9; grp.add(waistband);
+  rig.group.add(grp); return {group:grp,material:[accent,uniform,skin,shoe],limbs};
 }
 function identityScale(athlete,shape){
   const text=athlete.silhouette.toLowerCase(),n=hash32(athlete.id);
   let x=.94+(n%9)*.012,y=.94+((n>>>4)%9)*.012,z=.94+((n>>>8)%7)*.014;
-  if(/tall|towering|thin reed|candle|ribbon/.test(text)){x*=.83;y*=1.18;z*=.88;}
-  if(/squat|wide|boulder|barrel|cork|square/.test(text)){x*=1.15;y*=.88;z*=1.08;}
-  if(/pear|gourd|teardrop|bell/.test(text)){x*=1.07;y*=1.03;z*=1.1;}
+  if(/tall|towering|thin reed|candle|ribbon/.test(text)){x*=.91;y*=1.10;z*=.94;}
+  if(/squat|wide|boulder|barrel|cork|square/.test(text)){x*=1.08;y*=.95;z*=1.05;}
+  if(/pear|gourd|teardrop|bell/.test(text)){x*=1.04;y*=1.02;z*=1.05;}
   return [shape.scale[0]*x,shape.scale[1]*y,shape.scale[2]*z];
 }
 let teams=[];           // [{def,dir,score,players[5]}]
@@ -627,7 +632,7 @@ function makeTeam(def, dir, side){
   const players=[];
   for (let r=0;r<5;r++){
     const rig=buildBlobRig({ kitColor:def.col, glowColor:def.glow, captain:r===0 });
-    const signature=addRoleSignature(rig,r,def.glow);
+    const signature=addHoopsSilhouette(rig,r,def.glow);
     scene.add(rig.group);
     const athlete=lineup[r], shape=ROLE_SHAPES[r];
     const renderScale=identityScale(athlete,shape),identity=hash32(athlete.id);
@@ -641,7 +646,7 @@ function makeTeam(def, dir, side){
   return {def,dir,score:0,steals:0,blocks:0,turnovers:0,rebounds:0,assists:0,fouls:0,fgm:0,fga:0,players,bench:def.roster[5]};
 }
 function disposeTeams(){
-  for (const t of teams) for (const p of t.players){ scene.remove(p.rig.group); p.signature.material.dispose(); p.rig.dispose(); }
+  for (const t of teams) for (const p of t.players){ scene.remove(p.rig.group); p.signature.material.forEach(m=>m.dispose()); p.rig.dispose(); }
   teams=[];
 }
 
@@ -1073,6 +1078,11 @@ function updatePlayers(dt){
     p.rig.group.rotation.y=p.heading;
     p.rig.group.scale.set(p.renderScale[0]*(1+p.squash*.5),p.renderScale[1]*(1-p.squash),p.renderScale[2]*(1+p.squash*.5));
     let turn=p.heading-priorHeading; while(turn>Math.PI)turn-=Math.PI*2; while(turn<-Math.PI)turn+=Math.PI*2;
+    const stride=Math.sin(p.rig.gaitPhase||tGlobal*(4+sp));
+    p.signature.limbs.arms[0].rotation.x=stride*clamp(sp/6,0,1)*.52;
+    p.signature.limbs.arms[1].rotation.x=-stride*clamp(sp/6,0,1)*.52;
+    p.signature.limbs.legs[0].rotation.x=-stride*clamp(sp/6,0,1)*.38;
+    p.signature.limbs.legs[1].rotation.x=stride*clamp(sp/6,0,1)*.38;
     p.rig.update(dt,clamp(sp/6,0,1),{accel:clamp((sp-priorSpeed)/6,-1,1),turn:clamp(turn/(Math.PI*.4),-1,1)});
   }
 }
@@ -1688,6 +1698,5 @@ addEventListener('keydown', e=>{
   else if (e.key==='Escape' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && !document.fullscreenElement) location.href='world.html';
 });
 </script>
-<script src="gamehub.js"></script>
 </body>
 </html>
