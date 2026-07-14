@@ -1,1 +1,7 @@
 .vercel
+.codex-worktrees/
+.playwright-cli/
+football-artifacts/
+output/
+football 2.css
+football 2.html
