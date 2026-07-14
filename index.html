@@ -3082,7 +3082,23 @@ const camPosD = new THREE.Vector3(), camTgtD = new THREE.Vector3(); // per-frame
 let camShake = 0;
 const CAM_FOV = 42;
 const MOBILE_TACTICAL_HEIGHT = 94;
-const arenaCameraFov = () => innerWidth < 700 ? 64 : CAM_FOV;
+const MOBILE_CAMERA_CYCLE = 18;
+const MOBILE_OVERHEAD_SECONDS = 11;
+let mobileCameraView = 'overhead', lastMobileCameraView = '', mobileCameraSegment = -1, mobileAngleSide = 1, mobileAngleHoldUntil = 0;
+function selectMobileCameraView(t, forceAngle=false) {
+  if (innerWidth >= 700) { mobileCameraView='broadcast'; return mobileCameraView; }
+  const time = Number.isFinite(t) ? t : simT;
+  const segment = Math.floor(time / MOBILE_CAMERA_CYCLE);
+  if (forceAngle) mobileAngleHoldUntil = Math.max(mobileAngleHoldUntil, time + 3.5);
+  const view = time < mobileAngleHoldUntil || time % MOBILE_CAMERA_CYCLE >= MOBILE_OVERHEAD_SECONDS ? 'angle' : 'overhead';
+  if (view === 'angle' && (mobileCameraView !== 'angle' || segment !== mobileCameraSegment)) {
+    mobileAngleSide = ball.pos.x >= 0 ? -1 : 1;
+  }
+  mobileCameraSegment = segment;
+  mobileCameraView = view;
+  return view;
+}
+const arenaCameraFov = () => innerWidth < 700 ? (mobileCameraView === 'angle' ? 60 : 64) : CAM_FOV;
 // The earliest version stayed wide enough to read the formation and let the blobs'
 // movement create tension. Follow the ball, but never turn open play into a close-up.
 function ogLiveFrame(outPos, outTgt, t) {
@@ -3095,15 +3111,23 @@ function ogLiveFrame(outPos, outTgt, t) {
   const fz = THREE.MathUtils.clamp(leadZ * 0.3, -8, 8);
   const bob = t === undefined ? 0 : Math.sin(t * 0.1) * 0.6;
   if (innerWidth < 700) {
-    // Portrait needs a tactical broadcast, not a horizontally cropped desktop shot.
-    // Pull high and wide enough to keep both goals, the active shape, and the ball in
-    // one readable frame while still biasing the look point toward the live action.
-    // Roll the tactical board into portrait: pitch length runs up the phone and
-    // touchline width runs across it, using far more of the available screen.
-    outPos.set(ball.pos.x * 0.12, MOBILE_TACTICAL_HEIGHT + bob, ball.pos.z * 0.06 + 0.01);
-    outTgt.set(ball.pos.x * 0.22, 0.7, ball.pos.z * 0.12);
+    const view = selectMobileCameraView(t, !!state.cameraBeat || state.mode === 'goal');
+    if (view === 'overhead') {
+      // The tactical board remains the primary phone view: pitch length runs up the
+      // screen so both goals and the active shape remain readable.
+      outPos.set(ball.pos.x * 0.12, MOBILE_TACTICAL_HEIGHT + bob, ball.pos.z * 0.06 + 0.01);
+      outTgt.set(ball.pos.x * 0.22, 0.7, ball.pos.z * 0.12);
+    } else {
+      // Periodic elevated end-line coverage restores depth without trying to squeeze
+      // the desktop sideline shot into a portrait viewport. Lock the end for the full
+      // shot so midfield crossings never whip the camera 180 degrees.
+      outPos.set(mobileAngleSide * (HALF_W + 10), 17.5 + bob * 0.2,
+        THREE.MathUtils.clamp(ball.pos.z * 0.22, -4.5, 4.5));
+      outTgt.set(THREE.MathUtils.clamp(ball.pos.x, -HALF_W + 3, HALF_W - 3), 1.1, ball.pos.z * 0.62);
+    }
     return;
   }
+  mobileCameraView='broadcast';
   outPos.set(fx, 21 + bob, 44 + fz * 0.4);
   outTgt.set(ball.pos.x * 0.85, 1.2, ball.pos.z * 0.55);
 }
@@ -3115,13 +3139,17 @@ function cameraStep(dt, t) {
     camShakeOff.set(0, 0, 0);
     if (innerWidth < 700) {
       const focus = replayCam.camTarget;
-      camera.position.set(focus.x * 0.12, MOBILE_TACTICAL_HEIGHT, focus.z * 0.06 + 0.01);
-      camTarget.set(focus.x * 0.22, 0.7, focus.z * 0.12);
+      selectMobileCameraView(t, true);
+      mobileAngleSide = focus.x >= 0 ? -1 : 1;
+      camera.position.set(mobileAngleSide * (HALF_W + 10), 16.5,
+        THREE.MathUtils.clamp(focus.z * 0.18, -4, 4));
+      camTarget.set(focus.x, 1.05, focus.z * 0.62);
     } else {
+      mobileCameraView='broadcast';
       camera.position.copy(replayCam.camPos);
       camTarget.copy(replayCam.camTarget);
     }
-    camera.up.set(innerWidth < 700 ? 1 : 0, innerWidth < 700 ? 0 : 1, 0);
+    camera.up.set(0, 1, 0);
     camera.lookAt(camTarget);
     const fov = arenaCameraFov();
     if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
@@ -3143,9 +3171,12 @@ function cameraStep(dt, t) {
       camTgtD.set(focus.x,1.05,focus.z);
     }
   }
+  const mobileViewCut = innerWidth < 700 && mobileCameraView !== lastMobileCameraView;
   const beatCut = !!beat && innerWidth < 700; // portrait broadcasts need the subject centered now, not after a wide-frame drift
-  camera.position.lerp(camPosD, beatCut ? 1 : 1 - Math.exp(-(beat ? 5.6 : 1.6) * dt));
-  camTarget.lerp(camTgtD, beatCut ? 1 : 1 - Math.exp(-(beat ? 7.2 : 2.2) * dt));
+  const hardCut = beatCut || mobileViewCut;
+  camera.position.lerp(camPosD, hardCut ? 1 : 1 - Math.exp(-(beat ? 5.6 : 1.6) * dt));
+  camTarget.lerp(camTgtD, hardCut ? 1 : 1 - Math.exp(-(beat ? 7.2 : 2.2) * dt));
+  lastMobileCameraView = mobileCameraView;
   if (state.mode === 'goal' && innerWidth >= 700) {
     // Goals earn the one deliberate push-in; everything else stays readable and wide.
     camera.position.lerp(camPosD.set(ball.pos.x * 0.8, 8, ball.pos.z + 18), 1 - Math.exp(-1.2 * dt));
@@ -3160,7 +3191,8 @@ function cameraStep(dt, t) {
     Math.sin(t*47.3) * Math.sin(t*29.7 + 1.3) * sh,
     Math.sin(t*53.1 + 2.1) * Math.sin(t*31.9) * sh, 0);
   camera.position.add(camShakeOff);
-  camera.up.set(innerWidth < 700 ? 1 : 0, innerWidth < 700 ? 0 : 1, 0);
+  camera.up.set(innerWidth < 700 && mobileCameraView === 'overhead' ? 1 : 0,
+    innerWidth < 700 && mobileCameraView === 'overhead' ? 0 : 1, 0);
   camera.lookAt(camTarget);
 }
 // Restarts may teleport the simulation, so land immediately on the same wide grammar.
@@ -3169,7 +3201,9 @@ function cameraCut() {
   ogLiveFrame(camera.position, camTarget);
   camera.fov = arenaCameraFov();
   camera.updateProjectionMatrix();
-  camera.up.set(innerWidth < 700 ? 1 : 0, innerWidth < 700 ? 0 : 1, 0);
+  lastMobileCameraView = mobileCameraView;
+  camera.up.set(innerWidth < 700 && mobileCameraView === 'overhead' ? 1 : 0,
+    innerWidth < 700 && mobileCameraView === 'overhead' ? 0 : 1, 0);
   camera.lookAt(camTarget);
 }
 // Calls stay in the wide composition; referee movement, crowd and ticker carry the beat.
@@ -4485,6 +4519,9 @@ window.render_game_to_text = () => JSON.stringify({
   spectacle: { last:state.lastTechnique, goalTechnique:state.goalTechnique,
     cooldown:+state.spectacleCooldown.toFixed(1), stats:{backheels:stats.backheels,volleys:stats.volleys,bicycles:stats.bicycles} },
   cameraBeat: state.cameraBeat?state.cameraBeat.type:null,
+  camera: { view:innerWidth<700?mobileCameraView:'broadcast', fov:+camera.fov.toFixed(1),
+    position:[+camera.position.x.toFixed(1),+camera.position.y.toFixed(1),+camera.position.z.toFixed(1)],
+    up:[+camera.up.x.toFixed(1),+camera.up.y.toFixed(1),+camera.up.z.toFixed(1)] },
   refereeDistance:+Math.hypot(ref.pos.x-ball.pos.x,ref.pos.z-ball.pos.z).toFixed(1),
   technicalAreas:technicalAreas.map(a=>({team:a.team.name,reaction:a.reaction})),
   departures:state.departures.map(d=>({name:d.p.name,team:d.p.team.name,seconds:+d.t.toFixed(1)})),
@@ -4499,6 +4536,7 @@ window.advanceTime = ms => {
 };
 
 addEventListener('resize', () => {
+  lastMobileCameraView = '';
   camera.fov = arenaCameraFov();
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();

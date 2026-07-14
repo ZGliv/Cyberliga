@@ -1,6 +1,8 @@
 Original prompt: Can you make boxing work way better? Make the actual fighting and animations and shit way better, you might need to make the characters better too /goal
 
 - Arena polish: hockey puck now renders true black with a separate cyan locator ring; hockey, hoops, and soccer arena return controls now read `GLOBE` and link back to the world view.
+- Mobile camera pass: soccer uses an 11s overhead / 7s elevated end-zone rhythm and hockey uses 10s / 7s; goals, replays, and major hockey action hold the angle long enough to restore depth without camera rolls or roof fly-throughs. Portrait captures confirm both views at 390×844, desktop and phone-landscape remain on their authored broadcast paths, hockey restart clears any angle hold, and browser runs report no page errors.
+- Corrected the hockey/hoops `GLOBE` links to use the watch-only exit exemption, so those top-left controls remain visible, focusable, and linked to `world.html` after the autonomous-broadcast guard initializes.
 
 ## Notes
 - Focus scope: `fight.html`; avoid shared rig changes unless absolutely necessary so soccer/baseball/hoops/hockey are not disturbed.

@@ -180,7 +180,7 @@
 </head>
 <body>
 <div id="hud">
-  <div id="badge"><a id="leaguepill" href="world.html" aria-label="Back to Cyberliga globe">GLOBE</a><span id="wordmark">CYBERLIGA <em>ICE</em></span><span id="erapill">EXHIBITION ERA</span></div>
+  <div id="badge"><a id="leaguepill" class="watch-only-exit" href="world.html" aria-label="Back to Cyberliga globe">GLOBE</a><span id="wordmark">CYBERLIGA <em>ICE</em></span><span id="erapill">EXHIBITION ERA</span></div>
   <div id="scoreboard">
     <div class="team" id="teamA"><span class="dot"></span><span class="tn">NEON FC</span><span class="tc">NEO</span></div>
     <div id="score"><span id="sA">0</span>&nbsp;&ndash;&nbsp;<span id="sB">0</span></div>
@@ -889,6 +889,7 @@ function setupMatch(firstLoad) {
   resetSimSeed();
   buildSquads();
   simClockTotal=0; lastSayT=-10;
+  mobileIceCameraView='overhead';mobileIceCameraSegment=-1;mobileIceAngleSide=1;mobileIceAngleHoldUntil=0;lastCamMode='';
   S.period = 1; S.clock = PERIOD_LEN;
   S.score = [0, 0]; S.shots = [0, 0]; S.hits = [0, 0]; S.saves = [0, 0]; S.rebounds = [0, 0]; S.oneTimers = [0, 0]; S.slapShots=[0,0]; S.screens=[0,0]; S.noTouchT = 0;
   S.faceoffs=[0,0]; S.penalties=[0,0]; S.powerPlayGoals=[0,0]; S.shift=[1,1]; S.shiftClock=[26,29];
@@ -1597,6 +1598,17 @@ function showFinalCard() {
 const camPos = new THREE.Vector3(0, 16, BZ + 21), camLook = new THREE.Vector3(0, 1, 0);
 let lastCamMode = 'broadcast';
 const tmpP = new THREE.Vector3(), tmpL = new THREE.Vector3();
+const MOBILE_ICE_CAMERA_CYCLE=17, MOBILE_ICE_OVERHEAD_SECONDS=10;
+let mobileIceCameraView='overhead', mobileIceCameraSegment=-1, mobileIceAngleSide=1, mobileIceAngleHoldUntil=0;
+function selectMobileIceCameraView(forceAngle=false){
+  const segment=Math.floor(simClockTotal/MOBILE_ICE_CAMERA_CYCLE);
+  if(forceAngle)mobileIceAngleHoldUntil=Math.max(mobileIceAngleHoldUntil,simClockTotal+3.2);
+  const view=simClockTotal<mobileIceAngleHoldUntil||simClockTotal%MOBILE_ICE_CAMERA_CYCLE>=MOBILE_ICE_OVERHEAD_SECONDS?'angle':'overhead';
+  if(view==='angle'&&(mobileIceCameraView!=='angle'||segment!==mobileIceCameraSegment)){
+    mobileIceAngleSide=S.state==='GOAL_SEQ'&&S.scoredSide?-S.scoredSide:(puck.x>=0?-1:1);
+  }
+  mobileIceCameraSegment=segment;mobileIceCameraView=view;return view;
+}
 function cameraStep(dt) {
   const portrait = innerWidth <= 700 && innerHeight > innerWidth*1.2;
   // The low-angle desktop specular is atmospheric, but a tactical overhead
@@ -1610,15 +1622,22 @@ function cameraStep(dt) {
   bloomPass.threshold=portrait?.95:.82;
   const rush = S.state === 'PLAY' ? players.find(p => p.breakaway && puck.carrier === p) : null;
   const mode = (S.state === 'GOAL_SEQ' && S.t < 3.1) ? 'over' : rush ? 'rush' : 'broadcast';
-  camera.up.set(portrait?1:0,portrait?0:1,0);
+  const mobileView=portrait?selectMobileIceCameraView(mode!=='broadcast'||S.cameraBeat>0):'broadcast';
+  if(!portrait)mobileIceCameraView='broadcast';
+  camera.up.set(portrait&&mobileView==='overhead'?1:0,portrait&&mobileView==='overhead'?0:1,0);
   roofTrusses.forEach(beam=>beam.visible=!portrait&&mode!=='over');
   scoreboard.visible=!portrait&&mode!=='over';
-  if(portrait){
+  if(portrait&&mobileView==='overhead'){
     // A phone broadcast is a fixed tactical overhead: the complete rink stays
-    // between the score bug and controls, including both goals and every
-    // skater.  Action callouts carry the close-up drama without cropping the
-    // opposite-side shape out of the play.
+    // between the score bug and ticker, including both goals and every skater.
     tmpP.set(0,56,4);tmpL.set(0,0,0);
+  } else if(portrait){
+    // The companion phone shot is an elevated end-zone camera. Rink length
+    // recedes into portrait depth while the boards, goal mouth and skating
+    // speed regain the dimensional read of a hockey broadcast.
+    const focusX=mode==='over'?S.scoredSide*GLX:puck.x;
+    tmpP.set(mobileIceAngleSide*(GLX+6),18.5,clamp(puck.z*.12,-2.2,2.2));
+    tmpL.set(clamp(focusX*.55,-15,15),.55,puck.z*.48);
   } else if (mode === 'over') {
     const gx = S.scoredSide*GLX;
     tmpP.set(gx*(portrait?0.38:0.55), portrait?36:30, portrait?BZ+38:7); tmpL.set(gx*(portrait?0.62:0.8), 0, 0);
@@ -1638,11 +1657,11 @@ function cameraStep(dt) {
       tmpL.z += (S.cameraZ-tmpL.z)*weight*0.55;
     }
   }
-  // Portrait is intentionally a locked tactical camera. Snap to it on the
-  // first rendered tune-in frame as well as after restarts; otherwise the old
-  // landscape camera spends its first seconds easing through a cropped rink.
-  if (portrait) { camPos.copy(tmpP); camLook.copy(tmpL); lastCamMode=mode; }
-  else if (mode !== lastCamMode) { camPos.copy(tmpP); camLook.copy(tmpL); lastCamMode = mode; } // hard cut
+  const cameraKey=portrait?`${mode}:${mobileView}`:mode;
+  // Treat changes between tactical and end-zone coverage as real broadcast
+  // cuts. Never fly through the roof or roll between incompatible up vectors.
+  if (portrait&&mobileView==='overhead') { camPos.copy(tmpP); camLook.copy(tmpL); lastCamMode=cameraKey; }
+  else if (cameraKey !== lastCamMode) { camPos.copy(tmpP); camLook.copy(tmpL); lastCamMode = cameraKey; } // hard cut
   else { camPos.lerp(tmpP, dampK(3.1, dt)); camLook.lerp(tmpL, dampK(4.6, dt)); }
   camera.position.copy(camPos);
   if (S.cameraKind === 'hit' && S.cameraBeat > 0) {
@@ -1650,7 +1669,7 @@ function cameraStep(dt) {
     camera.position.x += Math.sin(simClockTotal*71)*shake;
     camera.position.y += Math.cos(simClockTotal*57)*shake*0.35;
   }
-  const desiredFov = portrait ? 78 : mode === 'rush' ? 35 : S.cameraBeat > 0 ? 38 : 40;
+  const desiredFov = portrait ? (mobileView==='overhead'?78:64) : mode === 'rush' ? 35 : S.cameraBeat > 0 ? 38 : 40;
   camera.fov += (desiredFov-camera.fov)*dampK(7,dt); camera.updateProjectionMatrix();
   camera.lookAt(camLook);
 }
@@ -2117,7 +2136,10 @@ window.render_game_to_text = () => JSON.stringify({
     { name: TEAM_B.name, code:TEAM_B.code, score: S.score[1], shots: S.shots[1], saves: S.saves[1], rebounds:S.rebounds[1], hits: S.hits[1], slapShots:S.slapShots[1], oneTimers: S.oneTimers[1], faceoffs:S.faceoffs[1], penalties:S.penalties[1], ppGoals:S.powerPlayGoals[1], entries:S.entries[1], cycles:S.cycles[1], zoneTime:+S.zoneTime[1].toFixed(1), strength:strengthLabel(1), shift:S.shift[1], system:currentSystem(1) }
   ],
   causality:{entry:S.entryDecision||null,lastDecision:S.lastDecision,battle:S.battle||null,shotQuality:+S.shotQuality.toFixed(2),goalieRead:S.goalieRead,overtime:S.period===4?'3-on-3 sudden death':null},
-  broadcast:{ event:S.eventTTL>0?S.eventText:null, eventKind:S.eventTTL>0?S.eventKind:null, camera:S.cameraBeat>0?S.cameraKind:'broadcast' },
+  broadcast:{ event:S.eventTTL>0?S.eventText:null, eventKind:S.eventTTL>0?S.eventKind:null,
+    camera:S.cameraBeat>0?S.cameraKind:'broadcast', view:innerWidth<=700&&innerHeight>innerWidth*1.2?mobileIceCameraView:'broadcast' },
+  camera:{fov:+camera.fov.toFixed(1),position:[+camera.position.x.toFixed(1),+camera.position.y.toFixed(1),+camera.position.z.toFixed(1)],
+    up:[+camera.up.x.toFixed(1),+camera.up.y.toFixed(1),+camera.up.z.toFixed(1)]},
   puck: { x: +puck.x.toFixed(2), y: +puck.y.toFixed(2), z: +puck.z.toFixed(2), held: puck.held, carrier: puck.carrier?.name || null,
     passTarget:puck.passTarget?.name||null, speed: +Math.hypot(puck.vx, puck.vz).toFixed(2), verticalSpeed:+puck.vy.toFixed(2) },
   players: players.map(p => ({ name: p.name, team: p.team === 0 ? TEAM_A.name : TEAM_B.name, role:p.role,
@@ -2131,6 +2153,7 @@ window.advanceTime = (ms) => {
 };
 
 addEventListener('resize', () => {
+  lastCamMode='';
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
