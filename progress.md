@@ -1,5 +1,7 @@
 Original prompt: Can you make boxing work way better? Make the actual fighting and animations and shit way better, you might need to make the characters better too /goal
 
+- Arena polish: hockey puck now renders true black with a separate cyan locator ring; hockey, hoops, and soccer arena return controls now read `GLOBE` and link back to the world view.
+
 ## Notes
 - Focus scope: `fight.html`; avoid shared rig changes unless absolutely necessary so soccer/baseball/hoops/hockey are not disturbed.
 - Current fight page already has strike types, arms, guard/stamina, knockdowns, ref, camera, and hit FX. Main quality gaps are visual boxing read: stance, glove paths, body selling, defensive movement, contact timing, and testing hooks.

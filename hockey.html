@@ -180,7 +180,7 @@
 </head>
 <body>
 <div id="hud">
-  <div id="badge"><a id="leaguepill" href="world.html">← HOME</a><span id="wordmark">CYBERLIGA <em>ICE</em></span><span id="erapill">EXHIBITION ERA</span></div>
+  <div id="badge"><a id="leaguepill" href="world.html" aria-label="Back to Cyberliga globe">GLOBE</a><span id="wordmark">CYBERLIGA <em>ICE</em></span><span id="erapill">EXHIBITION ERA</span></div>
   <div id="scoreboard">
     <div class="team" id="teamA"><span class="dot"></span><span class="tn">NEON FC</span><span class="tc">NEO</span></div>
     <div id="score"><span id="sA">0</span>&nbsp;&ndash;&nbsp;<span id="sB">0</span></div>
@@ -575,7 +575,7 @@ for (const x of [-3.4,3.4]) {
 const puck = { x: 0, z: 0, y: PY, vx: 0, vz: 0, vy: 0, carrier: null, lastTouch: null,
   passTarget: null, saveChecked: false, blockChecked:false, prevX: 0, held: true, shotQuality:0, shotLane:99, shotScreen:false, entryType:'' };
 const puckMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.16, 18),
-  new THREE.MeshStandardMaterial({ color: 0x0b0e16, roughness: 0.35, emissive: 0x66f0ff, emissiveIntensity: 0.55 }));
+  new THREE.MeshStandardMaterial({ color: 0x050608, roughness: 0.42, metalness: 0.08, emissive: 0x000000, emissiveIntensity: 0 }));
 scene.add(puckMesh);
 const puckRing = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.74, 24),
   new THREE.MeshBasicMaterial({ color: 0x66f0ff, transparent: true, opacity: 0.5, side: THREE.DoubleSide,
