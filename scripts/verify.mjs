@@ -289,6 +289,7 @@ check(/pitchTargetMarker/.test(baseballSource) && /pitchGuideStep/.test(baseball
 check(!/say\s*\(\s*spick\(/.test(baseballSource), 'Baseball commentary must not consume seeded sporting RNG');
 check(/const\s+spick\s*=/.test(baseballSource) && /:\s*spick\(\[a,b\]\)/.test(baseballSource), 'Baseball must retain seeded RNG for genuine sporting decisions');
 check(/OVERHAND/.test(fightSource) && /LIVER/.test(fightSource) && /clinchWorkT/.test(fightSource) && /ROPE EXIT/.test(fightSource), 'Combat must retain broader strikes, inside work, and deliberate rope-exit footwork');
+check(/const\s+venueBoards\s*=\s*\[\]/.test(fightSource) && /const\s+mobileClearView\s*=\s*innerWidth<700/.test(fightSource) && /for\s*\(const board of venueBoards\)\s*board\.visible\s*=\s*!mobileClearView/.test(fightSource), 'Combat must suppress venue-board occlusion once portrait live action begins');
 check(/let\s+fightSeed[\s\S]{0,80}presentationSeed[\s\S]{0,500}function\s+prand\(/.test(fightSource) && /const\s+ppick\s*=/.test(fightSource), 'Combat must define a separate presentation RNG');
 check(/function\s+seedFight[\s\S]{0,400}\|simulation[\s\S]{0,400}\|presentation/.test(fightSource), 'Combat RNG streams must be domain-separated');
 check(!/say\([^;\n]*\bpick\(/.test(fightSource), 'Combat commentary must not consume sporting RNG');

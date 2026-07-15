@@ -797,3 +797,6 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - Release Manager audit removed the last two legacy creative-tool masthead destinations outside Home/Leagues
   and changed Founding Athlete Files to render only once when reduced motion is requested, waking again only
   for resize, explicit deterministic stepping, or a motion-preference change instead of repainting at 60 Hz.
+- Final phone broadcast review caught Combat's outside-the-fascia camera passing behind a double-sided venue
+  board during live exchanges and knockdown counts. Portrait broadcasts now retain those boards for walkouts
+  but suppress them once live action begins, keeping the full cage and both cyan/pink fighters unobstructed.

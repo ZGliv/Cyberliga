@@ -567,6 +567,7 @@ for(let i=0;i<16;i++){
   lamp.position.set(Math.cos(a)*11.8,12.75,Math.sin(a)*11.8);scene.add(lamp);
 }
 const venueIdentityGroup=new THREE.Group();scene.add(venueIdentityGroup);
+const venueBoards=[];
 let venueRitual='pulse',venueScene='industrial',venueAccent=0xff3d5a;
 function fightVenueTexture(def){
   const brand=def.brand||{},c=document.createElement('canvas');c.width=900;c.height=260;const g=c.getContext('2d');
@@ -582,9 +583,10 @@ function addFightVenueBlock(x,y,z,sx,sy,sz,color,emissive=0){
 }
 function applyFightVenue(def){
   while(venueIdentityGroup.children.length){const child=venueIdentityGroup.children.pop();child.geometry?.dispose();if(child.material?.map)child.material.map.dispose();child.material?.dispose();}
+  venueBoards.length=0;
   const brand=def.brand||{};venueRitual=brand.kitPattern||'pulse';venueScene=brand.scene||'industrial';venueAccent=def.accent;
   const texture=fightVenueTexture(def);
-  [[0,8.7,-15.55,0],[0,8.7,15.55,Math.PI],[-16.55,8.7,0,Math.PI/2],[16.55,8.7,0,-Math.PI/2]].forEach(([x,y,z,r])=>{const board=new THREE.Mesh(new THREE.PlaneGeometry(12.5,3.6),new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide}));board.position.set(x,y,z);board.rotation.y=r;venueIdentityGroup.add(board);});
+  [[0,8.7,-15.55,0],[0,8.7,15.55,Math.PI],[-16.55,8.7,0,Math.PI/2],[16.55,8.7,0,-Math.PI/2]].forEach(([x,y,z,r])=>{const board=new THREE.Mesh(new THREE.PlaneGeometry(12.5,3.6),new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide}));board.position.set(x,y,z);board.rotation.y=r;venueIdentityGroup.add(board);venueBoards.push(board);});
   const primary=def.kit,accent=def.accent;
   if(venueScene==='industrial'){
     for(const x of [-14,-9,-4,4,9,14])addFightVenueBlock(x,7,-14.9,.5,13,.5,0x26221e,x%2?0:accent);
@@ -2031,6 +2033,11 @@ function cameraStep(dt) {
   }
   camera.lookAt(camLook);
   const cleanView=S.state==='FIGHT'||S.state==='KNOCKDOWN';
+  // Portrait cameras sit outside the venue fascia so the whole cage fits.
+  // Keep the authored boards for walkouts/establishing shots, then remove
+  // their near-wall occlusion once the actual mobile broadcast is underway.
+  const mobileClearView=innerWidth<700&&S.state!=='WALKON';
+  for(const board of venueBoards)board.visible=!mobileClearView;
   const cdx=Math.cos(broadcastA),cdz=Math.sin(broadcastA);
   for(const p of ringPosts){
     const far=(p.position.x-mx)*cdx+(p.position.z-mz)*cdz<.35;
