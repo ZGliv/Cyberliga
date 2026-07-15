@@ -6,8 +6,10 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="football.css">
   <link rel="stylesheet" href="arena-signal.css">
+  <link rel="stylesheet" href="arena-score-fit.css">
   <title>CYBERLIGA GRIDIRON — AMERICAN FOOTBALL</title>
   <script src="watchonly.js"></script>
+  <script src="arena-score-fit.js" defer></script>
 </head>
 <body>
   <main id="stadium" aria-label="Three-dimensional live American football broadcast"></main>
@@ -65,13 +67,13 @@
         <div id="networkBug" aria-label="Cyberliga Sports live"><b>CYBERLIGA</b><span>LIVE</span></div>
         <section class="club homeClub">
           <div class="clubMark" id="homeMark">NOB</div>
-          <div class="clubName"><small id="homeCity">NEW ORLEANS</small><strong id="homeName">BAYOU KINGS</strong></div>
+          <div class="clubName"><small id="homeCity" data-score-fit>NEW ORLEANS</small><strong id="homeName" data-score-fit>BAYOU KINGS</strong></div>
           <b class="score" id="homeScore">0</b>
         </section>
         <section id="gameClock"><strong id="clock">5:00</strong><span id="quarter">1ST QUARTER</span></section>
         <section class="club awayClub">
           <b class="score" id="awayScore">0</b>
-          <div class="clubName"><small id="awayCity">ATLANTA</small><strong id="awayName">PEACHES</strong></div>
+          <div class="clubName"><small id="awayCity" data-score-fit>ATLANTA</small><strong id="awayName" data-score-fit>PEACHES</strong></div>
           <div class="clubMark" id="awayMark">ATL</div>
         </section>
       </div>

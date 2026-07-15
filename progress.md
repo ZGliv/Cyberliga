@@ -646,3 +646,20 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   (51/51 combined), 1,225/1,225 repository checks, standalone and inline-script syntax, and `git diff --check`.
   Fan calls remain deliberately free, local and unresolved; the browser fallback is not an authoritative event
   or settlement stream and no cash, prize, wager, payout or client-result settlement surface was added.
+
+## Six-Sport Scoreboard Fit — 2026-07-15
+- User evidence showed `HAVANA SUGAR KINGS` wrapping into three vertically clipped lines while the score dash
+  sat off-axis. Scope is limited to top scoreboard/fighter typography in `index.html`, `football.html`,
+  `hoops.html`, `hockey.html`, `baseball.html` and `fight.html`.
+- Added shared `arena-score-fit.css/js`: top-line labels are single-line, measured against their actual rendered
+  box, refit after fixture mutations, webfont readiness and resizes, and expose QA metrics through
+  `window.CyberligaScoreFit.state()`.
+- Soccer, hoops, hockey and baseball now use a three-track tabular score readout with an optically centered drawn
+  rule instead of relying on each font's en-dash baseline. Football keeps its native clock-centered TV scorebug;
+  combat keeps fighter/club panels, with both surfaces using the same measured fitting contract.
+- Final longest-fixture matrix passes 18/18 views across desktop, 390x844 and 320px: every visible label is
+  measured, stays inside its parent, and reports zero overflow; 0→12/11, 108/117, 8/10 and 12/11 score-width
+  stress keeps the drawn separator on-axis with no horizontal page overflow or console/page/request errors.
+- The official web-game client passes all six arenas with finite state and no error artifacts; all six official
+  desktop captures plus the narrow mobile capture set were visually inspected. Final static verification passes
+  13/13 API tests and 1,257/1,257 repository checks, and `git diff --check` is clean.

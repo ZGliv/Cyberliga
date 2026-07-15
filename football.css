@@ -132,10 +132,10 @@ button { cursor: pointer; }
   letter-spacing: .4px;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .75);
 }
-.clubName { min-width: 0; line-height: 1; }
+.clubName { min-width: 0; flex: 1 1 0; overflow: hidden; line-height: 1; }
 .clubName small, .clubName strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.clubName small { color: #aeb5bd; font-size: 8px; font-weight: 800; letter-spacing: .9px; }
-.clubName strong { max-width: 150px; margin-top: 5px; font-size: 14px; font-weight: 950; letter-spacing: .2px; }
+.clubName small { --score-fit-max:8px; --score-fit-min:6.5px; --score-fit-floor:5.75px; --score-fit-tracking:.9px; --score-fit-min-tracking:0px; width:100%; color: #aeb5bd; font-size: 8px; font-weight: 800; letter-spacing: .9px; }
+.clubName strong { --score-fit-max:14px; --score-fit-min:9px; --score-fit-floor:6.25px; --score-fit-tracking:.2px; --score-fit-min-tracking:-.55px; width:100%; max-width:none; margin-top: 5px; font-size: 14px; font-weight: 950; letter-spacing: .2px; }
 .score { min-width: 31px; text-align: center; font-size: 34px; font-weight: 900; line-height: 1; }
 #gameClock {
   display: grid;
@@ -475,7 +475,7 @@ body #cgh-toggle:hover, body #cgh-toggle:focus-visible { opacity: 1; }
   .club { gap: 5px; padding: 6px; }
   .clubMark { width: 32px; height: 33px; flex-basis: 32px; font-size: 8px; }
   .clubName small { display: none; }
-  .clubName strong { max-width: 90px; margin-top: 0; font-size: 11px; }
+  .clubName strong { --score-fit-max:11px; --score-fit-min:8px; --score-fit-floor:6px; max-width:none; margin-top: 0; font-size: 11px; }
   .score { min-width: 25px; font-size: 28px; }
   #gameClock { padding-inline: 5px; }
   #gameClock strong { font-size: 17px; }
@@ -500,7 +500,7 @@ body #cgh-toggle:hover, body #cgh-toggle:focus-visible { opacity: 1; }
   #scoreboard { width: calc(100vw - 8px); }
   #scorebugMain { grid-template-columns: minmax(0, 1fr) 70px minmax(0, 1fr); }
   #networkBug { display: none; }
-  .clubName strong { max-width: 76px; font-size: 10px; }
+  .clubName strong { --score-fit-max:10px; --score-fit-min:7px; --score-fit-floor:5.5px; max-width:none; font-size: 10px; }
   #situation strong { min-width: 94px; }
   #situation em { max-width: 105px; overflow: hidden; text-overflow: ellipsis; }
   #arenaNav { top: 10px; left: 10px; }
@@ -528,7 +528,7 @@ body #cgh-toggle:hover, body #cgh-toggle:focus-visible { opacity: 1; }
   .club { padding-block: 4px; }
   .clubMark { width: 27px; height: 28px; flex-basis: 27px; font-size: 7px; }
   .clubName small { display: none; }
-  .clubName strong { max-width: 115px; margin-top: 0; font-size: 10px; }
+  .clubName strong { --score-fit-max:10px; --score-fit-min:7px; --score-fit-floor:5.5px; max-width:none; margin-top: 0; font-size: 10px; }
   .score { font-size: 24px; }
   #gameClock strong { font-size: 15px; }
   #gameClock span { margin-top: 2px; font-size: 6px; }

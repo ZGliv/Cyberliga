@@ -86,6 +86,19 @@ for (const arena of arenas) {
   check(/autonomous\s*:\s*true/.test(source) && /interaction\s*:\s*['"]view-only['"]/.test(source), `${arena.file} does not declare its autonomous view-only contract`);
   check(!/<(?:button|input|select|textarea)\b/i.test(source), `${arena.file} must not expose interactive game controls`);
   check(!arenaInputHandler.test(source), `${arena.file} must not bind user-input gameplay handlers`);
+  check(/arena-score-fit\.css/.test(htmlSource) && /arena-score-fit\.js/.test(htmlSource), `${arena.file} must load the shared scoreboard fitting contract`);
+  check(/data-score-fit/.test(htmlSource), `${arena.file} must identify its top-line club or fighter labels for measured fitting`);
+}
+
+const scoreFitSource = await text('arena-score-fit.js');
+const scoreFitStyles = await text('arena-score-fit.css');
+check(/CyberligaScoreFit/.test(scoreFitSource) && /fitAll/.test(scoreFitSource), 'Shared scoreboard fitter must expose browser QA state');
+check(/ResizeObserver/.test(scoreFitSource) && /MutationObserver/.test(scoreFitSource), 'Shared scoreboard fitter must react to viewport and fixture-name changes');
+check(/scrollWidth[\s\S]{0,120}clientWidth/.test(scoreFitSource), 'Shared scoreboard fitter must measure rendered label overflow');
+check(/\.arena-score-readout[\s\S]{0,500}\.score-separator/.test(scoreFitStyles), 'Shared scoreboard styles must optically center score separators');
+for (const file of ['index.html', 'hoops.html', 'hockey.html', 'baseball.html']) {
+  const source = await text(file);
+  check(/class=["'][^"']*arena-score-readout/.test(source) && /class=["']score-separator/.test(source), `${file} must use the centered shared score separator`);
 }
 
 const supportingPages = [

@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" href="data:," />
 <link rel="stylesheet" href="arena-signal.css" />
+<link rel="stylesheet" href="arena-score-fit.css" />
 <title>CYBERLIGA DIAMOND — AUTONOMOUS AI BASEBALL</title>
 <script src="watchonly.js"></script>
+<script src="arena-score-fit.js" defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -17,13 +19,18 @@
 
   #scoreboard {
     position:absolute; top:22px; left:50%; transform:translateX(-50%);
-    display:flex; align-items:stretch; height:46px;
+    display:flex; align-items:stretch; width:min(700px, calc(100vw - 320px)); height:46px;
+    max-width:calc(100vw - 32px);
     background:linear-gradient(180deg, rgba(8,12,28,.92), rgba(4,6,16,.92));
     border:1px solid rgba(88,255,180,.28); border-radius:8px;
     box-shadow:0 0 24px rgba(88,255,180,.15), inset 0 1px 0 rgba(255,255,255,.06);
     overflow:hidden; backdrop-filter:blur(6px);
   }
-  .team { display:flex; align-items:center; gap:10px; padding:0 16px; font-family:'Orbitron'; font-weight:700; font-size:15px; letter-spacing:2px; }
+  .team { display:flex; align-items:center; min-width:0; gap:10px; padding:0 16px; overflow:hidden; font-family:'Orbitron'; font-weight:700; font-size:15px; letter-spacing:2px; }
+  .team #nameA, .team #nameB {
+    --score-fit-max:15px; --score-fit-min:9px; --score-fit-floor:6.25px; --score-fit-tracking:2px; --score-fit-min-tracking:0px;
+    min-width:0; overflow:hidden; text-overflow:clip; white-space:nowrap;
+  }
   .team .dot { width:10px; height:10px; border-radius:2px; transform:rotate(45deg); }
   #score {
     display:flex; align-items:center; padding:0 18px; font-family:'Orbitron'; font-weight:900; font-size:22px; color:#fff;
@@ -174,7 +181,7 @@
       box-shadow:0 10px 28px rgba(0,0,0,.38), 0 0 24px rgba(88,255,180,.2), inset 0 1px 0 rgba(255,255,255,.07);
     }
     .team { min-width:0; gap:7px; padding:0 9px; font-size:10.5px; letter-spacing:.75px; white-space:nowrap; overflow:hidden; }
-    .team #nameA, .team #nameB { min-width:0; flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; }
+    .team #nameA, .team #nameB { --score-fit-max:10.5px; --score-fit-min:7.25px; --score-fit-floor:5.75px; --score-fit-tracking:.75px; --score-fit-min-tracking:-1.15px; min-width:0; flex:1 1 auto; overflow:hidden; text-overflow:clip; }
     #teamB { justify-content:flex-end; text-align:right; }
     .team .dot { width:8px; height:8px; flex:0 0 8px; }
     #score { min-width:72px; height:100%; padding:0 8px; font-size:18px; letter-spacing:1.8px; }
@@ -235,6 +242,7 @@
     #wordmark { font-size:11px; letter-spacing:1px; }
     #scoreboard { width:calc(100vw - 16px); height:42px; }
     .team { padding:0 7px; gap:6px; font-size:9.5px; letter-spacing:.55px; }
+    .team #nameA, .team #nameB { --score-fit-max:9.5px; --score-fit-min:6.75px; --score-fit-floor:5.35px; --score-fit-tracking:.55px; --score-fit-min-tracking:-1.3px; }
     .team .dot { width:7px; height:7px; flex-basis:7px; }
     #score { min-width:66px; font-size:16px; letter-spacing:1.5px; }
     #countbar { max-width:calc(100vw - 16px); gap:6px; padding:4px 8px; }
@@ -248,9 +256,9 @@
 <div id="hud">
   <div id="badge"><a id="leaguepill" class="watch-only-exit" href="world.html" aria-label="Back to the Cyberliga globe">← GLOBE</a><span id="wordmark">CYBERLIGA <em>DIAMOND</em></span><span id="erapill">EXHIBITION ERA</span></div>
   <div id="scoreboard">
-    <div class="team" id="teamA"><span class="dot"></span><span id="nameA">NEON FC</span></div>
-    <div id="score"><span id="sA">0</span>&nbsp;&ndash;&nbsp;<span id="sB">0</span></div>
-    <div class="team" id="teamB"><span id="nameB">VOLT UTD</span><span class="dot"></span></div>
+    <div class="team" id="teamA"><span class="dot"></span><span id="nameA" data-score-fit>NEON FC</span></div>
+    <div id="score" class="arena-score-readout" role="group" aria-label="Match score"><span class="score-value" id="sA" aria-label="Away score">0</span><span class="score-separator" aria-hidden="true"></span><span class="score-reader">to</span><span class="score-value" id="sB" aria-label="Home score">0</span></div>
+    <div class="team" id="teamB"><span id="nameB" data-score-fit>VOLT UTD</span><span class="dot"></span></div>
   </div>
   <div id="countbar">
     <span class="live"></span><span id="inn">&#9650; 1</span>
