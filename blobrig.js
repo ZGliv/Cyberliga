@@ -20,6 +20,144 @@ export function classicPlayerColor(side = 0) {
   return CLASSIC_PLAYER_COLORS[classicSideIndex(side)];
 }
 
+const identityTextureCache = new Map();
+const hexCss = value => `#${new THREE.Color(value ?? 0x7f8a9a).getHexString()}`;
+const identityHash = value => {
+  let result = 2166136261 >>> 0;
+  for (const character of String(value || 'CYB')) {
+    result ^= character.charCodeAt(0);
+    result = Math.imul(result, 16777619);
+  }
+  return result >>> 0;
+};
+
+function roundedRect(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, width * 0.5, height * 0.5);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
+  ctx.closePath();
+}
+
+function paintIdentityPattern(ctx, pattern, color, width, height) {
+  const motif = String(pattern || 'pulse').toLowerCase();
+  const type = /^(?:speed|flight|wing|serrated|cane|rain|seam)$/.test(motif) ? 'slash'
+    : /^(?:fold|weave|woven|bramble|mosaic)$/.test(motif) ? 'weave'
+    : /^(?:rings|crystal|spiral|pulse|bell)$/.test(motif) ? 'rings'
+    : /^(?:grid|block|steps|porcelain|chalk)$/.test(motif) ? 'grid'
+    : /^(?:branch|growth|crown)$/.test(motif) ? 'branch'
+    : motif === 'hex' ? 'hex'
+    : /^(?:wave|drift|horizon)$/.test(motif) ? 'wave'
+    : /^(?:fracture|tension|pit)$/.test(motif) ? 'fracture'
+    : /^(?:lantern|snow|swarm)$/.test(motif) ? 'constellation'
+    : motif === 'cross' ? 'cross'
+    : ['slash', 'weave', 'rings', 'grid'][identityHash(motif) % 4];
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.72;
+  ctx.lineWidth = 7;
+  if (type === 'slash') {
+    for (let x = -height; x < width + height; x += 24) {
+      ctx.beginPath(); ctx.moveTo(x, height); ctx.lineTo(x + height, 0); ctx.stroke();
+    }
+  } else if (type === 'constellation') {
+    for (let x = 8; x < width; x += 22) for (let y = 8; y < height; y += 22) {
+      const offset = (x / 22) % 2 ? 7 : 0;
+      ctx.beginPath(); ctx.arc(x, y + offset, motif === 'snow' ? 3 : 4, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (type === 'weave') {
+    ctx.beginPath(); ctx.moveTo(0, height * 0.75); ctx.lineTo(width * 0.36, height * 0.25);
+    ctx.lineTo(width * 0.64, height * 0.75); ctx.lineTo(width, height * 0.25); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, height * 0.25); ctx.lineTo(width * 0.36, height * 0.75);
+    ctx.lineTo(width * 0.64, height * 0.25); ctx.lineTo(width, height * 0.75); ctx.stroke();
+  } else if (type === 'grid') {
+    ctx.strokeRect(10, 9, width - 20, height - 18);
+    for (let x = 36; x < width; x += 30) { ctx.beginPath(); ctx.moveTo(x, 9); ctx.lineTo(x, height - 9); ctx.stroke(); }
+    for (let y = 31; y < height; y += 28) { ctx.beginPath(); ctx.moveTo(10, y); ctx.lineTo(width - 10, y); ctx.stroke(); }
+  } else if (type === 'rings') {
+    for (let radius = 10; radius < width; radius += 18) {
+      ctx.beginPath(); ctx.arc(width * 0.5, height * 0.5, radius, 0, Math.PI * 2); ctx.stroke();
+    }
+  } else if (type === 'hex') {
+    for (let row = -1; row < 4; row += 1) for (let column = -1; column < 6; column += 1) {
+      const cx = column * 27 + (row % 2 ? 13.5 : 0), cy = row * 24;
+      ctx.beginPath();
+      for (let point = 0; point <= 6; point += 1) {
+        const angle = point * Math.PI / 3, x = cx + Math.cos(angle) * 14, y = cy + Math.sin(angle) * 14;
+        point ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    }
+  } else if (type === 'wave') {
+    for (let row = 0; row < 4; row += 1) {
+      ctx.beginPath();
+      for (let point = 0; point <= 16; point += 1) {
+        const x = point / 16 * width, y = 16 + row * 22 + Math.sin(point * 0.85 + row) * 8;
+        point ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    }
+  } else if (type === 'branch') {
+    ctx.beginPath(); ctx.moveTo(width * 0.5, height); ctx.lineTo(width * 0.5, 5);
+    ctx.moveTo(width * 0.5, 62); ctx.lineTo(18, 32); ctx.moveTo(width * 0.5, 62); ctx.lineTo(110, 28);
+    ctx.moveTo(width * 0.5, 38); ctx.lineTo(34, 9); ctx.moveTo(width * 0.5, 38); ctx.lineTo(94, 8); ctx.stroke();
+  } else if (type === 'fracture') {
+    ctx.beginPath(); ctx.moveTo(7, 10); ctx.lineTo(51, 43); ctx.lineTo(31, 58); ctx.lineTo(78, 90);
+    ctx.moveTo(121, 4); ctx.lineTo(76, 41); ctx.lineTo(103, 57); ctx.lineTo(58, 91); ctx.stroke();
+  } else if (type === 'cross') {
+    ctx.beginPath(); ctx.moveTo(10, 10); ctx.lineTo(width - 10, height - 10);
+    ctx.moveTo(width - 10, 10); ctx.lineTo(10, height - 10); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function identityTexture({ teamCode, jerseyNumber, brandColor, accentColor, kitPattern, back = false }) {
+  if (typeof document === 'undefined') return null;
+  const code = String(teamCode || 'CYB').slice(0, 4).toUpperCase();
+  const number = String(jerseyNumber ?? '').slice(0, 2);
+  const key = [code, number, brandColor, accentColor, kitPattern, back ? 'back' : 'front'].join('|');
+  if (identityTextureCache.has(key)) return identityTextureCache.get(key);
+  const canvas = document.createElement('canvas');
+  canvas.width = 128; canvas.height = 96;
+  const ctx = canvas.getContext('2d');
+  const base = hexCss(brandColor ?? 0x1a2533);
+  const flash = hexCss(accentColor ?? 0xf3f1e9);
+  roundedRect(ctx, 4, 4, 120, 88, 16);
+  ctx.fillStyle = base; ctx.fill();
+  ctx.save(); roundedRect(ctx, 4, 4, 120, 88, 16); ctx.clip();
+  paintIdentityPattern(ctx, kitPattern, flash, 128, 96);
+  const shade = ctx.createLinearGradient(0, 0, 128, 96);
+  shade.addColorStop(0, 'rgba(255,255,255,.18)');
+  shade.addColorStop(0.5, 'rgba(255,255,255,0)');
+  shade.addColorStop(1, 'rgba(0,0,0,.34)');
+  ctx.fillStyle = shade; ctx.fillRect(0, 0, 128, 96); ctx.restore();
+  ctx.lineWidth = 4; ctx.strokeStyle = flash;
+  roundedRect(ctx, 4, 4, 120, 88, 16); ctx.stroke();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#f7fbff'; ctx.strokeStyle = 'rgba(0,0,0,.62)'; ctx.lineJoin = 'round';
+  if (back && number) {
+    ctx.font = '900 55px Arial, sans-serif'; ctx.lineWidth = 9;
+    ctx.strokeText(number, 64, 51); ctx.fillText(number, 64, 51);
+  } else {
+    ctx.font = '900 27px Arial, sans-serif'; ctx.lineWidth = 7;
+    ctx.strokeText(code, 64, number ? 35 : 48); ctx.fillText(code, 64, number ? 35 : 48);
+    if (number) {
+      ctx.font = '900 28px Arial, sans-serif';
+      ctx.strokeText(number, 64, 67); ctx.fillText(number, 64, 67);
+    }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  identityTextureCache.set(key, texture);
+  return texture;
+}
+
 const clamp01 = v => THREE.MathUtils.clamp(v, 0, 1);
 const ease = v => {
   const x = clamp01(v);
@@ -55,7 +193,11 @@ const normalizeClassicAction = name => {
   return aliases[raw] || raw;
 };
 
-export function buildBlobRig({ kitColor, glowColor, side, isGK = false, captain = false } = {}) {
+export function buildBlobRig({
+  kitColor, glowColor, side, isGK = false, captain = false,
+  brandColor, secondaryColor, accentColor, teamCode = '', jerseyNumber = '',
+  kitPattern = 'pulse', role = '',
+} = {}) {
   const g = new THREE.Group();
   const hasClassicSide = side !== undefined && side !== null;
   const classicColor = hasClassicSide ? classicPlayerColor(side) : null;
@@ -76,6 +218,50 @@ export function buildBlobRig({ kitColor, glowColor, side, isGK = false, captain 
   body.name = 'torso';
   body.position.y = 1.05;
   body.castShadow = true;
+
+  // The athlete remains unmistakably cyan/pink, while a small club-authored uniform
+  // system carries identity at broadcast distance. This deliberately uses the same
+  // mark/pattern vocabulary as League HQ instead of recoloring the whole character.
+  const hasIdentity = Boolean(teamCode || jerseyNumber || brandColor || accentColor);
+  const identityGroup = new THREE.Group();
+  identityGroup.name = 'club-uniform-identity';
+  if (hasIdentity) {
+    const club = new THREE.Color(brandColor ?? 0x263246);
+    const trim = new THREE.Color(accentColor ?? secondaryColor ?? 0xf3f1e9);
+    const bandMaterial = new THREE.MeshStandardMaterial({
+      color: club, emissive: club, emissiveIntensity: 0.12, roughness: 0.68,
+    });
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.425, 0.052, 6, 22), bandMaterial);
+    band.rotation.x = Math.PI / 2;
+    band.position.y = -0.23;
+    identityGroup.add(band);
+
+    const shoulderGeometry = new THREE.SphereGeometry(0.115, 8, 6);
+    const trimMaterial = new THREE.MeshStandardMaterial({
+      color: trim, emissive: trim, emissiveIntensity: 0.08, roughness: 0.62,
+    });
+    for (const x of [-0.39, 0.39]) {
+      const shoulder = new THREE.Mesh(shoulderGeometry, trimMaterial);
+      shoulder.scale.set(1.18, 0.52, 0.72);
+      shoulder.position.set(x, 0.18, 0);
+      identityGroup.add(shoulder);
+    }
+
+    const frontMap = identityTexture({ teamCode, jerseyNumber, brandColor, accentColor, kitPattern });
+    const backMap = identityTexture({ teamCode, jerseyNumber, brandColor, accentColor, kitPattern, back: true });
+    const makePatch = (map, z, turn) => {
+      const material = new THREE.MeshBasicMaterial({
+        map, color: map ? 0xffffff : club, transparent: true, alphaTest: 0.04,
+        polygonOffset: true, polygonOffsetFactor: -2,
+      });
+      const patch = new THREE.Mesh(new THREE.PlaneGeometry(0.43, 0.31), material);
+      patch.position.set(0, 0.12, z); patch.rotation.y = turn;
+      return patch;
+    };
+    identityGroup.add(makePatch(frontMap, 0.405, 0));
+    if (jerseyNumber) identityGroup.add(makePatch(backMap, -0.405, Math.PI));
+    body.add(identityGroup);
+  }
 
   // Compatibility sockets for sport-specific equipment. They live on the soft
   // mass so gloves/props inherit its squash, lean, and impact animation.
@@ -149,6 +335,7 @@ export function buildBlobRig({ kitColor, glowColor, side, isGK = false, captain 
     leftHand,
     rightHand,
     head: headPivot,
+    identity: identityGroup,
   };
   let disposed = false;
   let actionState = { name: 'idle', progress: 0, side: 1, variant: 0 };
@@ -291,6 +478,13 @@ export function buildBlobRig({ kitColor, glowColor, side, isGK = false, captain 
           glow: new THREE.Color(resolvedGlowColor).getHex(),
         },
         action: { ...actionState },
+        identity: {
+          teamCode: String(teamCode || ''),
+          jerseyNumber: String(jerseyNumber ?? ''),
+          kitPattern: String(kitPattern || ''),
+          role: String(role || ''),
+          visible: hasIdentity,
+        },
       };
     },
 

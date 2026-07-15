@@ -65,6 +65,7 @@ if (packageManifest) {
   check(packageManifest.scripts?.dev === 'node server.mjs', 'npm run dev must use the project-owned dependency-free server');
   check(packageManifest.scripts?.['test:api'] === 'node --test api/canonical-server.test.mjs', 'npm run test:api must cover the canonical API boundary');
   check(packageManifest.scripts?.verify === 'npm run test:api && node scripts/verify.mjs', 'npm run verify must cover APIs before static/data invariants');
+  check(packageManifest.scripts?.['release:check'] === 'npm run verify && node scripts/release-check.mjs', 'npm run release:check must verify the repository before checking the canonical release source');
   check(Object.keys(packageManifest.dependencies || {}).length === 0, 'Runtime dependencies must remain empty');
   check(Object.keys(packageManifest.devDependencies || {}).length === 0, 'Development dependencies must remain empty');
 }
@@ -129,6 +130,26 @@ const footballScript = await text('football.js');
 const baseballSource = await text('baseball.html');
 const hockeySource = await text('hockey.html');
 const fightSource = await text('fight.html');
+const releaseCheckSource = await text('scripts/release-check.mjs');
+const auditSource = await text('SPECTATOR_AUDIT.md');
+const agentsSource = await text('AGENTS.md');
+const establishingSource = await text('arena-establishing.js');
+const footballIdentitySource = await text('spectator-football-identity.js');
+const soccerIdentitySource = await text('spectator-soccer-identity.js');
+const crowdSource = await text('crowd.js');
+const presentationSource = await text('presentation.js');
+
+check(/codex\/vercel-sports-revamp/.test(releaseCheckSource), 'Release check must refuse the stale branch lineage');
+check(/prj_9mFssNBl04pIJlaRPyzm6gaYG2O5/.test(releaseCheckSource), 'Release check must pin the canonical Vercel project');
+check(/status['"],\s*['"]--porcelain=v1/.test(releaseCheckSource), 'Release check must refuse dirty release snapshots');
+check(/24\\s\+GAMES/.test(releaseCheckSource) && /48\\s\+CLUBS/.test(releaseCheckSource), 'Release check must identify the accepted 24-game / 48-club homepage');
+check(/not yet a\s+viral spectator product/i.test(auditSource), 'Spectator audit must preserve an honest baseline verdict');
+check(/server-authoritative/i.test(auditSource) && /must not accept real-money bets/i.test(auditSource), 'Spectator audit must preserve the real-money integrity boundary');
+check(/48 stadium\/arena establishing plates/i.test(auditSource) && /144 uniform plates/i.test(auditSource), 'Spectator audit must preserve the explicit AI asset-production gap');
+check(/SPECTATOR_AUDIT\.md/.test(agentsSource) && /npm run release:check/.test(agentsSource), 'Agent contract must require the spectator audit and canonical release check');
+check(/root\.CyberligaEstablishing\s*=/.test(establishingSource) && /HOME RITUAL/.test(establishingSource), 'Shared establishing package must connect matches to authored home rituals');
+check(/brand\.sceneSvg\(home\)/.test(establishingSource) && /league\.hero/.test(establishingSource), 'Shared establishing package must combine league hero art with the selected club concept');
+check(/pointer-events:none/.test(establishingSource), 'Establishing shot must remain a non-interactive broadcast layer');
 
 const worldPrimaryNav = worldSource.match(/<nav class=["']nav["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
 const leaguePrimaryNav = leagueMarkupSource.match(/<nav class=["']league-nav["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
@@ -141,6 +162,25 @@ for (const [label, nav] of [['World', worldPrimaryNav], ['League HQ', leaguePrim
 check(/export const CLASSIC_PLAYER_COLORS\s*=\s*Object\.freeze\(\[0x00e5ff,\s*0xff45d6\]\)/i.test(blobRigSource), 'Shared rig must preserve the canonical cyan/hot-pink athlete palette');
 check(/export function classicPlayerColor\s*\(/.test(blobRigSource), 'Shared rig must expose side-stable classic athlete colors');
 check(/hasClassicSide[\s\S]{0,500}resolvedKitColor/.test(blobRigSource), 'Shared rig must prevent implicit white athlete bloom');
+check(/club-uniform-identity/.test(blobRigSource) && /jerseyNumber/.test(blobRigSource) && /kitPattern/.test(blobRigSource), 'Shared classic rig must carry club code, number, and authored kit identity');
+for (const motifFamily of ['slash', 'weave', 'rings', 'grid', 'branch', 'hex', 'wave', 'fracture', 'constellation']) {
+  check(blobRigSource.includes(`'${motifFamily}'`), `Shared classic rig is missing the ${motifFamily} uniform motif family`);
+}
+
+const livingWorldArenaSources = [
+  ['soccer', `${soccerSource}\n${soccerIdentitySource}`],
+  ['american-football', `${footballScript}\n${footballIdentitySource}`],
+  ['basketball', hoopsSource],
+  ['hockey', hockeySource],
+  ['baseball', baseballSource],
+  ['combat', fightSource]
+];
+for (const [sportId, source] of livingWorldArenaSources) {
+  check(/branddata\.js|CyberligaBrand/.test(source), `${sportId} arena does not consume the 48-club brand canon`);
+  check(/arena-establishing\.js|CyberligaEstablishing/.test(source), `${sportId} arena is missing the automatic venue establishing beat`);
+  check(/brandColor[\s\S]{0,500}teamCode[\s\S]{0,500}kitPattern/.test(source), `${sportId} arena does not pass club-authored uniform identity into its athletes`);
+  check(/venue[\s\S]{0,700}ritual/.test(source), `${sportId} machine-readable broadcast state does not expose venue and ritual identity`);
+}
 
 const classicArenaSources = [
   ['soccer', soccerSource],
@@ -198,6 +238,24 @@ check(!/id=["']gameplan["']/.test(baseballSource), 'Baseball must not restore th
 check(/pitchHistory/.test(baseballSource) && /render_game_to_text/.test(baseballSource), 'Baseball must retain structured pitch history in its machine-readable broadcast state');
 check(/window\.__CYBERLIGA_HOCKEY_TEST__\s*=/.test(hockeySource) && /penalty[\s\S]*powerplay[\s\S]*overtime[\s\S]*final/.test(hockeySource), 'Hockey must expose penalty, power-play, overtime, and final branch helpers');
 check(/window\._fightTest\s*=/.test(fightSource) && /forceDecision[\s\S]*forceStoppage/.test(fightSource), 'Combat must expose deterministic decision and stoppage branch helpers');
+check(/visualPosition[\s\S]*visualFacing/.test(footballScript) && /COUNTER GT[\s\S]*JET SWEEP[\s\S]*FLOOD CONCEPT[\s\S]*SEAM SHOT/.test(footballScript), 'Football must retain interpolated player motion and the expanded run/pass concept set');
+check(/possessionSignal|possession.*ring|pass.*signal/i.test(soccerSource), 'Soccer must retain side-consistent possession/pass readability');
+check(!/Math\.random\s*=/.test(soccerSource), 'Soccer must not replace the global RNG');
+check(/const\s+simRandom[\s\S]{0,500}const\s+presentationRandom/.test(soccerSource), 'Soccer must define domain-separated simulation and presentation RNG streams');
+check(/createTactics\(\{\s*rng:\s*simRandom/.test(soccerSource) && /createBallFlight\(\{[\s\S]{0,120}rng:\s*simRandom/.test(soccerSource), 'Soccer tactics and ball flight must consume only simulation RNG');
+check(/createCrowd\([^;]+rng:\s*presentationRandom/.test(soccerSource) && /createPresentation\(\{\s*rng:\s*presentationRandom/.test(soccerSource), 'Soccer crowd and broadcast copy must consume only presentation RNG');
+check(/export function createCrowd\([\s\S]{0,500}\brng\b/.test(crowdSource) && !/\bMath\.random\s*\(/.test(crowdSource), 'Crowd implementation must use its injected presentation RNG');
+check(/export function createPresentation\([^)]*opts[\s\S]{0,220}\brng\b/.test(presentationSource), 'Presentation copy must use its injected presentation RNG');
+check(/RETRIEVE[\s\S]*BASELINE[\s\S]*READY[\s\S]*PASS/.test(hoopsSource) && /inboundsCompleted/.test(hoopsSource), 'Basketball must show a real baseline inbound sequence after baskets');
+check(/deterministicSeed/.test(hockeySource) && /const aimZ = \(rnd\(\)/.test(hockeySource) && /S\.forceCheck \|\| rnd\(\)/.test(hockeySource), 'Hockey sporting decisions must use the seeded simulation RNG');
+check(/pitchTargetMarker/.test(baseballSource) && /pitchGuideStep/.test(baseballSource) && /pitchIntent/.test(baseballSource), 'Baseball must expose pitch tunnel, target, and intent causality');
+check(!/say\s*\(\s*spick\(/.test(baseballSource), 'Baseball commentary must not consume seeded sporting RNG');
+check(/const\s+spick\s*=/.test(baseballSource) && /:\s*spick\(\[a,b\]\)/.test(baseballSource), 'Baseball must retain seeded RNG for genuine sporting decisions');
+check(/OVERHAND/.test(fightSource) && /LIVER/.test(fightSource) && /clinchWorkT/.test(fightSource) && /ROPE EXIT/.test(fightSource), 'Combat must retain broader strikes, inside work, and deliberate rope-exit footwork');
+check(/let\s+fightSeed[\s\S]{0,80}presentationSeed[\s\S]{0,500}function\s+prand\(/.test(fightSource) && /const\s+ppick\s*=/.test(fightSource), 'Combat must define a separate presentation RNG');
+check(/function\s+seedFight[\s\S]{0,400}\|simulation[\s\S]{0,400}\|presentation/.test(fightSource), 'Combat RNG streams must be domain-separated');
+check(!/say\([^;\n]*\bpick\(/.test(fightSource), 'Combat commentary must not consume sporting RNG');
+check(/const\s+sequence[\s\S]{0,500}\bpick\(/.test(fightSource), 'Combat combo selection must retain seeded sporting RNG');
 check(await exists('gamehub.js'), 'Missing shared in-game navigation hub');
 const gameHubSource = await text('gamehub.js');
 check(/removeLegacyCyberligaGameHub/.test(gameHubSource), 'Legacy gamehub compatibility file must remain removal-only');

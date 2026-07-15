@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { buildBlobRig, classicPlayerColor } from './blobrig.js';
 import { FootballAudioDirector, FootballReplayBuffer } from './footballpresentation.js';
+import { createFootballVenueIdentity, footballClubEquipmentPalette } from './spectator-football-identity.js';
 import {
   chooseDefensiveCall,
   chooseOffensiveCall,
@@ -31,6 +32,7 @@ const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 const lerp = (a, b, t) => a + (b - a) * t;
 const damp = (rate, dt) => 1 - Math.exp(-rate * dt);
 const smoothstep = (t) => { const k = clamp(t, 0, 1); return k * k * (3 - 2 * k); };
+const angleDelta = (from, to) => Math.atan2(Math.sin(to - from), Math.cos(to - from));
 const distance2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 const ordinal = (n) => n === 1 ? '1ST' : n === 2 ? '2ND' : n === 3 ? '3RD' : `${n}TH`;
 const lineRoles = new Set(['LT', 'LG', 'C', 'RG', 'RT', 'LDE', 'DT', 'NT', 'RDE']);
@@ -63,6 +65,12 @@ const content = window.CYBERLIGA_CONTENT;
 if (!content) throw new Error('Cyberliga world data did not load.');
 const sport = content.getSport('american-football');
 const teams = [sport.teams[fixture * 2], sport.teams[fixture * 2 + 1]];
+window.CyberligaEstablishing?.show?.({
+  sportId: 'american-football',
+  homeTeam: teams[0],
+  awayTeam: teams[1],
+  duration: 1200,
+});
 const teamDNA = teams.map((team) => deriveTeamDNA(team));
 let coordinatorMemory = teams.map((team) => createCoordinatorMemory(team.id));
 localStorage.setItem('cl_football_fx', String((fixture + 1) % 4));
@@ -105,7 +113,9 @@ const OFFENSE_INDEX = [0, 1, 2, 3, 6, 7, 8, 9, 10, 11, 12];
 const DEFENSE_INDEX = [17, 5, 13, 14, 15, 16, 4, 18, 19, 20, 21];
 const QUARTER_SECONDS = 300;
 const CLOCK_RATE = 4.1;
-const PREPLAY_SECONDS = 1.5;
+// The establishing card fades for 380ms after its 1.2s hold. A readable 1.8s
+// autonomous cadence guarantees the card is gone before the first (or any) snap.
+const PREPLAY_SECONDS = 1.8;
 const PREPLAY_MOVE_SECONDS = 0.92;
 const DEAD_SECONDS = 1.1;
 const GRAVITY = 10.5;
@@ -118,11 +128,15 @@ const PLAYS = {
   'INSIDE ZONE': { kind: 'run', family: 'inside', formation: '11 PERSONNEL · GUN', carrier: 'RB', lane: 2.5, complements: ['PLAY ACTION CROSS'] },
   'OUTSIDE ZONE': { kind: 'run', family: 'outside', formation: '11 PERSONNEL · SINGLEBACK', carrier: 'RB', lane: 15, complements: ['RB SCREEN'] },
   'POWER': { kind: 'run', family: 'power', formation: '12 PERSONNEL · PISTOL', carrier: 'RB', lane: -5, complements: ['PLAY ACTION CROSS'] },
+  'COUNTER GT': { kind: 'run', family: 'counter', formation: '11 PERSONNEL · PISTOL', carrier: 'RB', lane: -8, complements: ['PLAY ACTION CROSS'] },
+  'JET SWEEP': { kind: 'run', family: 'outside', formation: '11 PERSONNEL · GUN MOTION', carrier: 'SLOT', lane: 19, complements: ['MESH'] },
   'READ OPTION': { kind: 'option', family: 'option', formation: '11 PERSONNEL · PISTOL', carrier: 'RB', lane: 9, complements: ['QUICK SLANTS'] },
   'QUICK SLANTS': { kind: 'pass', family: 'quick', formation: '11 PERSONNEL · GUN', release: 0.72, maxHold: 2.25, reads: ['SLOT', 'X', 'Z', 'RB'] },
   'MESH': { kind: 'pass', family: 'man-beater', formation: '11 PERSONNEL · GUN', release: 0.9, maxHold: 2.9, reads: ['SLOT', 'TE', 'X', 'RB'] },
   'PLAY ACTION CROSS': { kind: 'pass', family: 'play-action', formation: '12 PERSONNEL · PISTOL', release: 1.25, maxHold: 3.25, reads: ['TE', 'X', 'SLOT', 'RB'], playAction: true },
   'FOUR VERTICALS': { kind: 'pass', family: 'shot', formation: '10 PERSONNEL · EMPTY', release: 1.35, maxHold: 3.45, reads: ['SLOT', 'TE', 'X', 'Z'], deep: true },
+  'FLOOD CONCEPT': { kind: 'pass', family: 'zone-beater', formation: '12 PERSONNEL · BOOT', release: 1.08, maxHold: 3.05, reads: ['Z', 'TE', 'SLOT', 'RB'], playAction: true },
+  'SEAM SHOT': { kind: 'pass', family: 'shot', formation: '11 PERSONNEL · GUN', release: 1.18, maxHold: 3.2, reads: ['TE', 'SLOT', 'X', 'RB'], deep: true },
   'RB SCREEN': { kind: 'pass', family: 'screen', formation: '11 PERSONNEL · GUN', release: 1.12, maxHold: 2.55, reads: ['RB', 'SLOT'], screen: true },
   'FIELD GOAL': { kind: 'fieldGoal', formation: 'FIELD GOAL UNIT' },
   'PUNT': { kind: 'punt', formation: 'PUNT UNIT' },
@@ -153,6 +167,14 @@ const ROUTES = {
   },
   'FOUR VERTICALS': {
     X: [[0, -21], [30, -18]], Z: [[0, 21], [30, 18]], SLOT: [[-1, -9], [29, -5]], TE: [[-1, 9], [28, 5]], RB: [[-7, 2], [4, 9]],
+  },
+  'FLOOD CONCEPT': {
+    X: [[0, -20], [16, -19]], Z: [[0, 20], [8, 18], [18, 12], [25, 11]],
+    SLOT: [[-1, -11], [7, -9], [14, -3]], TE: [[-1, 9], [7, 8], [12, 14]], RB: [[-7, 2], [-3, -2], [5, -7]],
+  },
+  'SEAM SHOT': {
+    X: [[0, -20], [17, -18], [25, -12]], Z: [[0, 20], [14, 19]],
+    SLOT: [[-1, -11], [22, -7]], TE: [[-1, 9], [24, 4]], RB: [[-7, 2], [2, 10], [7, 12]],
   },
   'RB SCREEN': {
     X: [[0, -20], [15, -20]], Z: [[0, 20], [16, 20]], SLOT: [[-1, -11], [11, -9]], TE: [[-1, 9], [8, 8]],
@@ -475,6 +497,11 @@ crowdBodies.instanceColor.needsUpdate = true;
 crowdHeads.instanceColor.needsUpdate = true;
 field.add(crowdBodies, crowdHeads);
 
+// The venue now shares the exact city/club identity used by League HQ. Its architecture,
+// signage and crowd-light ritual are presentation only; the deterministic game state is
+// untouched, while the home field finally reads as a place rather than a generic bowl.
+const venueIdentity = createFootballVenueIdentity({ scene, teams });
+
 const losMaterial = new THREE.MeshBasicMaterial({ color: 0x42bfff, transparent: true, opacity: 0.82, depthWrite: false });
 const gainMaterial = new THREE.MeshBasicMaterial({ color: 0xffd45d, transparent: true, opacity: 0.88, depthWrite: false });
 const lineOfScrimmage = fieldLine(state.ballSpot, 0.22, 53.1, losMaterial);
@@ -592,6 +619,7 @@ function cylinderBetween(radius, length, material) {
 
 function equipFootballPlayer(rig, player) {
   const signal = colorValue(classicPlayerColor(player.teamIndex), 0x00e5ff);
+  const club = footballClubEquipmentPalette(teams[player.teamIndex]);
   const shellColor = signal.clone().multiplyScalar(0.66);
   const primary = new THREE.MeshStandardMaterial({
     color: shellColor, emissive: signal, emissiveIntensity: 0.18, roughness: 0.48, metalness: 0.025,
@@ -601,13 +629,29 @@ function equipFootballPlayer(rig, player) {
   });
   // Dark steel keeps facemasks legible without reintroducing a white bloom source.
   const metal = new THREE.MeshStandardMaterial({ color: 0x526674, metalness: 0.4, roughness: 0.36 });
+  const clubPanel = new THREE.MeshStandardMaterial({
+    color: club.primary,
+    emissive: club.primary,
+    emissiveIntensity: 0.09,
+    roughness: 0.56,
+    metalness: 0.04,
+  });
+  const clubTrim = new THREE.MeshStandardMaterial({ color: club.accent, emissive: club.accent, emissiveIntensity: 0.16, roughness: 0.42 });
   const torso = rig.group.getObjectByName('torso') || rig.group;
   const pads = new THREE.Mesh(new THREE.CapsuleGeometry(0.31, 0.35, 4, 12), primary);
   const gearMeshes = [pads];
   pads.name = 'football-shoulder-pads'; pads.rotation.z = Math.PI / 2; pads.scale.set(1.18, 1, 0.8); pads.position.set(0, 0.43, -0.005); torso.add(pads);
-  const chest = new THREE.Mesh(new THREE.BoxGeometry(0.47, 0.38, 0.29), primary);
+  const chest = new THREE.Mesh(new THREE.BoxGeometry(0.47, 0.38, 0.29), clubPanel);
   gearMeshes.push(chest);
   chest.position.set(0, 0.25, 0); torso.add(chest);
+  const patternCount = ['grid', 'rain', 'growth'].includes(club.pattern) ? 3 : 2;
+  for (let index = 0; index < patternCount; index += 1) {
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.49, 0.025, 0.31), clubTrim);
+    stripe.position.y = 0.25 + (index - (patternCount - 1) / 2) * 0.095;
+    stripe.position.z = 0.006;
+    chest.add(stripe);
+    gearMeshes.push(stripe);
+  }
   const collar = new THREE.Mesh(new THREE.TorusGeometry(0.115, 0.025, 6, 16), accent);
   gearMeshes.push(collar);
   collar.rotation.x = Math.PI / 2; collar.position.set(0, 0.57, 0.015); torso.add(collar);
@@ -624,13 +668,21 @@ function equipFootballPlayer(rig, player) {
     const glove = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), accent); glove.scale.set(1.05, 0.82, 1.12); hand.add(glove); gearMeshes.push(glove);
   }
   rig.group.traverse((object) => { if (object.isMesh) { object.castShadow = false; object.receiveShadow = false; } });
-  return { materials: [primary, accent, metal], geometries: [...new Set(gearMeshes.map((meshObject) => meshObject.geometry))] };
+  return { materials: [primary, accent, metal, clubPanel, clubTrim], geometries: [...new Set(gearMeshes.map((meshObject) => meshObject.geometry))] };
 }
 
 function buildPlayerView(player) {
+  const club = footballClubEquipmentPalette(teams[player.teamIndex]);
   const rig = buildBlobRig({
     side: player.teamIndex,
     captain: player.role === 'QB' || player.role === 'MIKE',
+    brandColor: teams[player.teamIndex].colors.primary,
+    secondaryColor: teams[player.teamIndex].colors.secondary || teams[player.teamIndex].colors.primary,
+    accentColor: teams[player.teamIndex].colors.accent,
+    teamCode: teams[player.teamIndex].code,
+    jerseyNumber: player.number,
+    kitPattern: club.pattern,
+    role: player.role,
   });
   const widthScale = lineRoles.has(player.role) ? 1.18 : ['RB', 'MIKE', 'WILL', 'SAM', 'TE'].includes(player.role) ? 1.13 : 1.09;
   rig.group.scale.x *= widthScale;
@@ -639,7 +691,12 @@ function buildPlayerView(player) {
   rig.setDetailLevel?.(innerWidth < 700 || lineRoles.has(player.role) ? 'low' : 'medium');
   const badge = makeBadge(`${player.role}  ${player.number}`, colorValue(classicPlayerColor(player.teamIndex), 0x00e5ff).getStyle());
   scene.add(rig.group, badge);
-  return { rig, badge, gearMaterials: gear.materials, gearGeometries: gear.geometries, lastSpeed: 0, lastFacing: player.facing, motion: {} };
+  return {
+    rig, badge, gearMaterials: gear.materials, gearGeometries: gear.geometries,
+    lastSpeed: 0, lastFacing: worldFacing(player.facing), motion: {},
+    visualPosition: new THREE.Vector3(worldX(player.x), 0, player.z),
+    visualFacing: worldFacing(player.facing),
+  };
 }
 
 function disposeViews() {
@@ -1115,6 +1172,11 @@ function placeFormation(animate = false) {
   if (state.defense === 'QUARTERS') { defense.LCB = [7.5, -19]; defense.RCB = [7.5, 19]; defense.FS = [13, -8]; defense.SS = [13, 8]; }
   if (state.defense === 'NICKEL FIRE') { defense.WILL = [2.2, -7]; defense.SAM = [2.2, 7]; defense.FS = [12, 0]; }
   if (state.defense === 'BEAR FRONT' || state.defense === 'GOAL LINE') { defense.WILL = [3.2, -8]; defense.MIKE = [3.4, 0]; defense.SAM = [3.2, 8]; }
+  if (state.play === 'JET SWEEP') {
+    offense.SLOT = [-3.2, -4.4]; offense.RB = [-5.5, 3.5];
+  } else if (state.play === 'COUNTER GT') {
+    offense.RB = [-5.8, 5.4]; offense.TE = [-0.9, -8.5];
+  }
   if (state.play === 'FIELD GOAL') {
     Object.assign(offense, { QB: [-10.2, -4], RB: [-7, 0], X: [0, -18], Z: [0, 18], SLOT: [-0.3, -10], TE: [-0.3, 10] });
     Object.assign(defense, { LDE: [0.9, -7], DT: [0.9, -3], NT: [0.9, 0], RDE: [0.9, 3], WILL: [0.9, 7], MIKE: [3, 0], SAM: [3, 9] });
@@ -1196,12 +1258,15 @@ function assignCoverage() {
 }
 
 function assignBlocks() {
-  const matchups = [['LT', 'RDE'], ['LG', 'DT'], ['C', 'NT'], ['RG', 'DT'], ['RT', 'LDE']];
-  blockPairs = matchups.map(([blockerRole, defenderRole], index) => {
-    let defender = getPlayer('def', defenderRole);
-    if (index === 3) defender = defensePlayers().find((player) => player.role === 'DT' && !blockPairs.some((pair) => pair.defenderId === player.id)) || defender;
-    return { blockerId: getPlayer('off', blockerRole)?.id, defenderId: defender?.id, time: 0, broken: false };
-  }).filter((pair) => pair.blockerId && pair.defenderId);
+  const rushRoles = new Set((DEFENSES[state.defense] || DEFENSES['COVER 3']).rush || ['LDE', 'DT', 'NT', 'RDE']);
+  const available = defensePlayers().filter((player) => rushRoles.has(player.role));
+  const blockers = ['LT', 'LG', 'C', 'RG', 'RT'].map((role) => getPlayer('off', role)).filter(Boolean);
+  blockPairs = blockers.map((blocker) => {
+    const defender = available.sort((a, b) => Math.abs(a.z - blocker.z) - Math.abs(b.z - blocker.z))[0];
+    if (!defender) return null; // an uncovered lineman becomes visible help instead of duplicating a defender
+    available.splice(available.indexOf(defender), 1);
+    return { blockerId: blocker.id, defenderId: defender.id, time: 0, broken: false };
+  }).filter(Boolean);
 }
 
 function beginPreplay(forcedPlay = null) {
@@ -1330,10 +1395,12 @@ function updateBlocks(dt, runBlocking = false) {
   for (const pair of blockPairs) {
     const blocker = getPlayerById(pair.blockerId), defender = getPlayerById(pair.defenderId);
     if (!blocker || !defender || blocker.down || defender.down || pair.broken) continue;
-    const targetX = defender.x - (runBlocking ? 0.15 : 0.65);
+    // Hold one body-width between the rig origins. The old 0.15-yard run target stacked
+    // both capsules into one unreadable mass even though the underlying matchup was sound.
+    const targetX = defender.x - (runBlocking ? 0.9 : 1.02);
     moveToward(blocker, targetX, defender.z, runBlocking ? 4.8 : 3.6, dt);
     const gap = distance2(blocker, defender);
-    if (gap < 1.15) {
+    if (gap < 1.28) {
       pair.time += dt; blocker.engagedId = defender.id; defender.engagedId = blocker.id;
       setAction(blocker, 'block', 0.35); setAction(defender, 'block', 0.35);
       const leverage = blocker.strength - defender.strength + (runBlocking ? 0.06 : 0);
@@ -1940,6 +2007,7 @@ function updateRoutesAndPocket(dt) {
   const spec = PLAYS[state.play];
   const quarterback = getPlayer('off', 'QB');
   const runningBack = getPlayer('off', 'RB');
+  const designedRunner = getPlayer('off', spec.carrier || 'RB') || runningBack;
   const blocked = updateBlocks(dt, spec.kind === 'run' || spec.kind === 'option');
   for (const player of offensePlayers()) {
     if (lineRoles.has(player.role)) continue;
@@ -1952,7 +2020,7 @@ function updateRoutesAndPocket(dt) {
     }
     if (player === carrier()) continue;
     if (spec.kind === 'pass' && player.route) { followRoute(player, dt); continue; }
-    if ((spec.kind === 'run' || spec.kind === 'option') && player.role === 'RB' && state.playStage === 'mesh') {
+    if ((spec.kind === 'run' || spec.kind === 'option') && player === designedRunner && state.playStage === 'mesh') {
       moveToward(player, state.ballSpot - 3.05, spec.lane * 0.11, 6.4, dt); continue;
     }
     if ((spec.kind === 'run' || spec.kind === 'option') && ['X', 'Z', 'SLOT', 'TE'].includes(player.role)) {
@@ -2266,6 +2334,7 @@ function updateLivePlay(dt) {
   const spec = PLAYS[state.play];
   const quarterback = getPlayer('off', 'QB');
   const runningBack = getPlayer('off', 'RB');
+  const designedRunner = getPlayer('off', spec.carrier || 'RB') || runningBack;
   const center = getPlayer('off', 'C');
   updatePlayerTimers(dt);
   if (updateCatchBeat(dt) || updateContact(dt)) { separatePlayers(); return; }
@@ -2282,21 +2351,21 @@ function updateLivePlay(dt) {
 
   updateRoutesAndPocket(dt);
   maybeAssessHolding();
-  const exchangeDistance = quarterback && runningBack ? distance2(quarterback, runningBack) : 99;
+  const exchangeDistance = quarterback && designedRunner ? distance2(quarterback, designedRunner) : 99;
   if ((spec.kind === 'run' || spec.kind === 'option') && state.playStage === 'mesh' && state.playTime > 0.58 && (exchangeDistance <= 1.25 || state.playTime >= 0.82)) {
     const optionAssignment = state.currentSnap?.optionReadAssignment;
     const readDefender = spec.kind === 'option'
-      ? getPlayerById(optionAssignment?.defenderId) || closestPlayer(defensePlayers().filter((player) => ['RDE', 'SAM', 'SS'].includes(player.role) && !player.down), runningBack)
+      ? getPlayerById(optionAssignment?.defenderId) || closestPlayer(defensePlayers().filter((player) => ['RDE', 'SAM', 'SS'].includes(player.role) && !player.down), designedRunner)
       : null;
-    const backDistance = readDefender ? distance2(readDefender, runningBack) : 99;
+    const backDistance = readDefender ? distance2(readDefender, designedRunner) : 99;
     const quarterbackDistance = readDefender ? distance2(readDefender, quarterback) : 99;
     const defenderSpeed = readDefender ? Math.hypot(readDefender.vx, readDefender.vz) : 0;
     const closingOnBack = readDefender && defenderSpeed > 0.1 && backDistance > 0.1
-      ? ((runningBack.x - readDefender.x) * readDefender.vx + (runningBack.z - readDefender.z) * readDefender.vz) / (backDistance * defenderSpeed)
+      ? ((designedRunner.x - readDefender.x) * readDefender.vx + (designedRunner.z - readDefender.z) * readDefender.vz) / (backDistance * defenderSpeed)
       : 0;
     const edgeCrashesBack = !!readDefender && !!optionAssignment?.crash && closingOnBack > -0.2;
     const keep = spec.kind === 'option' && !!edgeCrashesBack;
-    const nextCarrier = keep ? quarterback : runningBack;
+    const nextCarrier = keep ? quarterback : designedRunner;
     state.carrierId = nextCarrier.id; ball.ownerId = nextCarrier.id; ball.intendedId = null; ball.mode = 'carried'; state.playStage = keep ? 'option_keep' : 'handoff';
     if (state.currentSnap && !state.currentSnap.rushCredited) {
       state.currentSnap.rushCredited = true; state.currentSnap.carrierId = nextCarrier.id;
@@ -2865,10 +2934,22 @@ function updatePlayerViews(dt) {
     const renderPlayer = replayPlayers?.get(player.id) || player;
     const speedYards = Math.hypot(renderPlayer.vx, renderPlayer.vz);
     const speedMeters = speedYards * 0.9144;
+    const targetX = worldX(renderPlayer.x);
+    const targetZ = renderPlayer.z;
+    const desiredFacing = worldFacing(renderPlayer.facing);
+    const targetDistance = Math.hypot(targetX - view.visualPosition.x, targetZ - view.visualPosition.z);
+    if (targetDistance > 8 || state.formationTransition && targetDistance > 4.5) {
+      view.visualPosition.set(targetX, 0, targetZ);
+    } else {
+      const visualRate = visualBall.ownerId === player.id ? 24 : replayState ? 20 : 16;
+      view.visualPosition.x += (targetX - view.visualPosition.x) * damp(visualRate, dt);
+      view.visualPosition.z += (targetZ - view.visualPosition.z) * damp(visualRate, dt);
+    }
+    view.visualFacing += angleDelta(view.visualFacing, desiredFacing) * damp(renderPlayer.action === 'juke' ? 18 : 12, dt);
     const acceleration = clamp((speedYards - view.lastSpeed) / Math.max(dt, 1 / 120) / 12, -1, 1);
-    const turn = clamp((renderPlayer.facing - view.lastFacing) / Math.max(dt, 1 / 120) / 5, -1, 1);
-    view.rig.group.position.set(worldX(renderPlayer.x), 0, renderPlayer.z);
-    view.rig.group.rotation.y = worldFacing(renderPlayer.facing);
+    const turn = clamp(angleDelta(view.lastFacing, desiredFacing) / Math.max(dt, 1 / 120) / 5, -1, 1);
+    view.rig.group.position.copy(view.visualPosition);
+    view.rig.group.rotation.y = view.visualFacing;
     const progress = replayState ? renderPlayer.actionProgress : clamp(player.actionT / player.actionDuration, 0, 1);
     const actionSide = renderPlayer.actionSide || 1;
     if (renderPlayer.action === 'catch') view.rig.setAction('keeper-catch', progress, actionSide);
@@ -2887,14 +2968,14 @@ function updatePlayerViews(dt) {
     motion.locomotion = motion.isCarrier ? 'football-carry' : player.side === 'def' && speedYards < 2.5 ? 'defensive' : undefined;
     motion.lean = renderPlayer.action === 'juke' ? actionSide * 0.08 : 0;
     view.rig.update(dt, speedMeters, motion);
-    view.badge.position.set(worldX(renderPlayer.x), lineRoles.has(player.role) ? 3.25 : 3.05, renderPlayer.z);
+    view.badge.position.set(view.visualPosition.x, lineRoles.has(player.role) ? 3.25 : 3.05, view.visualPosition.z);
     view.badge.visible = false;
-    dummy.position.set(worldX(renderPlayer.x), 0.028, renderPlayer.z);
+    dummy.position.set(view.visualPosition.x, 0.028, view.visualPosition.z);
     dummy.rotation.set(-Math.PI / 2, 0, 0);
     const shadowScale = renderPlayer.down ? 1.28 : lineRoles.has(player.role) ? 1.08 : 0.88;
     dummy.scale.set(shadowScale, shadowScale * (renderPlayer.down ? 1.35 : 0.72), 1);
     dummy.updateMatrix(); playerShadows.setMatrixAt(viewIndex++, dummy.matrix);
-    view.lastSpeed = speedYards; view.lastFacing = renderPlayer.facing;
+    view.lastSpeed = speedYards; view.lastFacing = desiredFacing;
   }
   playerShadows.count = viewIndex;
   playerShadows.instanceMatrix.needsUpdate = true;
@@ -2939,8 +3020,25 @@ function updateBallVisual(dt) {
     else dot.position.lerp(ballTrail[index - 1].position, 0.56);
   }
   trailWasActive = trailActive;
-  focusRing.visible = false;
-  if (!replayState && state.catchBeat) {
+  const owner = visualBall.ownerId ? getPlayerById(visualBall.ownerId) : null;
+  focusRing.visible = !!owner && ['carried', 'held'].includes(visualBall.mode) && visualPhase !== 'dead';
+  if (focusRing.visible) {
+    const ownerView = views.get(owner.id);
+    const ringX = ownerView?.visualPosition.x ?? worldX(owner.x);
+    const ringZ = ownerView?.visualPosition.z ?? owner.z;
+    focusRing.position.set(ringX, 0.055, ringZ);
+    focusRing.material.color.set(classicPlayerColor(owner.teamIndex));
+    focusRing.material.opacity = 0.34 + Math.sin(presentationTime * 7) * 0.08;
+    focusRing.scale.setScalar(0.92 + Math.sin(presentationTime * 5) * 0.05);
+  }
+  const intended = visualBall.mode === 'pass' && visualBall.intendedId ? getPlayerById(visualBall.intendedId) : null;
+  if (!replayState && intended && !state.catchBeat) {
+    const targetView = views.get(intended.id);
+    catchRing.material.color.set(classicPlayerColor(intended.teamIndex));
+    catchRing.material.opacity = 0.35 + 0.22 * Math.max(0, Math.sin(presentationTime * 9));
+    catchRing.position.set(targetView?.visualPosition.x ?? worldX(intended.x), 0.058, targetView?.visualPosition.z ?? intended.z);
+    catchRing.scale.setScalar(0.84 + clamp(visualBall.flightTime / Math.max(visualBall.targetTime, 0.1), 0, 1) * 0.48);
+  } else if (!replayState && state.catchBeat) {
     catchRing.material.opacity = 0.72 * (1 - clamp(state.catchBeat.t / 0.44, 0, 1) * 0.35);
     catchRing.position.set(worldX(state.catchBeat.x), 0.058, state.catchBeat.z);
     catchRing.scale.setScalar(0.75 + clamp(state.catchBeat.t / 0.44, 0, 1) * 1.3);
@@ -3039,6 +3137,13 @@ function renderFrame(dt = 1 / 60) {
   updatePlayerViews(Math.min(dt, 0.05));
   updateBallVisual(dt);
   updateCrowd();
+  venueIdentity.update(dt, {
+    phase: state.phase,
+    crowdHeat,
+    down: state.down,
+    ballSpot: state.ballSpot,
+    possession: state.possession,
+  });
   lineOfScrimmage.material.opacity = state.phase === 'preplay' ? 0.72 + Math.sin(performance.now() * 0.008) * 0.14 : 0.64;
   lineToGain.material.opacity = 0.78 + Math.sin(performance.now() * 0.003) * 0.09;
   updateCamera(dt);
@@ -3063,6 +3168,13 @@ function renderGameState() {
     playStage: visibleReplay?.playStage || state.playStage, paused: state.paused,
     quarter: state.quarter, clock: +state.clock.toFixed(1), playClock: +state.playClock.toFixed(1), timeouts: state.timeouts.slice(), score: { home: state.score[0], away: state.score[1] },
     teams: teams.map((team) => team.name), possession: teams[state.possession].code,
+    teamIdentity: teams.map((team) => {
+      const identity = footballClubEquipmentPalette(team);
+      return {
+        id: team.id, code: team.code, name: team.name, colors: team.colors,
+        venue: identity.venue, kitPattern: identity.pattern, mark: identity.mark,
+      };
+    }),
     down: state.down, toGo: +state.toGo.toFixed(1), ballSpot: +state.ballSpot.toFixed(1), fieldPosition: fieldPositionLabel(),
     automaticCall: state.play, defensiveCall: state.defense,
     strategy: {
@@ -3072,6 +3184,17 @@ function renderGameState() {
       defenseReason: state.defenseDecision?.selected?.reasons?.[0]?.label || null,
       adjustment: state.adjustment,
       qbDecision: state.qbDecision ? { action: state.qbDecision.action, readOrder: state.qbDecision.readOrder, reason: state.qbDecision.reason } : null,
+    },
+    actionCausality: {
+      call: state.play,
+      formation: PLAYS[state.play]?.formation || null,
+      stage: visibleReplay?.playStage || state.playStage,
+      intendedTarget: visibleBall.intendedId ? getPlayerById(visibleBall.intendedId)?.name || null : null,
+      carrier: runnerIdentity?.name || null,
+      pressure: +(state.pressure || 0).toFixed(2),
+      coordinatorReason: state.offenseDecision?.selected?.reasons?.[0]?.label || null,
+      defensiveReason: state.defenseDecision?.selected?.reasons?.[0]?.label || null,
+      completedPlayExplanation: state.lastSnap?.explanation || null,
     },
     ball: {
       mode: visibleBall.mode, ownerId: visibleBall.ownerId, intendedId: visibleBall.intendedId,
@@ -3106,6 +3229,7 @@ function renderGameState() {
       secondsToSnap: state.phase === 'preplay' ? +Math.max(0, PREPLAY_SECONDS - state.t).toFixed(2) : 0,
       replay: { ...replayBuffer.status, active: state.replayActive, candidate: state.replayCandidate?.type || null },
       audio: audioDirector.state,
+      venue: venueIdentity.state(),
     },
     performance: { drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, pixelRatio: renderer.getPixelRatio() },
     drive: { plays: state.drivePlays, yards: state.driveYards, firstDowns: state.firstDowns, start: state.driveStart },

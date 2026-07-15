@@ -17,9 +17,13 @@
 ## Product invariants
 
 - All six sports remain autonomous, view-only broadcasts with no gameplay, pause, resume, restart, or fullscreen input.
-- Live athletes use the classic cyan/hot-pink capsule renderer. Club colors remain in branding, HUDs, venues, crowds, and league identity.
+- Live athletes use the classic cyan/hot-pink capsule renderer. Club colors and authored kit motifs remain in athlete trim/equipment/identity, HUDs, venues, crowds, and league identity.
 - The public world remains six sports, 48 clubs, 24 simultaneous games, and 416 athletes.
 - Preserve the accepted world globe/game network, League HQ, fixture deep links, deterministic hooks, and mobile broadcast cameras.
+- `branddata.js` is the 48-club venue, ritual, mark, environment and kit-pattern source of truth. Arena work must consume those identities rather than inventing a second club canon.
+- Sporting decisions must use seeded, versioned randomness isolated from render-only particles, camera shake, crowd variation, and frame timing.
+- Do not claim that club stadium or uniform art is AI-generated production art unless the approved source asset, prompt/model/version provenance, runtime derivative and review state exist in the repository. Procedural SVG concepts and league hero images must be labeled honestly.
+- Read `SPECTATOR_AUDIT.md` before changing an arena. Preserve its physical-action, broadcast, venue, crowd, athlete, determinism, mobile and clip-readiness gates.
 
 ## Feature task workflow
 
@@ -36,5 +40,8 @@
 - Run `node --test footballbrain.test.mjs footballrules.test.mjs`.
 - Run the official web-game client and visually inspect live desktop and 390x844 screenshots for Home, League HQ, and all six arenas.
 - Confirm browser console/page/request errors are empty, state is finite, mobile has no horizontal overflow, and the classic cyan/pink athlete contract is visible in every sport.
+- Confirm each arena resolves the selected home club's authored venue/ritual and displays club identity on the classic athletes without changing their cyan/pink side signal.
+- Run deterministic/long-soak sport checks appropriate to the changed arena; static verification is never sufficient evidence of spectator quality.
 - Confirm port 4173's process cwd is the canonical worktree.
+- Commit the exact release snapshot, then run `npm run release:check`; it refuses the stale branch, wrong worktree, dirty tree, wrong Vercel project, or alternate homepage.
 - Deploy to Vercel production only after all checks pass.

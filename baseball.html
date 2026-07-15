@@ -45,6 +45,22 @@
     box-shadow:0 0 18px rgba(88,255,180,.12); transition:color .15s, border-color .15s, box-shadow .15s;
   }
   #playstatus.hot { color:#fff3a8; border-color:rgba(255,211,77,.7); box-shadow:0 0 25px rgba(255,211,77,.32); }
+  #venuebug {
+    position:absolute; top:22px; right:22px; width:min(270px,22vw); padding:8px 12px 7px;
+    border-right:3px solid var(--venue,#58ffb4); text-align:right;
+    background:linear-gradient(90deg,transparent,rgba(3,8,17,.8));
+    text-shadow:0 2px 10px #000;
+  }
+  #venuebug strong { display:block; font:900 11px/1 'Orbitron'; letter-spacing:2px; color:var(--venue,#8effc8); }
+  #venuebug span { display:block; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:700 10px/1 'Rajdhani'; letter-spacing:1.4px; color:rgba(242,255,250,.68); }
+  #pitchread {
+    position:absolute; left:22px; bottom:49px; width:min(310px,28vw); padding:9px 12px 8px;
+    border-left:3px solid var(--pitch,#58ffb4); border-top:1px solid rgba(255,255,255,.1);
+    background:linear-gradient(90deg,rgba(3,8,17,.88),rgba(3,8,17,.38));
+    box-shadow:0 8px 24px rgba(0,0,0,.3); color:#eafff5;
+  }
+  #pitchread strong { display:block; font:900 10px/1 'Orbitron'; letter-spacing:2px; color:var(--pitch,#8effc8); }
+  #pitchread span { display:block; margin-top:5px; font:700 12px/1 'Rajdhani'; letter-spacing:1.25px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .live { width:7px; height:7px; border-radius:50%; background:#ff2d55; animation:pulse 1.2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1; box-shadow:0 0 8px #ff2d55;} 50%{opacity:.3;} }
   #inn { font-family:'Orbitron'; font-weight:700; font-size:14px; color:#9dffd0; letter-spacing:2px; }
@@ -171,6 +187,19 @@
       top:calc(env(safe-area-inset-top, 0px) + 145px); min-width:168px; max-width:calc(100vw - 24px);
       padding:5px 11px; font-size:9px; letter-spacing:1.7px; z-index:60; background:rgba(5,9,22,.82);
     }
+    #venuebug {
+      top:calc(env(safe-area-inset-top, 0px) + 178px); left:50%; right:auto; transform:translateX(-50%);
+      width:min(280px,calc(100vw - 28px)); padding:5px 10px; border-right:0; border-bottom:2px solid var(--venue,#58ffb4);
+      text-align:center; background:rgba(3,8,17,.72); z-index:59;
+    }
+    #venuebug strong { font-size:9px; letter-spacing:1.5px; }
+    #venuebug span { display:none; }
+    #pitchread {
+      left:10px; right:10px; bottom:calc(43px + env(safe-area-inset-bottom, 0px)); width:auto; padding:6px 9px;
+      z-index:64; background:rgba(3,8,17,.84); border-left-width:2px;
+    }
+    #pitchread strong { font-size:8px; letter-spacing:1.35px; }
+    #pitchread span { margin-top:3px; font-size:10px; letter-spacing:.75px; }
     #inn, #count { font-size:12px; letter-spacing:1.2px; white-space:nowrap; }
     #count em { font-size:9px; }
     #outs i { width:8px; height:8px; }
@@ -229,6 +258,8 @@
     <span id="minibases"><b id="mb3"></b><b id="mb2"></b><b id="mb1"></b></span>
   </div>
   <div id="playstatus">FIRST PITCH LOADING</div>
+  <div id="venuebug"><strong id="venuename">THE LONG AFTERNOON</strong><span id="venueline">ONE PITCH AT A TIME</span></div>
+  <div id="pitchread"><strong id="pitchreadtop">MATCHUP LOADING</strong><span id="pitchreadbody">PITCHER VS BATTER</span></div>
   <div id="pitchcall" role="status" aria-live="polite"><strong id="pitchcalltext"></strong><span id="pitchcallsub"></span></div>
   <div id="flash"><div id="flashtext"></div><div id="flashsub"></div></div>
   <div id="ticker"><div id="tickerlabel">DIAMOND</div><div id="tickertext"></div></div>
@@ -237,6 +268,8 @@
 </div>
 
 <script src="worlddata.js"></script>
+<script src="branddata.js"></script>
+<script src="arena-establishing.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -279,12 +312,15 @@ const INNINGS = 3, MAX_INN = 7;      // scheduled / hard cap (extras use a runne
 const BASES = [ {x:DIAG/2, z:DIAG/2}, {x:DIAG, z:0}, {x:DIAG/2, z:-DIAG/2}, {x:0, z:0} ]; // 1B 2B 3B HOME
 
 const BASEBALL_CONTENT=window.CYBERLIGA_CONTENT;
+const BASEBALL_BRAND=window.CyberligaBrand;
 const BASEBALL_TEAMS=BASEBALL_CONTENT.getTeams('baseball');
 const TEAMS=BASEBALL_TEAMS.map(team=>{
   const hex=Number.parseInt(team.colors.primary.slice(1),16);
+  const secondary=Number.parseInt(team.colors.secondary.slice(1),16),accent=Number.parseInt(team.colors.accent.slice(1),16);
   const motif=team.motif.replace(/\b\w/g,c=>c.toUpperCase());
   const roster=team.athletes.map(a=>a.name).concat([`${motif} Nine`,`${team.city} Relay`,`${team.code} Longball`]);
-  return {name:team.name,css:team.colors.primary,col:hex,glow:hex,roster};
+  return {id:team.id,name:team.name,code:team.code,city:team.city,css:team.colors.primary,col:hex,glow:hex,secondary,accent,
+    roster,team,brand:BASEBALL_BRAND&&BASEBALL_BRAND.getTeam(team.id)};
 });
 const FIXTURES=BASEBALL_CONTENT.createSeason('baseball','arena').rounds.flatMap(round=>round.matches.map(match=>[BASEBALL_TEAMS.findIndex(t=>t.id===match.homeId),BASEBALL_TEAMS.findIndex(t=>t.id===match.awayId)]));
 const fixtureQuery = new URLSearchParams(location.search);
@@ -335,9 +371,9 @@ const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 0.55, 0.55, 0.84));
 
-scene.add(new THREE.HemisphereLight(0x4a5da0, 0x0a0d1a, 0.95));
-const sun = new THREE.DirectionalLight(0xbfd6ff, 0.95); sun.position.set(-14,40,24); scene.add(sun);
-const fill = new THREE.DirectionalLight(0x3a5a9a, 0.4); fill.position.set(30,26,-30); scene.add(fill);
+scene.add(new THREE.HemisphereLight(0x7b91c2, 0x102018, 1.12));
+const sun = new THREE.DirectionalLight(0xe1efff, 1.12); sun.position.set(-14,40,24); scene.add(sun);
+const fill = new THREE.DirectionalLight(0x4f78b8, 0.58); fill.position.set(30,26,-30); scene.add(fill);
 
 { // stars
   const n=600, pos=new Float32Array(n*3);
@@ -353,12 +389,12 @@ function makeFieldTex(){
   const c=document.createElement('canvas'); c.width=2048; c.height=2048*(FZ1-FZ0)/(FX1-FX0)|0;
   const g=c.getContext('2d');
   const px=x=>(x-FX0)/(FX1-FX0)*c.width, pz=z=>(z-FZ0)/(FZ1-FZ0)*c.height, sc=m=>m/(FX1-FX0)*c.width;
-  g.fillStyle='#04060f'; g.fillRect(0,0,c.width,c.height);
+  g.fillStyle='#050913'; g.fillRect(0,0,c.width,c.height);
   // turf: dark cyber green inside the wall arc + foul territory wedge
   g.save();
   g.beginPath(); g.moveTo(px(-3.4),pz(0));
   g.arc(px(0),pz(0),sc(WALL_R+1.2),-FOUL-0.18,FOUL+0.18); g.closePath();
-  g.fillStyle='#07130e'; g.fill();
+  g.fillStyle='#0a2116'; g.fill();
   g.clip();
   // mow stripes (radial arcs)
   for (let r=4;r<WALL_R+2;r+=3){
@@ -375,13 +411,13 @@ function makeFieldTex(){
   g.arc(px(0),pz(0),sc(WALL_R-2.4),FOUL+0.05,-FOUL-0.05,true); g.closePath();
   g.fillStyle='#241a10'; g.fill();
   // dirt infield: rounded diamond behind the base square
-  const dirt='#2e2013';
+  const dirt='#49311c';
   g.beginPath(); g.arc(px(MOUND_X*1.02),pz(0),sc(BP*1.06),0,Math.PI*2); g.fillStyle=dirt; g.fill();
   // infield grass cut (inner square minus paths)
   g.beginPath();
   g.moveTo(px(2.6),pz(0));
   g.lineTo(px(DIAG/2),pz(DIAG/2-2.6)); g.lineTo(px(DIAG-2.6),pz(0)); g.lineTo(px(DIAG/2),pz(-DIAG/2+2.6));
-  g.closePath(); g.fillStyle='#08150f'; g.fill();
+  g.closePath(); g.fillStyle='#0c281a'; g.fill();
   // mound + home dirt circles
   g.beginPath(); g.arc(px(MOUND_X),pz(0),sc(2.5),0,Math.PI*2); g.fillStyle=dirt; g.fill();
   g.beginPath(); g.arc(px(0),pz(0),sc(3.1),0,Math.PI*2); g.fillStyle=dirt; g.fill();
@@ -395,7 +431,7 @@ function makeFieldTex(){
   }
   g.restore();
   // base paths (lighter dirt lanes)
-  g.strokeStyle='#3a2a18'; g.lineWidth=sc(1.5); g.lineCap='round';
+  g.strokeStyle='#604226'; g.lineWidth=sc(1.5); g.lineCap='round';
   g.beginPath(); g.moveTo(px(0),pz(0));
   g.lineTo(px(DIAG/2),pz(DIAG/2)); g.lineTo(px(DIAG),pz(0)); g.lineTo(px(DIAG/2),pz(-DIAG/2)); g.closePath(); g.stroke();
   // glowing foul lines out to the wall
@@ -438,7 +474,8 @@ function wallArc(r, h, y, mat){
   const geo=new THREE.CylinderGeometry(r, r, h, 64, 1, true, -FOUL-0.06+Math.PI/2, ARCLEN);
   const m=new THREE.Mesh(geo, mat); m.position.y=y; scene.add(m); return m;
 }
-wallArc(WALL_R, 2.6, 1.3, new THREE.MeshStandardMaterial({ color:0x0b1224, roughness:0.85, side:THREE.DoubleSide }));
+const outfieldWallMat=new THREE.MeshStandardMaterial({ color:0x0b1224, roughness:0.85, side:THREE.DoubleSide });
+wallArc(WALL_R, 2.6, 1.3, outfieldWallMat);
 const ledMat = new THREE.MeshBasicMaterial({ color:0x0f3a2a, side:THREE.DoubleSide });
 wallArc(WALL_R-0.06, 0.34, 2.25, ledMat);
 const wallTrim = new THREE.MeshStandardMaterial({ color:0x101a30, emissive:0x10306a, emissiveIntensity:0.5, roughness:0.6, side:THREE.DoubleSide });
@@ -507,20 +544,58 @@ const standMats=[];
 }
 // Center-field video wall, dugout architecture and light towers make the park
 // read as a major venue from every broadcast cut instead of an isolated field.
-function diamondBoardTexture(){
+function diamondBoardTexture(homeDef){
+  const brand=homeDef&&homeDef.brand,venue=brand?.venue||'DIAMOND DOME',statement=brand?.statement||'EVERY PITCH · EVERY BASE · ALWAYS LIVE';
+  const primary=homeDef?.css||'#58ffb4',accent=homeDef?.team?.colors?.accent||'#8effc8';
   const c=document.createElement('canvas'); c.width=1024; c.height=420; const g=c.getContext('2d');
   const grad=g.createLinearGradient(0,0,c.width,c.height); grad.addColorStop(0,'#071425');grad.addColorStop(.5,'#0c2530');grad.addColorStop(1,'#050a16');
   g.fillStyle=grad;g.fillRect(0,0,c.width,c.height);
-  g.strokeStyle='#58ffb4';g.lineWidth=12;g.strokeRect(16,16,c.width-32,c.height-32);
-  g.textAlign='center';g.textBaseline='middle';g.fillStyle='#eafff5';g.font='900 72px Orbitron, sans-serif';g.fillText('CYBERLIGA',c.width/2,142);
-  g.fillStyle='#58ffb4';g.font='900 43px Orbitron, sans-serif';g.fillText('DIAMOND DOME',c.width/2,232);
-  g.fillStyle='#89aabc';g.font='700 25px Rajdhani, sans-serif';g.fillText('EVERY PITCH · EVERY BASE · ALWAYS LIVE',c.width/2,310);
+  g.strokeStyle=primary;g.lineWidth=12;g.strokeRect(16,16,c.width-32,c.height-32);
+  g.fillStyle=accent;g.fillRect(35,35,c.width-70,9);
+  g.textAlign='center';g.textBaseline='middle';g.fillStyle='#eafff5';g.font='900 41px Orbitron, sans-serif';g.fillText(homeDef?.name||'CYBERLIGA',c.width/2,105);
+  g.fillStyle=primary;g.font='900 60px Orbitron, sans-serif';g.fillText(venue,c.width/2,202);
+  g.fillStyle='#c8d8d2';g.font='700 25px Rajdhani, sans-serif';g.fillText(statement.toUpperCase(),c.width/2,285);
+  g.fillStyle=accent;g.font='700 20px Orbitron, sans-serif';g.fillText('THE LONG AFTERNOON · LIVE',c.width/2,344);
   const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;return tex;
 }
-const diamondBoard=new THREE.Mesh(new THREE.PlaneGeometry(12.8,5.5),new THREE.MeshBasicMaterial({map:diamondBoardTexture(),side:THREE.DoubleSide}));
+const diamondBoardMat=new THREE.MeshBasicMaterial({map:diamondBoardTexture(),side:THREE.DoubleSide});
+const diamondBoard=new THREE.Mesh(new THREE.PlaneGeometry(12.8,5.5),diamondBoardMat);
 diamondBoard.position.set(WALL_R+5.4,8.2,0);diamondBoard.rotation.y=-Math.PI/2;scene.add(diamondBoard);
 const boardFrame=new THREE.Mesh(new THREE.BoxGeometry(.6,6.4,14),new THREE.MeshStandardMaterial({color:0x0a1323,metalness:.7,roughness:.38}));
 boardFrame.position.set(WALL_R+5.65,8.2,0);scene.add(boardFrame);diamondBoard.position.x=WALL_R+5.31;
+const venueIdentityGroup=new THREE.Group();scene.add(venueIdentityGroup);
+let venueRitual='pulse',venueScene='megacity',venueAccent=0x58ffb4;
+function venuePanelTexture(def){
+  const c=document.createElement('canvas');c.width=768;c.height=180;const g=c.getContext('2d'),brand=def.brand||{};
+  g.fillStyle='#050a12';g.fillRect(0,0,c.width,c.height);g.fillStyle=def.css;g.fillRect(0,0,12,c.height);g.fillStyle=def.team.colors.accent;g.fillRect(24,22,c.width-48,4);
+  g.fillStyle='#f3fff9';g.font='900 38px Orbitron, sans-serif';g.fillText((brand.venue||def.name).toUpperCase(),36,79);
+  g.fillStyle=def.team.colors.accent;g.font='700 21px Rajdhani, sans-serif';g.fillText((brand.statement||def.team.motif).toUpperCase(),36,121);
+  g.fillStyle='#8aa8a0';g.font='700 16px Rajdhani, sans-serif';g.fillText(`${def.city.toUpperCase()} · ${String(brand.kitPattern||'PULSE').toUpperCase()} CROWD`,36,151);
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;
+}
+function addVenueBlock(x,y,z,sx,sy,sz,color,emissive=0){
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),new THREE.MeshStandardMaterial({color,roughness:.64,metalness:.28,emissive,emissiveIntensity:.22}));
+  mesh.position.set(x,y,z);venueIdentityGroup.add(mesh);return mesh;
+}
+function applyVenueArchitecture(def){
+  while(venueIdentityGroup.children.length){const child=venueIdentityGroup.children.pop();child.geometry?.dispose();if(child.material?.map)child.material.map.dispose();child.material?.dispose();}
+  const brand=def.brand||{},primary=def.col,accent=def.accent;venueRitual=brand.kitPattern||'pulse';venueScene=brand.scene||'megacity';venueAccent=accent;
+  const signMat=new THREE.MeshBasicMaterial({map:venuePanelTexture(def),side:THREE.DoubleSide});
+  for(const z of [-16.8,16.8]){const sign=new THREE.Mesh(new THREE.PlaneGeometry(13.5,3.2),signMat.clone());sign.position.set(WALL_R+2.3,6.3,z);sign.rotation.y=-Math.PI/2;venueIdentityGroup.add(sign);}
+  if(venueScene==='megacity'){
+    for(let i=0;i<11;i++){const h=5+(i*7%13);addVenueBlock(WALL_R+8+i%3,2.8+h/2,-25+i*5,h*.34,h,2.2,i%2?0x101b2b:primary,i%3===0?accent:0);}
+  }else if(venueScene==='mountain'){
+    for(const z of [-22,-12,10,21]){const cone=new THREE.Mesh(new THREE.ConeGeometry(6+Math.abs(z)%5,10+Math.abs(z)%7,4),new THREE.MeshStandardMaterial({color:0x101419,roughness:1,emissive:primary,emissiveIntensity:.05}));cone.position.set(WALL_R+11,5,z);cone.rotation.y=Math.PI/4;venueIdentityGroup.add(cone);}
+  }else if(venueScene==='forest'){
+    for(let i=0;i<16;i++){addVenueBlock(WALL_R+7+(i%3),5,-29+i*3.8,.75,10+(i%4)*2,.75,i%2?0x172019:0x39291b,i%4===0?accent:0);}
+  }else if(venueScene==='tropic'){
+    for(const z of [-28,-20,-12,12,20,28]){addVenueBlock(WALL_R+8,5,z,.45,10,.45,0x4e3a20,0);const canopy=new THREE.Mesh(new THREE.SphereGeometry(3.1,8,5,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0x12331f,roughness:.9,emissive:primary,emissiveIntensity:.08}));canopy.position.set(WALL_R+8,9.4,z);venueIdentityGroup.add(canopy);}
+  }else if(venueScene==='coastal'){
+    for(const z of [-24,-12,12,24]){const sail=new THREE.Mesh(new THREE.ConeGeometry(3.2,10,3),new THREE.MeshStandardMaterial({color:0xd9e4db,transparent:true,opacity:.34,roughness:.44,side:THREE.DoubleSide,emissive:accent,emissiveIntensity:.08}));sail.position.set(WALL_R+9,6,z);sail.rotation.z=Math.PI/2;venueIdentityGroup.add(sail);}
+  }else{
+    [-27,-18,-9,9,18,27].forEach((z,i)=>addVenueBlock(WALL_R+8,5,z,2.3,10,2.3,i%2?0x3a312b:0x171a20,primary));
+  }
+}
 for(const side of [-1,1]){
   const dugout=new THREE.Group();dugout.position.set(-5.8,0,side*13.7);
   const back=new THREE.Mesh(new THREE.BoxGeometry(9,2.2,.28),new THREE.MeshStandardMaterial({color:0x081a1a,roughness:.76,metalness:.18}));back.position.y=1.1;dugout.add(back);
@@ -696,6 +771,7 @@ const elMB=[$('mb1'),$('mb2'),$('mb3')];
 const elFlash=$('flash'), elFT=$('flashtext'), elFS=$('flashsub'), elTicker=$('tickertext');
 const elCard=$('bigcard'), elPanel=$('cardpanel'), elPlayStatus=$('playstatus');
 const elPitchCall=$('pitchcall'), elPitchCallText=$('pitchcalltext'), elPitchCallSub=$('pitchcallsub');
+const elVenueName=$('venuename'),elVenueLine=$('venueline'),elPitchReadTop=$('pitchreadtop'),elPitchReadBody=$('pitchreadbody');
 let flashTimer=0;
 function flashMsg(big, sub, color){
   elFT.textContent=big; elFS.textContent=sub; elFlash.style.setProperty('--fc',color);
@@ -763,11 +839,14 @@ function makeClub(def, side){
   const players=[];
   const playerColor=classicSideVisual(side);
   def.roster.forEach((name,i)=>{
-    const rig=buildBlobRig({ side, kitColor:playerColor, glowColor:playerColor, captain:i===0 });
     const position=POSITION_NAMES[i] || `UTIL${i-8}`;
-    const gear=addBaseballGear(rig,position,playerColor);
+    const athlete=def.team.athletes[i]||null,number=athlete?.number??(70+i);
+    const rig=buildBlobRig({ side, kitColor:playerColor, glowColor:playerColor, captain:i===0,
+      brandColor:def.col,secondaryColor:def.secondary,accentColor:def.accent,teamCode:def.code,jerseyNumber:number,
+      kitPattern:def.brand?.kitPattern||'pulse',role:athlete?.role||position });
+    const gear=addBaseballGear(rig,position,def.col);
     scene.add(rig.group);
-    players.push({ rig, gear, name, side, role:i, position, x:-6, z:(side?-1:1)*(9+i*0.9), vx:0, vz:0,
+    players.push({ rig, gear, name, athlete, number, side, role:i, position, x:-6, z:(side?-1:1)*(9+i*0.9), vx:0, vz:0,
       heading:0, tx:0, tz:0, sprint:6, duty:'dugout', baseIdx:-1, path:null, pathI:0,
       taggedUp:true, jumpY:0, jumpV:0, air:false, ph:Math.random()*6.28, poseT:0 });
   });
@@ -840,6 +919,30 @@ function applyTeamHUD(){
   setTeam('teamA','nameA',TEAM_A); setTeam('teamB','nameB',TEAM_B);
   elSA.textContent='0'; elSB.textContent='0';
 }
+function applyVenueIdentity(){
+  const brand=TEAM_B.brand||{};
+  document.documentElement.style.setProperty('--venue',TEAM_B.css);
+  elVenueName.textContent=`${brand.venue||TEAM_B.name} · ${TEAM_B.city}`.toUpperCase();
+  elVenueLine.textContent=(brand.venueLine||brand.statement||TEAM_B.team.motif).toUpperCase();
+  $('wordmark').innerHTML=`THE LONG AFTERNOON <em>· ${brand.venue||'LIVE'}</em>`;
+  $('tickerlabel').textContent=(brand.mark||TEAM_B.code).toUpperCase();
+  ledMat.color.setHex(TEAM_B.col);
+  outfieldWallMat.color.setHex(new THREE.Color(TEAM_B.col).multiplyScalar(.22).getHex());
+  wallTrim.color.setHex(new THREE.Color(TEAM_B.secondary).multiplyScalar(.28).getHex());
+  wallTrim.emissive.setHex(TEAM_B.accent);
+  if(diamondBoardMat.map)diamondBoardMat.map.dispose();
+  diamondBoardMat.map=diamondBoardTexture(TEAM_B);diamondBoardMat.needsUpdate=true;
+  // The bowl belongs to these clubs, not a generic rainbow crowd. Keep a
+  // strong home majority, an away pocket and a small neutral light section;
+  // the reaction loop then pulses those colors by the venue's own ritual.
+  for(const member of crowdMembers){
+    const section=Math.abs(Math.sin(member.phase*7.31));
+    const color=section<.56?TEAM_B.glow:section<.78?TEAM_B.accent:section<.93?TEAM_A.glow:0xf2fffa;
+    member.s.material.color.setHex(color);
+  }
+  applyVenueArchitecture(TEAM_B);
+  say(`${brand.venue||TEAM_B.city} IS LIVE — ${brand.ritual||'THE HOME CROWD SETS THE RHYTHM'}`);
+}
 function hudStep(){
   elInn.innerHTML=(S.half===0?'&#9650;':'&#9660;')+' '+S.inning;
   elCount.innerHTML=`<em>B-S</em> ${S.balls}-${S.strikes}`;
@@ -861,12 +964,21 @@ function hudStep(){
   if (S.clipT>0 && S.clipMoment) { status=S.clipMoment; hot=true; }
   elPlayStatus.textContent=status;
   elPlayStatus.classList.toggle('hot',hot);
+  if(teams.length&&S.batter){
+    const plan=S.pitchPlan,live=plan&&(S.state==='WINDUP'||S.state==='PITCH');
+    elPitchReadTop.textContent=live?`${plan.name} · ${Math.round(plan.speed*4)} MPH`:`${activePitcherName()}  VS  ${S.batter.name}`;
+    elPitchReadBody.textContent=live?`${plan.location} · ${S.intent}`:`${S.approach} · ${S.defense}`;
+    document.documentElement.style.setProperty('--pitch',live?(plan.inZone?'#ff5e75':'#58ffb4'):TEAM_B.css);
+  }
 }
 
 function setupMatch(){
   disposeClubs();
-  const [ia,ib]=FIXTURES[fixtureIdx%FIXTURES.length];
-  TEAM_A=TEAMS[ia]; TEAM_B=TEAMS[ib];
+  const [homeIdx,awayIdx]=FIXTURES[fixtureIdx%FIXTURES.length];
+  // Scoreboard convention is away on the left / home on the right; the season
+  // feed stores home first, so normalize it once instead of letting the home
+  // club bat in the top half and borrowing the away venue identity.
+  TEAM_A=TEAMS[awayIdx]; TEAM_B=TEAMS[homeIdx];
   localStorage.setItem('cl_dia_fx', String((fixtureIdx+1)%FIXTURES.length));
   teams=[ makeClub(TEAM_A,0), makeClub(TEAM_B,1) ];
   seedSim(`cyberliga-baseball:${fixtureIdx}:${TEAM_A.name}:${TEAM_B.name}`);
@@ -877,8 +989,11 @@ function setupMatch(){
   S.approach='READ & REACT'; S.defense='STRAIGHT UP'; S.intent='ESTABLISH THE ZONE'; S.lastPitch=null; S.pitchHistory=[]; S.forceNext=null; S.playLog=[];
   S.callLabel=''; S.callDetail=''; S.callTone='live'; S.callT=0; elPitchCall.classList.remove('show');
   S.transition=null;S.strikeoutHold=null;S.entryMode='fresh';S.tuneInSeconds=0;S.entryTargetSeconds=0;S.entryBucket=null;S.entryRecued=false;S.entryPhase=null;
-  applyTeamHUD(); hideCard();
-  say(`FIRST PITCH AT THE DIAMOND DOME — ${TEAM_A.name} VS ${TEAM_B.name} — ${INNINGS} INNINGS OF FULLY AUTONOMOUS BASEBALL`);
+  applyTeamHUD(); applyVenueIdentity(); hideCard();
+  // Clear the venue card before the 3.03s setup + windup releases the first
+  // pitch.  A longer card looked beautiful but hid the entire opening at-bat.
+  if(window.CyberligaEstablishing) window.CyberligaEstablishing.show({sportId:'baseball',homeTeam:TEAM_B.team,awayTeam:TEAM_A.team,duration:2400});
+  say(`FIRST PITCH AT ${TEAM_B.brand?.venue||'THE DIAMOND'} — ${TEAM_A.name} VS ${TEAM_B.name} — ${INNINGS} INNINGS OF FULLY AUTONOMOUS BASEBALL`);
   flashMsg('PLAY BALL', `${TEAM_A.name} VS ${TEAM_B.name}`, '#58ffb4');
   nextBatter(true);
   cut('plate');
@@ -1097,6 +1212,31 @@ const fielderMarker=new THREE.Mesh(new THREE.RingGeometry(0.52,0.72,36),
   new THREE.MeshBasicMaterial({ color:0x7dffc0, transparent:true, opacity:0, side:THREE.DoubleSide,
     blending:THREE.AdditiveBlending, depthWrite:false }));
 fielderMarker.rotation.x=-Math.PI/2; fielderMarker.position.y=0.07; fielderMarker.visible=false; scene.add(fielderMarker);
+// A restrained broadcast pitch tunnel makes velocity, break and the eventual
+// plate location readable before the call without turning the broadcast into a game control.
+const pitchTargetMarker=new THREE.Mesh(new THREE.RingGeometry(.24,.31,36),new THREE.MeshBasicMaterial({color:0x58ffb4,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+pitchTargetMarker.rotation.y=Math.PI/2;scene.add(pitchTargetMarker);
+const pitchGuidePos=new Float32Array(18*3),pitchGuideGeom=new THREE.BufferGeometry();
+pitchGuideGeom.setAttribute('position',new THREE.BufferAttribute(pitchGuidePos,3));
+const pitchGuideMat=new THREE.LineBasicMaterial({color:0x37e0ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});
+const pitchGuide=new THREE.Line(pitchGuideGeom,pitchGuideMat);scene.add(pitchGuide);
+const pitchGuideDotMat=new THREE.PointsMaterial({color:0x37e0ff,size:.075,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true});
+const pitchGuideDots=new THREE.Points(pitchGuideGeom,pitchGuideDotMat);scene.add(pitchGuideDots);
+function pitchGuideStep(){
+  const plan=S.pitchPlan,show=plan&&(S.state==='WINDUP'||S.state==='PITCH');
+  if(!show){pitchGuideMat.opacity*=.8;pitchGuideDotMat.opacity*=.8;pitchTargetMarker.material.opacity*=.8;pitchGuide.visible=pitchGuideDots.visible=pitchGuideMat.opacity>.01;pitchTargetMarker.visible=pitchTargetMarker.material.opacity>.01;return;}
+  const family=pitchFamily(plan.name),color=family==='HEAT'?0x37e0ff:family==='BREAK'?0xff5ec4:0xffd34d;
+  pitchGuideMat.color.setHex(color);pitchGuideDotMat.color.setHex(color);pitchTargetMarker.material.color.setHex(plan.inZone?0xff5e75:0x58ffb4);
+  const releaseX=MOUND_X-.55;
+  for(let i=0;i<18;i++){
+    const k=i/17,curveK=k*k*(1-k),j=i*3;
+    pitchGuidePos[j]=lerp(releaseX,.08,k);pitchGuidePos[j+1]=lerp(1.5,plan.aimY,k)+Math.sin(k*Math.PI)*.12;
+    pitchGuidePos[j+2]=lerp(0,plan.aimZ,k)-plan.curve*curveK*.42;
+  }
+  pitchGuideGeom.attributes.position.needsUpdate=true;pitchGuide.visible=pitchGuideDots.visible=pitchTargetMarker.visible=true;
+  pitchGuideMat.opacity=S.state==='WINDUP'?.24:.38;pitchGuideDotMat.opacity=S.state==='WINDUP'?.13:.26;pitchTargetMarker.material.opacity=.5+.14*Math.sin(tGlobal*9);
+  pitchTargetMarker.position.set(.08,plan.aimY,plan.aimZ);const s=1+.08*Math.sin(tGlobal*7);pitchTargetMarker.scale.setScalar(s);
+}
 
 const pitcherP = () => fldTeam().players[0];
 const infielders = () => fldTeam().players.filter(p => p.fieldPos >= 2 && p.fieldPos <= 5);
@@ -1332,6 +1472,7 @@ function planPitch() {
 function throwPitch() {
   const plan = S.pitchPlan;
   fldTeam().pitches++;
+  fldTeam().staff.pitches++;
   S.lastPitch={name:plan.name,location:plan.location,speedMph:Math.round(plan.speed*4),swingStyle:plan.swing?plan.swingStyle:null,result:'LIVE'};
   ball.pos.set(MOUND_X - 0.55, 1.5, 0);
   const T = (MOUND_X - 0.55)/plan.speed;
@@ -1392,7 +1533,7 @@ function foulBall() {
   ball.mode = 'LIVE';
   S.play = { type:'FOUL', resolved:true };
   commitPitch('FOUL','strike');
-  say(spick([`${S.batter.name} SPOILS IT FOUL`, 'FOUL BALL — STILL ALIVE', `${S.batter.name} FIGHTS IT OFF`]));
+  say(pick([`${S.batter.name} SPOILS IT FOUL`, 'FOUL BALL — STILL ALIVE', `${S.batter.name} FIGHTS IT OFF`]));
   setState('RESOLVE'); cut('plate');
 }
 function inPlay(plan) {
@@ -1494,7 +1635,7 @@ function resolvePitch(forcedBall = false) {
     } else {
       S.balls++; glovePop();
       swellCrowd(.05);
-      say(spick([`BALL ${S.balls} — JUST OFF THE PLATE`, `BALL ${S.balls} — THE LASERS SAY NO`, `BALL ${S.balls} OUTSIDE`]));
+      say(pick([`BALL ${S.balls} — JUST OFF THE PLATE`, `BALL ${S.balls} — THE LASERS SAY NO`, `BALL ${S.balls} OUTSIDE`]));
       showPitchCall('BALL',`${plan?`${plan.name} · ${plan.location}`:'MISSED THE ZONE'} · ${S.balls}-${S.strikes}`,'ball',1.25);
       if (S.balls >= 4) { walk(); return; }
       commitPitch('BALL','ball');
@@ -2272,20 +2413,26 @@ function ballVisualStep(dt) {
 }
 function crowdStep(dt){
   crowdWave += dt*(1.15 + crowdPulse*2.4);
-  const pop=crowdPulse, homeGlow=TEAM_B ? TEAM_B.glow : 0x58ffb4;
+  const pop=crowdPulse, homeGlow=TEAM_B ? TEAM_B.glow : 0x58ffb4, awayGlow=TEAM_A ? TEAM_A.glow : 0xff5ec4;
   for (const m of crowdMembers){
-    const hop=Math.sin(crowdWave*3.2 + m.phase);
+    const ritualOffset=venueRitual==='rings'?Math.sin(m.baseY*.85-crowdWave*4.1):venueRitual==='seam'?Math.sin(m.s.position.z*.24-crowdWave*4.6):venueRitual==='bell'?Math.sin(m.phase>Math.PI?crowdWave*3.5:crowdWave*3.5+Math.PI*.4):Math.sin(crowdWave*3.2 + m.phase);
+    const hop=ritualOffset;
     m.s.position.y = m.baseY + hop*0.025*(1 + pop*2.6);
     const sc=m.baseScale*(1 + Math.max(0, hop)*0.09*pop);
     m.s.scale.set(sc,sc,1);
     m.s.material.opacity = clamp(m.baseOpacity + pop*0.28 + Math.sin(crowdWave*1.7 + m.phase)*0.05, 0.25, 0.96);
-    if (pop > 0.25 && Math.random() < dt*1.9) m.s.material.color.setHex(Math.random() < 0.35 ? homeGlow : pick(crowdPalette));
+    if (pop > 0.25 && Math.random() < dt*1.9) m.s.material.color.setHex(pick([homeGlow,homeGlow,venueAccent,awayGlow]));
   }
   for (const m of standMats){
     const c=new THREE.Color(0xaebad8);
     c.lerp(new THREE.Color(homeGlow), 0.11 + pop*0.22).lerp(new THREE.Color(0xffffff), pop*0.08);
     m.color.copy(c);
   }
+  const ritualK=pop*Math.sin(crowdWave*2.4);
+  venueIdentityGroup.position.y=venueRitual==='rings'?Math.max(0,ritualK)*.16:0;
+  venueIdentityGroup.scale.set(1,1+(venueRitual==='porcelain'?Math.max(0,ritualK)*.018:0),1);
+  venueIdentityGroup.rotation.x=venueRitual==='wing'?ritualK*.006:0;
+  ledMat.color.setHex(new THREE.Color(homeGlow).lerp(new THREE.Color(venueAccent),.35+.25*Math.max(0,ritualK)).getHex());
 }
 function markerStep(){
   const pl=S.play, live=pl && (S.state==='LIVE' || S.state==='THROW' || S.state==='HOMER');
@@ -2338,6 +2485,7 @@ function fxStep(dt) {
   if (TEAM_B) { ledCol.setHex(TEAM_B.glow); ledCol.lerp(new THREE.Color(0xffffff), ledPulse*0.8); ledMat.color.copy(ledCol); }
   crowdStep(dt);
   markerStep();
+  pitchGuideStep();
 }
 
 // ---------- camera ----------
@@ -2454,6 +2602,7 @@ function gameSnapshot(){
     autonomous:true,
     interaction:'view-only',
     fixture:{index:fixtureIdx,total:FIXTURES.length,teams:teams.map(t=>t.def.name),next:[TEAMS[nextA].name,TEAMS[nextB].name]},
+    venue:TEAM_B?{name:TEAM_B.brand?.venue||TEAM_B.city,city:TEAM_B.city,scene:TEAM_B.brand?.scene||null,ritual:TEAM_B.brand?.ritual||null,statement:TEAM_B.brand?.statement||null,kitPattern:TEAM_B.brand?.kitPattern||null}:null,
     entry:{mode:S.entryMode,tuneInSeconds:+S.tuneInSeconds.toFixed(1),targetSeconds:+S.entryTargetSeconds.toFixed(1),bucket:S.entryBucket,recued:S.entryRecued,phase:S.entryPhase,freshURL:'?fresh=1',qaURL:'?at=465&bucket=2077'},
     status:elPlayStatus.textContent, clipMoment:S.clipMoment || null, clipSeconds:+S.clipT.toFixed(1), clipsThisGame:S.clips.slice(),
     resultBanner:{visible:elFlash.classList.contains('show'),big:elFT.textContent,sub:elFS.textContent},
@@ -2502,11 +2651,12 @@ function gameSnapshot(){
       grandSlam:!!pl.grandSlam, moonshot:!!pl.moonshot,homeRunCleared:!!pl.homeRunCleared,
       target:[+(pl.lx || 0).toFixed(1), +(pl.lz || 0).toFixed(1)]
     } : null,
-    defense:teams.length?fldTeam().players.filter(p=>p.duty==='fielder').map(p=>({name:p.name,position:p.position,x:+p.x.toFixed(1),z:+p.z.toFixed(1)})):[],
+    defense:teams.length?fldTeam().players.filter(p=>p.duty==='fielder').map(p=>({name:p.name,number:p.number,role:p.athlete?.role||p.position,position:p.position,x:+p.x.toFixed(1),z:+p.z.toFixed(1)})):[],
     teams:teams.map(t => ({name:t.def.name,runs:t.runs,hits:t.hits,homeRuns:t.hrs,errors:t.errors,walks:t.walks,strikeouts:t.strikeouts,pitches:t.pitches,
       pitcher:{name:t.staff.active,role:t.staff.role,pitches:t.staff.pitches,stress:+t.staff.stress.toFixed(2),changes:t.staff.changes,history:t.staff.history.slice()},
       nextBatter:t.players[t.batIdx%t.players.length].name})),
-    crowd:{ members:crowdMembers.length, pulse:+crowdPulse.toFixed(2) }
+    crowd:{ members:crowdMembers.length,pulse:+crowdPulse.toFixed(2),ritual:venueRitual,
+      palette:{home:TEAM_B?.css||null,accent:TEAM_B?.team?.colors?.accent||null,away:TEAM_A?.css||null} }
   };
 }
 function renderGameToText(){ return JSON.stringify(gameSnapshot()); }

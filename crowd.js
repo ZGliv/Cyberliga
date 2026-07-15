@@ -90,7 +90,9 @@ export function createCrowd(scene, opts) {
   const teamA = opts.teamA; // West end
   const teamB = opts.teamB; // East end
   let curA = teamA, curB = teamB; // current fixture (setTeams retints)
-  const rng = makeRng(1337);
+  // Crowd choreography is presentation state. Callers can inject a domain-
+  // separated stream so flashes, waves and chants never advance sporting RNG.
+  const rng = opts.rng || makeRng(1337);
 
   // -------------------------------------------------------------------
   // 1. Generate seat data into temporary JS arrays, then bake to typed.
@@ -387,7 +389,7 @@ export function createCrowd(scene, opts) {
 
   function igniteFlash(f, i) {
     flashIdx[f] = i;
-    flashTTL[f] = 0.07 + Math.random() * 0.06;
+    flashTTL[f] = 0.07 + rng() * 0.06;
     colArray[i * 3] = 2.5; colArray[i * 3 + 1] = 2.5; colArray[i * 3 + 2] = 2.5;
   }
 
@@ -405,13 +407,13 @@ export function createCrowd(scene, opts) {
     lastT = t;
     frame++;
     // ---- schedule / advance the mexican wave (only during calm play) ----
-    if (nextWaveAt < 0) nextWaveAt = t + WAVE_MIN_GAP + Math.random() * (WAVE_MAX_GAP - WAVE_MIN_GAP);
+    if (nextWaveAt < 0) nextWaveAt = t + WAVE_MIN_GAP + rng() * (WAVE_MAX_GAP - WAVE_MIN_GAP);
     const eventBusy = t < goalEnd || t < gaspEnd;
     if (!waveActive && !eventBusy && t >= nextWaveAt) {
       waveActive = true;
       waveDying = false;
       waveAmp = 0;
-      waveAngle = Math.random() * TWO_PI;
+      waveAngle = rng() * TWO_PI;
       waveTravelled = 0;
     }
     if (waveActive) {
@@ -426,7 +428,7 @@ export function createCrowd(scene, opts) {
         waveAmp = 0;
         waveActive = false;
         waveDying = false;
-        nextWaveAt = t + WAVE_MIN_GAP + Math.random() * (WAVE_MAX_GAP - WAVE_MIN_GAP);
+        nextWaveAt = t + WAVE_MIN_GAP + rng() * (WAVE_MAX_GAP - WAVE_MIN_GAP);
       }
     }
 
@@ -434,13 +436,13 @@ export function createCrowd(scene, opts) {
     let anyChant = false;
     for (let b = 0; b < 4; b++) {
       if (nextChantAt[b] < 0) {
-        nextChantAt[b] = t + 6 + Math.random() * 24; // first burst comes soon-ish
+        nextChantAt[b] = t + 6 + rng() * 24; // first burst comes soon-ish
       }
       if (t >= chantEnd[b] && t >= nextChantAt[b] && !eventBusy) {
         chantStart[b] = t;
-        chantEnd[b] = t + 5 + Math.random() * 5; // 5–10s burst
+        chantEnd[b] = t + 5 + rng() * 5; // 5–10s burst
         // gap 30–60s, compressed up to ~2.5x at full excitement
-        const gap = (30 + Math.random() * 30) / (1 + 1.5 * excitement);
+        const gap = (30 + rng() * 30) / (1 + 1.5 * excitement);
         nextChantAt[b] = chantEnd[b] + gap;
       }
       // envelope: 1s ramp in/out
@@ -659,19 +661,19 @@ export function createCrowd(scene, opts) {
       const scoring = goalSection === 0 ? sect0 : sect1;
       for (let f = 0; f < FLASH_POOL; f++) {
         if (flashIdx[f] >= 0) continue; // slot still lit
-        if (Math.random() > goalEnvCoarse * 8 * dt) continue; // density follows the envelope
+        if (rng() > goalEnvCoarse * 8 * dt) continue; // density follows the envelope
         // 75% of flashes concentrate in the scoring end, the rest scatter
-        const i = Math.random() < 0.75
-          ? scoring[(Math.random() * scoring.length) | 0]
-          : (Math.random() * COUNT) | 0;
+        const i = rng() < 0.75
+          ? scoring[(rng() * scoring.length) | 0]
+          : (rng() * COUNT) | 0;
         igniteFlash(f, i);
         colorsDirty = true;
       }
-    } else if (Math.random() < (2.4 + excitement * 6) * dt) {
+    } else if (rng() < (2.4 + excitement * 6) * dt) {
       // ambient: the odd phone flash somewhere in the dark
       for (let f = 0; f < FLASH_POOL; f++) {
         if (flashIdx[f] < 0) {
-          igniteFlash(f, (Math.random() * COUNT) | 0);
+          igniteFlash(f, (rng() * COUNT) | 0);
           colorsDirty = true;
           break;
         }

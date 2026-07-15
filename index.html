@@ -353,6 +353,7 @@ import { createPossession } from './possession.js';
 import { createReplaySystem, SKILL_MOVES } from './replaysys.js';
 import { buildBlobRig, CLASSIC_PLAYER_COLORS, classicPlayerColor } from './blobrig.js';
 import { createStoryEngine } from './story.js';
+import { createSoccerVenueIdentity, soccerClubVisual } from './spectator-soccer-identity.js';
 const classicSideVisual = side => classicPlayerColor(Number(side) % CLASSIC_PLAYER_COLORS.length);
 const UNIVERSE = window.CyberligaUniverse;
 const QUERY = new URLSearchParams(location.search);
@@ -362,9 +363,18 @@ const QUERY = new URLSearchParams(location.search);
 // the page halfway through a test.
 const LIVE_BROADCAST = UNIVERSE && !QUERY.has('exhibition')
   ? UNIVERSE.selected(location.search, Date.now()) : null;
-if (!LIVE_BROADCAST && UNIVERSE && QUERY.has('seed')) {
-  Math.random = UNIVERSE.seededRandom(UNIVERSE.hash(`soccer-exhibition|${QUERY.get('seed')}`));
-}
+const nativeRandom = Math.random.bind(Math);
+const soccerSeed = LIVE_BROADCAST
+  ? LIVE_BROADCAST.seed
+  : (UNIVERSE ? UNIVERSE.hash(`soccer-exhibition|${QUERY.get('seed') || 'local-preview'}`) : 0x5cce77);
+// Sporting decisions and presentation must never advance the same stream.
+// This keeps crowd/copy/camera changes from altering the event history.
+const simRandom = UNIVERSE
+  ? UNIVERSE.seededRandom(UNIVERSE.hash(`soccer|${soccerSeed}|simulation`))
+  : nativeRandom;
+const presentationRandom = UNIVERSE
+  ? UNIVERSE.seededRandom(UNIVERSE.hash(`soccer|${soccerSeed}|presentation`))
+  : nativeRandom;
 if (window.CyberligaLiveBridge) {
   window.CyberligaLiveBridge.start({
     leagueId: 'soccer',
@@ -373,7 +383,6 @@ if (window.CyberligaLiveBridge) {
     clubLeanInput: false
   });
 }
-if (LIVE_BROADCAST) Math.random = UNIVERSE.seededRandom(LIVE_BROADCAST.seed);
 const story = createStoryEngine();
 
 // Public soccer is blobs-only until a genuinely ownable character language exists.
@@ -466,8 +475,8 @@ function makePitchTexture() {
   }
   // subtle noise
   for (let i = 0; i < 14000; i++) {
-    g.fillStyle = `rgba(${Math.random()*30},${60+Math.random()*40},${Math.random()*35},0.05)`;
-    g.fillRect(Math.random()*c.width, Math.random()*c.height, 2, 2);
+    g.fillStyle = `rgba(${presentationRandom()*30},${60+presentationRandom()*40},${presentationRandom()*35},0.05)`;
+    g.fillRect(presentationRandom()*c.width, presentationRandom()*c.height, 2, 2);
   }
   // line helper
   g.strokeStyle = 'rgba(235,255,250,0.9)'; g.lineWidth = 6;
@@ -567,7 +576,8 @@ stand(HALF_W+8, 0, Math.PI/2, FIELD_H+30);
 stand(-(HALF_W+8), 0, -Math.PI/2, FIELD_H+30);
 
 // reactive crowd (crowd.js module — sections, mexican wave, goal eruptions)
-const crowd = createCrowd(scene, { teamA: TEAM_A, teamB: TEAM_B });
+const crowd = createCrowd(scene, { teamA: TEAM_A, teamB: TEAM_B, rng: presentationRandom });
+const venueIdentity = createSoccerVenueIdentity({ scene });
 
 // Technical areas: deliberately anonymous classic blobs, not a second character system.
 // They make the touchline feel inhabited and give goals/cards/near misses a second ring
@@ -628,20 +638,20 @@ function technicalAreaStep(t, dt) {
 }
 
 // referee (referee.js module — positioning AI, foul judgment, cards)
-const ref = createReferee(scene);
+const ref = createReferee(scene, { rng: simRandom });
 // dribbling brain (dribbling.js — touches, shields, knock-ons, skill moves)
-const drib = createDribbling();
+const drib = createDribbling({ rng: simRandom });
 // broadcast tiers + sim-synced event queue + in-game feed (presentation.js)
-const present = createPresentation();
+const present = createPresentation({ rng: presentationRandom });
 present.attach(document.getElementById('feed')); // adopt the host feed container (top-right)
 // aerodynamic ball model (ballflight.js — Magnus, drag, knuckle, spin-coupled bounces)
-const flight = createBallFlight({ gravity: 22, groundY: 0.24 });
+const flight = createBallFlight({ gravity: 22, groundY: 0.24, rng: simRandom });
 // team strategy brain (tactics.js — phases, pass evaluation, off-ball runs, pressing shape)
-const tactics = createTactics();
+const tactics = createTactics({ rng: simRandom });
 // carrier↔ball physical interaction (ballcontrol.js — footfall touches, settles, strike alignment)
-const control = createBallControl();
+const control = createBallControl({ rng: simRandom });
 // goalkeeper AI (goalkeeper.js — angle positioning, reaction dives, catches/parries)
-const keeperAI = createGoalkeeper();
+const keeperAI = createGoalkeeper({ rng: simRandom });
 // out-of-bounds system (boundary.js — line detection, rescue runs, ball kids)
 const boundary = createBoundarySystem(scene, {
   defenderOf: side => { const d = players.find(q => q.dir === side); return d ? d.team.name : null; },
@@ -676,7 +686,7 @@ tower(-HALF_W-14, HALF_H+14);  tower(HALF_W+14, HALF_H+14);
 {
   const n = 900, pos = new Float32Array(n*3);
   for (let i = 0; i < n; i++) {
-    const r = 250 + Math.random()*120, th = Math.random()*Math.PI*2, ph = Math.random()*Math.PI*0.45;
+    const r = 250 + presentationRandom()*120, th = presentationRandom()*Math.PI*2, ph = presentationRandom()*Math.PI*0.45;
     pos[i*3] = r*Math.cos(th)*Math.sin(ph); pos[i*3+1] = r*Math.cos(ph)*0.6+20; pos[i*3+2] = r*Math.sin(th)*Math.sin(ph);
   }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -840,15 +850,22 @@ function buildPlayer(team, isGK, r, captain) {
   const name = r.n, number = r.num;
   const side = team === TEAM_A ? 0 : 1;
   const playerColor = classicSideVisual(side);
+  const clubVisual = soccerClubVisual(team);
   // Player identity stays in names, numbers, stats, behavior, and story while the
   // public simulation uses the readable blob vocabulary.
   const rig = buildRig({
     side, kitColor: playerColor, glowColor: playerColor,
-    skinTone: SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)],
-    hairColor: HAIR_COLORS[Math.floor(Math.random()*HAIR_COLORS.length)],
-    isGK, headband: r.hb ?? (Math.random() < 0.35),
-    captain: !!captain, pattern: Math.random() < 0.5 ? 'accent' : 'solid',
+    skinTone: SKIN_TONES[Math.floor(presentationRandom()*SKIN_TONES.length)],
+    hairColor: HAIR_COLORS[Math.floor(presentationRandom()*HAIR_COLORS.length)],
+    isGK, headband: r.hb ?? (presentationRandom() < 0.35),
+    captain: !!captain, pattern: presentationRandom() < 0.5 ? 'accent' : 'solid',
     jerseyName: name, jerseyNumber: number,
+    brandColor: clubVisual.brandColor,
+    secondaryColor: clubVisual.secondaryColor,
+    accentColor: clubVisual.accentColor,
+    teamCode: clubVisual.teamCode,
+    kitPattern: clubVisual.kitPattern,
+    role: isGK ? 'GK' : 'FIELD',
     flair: r.flair || [],
     dna: r.dna,
   });
@@ -902,23 +919,23 @@ function makeTeam(team, dir) { // dir: -1 defends left goal, +1 defends right go
   FORMATION.forEach((slot, i) => {
     const r = ROSTERS[team.name][i];
     const mesh = buildPlayer(team, slot.role === 'GK', r, i === 1); // slot 1 wears the armband
-    const sc = 0.94 + Math.random()*0.12; // height variation
+    const sc = 0.94 + simRandom()*0.12; // height/mass variation affects duels
     mesh.scale.setScalar(sc);
     scene.add(mesh);
     players.push({
       team, dir, role: slot.role, mesh, name: r.n, number: r.num,
       home: new THREE.Vector3(dir * slot.x * HALF_W, 0, slot.z * HALF_H * 1.6),
       pos: new THREE.Vector3(), vel: new THREE.Vector3(),
-      speed: slot.role === 'GK' ? 6.0 : (slot.role === 'FWD' ? 7.8 : 7.1) * (0.95 + Math.random()*0.12),
-      kickCooldown: 0, phase: Math.random()*10, kickAnim: null, yaw: dir > 0 ? -Math.PI/2 : Math.PI/2,
+      speed: slot.role === 'GK' ? 6.0 : (slot.role === 'FWD' ? 7.8 : 7.1) * (0.95 + simRandom()*0.12),
+      kickCooldown: 0, phase: simRandom()*10, kickAnim: null, yaw: dir > 0 ? -Math.PI/2 : Math.PI/2,
       mass: sc*sc*sc,        // big players win shoulder duels
-      stridePhase: Math.random()*6.28,
+      stridePhase: simRandom()*6.28,
       stagger: 0, fallT: 0, fallDir: 1, stamina: 1,
       tgtSm: new THREE.Vector3(dir * slot.x * HALF_W, 0, slot.z * HALF_H * 1.6), // smoothed steering target
       slideT: 0, slideCd: 0, // slide tackle state + cooldown
       injuryT: 0, injuryKind: null, // short, visible knocks; 6v6 has no invented reserve roster
       // flair drives skill-move frequency/success (dribbling module)
-      flair: (slot.role === 'FWD' ? 0.75 : slot.role === 'MID' ? 0.55 : slot.role === 'DEF' ? 0.3 : 0.1) + (Math.random()-0.5)*0.15,
+      flair: (slot.role === 'FWD' ? 0.75 : slot.role === 'MID' ? 0.55 : slot.role === 'DEF' ? 0.3 : 0.1) + (simRandom()-0.5)*0.15,
       skillAnim: null,
     });
   });
@@ -1218,12 +1235,12 @@ function matchFlowVisualStep(t) {
   const pulse=1+Math.sin(t*(f.transitionT>0?10:5))*.08+(speed>13?.16:0);
   ballLocator.scale.setScalar(pulse);
   ballLocator.material.opacity=THREE.MathUtils.clamp(.22+speed/55+(f.transitionT>0?.18:0),.2,.62);
-  if (state.lastTouchTeam) ballLocator.material.color.setHex(glow3(state.lastTouchTeam));
+  if (state.lastTouchTeam) ballLocator.material.color.setHex(classicSideVisual(state.lastTouchTeam === TEAM_A ? 0 : 1));
   const lp=f.lastPass;
   if (lp && state.clock<lp.until && state.mode==='play') {
     const a=passGuideGeo.attributes.position;
     a.setXYZ(0,lp.from.x,.08,lp.from.z); a.setXYZ(1,ball.pos.x,.08,ball.pos.z); a.needsUpdate=true;
-    passGuide.material.color.setHex(glow3(lp.team));
+    passGuide.material.color.setHex(classicSideVisual(lp.team === TEAM_A ? 0 : 1));
     passGuide.material.opacity=Math.max(0,(lp.until-state.clock)/1.15)*.25;
   } else passGuide.material.opacity=0;
 }
@@ -1248,7 +1265,7 @@ function applyDribbleAction(p, act) {
       story.event('juke', { player: p.name, team: p.team.name, victim: act.victim.name });
       const note = story.feedNote('juke', { player: p.name, team: p.team.name, victim: act.victim.name });
       if (note) present.post({ kind: 'context', simTime: simT + 1.6, title: note, color: css });
-    } else if (act.beat && Math.random() < 0.35) {
+    } else if (act.beat && presentationRandom() < 0.35) {
       present.post({ kind: 'skill', simTime: simT + 0.25, title: present.feedLines.skill(p.name, act.move),
         team: p.team.name, color: hex6(p.team.glow), clock: fmtClock(state.clock) });
     }
@@ -1326,13 +1343,13 @@ function scheduleKick(p, plan, dirV) {
   const scatter=plan.type==='shoot'
     ? THREE.MathUtils.clamp(.025+distGoal*.0023+pressure*.07+(1-p.stamina)*.055,.025,.145)
     : THREE.MathUtils.clamp(.025+pressure*.045+(1-p.stamina)*.035,.025,.095);
-  const ang = Math.atan2(aimDir.x, aimDir.z) + (Math.random()-0.5) * scatter;
+  const ang = Math.atan2(aimDir.x, aimDir.z) + (simRandom()-0.5) * scatter;
   const dir = new THREE.Vector3(Math.sin(ang), 0, Math.cos(ang));
   let visualType = technique;
   const underPressure = players.some(q => q.team !== p.team && q.pos.distanceTo(p.pos) < 2.25);
   const behind = facingN.dot(dir) < -0.12;
   const forceBackheel = state._forceTechnique === 'backheel';
-  if (plan.type !== 'shoot' && (forceBackheel || (behind && underPressure && state.spectacleCooldown <= 0 && Math.random() < .16))) {
+  if (plan.type !== 'shoot' && (forceBackheel || (behind && underPressure && state.spectacleCooldown <= 0 && simRandom() < .16))) {
     visualType = 'backheel'; state._forceTechnique = null;
     state.spectacleCooldown = 8;
     state.lastTechnique = { type:'backheel', player:p.name, team:p.team.name, clock:state.clock };
@@ -1374,11 +1391,11 @@ function attemptAerialFinish(p, type) {
   const bd = p.pos.distanceTo(ball.pos);
   const minY = type === 'bicycle' ? 1.02 : .62, maxY = type === 'bicycle' ? 1.62 : 1.72;
   if (bd > 1.62 || ball.pos.y < minY || ball.pos.y > maxY || distGoal > (type === 'bicycle' ? 15 : 22)) return false;
-  const targetZ = THREE.MathUtils.clamp(-ball.pos.z*.16 + (Math.random()-.5)*2.4,-GOAL_WIDTH*.38,GOAL_WIDTH*.38);
+  const targetZ = THREE.MathUtils.clamp(-ball.pos.z*.16 + (simRandom()-.5)*2.4,-GOAL_WIDTH*.38,GOAL_WIDTH*.38);
   const dir = new THREE.Vector3(goalX-ball.pos.x,0,targetZ-ball.pos.z).normalize();
   p.kickAnim = { t:0, struck:false, type,
     flight:{ dir, power:type === 'bicycle' ? .88 : .78, technique:type === 'bicycle' ? 'screamer' : 'driven', curve:0 },
-    leg:Math.random()<.5?0:1, windup:type === 'bicycle' ? .34 : .22, follow:type === 'bicycle' ? .52 : .30 };
+    leg:presentationRandom()<.5?0:1, windup:type === 'bicycle' ? .34 : .22, follow:type === 'bicycle' ? .52 : .30 };
   p.kickCooldown = type === 'bicycle' ? 1.4 : 1.0;
   state.lastTouchTeam=p.team; state.lastTouchPlayer=p;
   recordShot(p);
@@ -1601,9 +1618,9 @@ function aiStep(dt) {
         // the executed shot whatever the last frame happened to say
         plan = carrier._kiPlan || (carrier._kiPlan = {
           type: 'shoot',
-          aimPoint: new THREE.Vector3(gX, 0, (Math.random()-0.5) * GOAL_WIDTH * 0.6),
+          aimPoint: new THREE.Vector3(gX, 0, (simRandom()-0.5) * GOAL_WIDTH * 0.6),
           technique: dGoal < 9 ? 'driven' : 'curler',
-          power: 0.8 + Math.random()*0.18,
+          power: 0.8 + simRandom()*0.18,
           curve: Math.sign(carrier.pos.z || 1) * -carrier.dir,
         });
       } else carrier._kiPlan = null;
@@ -1636,9 +1653,9 @@ function aiStep(dt) {
     if (carrier && !plan) {
       let cp = carrier._carryPlan;
       if (!cp || (cp.t -= dt) <= 0) {
-        cp = carrier._carryPlan = { t: 0.55 + Math.random()*0.5,
+        cp = carrier._carryPlan = { t: 0.55 + simRandom()*0.5,
           plan: { type: 'carry',
-            carryDir: new THREE.Vector3(-carrier.dir, 0, (Math.random()-0.5)*0.5).normalize(), holdMs: 0 } };
+            carryDir: new THREE.Vector3(-carrier.dir, 0, (simRandom()-0.5)*0.5).normalize(), holdMs: 0 } };
       }
       plan = cp.plan;
     }
@@ -1787,7 +1804,7 @@ function aiStep(dt) {
           p._slideDone = true;
           state.lastTouchTeam = p.team; state.lastTouchPlayer = p;
           const away = new THREE.Vector3(ball.pos.x - p.pos.x, 0, ball.pos.z - p.pos.z).normalize();
-          ball.vel.copy(away).multiplyScalar(7 + Math.random()*3).addScaledVector(p.vel, 0.4);
+          ball.vel.copy(away).multiplyScalar(7 + simRandom()*3).addScaledVector(p.vel, 0.4);
           ball.vel.y = 0.5;
           thump(7); kickFlash(ball.pos, glow3(p.team));
           commentate(`CRUNCHING SLIDE FROM ${p.name} — WINS IT CLEAN`);
@@ -1801,14 +1818,14 @@ function aiStep(dt) {
             crowd.onBigKick(); camShake = Math.max(camShake, 0.4);
             commentate(`${p.name} SCYTHES ${opp.name} WITH THE SLIDE!`);
             story.event('slide', { player: p.name, team: p.team.name, clean: false, victim: opp.name });
-            if (Math.random() < 0.6 && !pendingFoul) {
+            if (simRandom() < 0.6 && !pendingFoul) {
               const ruling = ref.judgeChallenge({
-                offender: p, victim: opp, force: 6 + Math.random()*2,
+                offender: p, victim: opp, force: 6 + simRandom()*2,
                 ballDist: opp.pos.distanceTo(ball.pos),
                 fromBehind: Math.cos(p.yaw - opp.yaw) > 0.5,
               });
               if (ruling) {
-                if (ruling.penalty && Math.random() < 0.5) {
+                if (ruling.penalty && simRandom() < 0.5) {
                   ruling.penalty = false;
                   ruling.freeKick = { x: THREE.MathUtils.clamp(ruling.freeKick.x, -19, 19), z: ruling.freeKick.z };
                 }
@@ -1979,7 +1996,7 @@ function aiStep(dt) {
         if (sc.t >= 1.15) { // gathered + a clutched beat — bowl it out upfield
           p._gkScoop = null;
           p.kickCooldown = 0.5;
-          ball.vel.set(-p.dir, 0, (Math.random() - 0.5) * 0.6).normalize().multiplyScalar(5.5);
+          ball.vel.set(-p.dir, 0, (simRandom() - 0.5) * 0.6).normalize().multiplyScalar(5.5);
           ball.vel.y = 0;
         }
       }
@@ -2125,7 +2142,7 @@ function aiStep(dt) {
     if (state.mode === 'play' && p.slideCd <= 0 && p.role !== 'GK' && !p.kickAnim
         && state.lastTouchTeam && state.lastTouchTeam !== p.team
         && bd > 1.6 && bd < 3.4 && ball.pos.y < 0.9
-        && facingN.dot(toBallN) > 0.5 && Math.random() < dt * 0.15) {
+        && facingN.dot(toBallN) > 0.5 && simRandom() < dt * 0.15) {
       p.slideT = 0.7; p.slideCd = 10; p._slideDone = false;
       p.vel.copy(toBallN).multiplyScalar(9.5);
       continue;
@@ -2138,8 +2155,8 @@ function aiStep(dt) {
         && !p.kickAnim && p.kickCooldown <= 0 && ball.vel.y < 2.5 && ball.pos.y > .62
         && ball.pos.y < 1.72 && bd < 1.62) {
       const dg = Math.hypot(goalX-p.pos.x,p.pos.z);
-      if (dg < 22 && Math.random() < dt*.055) {
-        const overhead = dg < 15 && ball.pos.y > 1.02 && Math.random() < .18;
+      if (dg < 22 && simRandom() < dt*.055) {
+        const overhead = dg < 15 && ball.pos.y > 1.02 && simRandom() < .18;
         spectacleStarted = attemptAerialFinish(p,overhead?'bicycle':'volley');
       }
     }
@@ -2157,8 +2174,8 @@ function aiStep(dt) {
         const distToGoalH = Math.hypot(goalX - p.pos.x, p.pos.z);
         const isShotH = distToGoalH < 16;
         const headDir = isShotH
-          ? new THREE.Vector3(goalX - ball.pos.x, 0, (Math.random()-0.5) * GOAL_WIDTH * 0.5 - ball.pos.z).normalize()
-          : new THREE.Vector3(attackDir, 0, (Math.random()-0.5)).normalize();
+          ? new THREE.Vector3(goalX - ball.pos.x, 0, (simRandom()-0.5) * GOAL_WIDTH * 0.5 - ball.pos.z).normalize()
+          : new THREE.Vector3(attackDir, 0, (simRandom()-0.5)).normalize();
         p.kickAnim = { t: 0, struck: false, type: 'header',
           flight: { dir: headDir, power: 0.5, technique: 'header', curve: 0, isShot: isShotH },
           leg: 0, windup: wu, follow: 0.175 };
@@ -2199,8 +2216,8 @@ function aiStep(dt) {
           // Press beaten only by a purposeful outlet toward the less occupied flank.
           const left=players.filter(q=>q.team!==p.team&&q.pos.z<0).length;
           const right=players.filter(q=>q.team!==p.team&&q.pos.z>=0).length;
-          aim = new THREE.Vector3(attackDir*14, 0, (left<=right?-1:1)*(8+Math.random()*8));
-          technique = 'clearance'; power = 0.74 + Math.random()*0.24;
+          aim = new THREE.Vector3(attackDir*14, 0, (left<=right?-1:1)*(8+simRandom()*8));
+          technique = 'clearance'; power = 0.74 + simRandom()*0.24;
           commentate(`${p.name} GOES OVER THE PRESS FOR ${p.team.name}`);
         }
         const dv0 = aim.sub(ball.pos).setY(0);
@@ -2219,7 +2236,7 @@ function aiStep(dt) {
         if (nearOwnGoal && Math.abs(ball.pos.z) < 14) {
           const dir = new THREE.Vector3(attackDir, 0, Math.sign(p.pos.z || 1) * 0.6).normalize();
           p.kickAnim = { t: 0, struck: false, type: 'clearance',
-            flight: { dir, power: 0.7 + Math.random()*0.3, technique: 'clearance', curve: 0 },
+            flight: { dir, power: 0.7 + simRandom()*0.3, technique: 'clearance', curve: 0 },
             leg: 0, windup: 0.18, follow: 0.22 }; // strike at pose k=0.45
           p.kickCooldown = 0.9;
         } else {
@@ -2267,16 +2284,16 @@ function aiStep(dt) {
             victim.fallT = 1.15; victim.fallDir = 1;
             camShake = Math.max(camShake, 0.45);
             crowd.onBigKick();
-            if (-vn > 11 && Math.random() < .18) markInjury(victim,'SHOULDER IMPACT',6.5);
+            if (-vn > 11 && simRandom() < .18) markInjury(victim,'SHOULDER IMPACT',6.5);
             commentate(`HUGE COLLISION! ${victim.name} GOES DOWN`);
-            if (offender.team !== victim.team && Math.random() < 0.4 && !pendingFoul) {
+            if (offender.team !== victim.team && simRandom() < 0.4 && !pendingFoul) {
               const ruling = ref.judgeChallenge({
                 offender, victim, force: -vn,
                 ballDist: victim.pos.distanceTo(ball.pos),
                 fromBehind: Math.cos(offender.yaw - victim.yaw) > 0.5,
               });
               if (ruling) {
-                if (ruling.penalty && Math.random() < 0.65) {
+                if (ruling.penalty && simRandom() < 0.65) {
                   ruling.penalty = false;
                   ruling.freeKick = { x: THREE.MathUtils.clamp(ruling.freeKick.x, -19, 19), z: ruling.freeKick.z };
                 }
@@ -2289,16 +2306,16 @@ function aiStep(dt) {
       // shoulder duels: opponents in contact near the ball lean on each other and shove
       if (a.team !== b.team && state.mode === 'play'
           && Math.min(a.pos.distanceTo(ball.pos), b.pos.distanceTo(ball.pos)) < 2.5
-          && Math.random() < dt * 1.6) {
-        const shover = Math.random() < wa ? b : a;   // the heavier body wins the duel more often
+          && simRandom() < dt * 1.6) {
+        const shover = simRandom() < wa ? b : a;   // the heavier body wins the duel more often
         const victim = shover === a ? b : a;
         const dir = shover === a ? 1 : -1;
-        const force = (2.5 + Math.random()*3.5) / victim.mass;
+        const force = (2.5 + simRandom()*3.5) / victim.mass;
         if (shover.team === TEAM_A) stats.duelsA++; else stats.duelsB++;
         story.event('duel', { winner: shover.name, team: shover.team.name });
         victim.vel.x += nx*dir*force; victim.vel.z += nz*dir*force;
         shover.vel.x -= nx*dir*force*0.3; shover.vel.z -= nz*dir*force*0.3; // equal & opposite-ish
-        if (force > 4.4 && Math.random() < 0.12 && victim.fallT <= 0) {
+        if (force > 4.4 && simRandom() < 0.12 && victim.fallT <= 0) {
           victim.fallT = 1.15; victim.fallDir = 1;
           victim.stagger = 0;
           crowd.onBigKick(); camShake = Math.max(camShake, 0.35);
@@ -2307,7 +2324,7 @@ function aiStep(dt) {
           victim.stagger = Math.max(victim.stagger, 0.55);
         }
         // the ref only catches a fraction of shoves — match flow > whistle-fest
-        if (Math.random() < 0.35 && !pendingFoul) {
+        if (simRandom() < 0.35 && !pendingFoul) {
           const ruling = ref.judgeChallenge({
             offender: shover, victim, force,
             ballDist: victim.pos.distanceTo(ball.pos),
@@ -2315,7 +2332,7 @@ function aiStep(dt) {
           });
           if (ruling) {
             // most box fouls get downgraded to edge-of-box free kicks — penalties stay RARE
-            if (ruling.penalty && Math.random() < 0.65) {
+            if (ruling.penalty && simRandom() < 0.65) {
               ruling.penalty = false;
               ruling.freeKick = { x: THREE.MathUtils.clamp(ruling.freeKick.x, -19, 19), z: ruling.freeKick.z };
             }
@@ -2354,7 +2371,7 @@ function updateKicks(dt) {
         // headed contact: ball must still be at head height in reach
         if (state.mode === 'play' && p.pos.distanceTo(ball.pos) < 1.5 && ball.pos.y > 0.9) {
           ball.vel.set(k.flight.dir.x, 0, k.flight.dir.z)
-            .multiplyScalar(k.flight.isShot ? 11 + Math.random()*3 : 8 + Math.random()*2);
+            .multiplyScalar(k.flight.isShot ? 11 + simRandom()*3 : 8 + simRandom()*2);
           ball.vel.y = k.flight.isShot ? -1.2 : 1.4;       // headed DOWN on target / nodded on
           ball.spin.set(0, 0, 0); ball.knuckle = 0;
           ballTrap = 0;
@@ -2420,13 +2437,13 @@ function burstConfetti(x, z, glowHex) {
   const palette = [glowHex, glowHex, 0xffffff, 0xffe14d];
   for (let i = 0; i < CONFETTI_N; i++) {
     const c = confettiParts[i];
-    c.pos.set(x + (Math.random()-0.5)*10, 0.5 + Math.random()*2, z + (Math.random()-0.5)*10);
-    c.vel.set((Math.random()-0.5)*7, 9 + Math.random()*9, (Math.random()-0.5)*7);
-    c.spin.set(Math.random()*9, Math.random()*9, Math.random()*9);
-    c.rot.set(Math.random()*6, Math.random()*6, Math.random()*6);
+    c.pos.set(x + (presentationRandom()-0.5)*10, 0.5 + presentationRandom()*2, z + (presentationRandom()-0.5)*10);
+    c.vel.set((presentationRandom()-0.5)*7, 9 + presentationRandom()*9, (presentationRandom()-0.5)*7);
+    c.spin.set(presentationRandom()*9, presentationRandom()*9, presentationRandom()*9);
+    c.rot.set(presentationRandom()*6, presentationRandom()*6, presentationRandom()*6);
     dummy.position.copy(c.pos); dummy.updateMatrix();
     confetti.setMatrixAt(i, dummy.matrix);
-    confetti.setColorAt(i, col.setHex(palette[Math.floor(Math.random()*palette.length)]));
+    confetti.setColorAt(i, col.setHex(palette[Math.floor(presentationRandom()*palette.length)]));
   }
   confetti.instanceMatrix.needsUpdate = true;
   if (confetti.instanceColor) confetti.instanceColor.needsUpdate = true;
@@ -2930,7 +2947,7 @@ function beginFoul(ruling, offender, victim) {
   crowdExcitement = Math.max(crowdExcitement,
     ruling.penalty ? 1.0 : ruling.verdict === 'foul' ? 0.35 : 0.85);
   benchReaction('appeal', ruling.penalty ? victim.team : null,3.5);
-  if ((ruling.force || 0) > 8.5 && Math.random() < .26) markInjury(victim,'HEAVY CHALLENGE',7);
+  if ((ruling.force || 0) > 8.5 && simRandom() < .26) markInjury(victim,'HEAVY CHALLENGE',7);
 }
 
 function sendOff(p) {
@@ -3051,28 +3068,28 @@ function takeSetPiece() {
     return;
   } else if (s.kind === 'corner') {
     // whip it into the box
-    const dir = new THREE.Vector3(s.gx*(HALF_W - 7) - ball.pos.x, 0, (Math.random()-0.5)*5 - ball.pos.z).normalize();
-    flightParams = { dir, power: 0.7 + Math.random()*0.15, technique: 'cross', curve: Math.sign(ball.pos.z || 1) * s.gx };
+    const dir = new THREE.Vector3(s.gx*(HALF_W - 7) - ball.pos.x, 0, (simRandom()-0.5)*5 - ball.pos.z).normalize();
+    flightParams = { dir, power: 0.7 + simRandom()*0.15, technique: 'cross', curve: Math.sign(ball.pos.z || 1) * s.gx };
     crowdExcitement = Math.max(crowdExcitement, 0.4);
   } else if (s.kind === 'goalkick') {
-    const dir = new THREE.Vector3(s.gx, 0, (Math.random()-0.5)*0.9).normalize();
-    flightParams = { dir, power: 0.65 + Math.random()*0.3, technique: 'clearance', curve: 0 };
+    const dir = new THREE.Vector3(s.gx, 0, (simRandom()-0.5)*0.9).normalize();
+    flightParams = { dir, power: 0.65 + simRandom()*0.3, technique: 'clearance', curve: 0 };
   } else if (s.kind === 'penalty') {
-    const corner = (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random()*1.8);
+    const corner = (simRandom() < 0.5 ? -1 : 1) * (2 + simRandom()*1.8);
     const dir = new THREE.Vector3(s.gx*HALF_W - ball.pos.x, 0, corner - ball.pos.z).normalize();
-    flightParams = { dir, power: 0.85 + Math.random()*0.15, technique: 'driven', curve: 0 };
+    flightParams = { dir, power: 0.85 + simRandom()*0.15, technique: 'driven', curve: 0 };
     recordShot(k,.76);
   } else if (distToGoal < 24) {
     // direct free kick: curl it around everything
-    const dir = new THREE.Vector3(s.gx*HALF_W - ball.pos.x, 0, (Math.random()-0.5)*5 - ball.pos.z).normalize();
-    flightParams = { dir, power: 0.8 + Math.random()*0.15, technique: 'curler', curve: Math.sign(ball.pos.z || 0.5) * s.gx };
+    const dir = new THREE.Vector3(s.gx*HALF_W - ball.pos.x, 0, (simRandom()-0.5)*5 - ball.pos.z).normalize();
+    flightParams = { dir, power: 0.8 + simRandom()*0.15, technique: 'curler', curve: Math.sign(ball.pos.z || 0.5) * s.gx };
     recordShot(k);
   } else {
     // lofted delivery to the most advanced teammate
     let mate = null, best = -1e9;
     for (const q of players) {
       if (q.team !== k.team || q === k || q.role === 'GK') continue;
-      const sc = s.gx * q.pos.x + Math.random()*5;
+      const sc = s.gx * q.pos.x + simRandom()*5;
       if (sc > best) { best = sc; mate = q; }
     }
     const aim = mate ? mate.pos.clone() : new THREE.Vector3(s.gx*16, 0, 0);
@@ -3276,6 +3293,12 @@ function crowdStep(t, dt) {
   crowdExcitement = Math.max(0, crowdExcitement - dt*0.3);
   crowd.setExcitement(Math.min(crowdExcitement, 1));
   crowd.update(t, dt);
+  venueIdentity.update(dt, {
+    mode: state.mode,
+    excitement: Math.min(crowdExcitement, 1),
+    possession: state.lastTouchTeam?.name || null,
+    ballX: ball.pos.x,
+  });
   bloom.strength = 0.55 + crowdExcitement * 0.4;
   // crowd audio bed follows excitement (unless a goal roar envelope is playing)
   if (AC && performance.now() > roarUntil) {
@@ -3935,7 +3958,11 @@ function startMatch() {
     ? [LIVE_BROADCAST.home.index, LIVE_BROADCAST.away.index]
     : FIXTURES[league.fixture % FIXTURES.length];
   TEAM_A = LEAGUE_TEAMS[ia]; TEAM_B = LEAGUE_TEAMS[ib];
+  window.CyberligaEstablishing?.show?.({
+    sportId:'soccer', homeTeam:TEAM_A.content || TEAM_A, awayTeam:TEAM_B.content || TEAM_B, duration:1200
+  });
   crowd.setTeams(TEAM_A, TEAM_B);   // retint stands/flags/scarves for the fixture
+  venueIdentity.configure(TEAM_A, TEAM_B);
   setTechnicalTeams(TEAM_A,TEAM_B);
   present.clear();                  // never let a queued card from last match slide in
   clearTeams();
@@ -3965,7 +3992,7 @@ function startMatch() {
   elTeamAEl.style.color = cA;
   elTeamBEl.innerHTML = `<span class="team-name">${TEAM_B.name}</span><span class="dot" style="background:${cB};box-shadow:0 0 10px ${cB}"></span>`;
   elTeamBEl.style.color = cB;
-  resetPositions(Math.random() < 0.5 ? TEAM_A : TEAM_B);
+  resetPositions(simRandom() < 0.5 ? TEAM_A : TEAM_B);
   state.mode = 'kickoff'; state.modeT = 0;
   state.lineupIntro = false; // OG cut: get to motion immediately; rosters live on the hub
   hideLineup();
@@ -4051,7 +4078,10 @@ function tick(forcedDt, skipRender) {
   if (state.mode === 'kickoff') {
     state.modeT += dt;
     if (state.lineupIntro) lineupIntroStep(state.modeT); // match-start lineup cards
-    if (state.modeT > (state.lineupIntro ? LINEUP_HOLD : 1.4)) {
+    // The opening establishing card's 1.2s hold + .38s fade must clear before the
+    // ball moves. Later restart kickoffs retain the existing quick broadcast reset.
+    const kickoffHold = state.lineupIntro ? LINEUP_HOLD : state.ritual === 'opening' ? 1.8 : 1.4;
+    if (state.modeT > kickoffHold) {
       if (state.lineupIntro) { state.lineupIntro = false; hideLineup(); }
       state.mode = 'play'; state.koClock = state.clock; state.ritual=null; whistle(1); // koClock feeds the early-shot damper
     }
@@ -4123,7 +4153,7 @@ function tick(forcedDt, skipRender) {
     if (state.modeT > 6.5) {
       hideCard();
       state.half = 2; elHalf.textContent = '2ND HALF';
-      resetPositions(Math.random() < 0.5 ? TEAM_A : TEAM_B);
+      resetPositions(simRandom() < 0.5 ? TEAM_A : TEAM_B);
       state.mode = 'kickoff'; state.modeT = 0; state.ritual='restart';
     }
   } else if (state.mode === 'fulltime') {
@@ -4520,6 +4550,12 @@ window.render_game_to_text = () => JSON.stringify({
   half: state.half,
   score: { home: state.scoreA, away: state.scoreB },
   teams: { home: TEAM_A.name, away: TEAM_B.name },
+  teamIdentity: [TEAM_A,TEAM_B].map((team,index)=>{
+    const visual=soccerClubVisual(team);
+    return { side:index, id:(team.content||team).id, code:visual.teamCode, name:team.name,
+      colors:{primary:visual.brandColor,secondary:visual.secondaryColor,accent:visual.accentColor},
+      kitPattern:visual.kitPattern, venue:visual.venue };
+  }),
   ball: { x: +ball.pos.x.toFixed(2), y: +ball.pos.y.toFixed(2), z: +ball.pos.z.toFixed(2),
     vx:+ball.vel.x.toFixed(2),vy:+ball.vel.y.toFixed(2),vz:+ball.vel.z.toFixed(2) },
   tacticalContext: { ...state.tactical, ritual:state.ritual,
@@ -4529,11 +4565,27 @@ window.render_game_to_text = () => JSON.stringify({
   spectacle: { last:state.lastTechnique, goalTechnique:state.goalTechnique,
     cooldown:+state.spectacleCooldown.toFixed(1), stats:{backheels:stats.backheels,volleys:stats.volleys,bicycles:stats.bicycles} },
   cameraBeat: state.cameraBeat?state.cameraBeat.type:null,
+  actionCausality: {
+    phase:state.flow.phase,
+    possession:state.flow.possessionTeam?.name||null,
+    carrier:state.flow.carrier?.name||null,
+    pressure:state.flow.pressure,
+    passSequence:state.flow.sequence,
+    completedPasses:state.flow.completedPasses,
+    turnovers:state.flow.turnovers,
+    transitionSeconds:+state.flow.transitionT.toFixed(2),
+    transitionWinner:state.flow.winner?.name||null,
+    transitionLoser:state.flow.loser?.name||null,
+    tacticalReason:state.tactical.reason,
+    lastTechnique:state.lastTechnique,
+    contextEvent:state.contextEvent?.label||null,
+  },
   camera: { view:innerWidth<700?mobileCameraView:'broadcast', fov:+camera.fov.toFixed(1),
     position:[+camera.position.x.toFixed(1),+camera.position.y.toFixed(1),+camera.position.z.toFixed(1)],
     up:[+camera.up.x.toFixed(1),+camera.up.y.toFixed(1),+camera.up.z.toFixed(1)] },
   refereeDistance:+Math.hypot(ref.pos.x-ball.pos.x,ref.pos.z-ball.pos.z).toFixed(1),
   technicalAreas:technicalAreas.map(a=>({team:a.team.name,reaction:a.reaction})),
+  venue:venueIdentity.state(),
   departures:state.departures.map(d=>({name:d.p.name,team:d.p.team.name,seconds:+d.t.toFixed(1)})),
   players: players.map(p => ({ name: p.name, team: p.team.name, role: p.role,
     x: +p.pos.x.toFixed(1), z: +p.pos.z.toFixed(1), stamina:+p.stamina.toFixed(2),

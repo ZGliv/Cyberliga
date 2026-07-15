@@ -8,7 +8,8 @@
     "dev": "node server.mjs",
     "start": "node server.mjs",
     "test:api": "node --test api/canonical-server.test.mjs",
-    "verify": "npm run test:api && node scripts/verify.mjs"
+    "verify": "npm run test:api && node scripts/verify.mjs",
+    "release:check": "npm run verify && node scripts/release-check.mjs"
   },
   "engines": {
     "node": ">=18"

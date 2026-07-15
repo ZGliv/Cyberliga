@@ -118,9 +118,10 @@ const CSS = `
 }
 `;
 
-function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-
-export function createPresentation() {
+export function createPresentation(opts = {}) {
+  // Copy variation is presentation-only and must never consume the match RNG.
+  const rng = opts.rng || Math.random;
+  const pick = arr => arr[Math.floor(rng() * arr.length)];
   // inject style once
   if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
     const style = document.createElement('style');

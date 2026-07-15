@@ -41,6 +41,13 @@
     background:rgba(5,7,18,.8); border:1px solid rgba(255,61,90,.24); box-shadow:0 0 18px rgba(255,61,90,.14);
   }
   #playstatus.hot { color:#fff0a8; border-color:rgba(255,194,77,.72); box-shadow:0 0 25px rgba(255,194,77,.3); }
+  #venuebug {
+    position:absolute; top:22px; right:22px; width:min(285px,23vw); padding:7px 11px 6px;
+    text-align:right; border-right:3px solid var(--venue,#ff3d5a);
+    background:linear-gradient(90deg,transparent,rgba(4,7,18,.82)); text-shadow:0 2px 10px #000;
+  }
+  #venuebug strong { display:block; font:900 11px/1 'Orbitron'; letter-spacing:2px; color:var(--venue,#ff9aa9); }
+  #venuebug span { display:block; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font:700 10px/1 'Rajdhani'; letter-spacing:1.25px; color:rgba(255,235,239,.68); }
   .live { width:7px; height:7px; border-radius:50%; background:#ff2d55; animation:pulse 1.2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1; box-shadow:0 0 8px #ff2d55;} 50%{opacity:.3;} }
   #round { font-family:'Orbitron'; font-weight:900; font-size:15px; color:#ffd9de; letter-spacing:3px; }
@@ -169,6 +176,7 @@
       top:calc(env(safe-area-inset-top, 0px) + 272px); min-width:164px; max-width:calc(100vw - 24px);
       padding:5px 10px; font-size:9px; letter-spacing:1.5px; z-index:60; background:rgba(5,9,22,.84);
     }
+    #venuebug { display:none; }
     #round { font-size:12px; letter-spacing:2px; white-space:nowrap; }
     #clock { font-size:12px; letter-spacing:1.5px; }
     .fpanel {
@@ -257,6 +265,7 @@
   <div id="badge"><a id="leaguepill" class="watch-only-exit" href="world.html">← HOME</a><span id="wordmark">CYBERLIGA <em>FIGHT NIGHT</em></span><span id="erapill">EXHIBITION ERA</span></div>
   <div id="roundwrap"><span class="live"></span><span id="round">ROUND 1 / 3</span><span id="clock">1:00</span></div>
   <div id="playstatus">FIGHTERS WALKING</div>
+  <div id="venuebug"><strong id="venuename">THE HANDMADE UNDERCARD</strong><span id="venueline">THE ROOM CLOSES IN</span></div>
   <div class="fpanel" id="fpA">
     <div class="fname"><span class="dot" id="dotA"></span><span id="nameA">—</span></div>
     <div class="frec" id="recA"></div>
@@ -292,6 +301,8 @@
 </div>
 
 <script src="worlddata.js"></script>
+<script src="branddata.js"></script>
+<script src="arena-establishing.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -318,10 +329,17 @@ function hashText(text) {
   for (const c of String(text)) { h^=c.charCodeAt(0); h=Math.imul(h,16777619); }
   return h>>>0;
 }
-let fightSeed=1;
-function seedFight(text){ fightSeed=hashText(text)||1; }
+let fightSeed=1, presentationSeed=2;
+function seedFight(text){
+  // Sporting outcomes and commentary/copy are independently reproducible.
+  // Changing narration must never perturb the next strike, defense or count.
+  fightSeed=hashText(`${text}|simulation`)||1;
+  presentationSeed=hashText(`${text}|presentation`)||2;
+}
 function frand(){ fightSeed^=fightSeed<<13; fightSeed^=fightSeed>>>17; fightSeed^=fightSeed<<5; return (fightSeed>>>0)/4294967296; }
+function prand(){ presentationSeed^=presentationSeed<<13; presentationSeed^=presentationSeed>>>17; presentationSeed^=presentationSeed<<5; return (presentationSeed>>>0)/4294967296; }
 const pick = a=>a[Math.floor(frand()*a.length)];
+const ppick = a=>a[Math.floor(prand()*a.length)];
 
 const RING_R = 4.9;                      // octagon vertex radius
 const RING_Y = 0.95;                     // platform top height
@@ -330,10 +348,12 @@ const ROUND_LEN = 60, ROUNDS = 3, REST_LEN = 7;
 const FIGHT_DMG = 0.34;                  // global damage scale (pacing knob: ~KO half the cards, judges the rest)
 
 const COMBAT_CONTENT=window.CYBERLIGA_CONTENT;
+const COMBAT_BRAND=window.CyberligaBrand;
 const COMBAT_TEAMS=COMBAT_CONTENT.getTeams('combat');
-const LEAGUE_TEAMS=COMBAT_TEAMS.map(team=>{const hex=Number.parseInt(team.colors.primary.slice(1),16);return {name:team.name,css:team.colors.primary,kit:hex,glow:hex};});
+const LEAGUE_TEAMS=COMBAT_TEAMS.map(team=>{const hex=Number.parseInt(team.colors.primary.slice(1),16);return {id:team.id,name:team.name,code:team.code,city:team.city,css:team.colors.primary,kit:hex,glow:hex,
+  secondary:Number.parseInt(team.colors.secondary.slice(1),16),accent:Number.parseInt(team.colors.accent.slice(1),16),team,brand:COMBAT_BRAND&&COMBAT_BRAND.getTeam(team.id)};});
 // Star fighter + alternate come from the same world cast as the atlas and World Wire.
-const CLUB_FIGHTERS=COMBAT_TEAMS.map(team=>team.athletes.slice(0,2).map(a=>a.name));
+const CLUB_FIGHTERS=COMBAT_TEAMS.map(team=>team.athletes.map(a=>a.name));
 const FIXTURES=COMBAT_CONTENT.createSeason('combat','arena').rounds.flatMap(round=>round.matches.map(match=>[COMBAT_TEAMS.findIndex(t=>t.id===match.homeId),COMBAT_TEAMS.findIndex(t=>t.id===match.awayId)]));
 const fightQuery = new URLSearchParams(location.search);
 const requestedFixture = fightQuery.get('match') ?? fightQuery.get('fixture');
@@ -376,7 +396,7 @@ const renderer = new THREE.WebGLRenderer({ antialias:true });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 0.9;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -390,7 +410,7 @@ camera.position.set(0, 5, 13);
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.6, 0.6, 0.82));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.4, 0.42, 0.9));
 
 scene.add(new THREE.HemisphereLight(0x4a5da0, 0x0a0d1a, 0.8));
 const key = new THREE.DirectionalLight(0xcfe2ff, 0.9);
@@ -417,7 +437,8 @@ for (const s of [-1, 1]) {
 
 // ============ THE OCTAGON ============
 const octPt = (i, r, y=0) => new THREE.Vector3(Math.cos(i/8*Math.PI*2 + Math.PI/8)*r, y, Math.sin(i/8*Math.PI*2 + Math.PI/8)*r);
-function canvasMatTex(){
+function canvasMatTex(homeDef){
+  const brand=homeDef?.brand||{},primary=homeDef?.css||'#ff3d5a',accent=homeDef?.team?.colors?.accent||'#00e5ff';
   const c=document.createElement('canvas'); c.width=c.height=1024;
   const g=c.getContext('2d');
   g.fillStyle='#0a0e1e'; g.fillRect(0,0,1024,1024);
@@ -428,17 +449,18 @@ function canvasMatTex(){
   g.save(); oct(500); g.clip();
   for (let i=0;i<5000;i++){ g.fillStyle=`rgba(255,255,255,${0.012+Math.random()*0.02})`; g.fillRect(Math.random()*1024, Math.random()*1024, 1.6, 1.6); }
   g.restore();
-  g.lineWidth=7; g.strokeStyle='rgba(255,61,90,0.85)'; g.shadowColor='rgba(255,61,90,1)'; g.shadowBlur=18;
+  g.lineWidth=7; g.strokeStyle=primary; g.shadowColor=primary; g.shadowBlur=18;
   oct(470); g.stroke();
   g.lineWidth=3; g.strokeStyle='rgba(0,229,255,0.55)'; g.shadowColor='rgba(0,229,255,1)'; g.shadowBlur=12;
   oct(415); g.stroke();
   g.shadowBlur=0;
-  g.font='900 92px Orbitron, sans-serif'; g.textAlign='center'; g.textBaseline='middle';
-  g.fillStyle='rgba(255,80,105,0.16)'; g.fillText('CYBERLIGA', 512, 480);
-  g.font='700 40px Orbitron, sans-serif'; g.fillStyle='rgba(220,240,255,0.12)'; g.fillText('FIGHT NIGHT — SEASON 2077', 512, 568);
+  g.font='900 58px Orbitron, sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+  g.fillStyle=primary;g.globalAlpha=.22;g.fillText((brand.venue||'CYBERLIGA').toUpperCase(),512,455);g.globalAlpha=1;
+  g.font='700 30px Orbitron, sans-serif'; g.fillStyle=accent;g.globalAlpha=.18;g.fillText((brand.statement||'HANDMADE UNDERCARD').toUpperCase(),512,540);g.globalAlpha=1;
+  g.font='900 20px Orbitron, sans-serif';g.fillStyle='rgba(220,240,255,.2)';g.fillText(`${homeDef?.code||'FYT'} · THE HANDMADE UNDERCARD`,512,600);
   const t=new THREE.CanvasTexture(c); t.anisotropy=8; t.colorSpace=THREE.SRGBColorSpace; return t;
 }
-const matTex = canvasMatTex();
+let matTex = canvasMatTex(),ringCanvasMat=null;
 document.fonts.ready.then(()=>{ matTex.image && (matTex.needsUpdate = true); });
 { // platform body + canvas top
   const body = new THREE.Mesh(new THREE.CylinderGeometry(RING_R+0.45, RING_R+0.75, RING_Y, 8, 1),
@@ -446,6 +468,7 @@ document.fonts.ready.then(()=>{ matTex.image && (matTex.needsUpdate = true); });
   body.rotation.y = Math.PI/8; body.position.y = RING_Y/2; scene.add(body);
   const top = new THREE.Mesh(new THREE.CircleGeometry(RING_R+0.42, 8),
     new THREE.MeshStandardMaterial({ map:matTex, roughness:0.55, metalness:0.15 }));
+  top.material.userData.ringCanvas=true;ringCanvasMat=top.material;
   top.rotation.x = -Math.PI/2; top.rotation.z = Math.PI/8 + Math.PI/2; top.position.y = RING_Y+0.001; scene.add(top);
   // glowing skirt trim
   const skirtPts = []; for (let i=0;i<=8;i++) skirtPts.push(octPt(i%8, RING_R+0.6, RING_Y-0.06));
@@ -535,6 +558,38 @@ arenaTruss.rotation.x=Math.PI/2;arenaTruss.position.y=12.8;scene.add(arenaTruss)
 for(let i=0;i<16;i++){
   const a=i/16*Math.PI*2,lamp=new THREE.Mesh(new THREE.SphereGeometry(.12,7,5),new THREE.MeshBasicMaterial({color:i%2?0x00e5ff:0xff3d5a}));
   lamp.position.set(Math.cos(a)*11.8,12.75,Math.sin(a)*11.8);scene.add(lamp);
+}
+const venueIdentityGroup=new THREE.Group();scene.add(venueIdentityGroup);
+let venueRitual='pulse',venueScene='industrial',venueAccent=0xff3d5a;
+function fightVenueTexture(def){
+  const brand=def.brand||{},c=document.createElement('canvas');c.width=900;c.height=260;const g=c.getContext('2d');
+  const grad=g.createLinearGradient(0,0,c.width,c.height);grad.addColorStop(0,'#05070d');grad.addColorStop(.55,new THREE.Color(def.kit).multiplyScalar(.18).getStyle());grad.addColorStop(1,'#05070d');g.fillStyle=grad;g.fillRect(0,0,c.width,c.height);
+  g.strokeStyle=def.css;g.lineWidth=8;g.strokeRect(12,12,c.width-24,c.height-24);g.fillStyle=def.team.colors.accent;g.fillRect(34,34,c.width-68,5);
+  g.textAlign='center';g.fillStyle='#f8f5f0';g.font='900 54px Orbitron, sans-serif';g.fillText((brand.venue||def.name).toUpperCase(),c.width/2,112);
+  g.fillStyle=def.team.colors.accent;g.font='700 25px Rajdhani, sans-serif';g.fillText((brand.statement||def.team.motif).toUpperCase(),c.width/2,161);
+  g.fillStyle='#98a0aa';g.font='700 18px Orbitron, sans-serif';g.fillText(`${def.city.toUpperCase()} · ${String(brand.kitPattern||'PULSE').toUpperCase()} ROOM`,c.width/2,205);
+  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;return tex;
+}
+function addFightVenueBlock(x,y,z,sx,sy,sz,color,emissive=0){
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),new THREE.MeshStandardMaterial({color,roughness:.72,metalness:.26,emissive,emissiveIntensity:.18}));mesh.position.set(x,y,z);venueIdentityGroup.add(mesh);return mesh;
+}
+function applyFightVenue(def){
+  while(venueIdentityGroup.children.length){const child=venueIdentityGroup.children.pop();child.geometry?.dispose();if(child.material?.map)child.material.map.dispose();child.material?.dispose();}
+  const brand=def.brand||{};venueRitual=brand.kitPattern||'pulse';venueScene=brand.scene||'industrial';venueAccent=def.accent;
+  const texture=fightVenueTexture(def);
+  [[0,8.7,-15.55,0],[0,8.7,15.55,Math.PI],[-16.55,8.7,0,Math.PI/2],[16.55,8.7,0,-Math.PI/2]].forEach(([x,y,z,r])=>{const board=new THREE.Mesh(new THREE.PlaneGeometry(12.5,3.6),new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide}));board.position.set(x,y,z);board.rotation.y=r;venueIdentityGroup.add(board);});
+  const primary=def.kit,accent=def.accent;
+  if(venueScene==='industrial'){
+    for(const x of [-14,-9,-4,4,9,14])addFightVenueBlock(x,7,-14.9,.5,13,.5,0x26221e,x%2?0:accent);
+  }else if(venueScene==='oldstone'){
+    [-14,-9,-4,4,9,14].forEach((x,i)=>addFightVenueBlock(x,6.5,-14.8,2,12,1.2,i%2?0x3a2821:0x28201c,primary));
+  }else if(venueScene==='desert'){
+    for(const x of [-14,-7,0,7,14]){const canopy=new THREE.Mesh(new THREE.ConeGeometry(4.2,4.8,4),new THREE.MeshStandardMaterial({color:x?0x1e1724:primary,roughness:.9,emissive:accent,emissiveIntensity:.05}));canopy.position.set(x,11,-14.6);canopy.rotation.y=Math.PI/4;venueIdentityGroup.add(canopy);}
+  }else if(venueScene==='tropic'||venueScene==='coastal'){
+    for(const x of [-14,-9,-4,4,9,14]){addFightVenueBlock(x,6,-15,.45,11,.45,0x4b3522);const shade=new THREE.Mesh(new THREE.SphereGeometry(2.3,8,5,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:venueScene==='tropic'?0x17351f:0xddd4bc,transparent:true,opacity:.55,roughness:.85,emissive:primary,emissiveIntensity:.05}));shade.position.set(x,10.4,-15);venueIdentityGroup.add(shade);}
+  }else{
+    for(const x of [-14,-9,-4,4,9,14])addFightVenueBlock(x,7,-14.8,1.2,13,1.2,0x22242b,x%2?accent:primary);
+  }
 }
 
 function softDot() {
@@ -668,6 +723,8 @@ const COMM = {
   cross: ['{a} DETONATES THE CROSS ON {b}', 'STRAIGHT DOWN THE PIPE — {a} TAGS {b}', '{a} FIRES THE RIGHT — FLUSH'],
   hook:  ['{a} RIPS A HOOK AROUND THE GUARD', 'SHORT HOOK BY {a} — {b} FELT THAT', '{a} CRACKS {b} WITH THE HOOK'],
   upper: ['{a} TEARS AN UPPERCUT THROUGH THE MIDDLE', '{b} GETS LIFTED BY THE UPPERCUT', 'UPPERCUT! {a} FINDS THE BUTTON'],
+  overhand: ['{a} LOOPS THE OVERHAND OVER THE SHELL', '{a} DROPS THE OVERHAND ON {b}', 'OVERHAND! {b} NEVER SAW THE ARC'],
+  liver: ['{a} SHOVELS THE LIVER SHOT UNDER THE ELBOW', '{b} FOLDS AROUND THE BODY SHOT', '{a} TURNS THE HIP AND DIGS TO THE LIVER'],
   block: ['{b} EATS IT ON THE GUARD', '{b} WALLS UP — GOOD DEFENSE', 'BLOCKED — {b} STAYS COMPOSED'],
   dodge: ['{b} SLIPS IT — BEAUTIFUL HEAD MOVEMENT', '{b} LEANS BACK — NOTHING BUT AIR', '{a} SWINGS AT NEON DUST — {b} IS GONE'],
   body:  ['{a} DIGS TO THE BODY — {b} FELT THAT', '{a} RIPS THE BODY SHOT UNDER THE ELBOW', 'BODY WORK FROM {a} — THAT STEALS OXYGEN'],
@@ -692,6 +749,8 @@ const STRIKES = {
   HOOK:   { dmg: 9.2,  dur: 0.50, reach: 1.98, stam: 8.8, lunge: 2.8,  heavy: true,  comm: 'hook',  out: 0.50, zone: 'head' },
   BODY:   { dmg: 7.2,  dur: 0.46, reach: 1.86, stam: 7.4, lunge: 2.7,  heavy: false, comm: 'body',  out: 0.48, zone: 'body' },
   UPPER:  { dmg: 12.0, dur: 0.56, reach: 1.78, stam: 11.5,lunge: 2.35, heavy: true,  comm: 'upper', out: 0.52, zone: 'head' },
+  OVERHAND:{dmg: 11.1, dur: 0.58, reach: 2.05, stam: 10.8,lunge: 3.05, heavy: true,  comm: 'overhand',out:0.54,zone:'head'},
+  LIVER:  { dmg: 8.8,  dur: 0.52, reach: 1.78, stam: 8.9, lunge: 2.5,  heavy: true,  comm: 'liver', out: 0.5, zone:'body' },
 };
 const STYLE_BOOK = [
   {id:'PRESSURE', label:'PRESSURE ENGINE', stance:'ORTHODOX', guard:'HIGH SHELL', range:1.68, aggr:1.18, slip:.78, block:1.13, combo:1.22, counter:.82, power:1.02, body:.34,
@@ -739,13 +798,16 @@ function buildArms(rig, playerColor) {
   };
   return { L: mkSide(-SH_X), R: mkSide(SH_X) };  // disposed with the rig (group traverse)
 }
-function buildBoxerDetails(rig, playerColor) {
+function buildBoxerDetails(rig, playerColor, club) {
   const shellMat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(playerColor).multiplyScalar(0.78), roughness:0.48, metalness:0.1,
     emissive: playerColor, emissiveIntensity:0.18
   });
-  const trimMat = new THREE.MeshBasicMaterial({ color: playerColor, transparent:true, opacity:0.78 });
-  const darkMat = new THREE.MeshStandardMaterial({ color:0x080b14, roughness:0.5, emissive:playerColor, emissiveIntensity:0.06 });
+  const trimMat = new THREE.MeshBasicMaterial({ color:club?.accent??playerColor, transparent:true, opacity:0.88 });
+  const darkMat = new THREE.MeshStandardMaterial({ color:club?.secondary??0x080b14, roughness:0.5, emissive:club?.kit??playerColor, emissiveIntensity:0.08 });
+  const bootColor = new THREE.Color(club?.kit??playerColor).multiplyScalar(0.2);
+  const bootMat = new THREE.MeshStandardMaterial({ color:bootColor, roughness:0.74, metalness:0.04,
+    emissive:club?.kit??playerColor,emissiveIntensity:0.035 });
   const detail = new THREE.Group();
   const chest = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.42, 6, 14), shellMat);
   chest.position.set(0, 1.15, 0.015); chest.scale.set(1.18, 0.72, 0.82);
@@ -757,10 +819,14 @@ function buildBoxerDetails(rig, playerColor) {
     const s = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 8), shellMat);
     s.position.set(sx, SH_Y + 0.02, SH_Z*0.45); s.scale.set(1.18, 0.78, 0.9); return s;
   };
-  const footGeom = new THREE.BoxGeometry(0.34, 0.1, 0.56);
-  const lFoot = new THREE.Mesh(footGeom, darkMat), rFoot = new THREE.Mesh(footGeom, darkMat);
-  lFoot.position.set(-0.27, 0.08, 0.12); rFoot.position.set(0.27, 0.08, -0.12);
+  // Rounded split-stance shoes read as planted feet from the broadcast camera.
+  // The old box geometry collapsed into two large grey slabs whenever the
+  // fighters squared up, which made otherwise fluid exchanges look unfinished.
+  const footGeom = new THREE.SphereGeometry(0.2, 12, 8);
+  const lFoot = new THREE.Mesh(footGeom, bootMat), rFoot = new THREE.Mesh(footGeom, bootMat);
+  lFoot.position.set(-0.27, 0.065, 0.12); rFoot.position.set(0.27, 0.065, -0.12);
   lFoot.rotation.y = -0.15; rFoot.rotation.y = 0.15;
+  lFoot.scale.set(0.7, 0.3, 1.25); rFoot.scale.set(0.7, 0.3, 1.25);
   const lShoulder = mkShoulder(-0.48), rShoulder = mkShoulder(0.48);
   detail.add(chest, trunks, belt, lShoulder, rShoulder, lFoot, rFoot);
   rig.group.add(detail);
@@ -788,14 +854,17 @@ const CORNER = [ { x: -RING_R*0.62, z: -RING_R*0.26 }, { x: RING_R*0.62, z: RING
 let fighters = [], cornerCrew=[];
 function mkFighter(side, clubIdx) {
   const club = LEAGUE_TEAMS[clubIdx];
-  const name = CLUB_FIGHTERS[clubIdx][frand() < 0.35 ? 1 : 0];
+  const pool=CLUB_FIGHTERS[clubIdx],poolIdx=frand()<.56?Math.floor(frand()*Math.min(2,pool.length)):Math.floor(frand()*pool.length);
+  const name = pool[poolIdx],athlete=club.team.athletes.find(a=>a.name===name)||club.team.athletes[poolIdx]||club.team.athletes[0];
   const playerColor=classicSideVisual(side);
-  const rig = buildBlobRig({ side, kitColor:playerColor, glowColor:playerColor, captain: true });
+  const rig = buildBlobRig({ side, kitColor:playerColor, glowColor:playerColor, captain: true,
+    brandColor:club.kit,secondaryColor:club.secondary,accentColor:club.accent,teamCode:club.code,jerseyNumber:athlete.number,
+    kitPattern:club.brand?.kitPattern||'pulse',role:athlete.role });
   scene.add(rig.group);
   const r = nameRng(name); // style is identity: seeded from the name, tiny per-fight jitter
   const style=styleFor(name), j = () => (frand() - 0.5) * 0.04;
   const fighter={
-    side, club, name, rig, arms: buildArms(rig, playerColor), kit: buildBoxerDetails(rig, playerColor),
+    side, club, name, athlete, role:athlete.role, rig, arms: buildArms(rig, playerColor), kit: buildBoxerDetails(rig, playerColor,club),
     style, plan:style.plans[0], cornerNote:'OPENING READ', guardType:style.guard, stance:style.stance,
     x: CORNER[side].x, z: CORNER[side].z, y: RING_Y, vx: 0, vz: 0, heading: 0,
     hp: 100, stam: 100, guard: 100,
@@ -820,6 +889,8 @@ function mkFighter(side, clubIdx) {
     baseAggr:0,paceMod:1,bodyBias:style.body,risk:1,setupT:0,bodyOpenT:0,feintRead:0,countering:false,
     attackQuality:0,lastOutcome:'SETTING RANGE',intent:'READ THE FEET',comboName:'',clinchIntent:false,
     headDamage:0,bodyDamage:0,legs:100,resolve:100,centerTime:0,ropeTime:0,successfulExits:0,
+    clinchTend:/Grappler/i.test(athlete.role)?1.72:/Heavy|Swarmer/i.test(athlete.role)?1.2:.82,
+    angleTend:/Counter|Technician/i.test(athlete.role)?1.35:/Grappler/i.test(athlete.role)?.72:1,
   };
   fighter.baseAggr=fighter.aggr;
   const scale=style.id==='BRAWLER'?1.1:style.id==='OUTBOXER'?.94:style.id==='PRESSURE'?1.04:1;
@@ -844,7 +915,7 @@ const S = {
   walkIdx: 0, count: 0, countT: 0, downF: null, getUpAt: 11, threeKD: false,
   slowmo: 0, noAction: 0, fightT: 0, winner: null, method: '', cardShown: false, clinchT: 0,
   clipMoment:'', clipT:0, clips:[], roundStats:[], cards:null, seed:0,
-  lastImpact:null,exchangeNo:0,clinchOwner:null,roundEdge:[0,0],judgeDetail:[],completedBouts:0,
+  lastImpact:null,lastImpactT:99,impactBeatT:0,exchangeNo:0,clinchOwner:null,clinchWorkT:0,clinchTurns:0,roundEdge:[0,0],judgeDetail:[],completedBouts:0,
 };
 function recordClip(label,dur=3.5){ S.clipMoment=label; S.clipT=dur; S.clips.push({label,round:S.round,clock:+S.clock.toFixed(1)}); if(S.clips.length>10)S.clips.shift(); }
 function setState(s) { S.state = s; S.t = 0; }
@@ -875,6 +946,20 @@ function applyFighterHUD() {
   }
   crowdBodyMesh.instanceColor.needsUpdate=crowdHeadMesh.instanceColor.needsUpdate=true;
 }
+function applyFightVenueIdentity(home,away){
+  const brand=home.brand||{};
+  document.documentElement.style.setProperty('--venue',home.css);
+  el('venuename').textContent=`${brand.venue||home.name} · ${home.city}`.toUpperCase();
+  el('venueline').textContent=(brand.venueLine||brand.statement||home.team.motif).toUpperCase();
+  el('wordmark').innerHTML=`HANDMADE UNDERCARD <em>· ${brand.venue||'LIVE'}</em>`;
+  el('watermark').textContent=`${brand.venue||home.city} · ${home.city}`.toUpperCase();
+  el('tickerlabel').textContent=(brand.mark||home.code).toUpperCase();
+  if(ringCanvasMat?.map)ringCanvasMat.map.dispose();matTex=canvasMatTex(home);ringCanvasMat.map=matTex;ringCanvasMat.needsUpdate=true;
+  arenaTruss.material.color.setHex(new THREE.Color(home.kit).multiplyScalar(.42).getHex());arenaTruss.material.emissive.setHex(home.accent);
+  applyFightVenue(home);
+  if(window.CyberligaEstablishing)window.CyberligaEstablishing.show({sportId:'combat',homeTeam:home.team,awayTeam:away.team,duration:4200});
+  say(`${brand.venue||home.city} IS LIVE — ${brand.ritual||'THE ROOM CLOSES AROUND THE RING'}`,true);
+}
 function setupCard() {
   for (const f of fighters) {
     if(f.punchTrail){scene.remove(f.punchTrail.line,f.punchTrail.points);f.punchTrail.geometry.dispose();f.punchTrail.material.dispose();f.punchTrail.pointMaterial.dispose();}
@@ -889,17 +974,20 @@ function setupCard() {
   fighters.forEach((f,side)=>{
     const playerColor=classicSideVisual(side);
     for(let i=0;i<2;i++){
-      const rig=buildBlobRig({side,kitColor:playerColor,glowColor:playerColor}); scene.add(rig.group);
+      const crewAthlete=f.club.team.athletes[(i+2)%f.club.team.athletes.length];
+      const rig=buildBlobRig({side,kitColor:playerColor,glowColor:playerColor,brandColor:f.club.kit,secondaryColor:f.club.secondary,
+        accentColor:f.club.accent,teamCode:f.club.code,jerseyNumber:crewAthlete.number,kitPattern:f.club.brand?.kitPattern||'pulse',role:'CORNER'}); scene.add(rig.group);
       rig.group.scale.setScalar(.72); cornerCrew.push({rig,side,i,phase:frand()*6});
     }
   });
   S.round = 1; S.clock = ROUND_LEN; S.roundDmg = [[0,0]]; S.kdRound = [[0,0]]; S.roundStats=[[roundStat(),roundStat()]]; S.cards=null;
   S.walkIdx = 0; S.downF = null; S.slowmo = 0; S.noAction = 0; S.fightT = 0;
   S.winner = null; S.method = ''; S.cardShown = false; S.clinchT = 0; S.threeKD = false;
-  S.lastImpact=null;S.exchangeNo=0;S.clinchOwner=null;S.roundEdge=[0,0];S.judgeDetail=[];
+  S.lastImpact=null;S.lastImpactT=99;S.impactBeatT=0;S.exchangeNo=0;S.clinchOwner=null;S.clinchWorkT=0;S.clinchTurns=0;S.roundEdge=[0,0];S.judgeDetail=[];
   S.clipMoment=''; S.clipT=0; S.clips=[];
   punchHeat = 0;
   applyFighterHUD();
+  applyFightVenueIdentity(LEAGUE_TEAMS[ia],LEAGUE_TEAMS[ib]);
   elCard.classList.remove('show'); elFlash.classList.remove('show'); elCount.classList.remove('show');
   // stage the walk-ons: both start in the tunnel
   fighters[0].x = -15.5; fighters[0].z = 0; fighters[0].y = 0; fighters[0].vx = fighters[0].vz = 0;
@@ -913,7 +1001,7 @@ function resetLiveFight(seedLabel='broadcast'){
   S.round=1;S.clock=ROUND_LEN;S.roundDmg=[[0,0]];S.kdRound=[[0,0]];S.roundStats=[[roundStat(),roundStat()]];S.cards=null;
   S.walkIdx=2;S.announced=2;S.count=0;S.countT=0;S.getUpAt=11;S.downF=null;S.slowmo=0;S.noAction=0;S.fightT=0;
   S.winner=null;S.method='';S.cardShown=false;S.clinchT=0;S.threeKD=false;S.clipMoment='';S.clipT=0;S.clips=[];
-  S.lastImpact=null;S.exchangeNo=0;S.clinchOwner=null;S.roundEdge=[0,0];S.judgeDetail=[];
+  S.lastImpact=null;S.lastImpactT=99;S.impactBeatT=0;S.exchangeNo=0;S.clinchOwner=null;S.clinchWorkT=0;S.clinchTurns=0;S.roundEdge=[0,0];S.judgeDetail=[];
   fighters.forEach((f,i)=>{
     f.x=i?1.12:-1.12;f.z=(i?-.08:.08);f.y=RING_Y;f.vx=f.vz=0;f.hp=f.stam=f.guard=100;
     f.act='move';f.actT=0;f.strike=null;f.strikeK='';f.strikeDone=f.strikeLanded=false;f.comboQ=null;f.targetZone='head';
@@ -951,6 +1039,7 @@ function tuneIntoFightBroadcast(){
 const gloveTmp = new THREE.Vector3();
 const leadArm=f=>(f.side===0) === (f.stance!=='SOUTHPAW') ? 'L':'R';
 const rearArm=f=>leadArm(f)==='L'?'R':'L';
+function noteImpact(data,beat=0){S.lastImpact=data;S.lastImpactT=0;S.impactBeatT=Math.max(S.impactBeatT,beat);}
 function startStrike(f, kindKey) {
   const k = STRIKES[kindKey];
   const o=opp(f),dx=o.x-f.x,dz=o.z-f.z,d=Math.hypot(dx,dz)||1e-6;
@@ -985,14 +1074,14 @@ function startFeint(f) {
     else if (frand() < o.slipTend*0.08) { o.act = 'dodge'; o.actT = 0; o.slipDir = -o.circ; o.openT = Math.max(o.openT, 0.35);f.feintRead=.65;f.setupT=Math.max(f.setupT,1);f.lastOutcome=`${o.name} SHOWS THE EXIT`;if(rs)rs.setups++; }
     else f.lastOutcome=`${o.name} DOES NOT BITE`;
   }
-  if (frand() < 0.45) say(fill(pick(COMM.feint), f.name, o.name));
+  if (prand() < 0.45) say(fill(ppick(COMM.feint), f.name, o.name));
 }
 function guardBreak(o, f) {
   o.act = 'stun'; o.actT = 0; o.guard = 38;   // partial reset — no chain-stun spiral
   o.openT = 2.2; o.armJolt = 1;
   flashMsg('GUARD BREAK', `${o.name} IS WIDE OPEN`, f.club.css, 1.2);
   recordClip(`GUARD BREAK · ${f.name}`,3);
-  say(fill(pick(COMM.gbreak), f.name, o.name), true);
+  say(fill(ppick(COMM.gbreak), f.name, o.name), true);
   punchThud(0.8); shake = Math.min(1, shake + 0.4); crowdLevel = Math.min(0.42, crowdLevel + 0.1);
 }
 function strikeGlovePos(f, out) {
@@ -1003,7 +1092,7 @@ function strikeGlovePos(f, out) {
 }
 function resolveStrike(f) {
   const k = f.strike, o = opp(f);
-  const miss=(reason='MISS')=>{const rs=S.roundStats[S.round-1]&&S.roundStats[S.round-1][f.side];if(rs)rs.missed++;f.lastOutcome=reason;S.lastImpact={exchange:++S.exchangeNo,attacker:f.name,strike:f.strikeK,target:f.targetZone,outcome:reason,quality:+f.attackQuality.toFixed(2),range:+Math.hypot(o.x-f.x,o.z-f.z).toFixed(2),damage:0};};
+  const miss=(reason='MISS')=>{const rs=S.roundStats[S.round-1]&&S.roundStats[S.round-1][f.side];if(rs)rs.missed++;f.lastOutcome=reason;noteImpact({exchange:++S.exchangeNo,attacker:f.name,strike:f.strikeK,target:f.targetZone,outcome:reason,quality:+f.attackQuality.toFixed(2),range:+Math.hypot(o.x-f.x,o.z-f.z).toFixed(2),damage:0});};
   if (S.state !== 'FIGHT') { whiff(); miss(); return; } // nothing lands after the bell — keeps the state machine clean
   const d = Math.hypot(o.x - f.x, o.z - f.z);
   const rangeFit = clamp((k.reach + 0.32 - d) / 0.78, 0, 1);
@@ -1015,7 +1104,7 @@ function resolveStrike(f) {
   let caughtSlipping = false;
   if (o.act === 'dodge') {
     if (!bodyShot && o.actT < 0.26) {
-      whiff(); miss('SLIPPED CLEAN'); say(fill(pick(COMM.dodge), f.name, o.name));
+      whiff(); miss('SLIPPED CLEAN'); say(fill(ppick(COMM.dodge), f.name, o.name));
       o.counterT = 0.9; f.comboN = 0; f.comboQ = null;
       S.roundStats[S.round-1][o.side].defense++;
       return;
@@ -1030,7 +1119,7 @@ function resolveStrike(f) {
     o.act = 'dodge'; o.actT = 0; o.circ = -o.circ; o.slipDir = frand() < 0.5 ? -1 : 1;
     const away = Math.atan2(o.x - f.x, o.z - f.z);
     o.vx += Math.sin(away)*2.2 + Math.cos(away)*o.slipDir*0.85; o.vz += Math.cos(away)*2.2 - Math.sin(away)*o.slipDir*0.85;
-    whiff(); miss('READ AND SLIPPED'); say(fill(pick(COMM.dodge), f.name, o.name));
+    whiff(); miss('READ AND SLIPPED'); say(fill(ppick(COMM.dodge), f.name, o.name));
     o.counterT = 0.85;            // slipping earns the counter window
     o.lastOutcome=`SLIP SUCCESS · COUNTER WINDOW`;o.intent='COUNTER WINDOW · FIRE';S.roundStats[S.round-1][o.side].defense++;
     f.comboN = 0; f.comboQ = null;
@@ -1083,9 +1172,9 @@ function resolveStrike(f) {
   if (blocked) {
     blockClack(); o.vx += (o.x - f.x)*0.4; o.vz += (o.z - f.z)*0.4;
     f.lastOutcome=`BLOCKED · ${o.guardFocus.toUpperCase()} SHELL`;o.lastOutcome=`ABSORBED ON ${o.guardType}`;
-    S.lastImpact={exchange:++S.exchangeNo,attacker:f.name,strike:f.strikeK,target:f.targetZone,outcome:'BLOCKED',quality:+f.attackQuality.toFixed(2),range:+d.toFixed(2),damage:+dmg.toFixed(2),guardDamage:+((k.heavy?7:3)+dmg*2.8).toFixed(1)};
+    noteImpact({exchange:++S.exchangeNo,attacker:f.name,strike:f.strikeK,target:f.targetZone,outcome:'BLOCKED',quality:+f.attackQuality.toFixed(2),range:+d.toFixed(2),damage:+dmg.toFixed(2),guardDamage:+((k.heavy?7:3)+dmg*2.8).toFixed(1)},k.heavy ? .24 : 0);
     if (o.guard <= 0) guardBreak(o, f);
-    else say(fill(pick(COMM.block), f.name, o.name));
+    else say(fill(ppick(COMM.block), f.name, o.name));
     f.comboN = 0; f.comboQ = null;
     return;
   }
@@ -1095,7 +1184,7 @@ function resolveStrike(f) {
   if(bodyShot){f.bodyLanded++;rs.body++;} else {f.headLanded++;rs.head++;}
   if(caughtSlipping||stunned||o.recovT>0){f.counters++;rs.counters++;}
   f.lastOutcome=`LANDED ${f.strikeK} · ${dmg.toFixed(1)} DAMAGE`;o.lastOutcome=bodyShot?'BODY COMPROMISED':'HEAD SNAPPED';
-  S.lastImpact={exchange:++S.exchangeNo,attacker:f.name,strike:f.strikeK,target:bodyShot?'body':'head',outcome:f.countering?'CLEAN COUNTER':'LANDED',quality:+f.attackQuality.toFixed(2),range:+d.toFixed(2),damage:+dmg.toFixed(2),defenderHP:+o.hp.toFixed(1),defenderStamina:+o.stam.toFixed(1)};
+  noteImpact({exchange:++S.exchangeNo,attacker:f.name,strike:f.strikeK,target:bodyShot?'body':'head',outcome:f.countering?'CLEAN COUNTER':'LANDED',quality:+f.attackQuality.toFixed(2),range:+d.toFixed(2),damage:+dmg.toFixed(2),defenderHP:+o.hp.toFixed(1),defenderStamina:+o.stam.toFixed(1)},k.heavy ? .72 : .2);
   punchThud(k.heavy ? 0.9 : 0.45);
   punchHeat = 1; shake = Math.min(1, shake + (k.heavy ? 0.5 : 0.22));
   crowdLevel = Math.min(0.4, crowdLevel + (k.heavy ? 0.12 : 0.05));
@@ -1113,10 +1202,10 @@ function resolveStrike(f) {
   if (k.comm === 'jab'){o.openT = Math.max(o.openT, 1.7);f.setupT=Math.max(f.setupT,1.8);}
   if (bodyShot){o.openT = Math.max(o.openT, 0.9);f.bodyOpenT=Math.max(f.bodyOpenT,1.6);}
   if (!k.heavy && frand() < f.comboTend*(.55+f.attackQuality*.45) && f.stam > 18){
-    const sequence=(f.style.id==='PRESSURE' ? pick([['CROSS','BODY','HOOK'],['BODY','HOOK'],['JAB','CROSS','BODY']])
+    const sequence=(f.style.id==='PRESSURE' ? pick([['CROSS','LIVER','HOOK'],['BODY','HOOK'],['JAB','CROSS','BODY']])
              : f.style.id==='OUTBOXER' ? pick([['CROSS'],['JAB','CROSS'],['CROSS','JAB']])
-             : f.style.id==='COUNTER' ? pick([['CROSS','HOOK'],['BODY','CROSS'],['CROSS','UPPER']])
-             : pick([['HOOK'],['CROSS','HOOK'],['BODY','UPPER']]));
+             : f.style.id==='COUNTER' ? pick([['CROSS','HOOK'],['LIVER','CROSS'],['CROSS','UPPER']])
+             : pick([['HOOK'],['CROSS','OVERHAND'],['BODY','UPPER']]));
     f.comboQ=sequence.slice();f.comboName=[f.strikeK,...sequence].join('–');f.intent=`COMBINATION · ${f.comboName}`;
   }
   // combo bookkeeping
@@ -1126,9 +1215,9 @@ function resolveStrike(f) {
     flashMsg('PERFECT COUNTER', `${o.name} WALKED INTO IT`, f.club.css, 1.4);
     flashBurst=Math.max(flashBurst,1.2); shake=Math.max(shake,.78);
   }
-  if (caughtSlipping) say(fill(pick(COMM.caught), f.name, o.name), true);
-  else if (f.comboN >= 3) { say(fill(pick(COMM.combo), f.name, o.name, String(f.comboN))); f.comboN = 0; }
-  else say(fill(pick(COMM[k.comm]), f.name, o.name));
+  if (caughtSlipping) say(fill(ppick(COMM.caught), f.name, o.name), true);
+  else if (f.comboN >= 3) { say(fill(ppick(COMM.combo), f.name, o.name, String(f.comboN))); f.comboN = 0; }
+  else say(fill(ppick(COMM[k.comm]), f.name, o.name));
   // knockdown roll — heavies on a slipping/stunned head can flash-KD at any health
   const hurt = 1 - o.hp/100;
   let pKD = ((k.heavy ? 0.032 : 0.007) + hurt*0.075 + (o.stam < 30 ? 0.025 : 0)
@@ -1161,10 +1250,10 @@ function knockdown(att, vic) {
     S.getUpAt=stayDown?11:clamp(4+Math.floor(collapse*5+frand()*1.5),4,9);
   }
   vic.lastOutcome=S.getUpAt>10?'LEGS GONE · COUNT IN DANGER':`RECOVERY TARGET · COUNT ${S.getUpAt}`;
-  att.lastOutcome=`KNOCKDOWN · ${vic.name}`;S.lastImpact={...(S.lastImpact||{}),outcome:'KNOCKDOWN',getUpAt:S.getUpAt,legs:+vic.legs.toFixed(1),resolve:+vic.resolve.toFixed(1)};
+  att.lastOutcome=`KNOCKDOWN · ${vic.name}`;noteImpact({...(S.lastImpact||{}),outcome:'KNOCKDOWN',getUpAt:S.getUpAt,legs:+vic.legs.toFixed(1),resolve:+vic.resolve.toFixed(1)},1.4);
   if (S.threeKD) say('THAT IS THREE KNOCKDOWNS THIS ROUND — THE REF IS WAVING IT OFF', true);
   flashMsg('KNOCKDOWN!', `${vic.name} IS DOWN`, att.club.css, 1.6);
-  say(fill(pick(COMM.kd), att.name, vic.name), true);
+  say(fill(ppick(COMM.kd), att.name, vic.name), true);
   punchThud(1); flashBurst = Math.max(flashBurst, 1);
   crowdLevel = 0.38; shake = 1;
   S.slowmo = vic.hp <= 0 ? 1.5 : 0.8;   // slow-mo on the big blow
@@ -1177,8 +1266,8 @@ function knockdown(att, vic) {
 // range model: >2.6 out (footwork) · 1.9–2.6 jab range · 1.1–1.9 power range · <1.1 clinch (auto-split)
 function startClinch(f){
   const o=opp(f),dx=o.x-f.x,dz=o.z-f.z,d=Math.hypot(dx,dz)||1;
-  f.act='clinch';f.actT=0;f.clinchIntent=true;f.intent='CLINCH · KILL THE EXCHANGE';f.lastOutcome='REACHING FOR CONTROL';
-  f.vx+=dx/d*3.2;f.vz+=dz/d*3.2;S.clinchOwner=f;S.noAction=0;
+  f.act='clinch';f.actT=0;f.clinchIntent=true;f.intent=/Grappler/i.test(f.role)?'CLINCH · TURN AND WORK':'CLINCH · KILL THE EXCHANGE';f.lastOutcome='REACHING FOR CONTROL';
+  f.vx+=dx/d*3.2;f.vz+=dz/d*3.2;S.clinchOwner=f;S.clinchWorkT=0;S.noAction=0;
 }
 function fighterBrain(f, dt) {
   const o = opp(f);
@@ -1186,7 +1275,8 @@ function fighterBrain(f, dt) {
   f.decT -= dt;
   if (f.decT > 0) return;
   f.decT = 0.28 + frand()*0.55;
-  if(d<1.62&&(f.stam<22||f.hp<24||f.legs<26)&&!f.clinchIntent&&o.act!=='strike'){
+  const proactiveClinch=d<1.56&&f.stam>18&&frand()<.075*f.clinchTend*(f.style.id==='PRESSURE'?1.25:1);
+  if(d<1.62&&(f.stam<22||f.hp<24||f.legs<26||proactiveClinch)&&!f.clinchIntent&&o.act!=='strike'){
     startClinch(f);return;
   }
   // combo continuation: a landed shot chains the next punch immediately
@@ -1199,15 +1289,15 @@ function fighterBrain(f, dt) {
   // counters: punish a whiffed power shot (recovery frames) or a shattered guard
   if ((o.recovT > 0 || o.act === 'stun') && d < 2.35 && f.stam > 14 &&
       frand() < 0.5 + f.counterTend*0.45) {
-    const kind = d < 1.9 ? (frand() < 0.5 ? 'HOOK' : 'UPPER') : 'CROSS';
+    const kind = d < 1.9 ? (frand() < 0.34 ? 'HOOK' : frand()<.66?'UPPER':'LIVER') : (f.style.id==='BRAWLER'&&frand()<.35?'OVERHAND':'CROSS');
     startStrike(f, kind);
-    if (o.recovT > 0) say(fill(pick(COMM.counter), f.name, o.name));
+    if (o.recovT > 0) say(fill(ppick(COMM.counter), f.name, o.name));
     return;
   }
   // slip earned a counter window — fire before it closes
   if (f.counterT > 0 && d < 2.4 && f.stam > 12) {
     f.counterT = 0;
-    startStrike(f, d < 1.9 ? 'HOOK' : 'CROSS');
+    startStrike(f, d < 1.9 ? (frand()<.25?'LIVER':'HOOK') : (f.style.id==='BRAWLER'&&frand()<.28?'OVERHAND':'CROSS'));
     return;
   }
   // read: shell up against an incoming heavy
@@ -1229,9 +1319,9 @@ function fighterBrain(f, dt) {
     const r = frand();
     let kind;
     const bodyBias=f.bodyBias+(f.plan.includes('BODY')?.16:0)+(o.stam<32?.08:0);
-    if (d < 1.75) kind = r < bodyBias ? 'BODY' : r < bodyBias+.27 ? 'HOOK' : r < bodyBias+.43 ? 'UPPER' : r < .9 ? 'CROSS' : 'JAB';
-    else if (d < 2.12) kind = r < bodyBias*.65 ? 'BODY' : r < .48 ? 'JAB' : r < .82 ? 'CROSS' : 'HOOK';
-    else kind = r < (f.style.id==='OUTBOXER'?.78:.65) ? 'JAB' : 'CROSS';
+    if (d < 1.75) kind = r < bodyBias*.58 ? 'BODY' : r < bodyBias ? 'LIVER' : r < bodyBias+.23 ? 'HOOK' : r < bodyBias+.39 ? 'UPPER' : r < .9 ? 'CROSS' : 'JAB';
+    else if (d < 2.12) kind = r < bodyBias*.42 ? 'BODY' : r < bodyBias*.68 ? 'LIVER' : r < .43 ? 'JAB' : r < .72 ? 'CROSS' : r < .88 ? 'HOOK' : 'OVERHAND';
+    else kind = r < (f.style.id==='OUTBOXER'?.74:.61) ? 'JAB' : f.style.id==='BRAWLER'&&r>.86?'OVERHAND':'CROSS';
     // no opening yet? probe with the jab before committing power
     if (o.openT <= 0 && f.setupT<.45 && STRIKES[kind].heavy && frand() < (f.style.id==='BRAWLER'?.24:.62)) kind = 'JAB';
     if (f.stam < STRIKES[kind].stam + 4) kind = 'JAB';
@@ -1266,7 +1356,7 @@ function moveFighter(f, dt) {
       // whiffed power shot ⇒ recovery frames: the counter window opens
       if (!f.strikeLanded && f.strike.heavy) {
         f.recovT = 0.55;
-        if (frand() < 0.3) say(fill(pick(COMM.whiffc), f.name, o.name));
+        if (prand() < 0.3) say(fill(ppick(COMM.whiffc), f.name, o.name));
       }
       f.act = 'move'; f.actT = 0;
     }
@@ -1293,6 +1383,15 @@ function moveFighter(f, dt) {
       const pressure = o.openT > 0 ? 1.2 : 0;
       f.vx += (nx*clamp(radial + pressure*0.18, -1, 1)*spd + tangX*(2.25 + pressure))*dt*2.35;
       f.vz += (nz*clamp(radial + pressure*0.18, -1, 1)*spd + tangZ*(2.25 + pressure))*dt*2.35;
+      const edgeR=Math.hypot(f.x,f.z);
+      if(edgeR>3.08){
+        const ex=f.x/edgeR,ez=f.z/edgeR,exitSide=(f.circ||1)*f.angleTend;
+        // A deliberate L-shaped exit: first step off the rope, then pivot along
+        // it.  This prevents the endless radial shove/bounce loop that made
+        // fighters look magnetized to the boundary.
+        f.vx+=(-ex*4.8-ez*3.1*exitSide)*dt*2.2;f.vz+=(-ez*4.8+ex*3.1*exitSide)*dt*2.2;
+        f.intent=`ROPE EXIT · ${exitSide>0?'PIVOT RIGHT':'PIVOT LEFT'}`;
+      }
       f.stam = Math.min(100, f.stam + dt*(d > 2.6 ? 5.5 : 2.8));  // breathe at range
     }
   } else if (f.act === 'down') {
@@ -1400,7 +1499,7 @@ function beatCount() {
   vic.stam = Math.max(vic.stam, 34 + vic.resolve*.12);
   vic.guard = Math.max(vic.guard, 48);
   vic.legs=Math.max(vic.legs,34);vic.resolve=Math.max(8,vic.resolve-10);vic.lastOutcome=`BEAT COUNT ${S.count} · LEGS ${Math.round(vic.legs)}`;
-  say(fill(pick(COMM.getup), att.name, vic.name, String(S.count)), true);
+  say(fill(ppick(COMM.getup), att.name, vic.name, String(S.count)), true);
   elCount.classList.remove('show');
   flashBurst = Math.max(flashBurst, 1); crowdLevel = 0.4;
   S.downF = null;
@@ -1422,7 +1521,7 @@ function winFight(w, method) {
   flashMsg(method === 'TKO' ? 'TKO!' : 'KO!',
     method === 'TKO' ? `${w.name} WINS — THREE KNOCKDOWN RULE — ROUND ${S.round}`
                      : `${w.name} WINS BY KNOCKOUT — ROUND ${S.round}`, w.club.css, 3.2);
-  say(fill(pick(COMM.ko), w.name, l.name), true);
+  say(fill(ppick(COMM.ko), w.name, l.name), true);
   koHorn(); bell(3);
   flashBurst = 2.2; crowdLevel = 0.42; shake = 1;
   refP.tx = w.x*0.5; refP.tz = w.z*0.5;
@@ -1490,6 +1589,7 @@ function showResultCard(cards) {
 function stateStep(dt) {
   S.t += dt;
   S.clipT=Math.max(0,S.clipT-dt);
+  S.lastImpactT=Math.min(99,S.lastImpactT+dt);S.impactBeatT=Math.max(0,S.impactBeatT-dt);
   switch (S.state) {
     case 'WALKON': {
       if (S.walkIdx < 2) {
@@ -1532,25 +1632,40 @@ function stateStep(dt) {
         S.noAction = 6; cut(); say('THE REF WANTS ACTION — HE RESTARTS THEM IN THE POCKET', true);
       }
       if (!fighters[0].gasSaid && fighters[0].stam < 22 && fighters[1].stam < 22) {
-        fighters[0].gasSaid = true; say(fill(pick(COMM.tired), fighters[0].name, fighters[1].name));
+        fighters[0].gasSaid = true; say(fill(ppick(COMM.tired), fighters[0].name, fighters[1].name));
       }
-      { // clinch-too-close: linger chest-to-chest and the ref splits them
+      { // Clinches have a readable control story: tie-up, turn/inside work, referee break.
         const [A, B] = fighters;
         const dAB = Math.hypot(A.x - B.x, A.z - B.z);
         const tied=dAB<1.2&&A.act!=='down'&&B.act!=='down';
-        if(tied&&S.clinchOwner){const other=opp(S.clinchOwner);other.act='clinch';other.actT=0;S.clinchOwner.stam=Math.min(100,S.clinchOwner.stam+dt*5.5);other.stam=Math.max(0,other.stam-dt*1.2);}
+        if(tied&&S.clinchOwner){
+          const owner=S.clinchOwner,other=opp(owner),mx=(owner.x+other.x)/2,mz=(owner.z+other.z)/2,rr=Math.hypot(mx,mz)||1;
+          other.act='clinch';other.actT=0;owner.stam=Math.min(100,owner.stam+dt*(3.6+owner.clinchTend));other.stam=Math.max(0,other.stam-dt*(1.1+owner.clinchTend*.45));
+          // Grapplers and pressure fighters rotate the knot off the ropes rather
+          // than becoming two static overlapping capsules.
+          const turn=owner.side?1:-1;owner.vx+=(-mz/rr*turn-mx/rr*.42)*dt*2.8*owner.clinchTend;owner.vz+=(mx/rr*turn-mz/rr*.42)*dt*2.8*owner.clinchTend;
+          other.vx+=(-mx/rr)*dt*1.3;other.vz+=(-mz/rr)*dt*1.3;
+          S.clinchWorkT+=dt;
+          if(S.clinchWorkT>.58){
+            S.clinchWorkT-=.58;const dmg=.45+owner.clinchTend*.32;other.stam=Math.max(0,other.stam-dmg*2.2);other.bodyDamage+=dmg;other.bodyShot=Math.max(other.bodyShot,.38);
+            owner.lastOutcome=`CLINCH WORK · ${dmg.toFixed(1)} BODY`;other.lastOutcome='TIED UP · SHORT SHOT LANDED';S.clinchTurns++;
+            noteImpact({exchange:++S.exchangeNo,attacker:owner.name,strike:'CLINCH WORK',target:'body',outcome:'INSIDE WORK',quality:+clamp(.38+owner.clinchTend*.24,0,1).toFixed(2),range:+dAB.toFixed(2),damage:+dmg.toFixed(2),defenderStamina:+other.stam.toFixed(1)},.18);
+            crowdLevel=Math.min(.4,crowdLevel+.035);say(`${owner.name} TURNS THE CLINCH AND SNEAKS A SHORT SHOT TO THE BODY`);
+          }
+        }
         S.clinchT = tied ? S.clinchT + dt : 0;
-        if (S.clinchT > (S.clinchOwner?.82:1.1)) {
+        const clinchHold=S.clinchOwner?clamp(.88+S.clinchOwner.clinchTend*.3,.95,1.48):1.1;
+        if (S.clinchT > clinchHold) {
           S.clinchT = 0;
           const dx = (A.x - B.x), dz = (A.z - B.z), dd = Math.hypot(dx, dz) || 1e-6;
           A.vx += dx/dd*3.4; A.vz += dz/dd*3.4; B.vx -= dx/dd*3.4; B.vz -= dz/dd*3.4;
           A.wantDist = B.wantDist = 2.6;A.act=B.act='move';A.actT=B.actT=0;A.clinchIntent=B.clinchIntent=false;
           if(S.clinchOwner){S.roundStats[S.round-1][S.clinchOwner.side].clinch++;S.clinchOwner.lastOutcome='CLINCH SUCCESS · RESET LEGS';opp(S.clinchOwner).lastOutcome='TIED UP · REF BREAK';}
           else {S.roundStats[S.round-1][0].clinch++; S.roundStats[S.round-1][1].clinch++;}
-          S.clinchOwner=null;
-          say(pick(COMM.clinch));
+          S.clinchOwner=null;S.clinchWorkT=0;
+          say(ppick(COMM.clinch));
         }
-        if(!tied&&S.clinchOwner&&S.clinchOwner.actT>1){S.clinchOwner.act='move';S.clinchOwner.clinchIntent=false;S.clinchOwner=null;}
+        if(!tied&&S.clinchOwner&&S.clinchOwner.actT>1){S.clinchOwner.act='move';S.clinchOwner.clinchIntent=false;S.clinchOwner=null;S.clinchWorkT=0;}
       }
       { // ref orbits just outside the pocket
         const mx = (fighters[0].x + fighters[1].x)/2, mz = (fighters[0].z + fighters[1].z)/2;
@@ -1660,15 +1775,16 @@ function armTargetsFor(f, armKey, dt) {
     const armSign = armKey === 'L' ? 1 : -1;          // which way the torso twists for this arm
     const bodyShot = f.targetZone === 'body' || f.strikeK === 'BODY';
     if (!mine) { T = blendT(guard, { sx: -0.86, sy: -sgnX*0.64, sz: sgnX*0.04, ex: -2.22 }, e); k = 18; }
-    else if (f.strikeK === 'JAB' || f.strikeK === 'CROSS') {
+    else if (f.strikeK === 'JAB' || f.strikeK === 'CROSS' || f.strikeK === 'OVERHAND') {
       const loadPose = { sx: -0.58, sy: -sgnX*0.7, sz: sgnX*0.12, ex: -2.22 };
-      const firePose = { sx: bodyShot ? -1.18 : -1.56, sy: -sgnX*0.16, sz: bodyShot ? sgnX*0.16 : 0, ex: bodyShot ? -0.38 : -0.06 };
+      const over=f.strikeK==='OVERHAND';
+      const firePose = over?{sx:-1.18,sy:-sgnX*.48,sz:-sgnX*.62,ex:-.44}:{ sx: bodyShot ? -1.18 : -1.56, sy: -sgnX*0.16, sz: bodyShot ? sgnX*0.16 : 0, ex: bodyShot ? -0.38 : -0.06 };
       T = blendT(blendT(guard, loadPose, load*0.75), firePose, e);
-      twist = armSign*(f.strikeK === 'JAB' ? 0.22 : 0.52)*e - armSign*0.12*load;
+      twist = armSign*(f.strikeK === 'JAB' ? 0.22 : over ? 0.68 : 0.52)*e - armSign*0.12*load;
       k = 30;
-    } else if (f.strikeK === 'HOOK' || f.strikeK === 'BODY') {
+    } else if (f.strikeK === 'HOOK' || f.strikeK === 'BODY' || f.strikeK === 'LIVER') {
       // arm horizontal at 90° elbow, sweeping across — big torso rotation
-      const low = f.strikeK === 'BODY';
+      const low = f.strikeK === 'BODY'||f.strikeK==='LIVER';
       T = { sx: lerp(guard.sx, -1.32, Math.min(1, e*1.6)),
             sy: lerp(sgnX*(low ? 0.82 : 1.15), -sgnX*(low ? 0.34 : 0.6), e),
             sz: low ? sgnX*0.22 : 0,
@@ -1736,12 +1852,12 @@ function updateBoxerDetails(f, dt, sp, twistWant) {
   k.belt.rotation.z = k.trunks.rotation.z;
 
   const lift = Math.min(sp/5, 1);
-  k.lFoot.position.set(-stance, 0.08, 0.16 + lead*0.1 + step*0.05*lift);
-  k.rFoot.position.set( stance, 0.08, -0.16 - lead*0.1 - step*0.05*lift);
+  k.lFoot.position.set(-stance, 0.065, 0.16 + lead*0.1 + step*0.05*lift);
+  k.rFoot.position.set( stance, 0.065, -0.16 - lead*0.1 - step*0.05*lift);
   k.lFoot.rotation.y = -0.18 + twistWant*0.08 + alt*0.08*lift;
   k.rFoot.rotation.y =  0.18 + twistWant*0.08 - alt*0.08*lift;
-  k.lFoot.scale.set(1 + Math.max(0, step)*0.12*lift, 1, 1 + pocket*0.08);
-  k.rFoot.scale.set(1 + Math.max(0, -step)*0.12*lift, 1, 1 + pocket*0.08);
+  k.lFoot.scale.set(0.7*(1 + Math.max(0, step)*0.12*lift), 0.3, 1.25*(1 + pocket*0.08));
+  k.rFoot.scale.set(0.7*(1 + Math.max(0, -step)*0.12*lift), 0.3, 1.25*(1 + pocket*0.08));
 
   k.lShoulder.position.y = SH_Y + 0.02 - crouch + strikeDrive*(f.strikeArm === 'L' ? 0.04 : -0.01);
   k.rShoulder.position.y = SH_Y + 0.02 - crouch + strikeDrive*(f.strikeArm === 'R' ? 0.04 : -0.01);
@@ -1777,7 +1893,7 @@ function updateRigs(dt) {
     f.walkPh += dt*(2 + sp*2.6);
     if (f.act === 'strike') {
       const k = clamp(f.actT/f.strikeDur, 0, 1);
-      if (f.strikeK === 'HOOK' || f.strikeK === 'BODY') f.rig.poseSkill(0, k); // whip through hooks/body work
+      if (f.strikeK === 'HOOK' || f.strikeK === 'BODY' || f.strikeK==='LIVER' || f.strikeK==='OVERHAND') f.rig.poseSkill(0, k); // whip through looping/body work
       else if (f.strikeK === 'UPPER') f.rig.poseHeader(k);      // dip and rise through it
       else f.rig.poseJockey(simClockTotal*1.15+f.side*1.7,f.circ); // straights stay planted; articulated arms do the punching
     }
@@ -1881,10 +1997,11 @@ function cameraStep(dt) {
     tmpL.set(0, RING_Y + 1, 0);
   } else {                                               // locked ringside broadcast, punch-in when leather flies
     const portrait=innerWidth<700;
+    const impactBeat=clamp(S.impactBeatT/.72,0,1);
     // Desktop retains its punch-in.  Portrait stays wide through impact so a
     // glove landing never crops the opponent, referee or ring geometry.
-    const rad = portrait?23.2:11.2-punchHeat*1.9;
-    const h = portrait?9.15:5.05-punchHeat*.7;
+    const rad = portrait?23.2:11.2-punchHeat*1.45-impactBeat*.9;
+    const h = portrait?9.15:5.05-punchHeat*.5-impactBeat*.3;
     const lineA=Math.atan2(B.z-A.z,B.x-A.x);let sideA=lineA+Math.PI/2;
     if(Math.cos(sideA-broadcastA)<0)sideA+=Math.PI;
     broadcastA=lerpAngle(broadcastA,sideA,dampK(4.2,dt));
@@ -1939,7 +2056,11 @@ function updateFX(dt) {
   const cleanBroadcast=S.state==='FIGHT'||S.state==='KNOCKDOWN';
   for (let i = 0; i < ropeMats.length; i++)
     ropeMats[i].opacity = clamp((cleanBroadcast?.11:.48) + 0.07*Math.sin(simClockTotal*2.1 + i*1.7) + punchHeat*0.08, .06, .72);
-  fightCrowd.position.y=Math.sin(simClockTotal*2.1)*.012+crowdLevel*.08*Math.abs(Math.sin(simClockTotal*7));
+  const ritualPulse=crowdLevel*Math.sin(simClockTotal*(venueRitual==='spiral'?3.2:6.5));
+  fightCrowd.position.set(venueRitual==='fold'?ritualPulse*.06:0,Math.sin(simClockTotal*2.1)*.012+crowdLevel*.08*Math.abs(Math.sin(simClockTotal*7)),0);
+  fightCrowd.rotation.y=venueRitual==='spiral'?ritualPulse*.008:0;
+  const crowdScale=1+(venueRitual==='rings'?Math.max(0,ritualPulse)*.006:0);fightCrowd.scale.set(crowdScale,1,crowdScale);
+  venueIdentityGroup.position.y=venueRitual==='bell'?Math.max(0,ritualPulse)*.09:0;
   arenaTruss.material.emissiveIntensity=.34+crowdLevel*1.35+flashBurst*.16;
   punchHeat = Math.max(0, punchHeat - dt*1.1);
   shake = Math.max(0, shake - dt*1.8);
@@ -1969,7 +2090,9 @@ function hudStep() {
   const dist=Math.hypot(fighters[0].x-fighters[1].x,fighters[0].z-fighters[1].z);
   const rangeName=dist<1.2?'CLINCH':dist<1.82?'POCKET':dist<2.5?'STRIKE RANGE':'OUTSIDE';
   el('rangechip').textContent=`${rangeName} · ${dist.toFixed(1)}M`;
-  const read=f=>f.act==='strike'?`${f.intent} · ${Math.round(f.attackQuality*100)}% ENTRY`:f.act==='block'?`${f.guardType} · ${f.guardFocus.toUpperCase()}`:f.act==='dodge'?'SLIP · COUNTER ARMED':f.act==='clinch'?'CLINCH · RECOVER':f.recovT>0?'RECOVERING · OPEN':f.stam<25?'GAS CRITICAL':f.lastOutcome||f.cornerNote;
+  const read=f=>S.lastImpact&&S.lastImpactT<.95&&S.lastImpact.attacker===f.name
+    ?`${S.lastImpact.strike} · ${S.lastImpact.outcome} · ${Number(S.lastImpact.damage||0).toFixed(1)} DMG`
+    :f.act==='strike'?`${f.intent} · ${Math.round(f.attackQuality*100)}% ENTRY`:f.act==='block'?`${f.guardType} · ${f.guardFocus.toUpperCase()}`:f.act==='dodge'?'SLIP · COUNTER ARMED':f.act==='clinch'?'CLINCH · TURN / WORK':f.recovT>0?'RECOVERING · OPEN':f.stam<25?'GAS CRITICAL':f.lastOutcome||f.cornerNote;
   el('readA').textContent=read(fighters[0]); el('readB').textContent=read(fighters[1]);
   if(S.state==='FIGHT'){
     const rs=S.roundStats[S.round-1];S.roundEdge=[meritFor(rs[0],S.roundDmg[S.round-1][0]),meritFor(rs[1],S.roundDmg[S.round-1][1])];
@@ -1980,7 +2103,8 @@ function hudStep() {
   else if (S.state==='FIGHT') {
     const d=Math.hypot(fighters[0].x-fighters[1].x,fighters[0].z-fighters[1].z);
     const surged=fighters.find(f=>f.surgeT>0);
-    if (surged) { status=`LAST STAND · ${surged.name}`; hot=true; }
+    if(S.impactBeatT>0&&S.lastImpact){status=`${S.lastImpact.outcome} · ${S.lastImpact.strike}`;hot=true;}
+    else if (surged) { status=`LAST STAND · ${surged.name}`; hot=true; }
     else if (S.clinchT>.25) status='CLINCH · REF CLOSING';
     else if (d<1.85) { status='LIVE · IN THE POCKET'; hot=true; }
     else if (d<2.6) status='LIVE · STRIKING RANGE';
@@ -1999,6 +2123,7 @@ setupCard();
 tuneIntoFightBroadcast();
 function fightSnapshot() {
   const [nextA,nextB]=FIXTURES[(fixtureIdx+1)%FIXTURES.length];
+  const home=LEAGUE_TEAMS[FIXTURES[fixtureIdx%FIXTURES.length][0]];
   const distance=fighters.length===2?Math.hypot(fighters[0].x-fighters[1].x,fighters[0].z-fighters[1].z):0;
   return {
     note: 'Coordinates are ring-space x/z meters with origin at center ring; fighters enter from -x/+x tunnels.',
@@ -2007,6 +2132,7 @@ function fightSnapshot() {
     deterministicSeed:S.seed,
     tuneIn:{...fightTuneMeta},
     fixture:{index:fixtureIdx,total:FIXTURES.length,clubs:fighters.map(f=>f.club.name),next:[LEAGUE_TEAMS[nextA].name,LEAGUE_TEAMS[nextB].name]},
+    venue:{name:home.brand?.venue||home.city,city:home.city,scene:home.brand?.scene||null,ritual:home.brand?.ritual||null,statement:home.brand?.statement||null,kitPattern:home.brand?.kitPattern||null},
     status:elPlayStatus.textContent, clipMoment:S.clipMoment || null, clipSeconds:+S.clipT.toFixed(1), clipsThisBout:S.clips.slice(),
     state: S.state,
     elapsedInState:+S.t.toFixed(2),
@@ -2021,12 +2147,14 @@ function fightSnapshot() {
     noActionSeconds:+S.noAction.toFixed(1),
     clinchSeconds:+S.clinchT.toFixed(2),
     range:{meters:+distance.toFixed(2),band:distance<1.2?'CLINCH':distance<1.82?'POCKET':distance<2.5?'STRIKE':'OUTSIDE'},
-    exchange:S.exchangeNo,lastImpact:S.lastImpact,liveRoundEdge:S.roundEdge.map(v=>+v.toFixed(2)),completedBouts:S.completedBouts,
+    exchange:S.exchangeNo,lastImpact:S.lastImpact,lastImpactAge:+S.lastImpactT.toFixed(2),
+    actionCausality:{impactBeatSeconds:+S.impactBeatT.toFixed(2),clinchOwner:S.clinchOwner?.name||null,clinchInsideWork:S.clinchTurns,rangeBand:distance<1.2?'CLINCH':distance<1.82?'POCKET':distance<2.5?'STRIKE':'OUTSIDE'},
+    liveRoundEdge:S.roundEdge.map(v=>+v.toFixed(2)),completedBouts:S.completedBouts,
     fighters: fighters.map(f => ({
       name: f.name,
       club: f.club.name,
       record:recStr(f.name),
-      identity:{style:f.style.label,stance:f.stance,guard:f.guardType,gamePlan:f.plan,corner:f.cornerNote},
+      identity:{role:f.role,number:f.athlete?.number,archetype:f.athlete?.archetype,signature:f.athlete?.signature,style:f.style.label,stance:f.stance,guard:f.guardType,gamePlan:f.plan,corner:f.cornerNote,kitPattern:f.club.brand?.kitPattern||null},
       hp: +f.hp.toFixed(1),
       stamina: +f.stam.toFixed(1),
       guard: +f.guard.toFixed(1),
@@ -2055,7 +2183,7 @@ function fightSnapshot() {
     knockdowns: S.kdRound,
     scorecards:S.cards,
     judgeDetail:S.judgeDetail,
-    arena:{name:'THE CYBERDROME',spectators:fightCrowdCount,upperLightTruss:true,cleanBroadcastHardware:true}
+    arena:{name:home.brand?.venue||'THE CYBERDROME',spectators:fightCrowdCount,upperLightTruss:true,cleanBroadcastHardware:true,architecture:home.brand?.venueLine||null,crowdRitual:home.brand?.ritual||null}
   };
 }
 window._dbg = fightSnapshot;
@@ -2076,6 +2204,11 @@ window._fightTest={
   exchange(side=0,kind='CROSS',target='head'){
     const f=fighters[clamp(side|0,0,1)],o=opp(f);f.x=f.side?1.02:-1.02;o.x=f.side?-1.02:1.02;f.z=o.z=0;f.act='move';o.act='stun';o.actT=0;f.stam=100;o.invulnT=0;o.openT=2;
     startStrike(f,STRIKES[kind]?kind:'CROSS');f.targetZone=target==='body'?'body':f.targetZone;cut();return fightSnapshot();
+  },
+  clinch(side=0){
+    const owner=fighters[clamp(side|0,0,1)],other=opp(owner);setState('FIGHT');S.clock=Math.max(20,S.clock);S.clinchOwner=owner;S.clinchT=0;S.clinchWorkT=.5;
+    owner.x=owner.side ? 0.5 : -0.5;other.x=owner.side ? -0.5 : 0.5;owner.z=other.z=0;owner.vx=owner.vz=other.vx=other.vz=0;
+    owner.act=other.act='clinch';owner.actT=other.actT=0;owner.clinchIntent=true;other.clinchIntent=false;cut();return fightSnapshot();
   },
   forceDecision(){
     S.round=3;S.clock=0;S.roundDmg=[[15,11],[10,17],[18,13]];S.kdRound=[[0,0],[0,0],[1,0]];

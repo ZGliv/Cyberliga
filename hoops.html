@@ -158,9 +158,15 @@
     #qtr { font-size:10px; letter-spacing:1.1px; white-space:nowrap; }
     #sclock { min-width:26px; padding-left:8px; }
     #playstatus { display:none; }
-    #flash { z-index:45; }
-    #flashtext { max-width:100vw; font-size:clamp(38px, 13vw, 68px); letter-spacing:5px; line-height:.98; text-align:center; overflow-wrap:anywhere; }
-    #flashsub { max-width:calc(100vw - 28px); font-size:14px; letter-spacing:2.6px; line-height:1.15; text-align:center; padding:0 16px; }
+    #flash {
+      inset:145px 12px auto; z-index:45; min-height:54px; box-sizing:border-box;
+      flex-direction:row; gap:10px; justify-content:flex-start; padding:9px 12px;
+      background:linear-gradient(90deg,rgba(3,6,16,.94),rgba(3,6,16,.78));
+      border-left:3px solid var(--fc,#ff8a3d); border-bottom:1px solid rgba(255,255,255,.12);
+      box-shadow:0 12px 28px rgba(0,0,0,.38);
+    }
+    #flashtext { flex:0 0 auto; max-width:42vw; font-size:20px; letter-spacing:2px; line-height:1; text-align:left; overflow-wrap:anywhere; }
+    #flashsub { min-width:0; max-width:none; margin:0; padding:0; font-size:10px; letter-spacing:1.25px; line-height:1.12; text-align:left; }
     #bigcard { z-index:80; padding:12px; }
     #bigcard .panel {
       min-width:0; width:min(100%, 430px); max-height:calc(100vh - 24px); max-height:calc(100dvh - 24px);
@@ -226,6 +232,8 @@
 </div>
 
 <script src="worlddata.js"></script>
+<script src="branddata.js"></script>
+<script src="arena-establishing.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -265,10 +273,14 @@ const Q_LEN=75, OT_LEN=30;
 const ROLE_NAMES=['POINT','WING','SHOOTER','FORWARD','CENTER'];
 
 const HOOPS_CONTENT=window.CYBERLIGA_CONTENT;
+const HOOPS_BRAND=window.CyberligaBrand;
 const HOOPS_TEAMS=HOOPS_CONTENT.getTeams('basketball');
 const TEAMS=HOOPS_TEAMS.map(team=>{const hex=Number.parseInt(team.colors.primary.slice(1),16);return {
   id:team.id,name:team.name,code:team.code,css:team.colors.primary,col:hex,glow:hex,
-  secondary:team.colors.secondary,motif:team.motif,texture:team.texture,motion:team.motion,roster:team.athletes
+  secondary:team.colors.secondary,secondaryCol:Number.parseInt(team.colors.secondary.slice(1),16),
+  accent:team.colors.accent,accentCol:Number.parseInt(team.colors.accent.slice(1),16),
+  motif:team.motif,texture:team.texture,motion:team.motion,roster:team.athletes,source:team,
+  brand:HOOPS_BRAND?.getTeam(team.id)||{venue:'HOME COURT',venueLine:team.city,ritual:'The home end carries the signal.',statement:team.motion,mark:'pulse',scene:'megacity',kitPattern:'pulse'}
 };});
 const FIXTURES=HOOPS_CONTENT.createSeason('basketball','arena').rounds.flatMap(round=>round.matches.map(match=>[HOOPS_TEAMS.findIndex(t=>t.id===match.homeId),HOOPS_TEAMS.findIndex(t=>t.id===match.awayId)]));
 const query=new URLSearchParams(location.search);
@@ -341,7 +353,18 @@ for (const s of [-1,1]) { const pl = new THREE.PointLight(0xff8a3d, 40, 16, 2); 
 
 // ---------- court ----------
 const FLOOR_L=36, FLOOR_W=22;
-function makeCourtTex(cssA, cssB) {
+function drawIdentityPattern(g, pattern, color, cx, cy, size){
+  g.save();g.translate(cx,cy);g.strokeStyle=color;g.fillStyle=color;g.lineWidth=Math.max(3,size*.018);g.globalAlpha=.16;g.shadowBlur=0;
+  if(pattern==='rings'||pattern==='crystal'){for(const r of [.22,.42,.62]){g.beginPath();g.arc(0,0,size*r,0,Math.PI*2);g.stroke();}}
+  else if(pattern==='hex'){for(const ox of [-.34,.34]){g.beginPath();for(let i=0;i<=6;i++){const a=Math.PI/3*i,x=ox*size+Math.cos(a)*size*.3,y=Math.sin(a)*size*.3;i?g.lineTo(x,y):g.moveTo(x,y);}g.stroke();}}
+  else if(pattern==='wave'||pattern==='drift'){for(const y of [-.25,.1,.45]){g.beginPath();for(let i=0;i<=24;i++){const x=-size*.72+i/24*size*1.44,yy=y*size+Math.sin(i/24*Math.PI*3)*size*.12;i?g.lineTo(x,yy):g.moveTo(x,yy);}g.stroke();}}
+  else if(pattern==='spiral'){g.beginPath();for(let i=0;i<70;i++){const a=i*.23,r=i/70*size*.66,x=Math.cos(a)*r,y=Math.sin(a)*r;i?g.lineTo(x,y):g.moveTo(x,y);}g.stroke();}
+  else if(pattern==='branch'||pattern==='growth'){g.beginPath();g.moveTo(0,size*.68);g.lineTo(0,-size*.55);g.moveTo(0,-size*.12);g.lineTo(-size*.45,-size*.48);g.moveTo(0,size*.05);g.lineTo(size*.48,-size*.38);g.stroke();}
+  else if(pattern==='cross'){g.beginPath();g.moveTo(-size*.7,-size*.42);g.lineTo(size*.7,size*.42);g.moveTo(size*.7,-size*.42);g.lineTo(-size*.7,size*.42);g.stroke();}
+  else {for(let i=-3;i<=3;i++){g.beginPath();g.moveTo(-size*.68,i*size*.16);g.lineTo(size*.68,i*size*.16);g.stroke();}}
+  g.restore();
+}
+function makeCourtTex(cssA, cssB, identity=null) {
   const c=document.createElement('canvas'); c.width=2048; c.height=1252;
   const g=c.getContext('2d');
   const px=x=>(x+FLOOR_L/2)/FLOOR_L*c.width, pz=z=>(z+FLOOR_W/2)/FLOOR_W*c.height, sc=m=>m/FLOOR_L*c.width;
@@ -355,9 +378,11 @@ function makeCourtTex(cssA, cssB) {
   g.strokeRect(px(-HL),pz(-HW),px(HL)-px(-HL),pz(HW)-pz(-HW));
   g.beginPath(); g.moveTo(px(0),pz(-HW)); g.lineTo(px(0),pz(HW)); g.stroke();
   g.beginPath(); g.arc(px(0),pz(0),sc(1.8),0,Math.PI*2); g.stroke();
-  g.save(); g.shadowBlur=0; g.globalAlpha=0.08; g.fillStyle='#ffffff';
-  g.font='900 110px Orbitron, sans-serif'; g.textAlign='center'; g.textBaseline='middle';
-  g.fillText('CYBERLIGA', px(0), pz(0)); g.restore();
+  drawIdentityPattern(g,identity?.kitPattern||'pulse',cssA,px(0),pz(0),sc(5.2));
+  g.save(); g.shadowBlur=0; g.globalAlpha=0.19; g.fillStyle='#ffffff';
+  g.font='900 76px Orbitron, sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+  g.fillText(identity?.venue||'CYBERLIGA', px(0), pz(-.35));
+  g.globalAlpha=.28;g.font='700 30px Rajdhani, sans-serif';g.fillText(identity?.statement||'AUTONOMOUS HOOPS',px(0),pz(.72));g.restore();
   for (const s of [-1,1]) {
     const css = s<0?cssA:cssB;
     // painted key
@@ -485,9 +510,34 @@ for(let i=0;i<4;i++){
 }
 const truss=new THREE.Mesh(new THREE.TorusGeometry(9.6,.12,8,72),new THREE.MeshStandardMaterial({color:0x354467,emissive:0x5eeaff,emissiveIntensity:.45,metalness:.7,roughness:.3}));
 truss.rotation.x=Math.PI/2;truss.position.y=18.9;scene.add(truss);
+const venueLights=[];
 for(let i=0;i<12;i++){
   const a=i/12*Math.PI*2,beam=new THREE.SpotLight(i%2?0xff8a3d:0x5eeaff,42,34,.2,.85,2);
-  beam.position.set(Math.cos(a)*9.4,18.7,Math.sin(a)*9.4);beam.target.position.set(Math.cos(a)*5,0,Math.sin(a)*5);scene.add(beam,beam.target);
+  beam.position.set(Math.cos(a)*9.4,18.7,Math.sin(a)*9.4);beam.target.position.set(Math.cos(a)*5,0,Math.sin(a)*5);scene.add(beam,beam.target);venueLights.push(beam);
+}
+const venueCanvas=document.createElement('canvas');venueCanvas.width=1536;venueCanvas.height=256;
+const venueTex=new THREE.CanvasTexture(venueCanvas);venueTex.colorSpace=THREE.SRGBColorSpace;
+const venueScreen=new THREE.Mesh(new THREE.PlaneGeometry(34,5.66),new THREE.MeshBasicMaterial({map:venueTex,transparent:true,opacity:.96,side:THREE.DoubleSide}));
+venueScreen.position.set(0,10.25,-(HW+13.6));scene.add(venueScreen);
+let venueIdentity=null;
+function paintVenueScreen(team){
+  const brand=team.brand,g=venueCanvas.getContext('2d'),grad=g.createLinearGradient(0,0,venueCanvas.width,0);
+  grad.addColorStop(0,'#03050c');grad.addColorStop(.24,rgba(team.css,.34));grad.addColorStop(.76,rgba(team.accent,.26));grad.addColorStop(1,'#03050c');
+  g.fillStyle=grad;g.fillRect(0,0,venueCanvas.width,venueCanvas.height);
+  drawIdentityPattern(g,brand.kitPattern,team.accent,venueCanvas.width*.13,venueCanvas.height*.5,170);
+  drawIdentityPattern(g,brand.kitPattern,team.secondary,venueCanvas.width*.87,venueCanvas.height*.5,170);
+  g.textAlign='center';g.textBaseline='middle';g.fillStyle='#fff';g.shadowColor=team.css;g.shadowBlur=18;
+  g.font='900 62px Orbitron, sans-serif';g.fillText(brand.venue,venueCanvas.width/2,90);g.shadowBlur=0;
+  g.fillStyle=team.secondary;g.font='800 25px Rajdhani, sans-serif';g.fillText(`${team.code} · ${brand.statement}`,venueCanvas.width/2,147);
+  g.fillStyle='rgba(255,255,255,.72)';g.font='700 21px Rajdhani, sans-serif';g.fillText(brand.venueLine,venueCanvas.width/2,192);
+  venueTex.needsUpdate=true;
+}
+function applyVenueIdentity(team){
+  venueIdentity=team.brand;paintVenueScreen(team);
+  $('erapill').textContent=team.brand.venue;
+  $('tickerlabel').textContent=team.code;
+  truss.material.emissive.setHex(team.col);truss.material.color.setHex(team.secondaryCol);
+  venueLights.forEach((light,i)=>{light.color.setHex(i%3===0?team.accentCol:i%2?team.secondaryCol:team.col);});
 }
 
 // ---------- hoops ----------
@@ -562,9 +612,9 @@ const elScore=$('score'), elSA=$('sA'), elSB=$('sB'), elClock=$('clock'), elQtr=
 const elFlash=$('flash'), elFT=$('flashtext'), elFS=$('flashsub'), elTicker=$('tickertext'), elCard=$('bigcard'), elPanel=$('cardpanel');
 const elScheme=$('scheme'), elCoverage=$('coverage'), elPossessions=$('possessions'), elQuality=$('qualitylabel'), elQualityFill=$('qualityfill'), elAction=$('actionread');
 let flashTimer=0;
-function flashMsg(big, sub, color){
+function flashMsg(big, sub, color, duration=.8){
   elFT.textContent=big; elFS.textContent=sub; elFlash.style.setProperty('--fc', color);
-  elFlash.classList.add('show'); flashTimer=1.6;
+  elFlash.classList.add('show'); flashTimer=duration;
 }
 let tickerQ=[], tickerX=innerWidth;
 elTicker.textContent='WELCOME TO THE CYBERLIGA HOOPDOME — 5V5 AUTONOMOUS BASKETBALL — LIVE PLAY CALLS AND COVERAGES — THE HIGH ROOM EXHIBITION';
@@ -641,10 +691,14 @@ function makeTeam(def, dir, side){
   const players=[];
   for (let r=0;r<5;r++){
     const playerColor=classicSideVisual(side);
-    const rig=buildBlobRig({ side, kitColor:playerColor, glowColor:playerColor, captain:r===0 });
+    const athlete=lineup[r], shape=ROLE_SHAPES[r];
+    const rig=buildBlobRig({
+      side,kitColor:playerColor,glowColor:playerColor,captain:r===0,
+      brandColor:def.col,secondaryColor:def.secondaryCol,accentColor:def.accentCol,
+      teamCode:def.code,jerseyNumber:athlete.number,kitPattern:def.brand.kitPattern,role:shape.label
+    });
     const signature=addHoopsSilhouette(rig,r,playerColor);
     scene.add(rig.group);
-    const athlete=lineup[r], shape=ROLE_SHAPES[r];
     const renderScale=identityScale(athlete,shape),identity=hash32(athlete.id);
     signature.group.rotation.y=((identity%7)-3)*.08;
     signature.group.scale.set(.9+((identity>>>5)%5)*.05,.9+((identity>>>8)%4)*.06,.9+((identity>>>11)%5)*.04);
@@ -679,6 +733,9 @@ const atkRim=t=>V3(t.dir*RIM_X, RIM_Y, 0);
 const carrier=()=>ball.holder;
 let quarterPending=false;
 let completedGames=0, lastFinal=null;
+let establishingHold=false,establishingTimer=0;
+function holdForEstablishing(){clearTimeout(establishingTimer);establishingHold=true;establishingTimer=setTimeout(()=>{establishingHold=false;},3050);}
+function releaseEstablishingHold(removeOverlay=false){clearTimeout(establishingTimer);establishingTimer=0;establishingHold=false;if(removeOverlay)window.CyberligaEstablishing?.remove();}
 
 // camera
 let camPos=V3(0,11.4,17.6), lookPt=V3(0,1,0), pendingCut=false, lowCam=false, shake=0, crowdHype=0, tGlobal=0;
@@ -698,6 +755,7 @@ function updateHUDTeams(){
     crowdFlags.forEach((f,i)=>f.material.color.setHex(teams[i%2].def.col));
     heroFans.forEach((f,i)=>{const color=teams[i%2].def.col;for(const child of f.children)if(child.material&&child!==f.children[1])child.material.color.setHex(color);});
   }
+  applyVenueIdentity(teams[0].def);
   updateCenterCube();
 }
 function updateCenterCube(){
@@ -706,7 +764,7 @@ function updateCenterCube(){
   grad.addColorStop(0,teams[0].def.css);grad.addColorStop(.48,'#070b18');grad.addColorStop(.52,'#070b18');grad.addColorStop(1,teams[1].def.css);
   g.fillStyle='#03050d';g.fillRect(0,0,cubeCanvas.width,cubeCanvas.height);g.fillStyle=grad;g.globalAlpha=.23;g.fillRect(0,0,cubeCanvas.width,cubeCanvas.height);g.globalAlpha=1;
   g.strokeStyle='rgba(255,255,255,.18)';g.lineWidth=5;g.strokeRect(7,7,cubeCanvas.width-14,cubeCanvas.height-14);
-  g.textAlign='center';g.textBaseline='middle';g.font='900 28px Orbitron,sans-serif';g.fillStyle='#ffbd83';g.fillText('THE HIGH ROOM',cubeCanvas.width/2,36);
+  g.textAlign='center';g.textBaseline='middle';g.font='900 28px Orbitron,sans-serif';g.fillStyle='#ffbd83';g.fillText(teams[0].def.brand.venue,cubeCanvas.width/2,36);
   g.font='900 82px Orbitron,sans-serif';g.fillStyle='#fff';g.shadowColor='#ff8a3d';g.shadowBlur=16;g.fillText(`${teams[0].score}  —  ${teams[1].score}`,cubeCanvas.width/2,118);g.shadowBlur=0;
   g.font='700 24px Rajdhani,sans-serif';g.fillStyle=teams[0].def.css;g.fillText(teams[0].def.code||teams[0].def.name.slice(0,10),168,185);g.fillStyle=teams[1].def.css;g.fillText(teams[1].def.code||teams[1].def.name.slice(0,10),600,185);
   g.font='700 27px Orbitron,sans-serif';g.fillStyle='#d9e7ff';g.fillText(`${q>4?'OT':`Q${q}`}  ${fmtGameClock(Math.max(0,qClock))}  ·  ${Math.max(0,Math.ceil(shotClock))}`,cubeCanvas.width/2,216);
@@ -751,18 +809,27 @@ function newMatch(){
   const fx=FIXTURES[currentMatch]; matchNo++;
   teams=[ makeTeam(TEAMS[fx[0]], 1, 0), makeTeam(TEAMS[fx[1]], -1, 1) ];
   floorMat.map?.dispose();
-  floorMat.map=makeCourtTex(teams[0].def.css, teams[1].def.css); floorMat.needsUpdate=true;
+  floorMat.map=makeCourtTex(teams[0].def.css, teams[1].def.css, teams[0].def.brand); floorMat.needsUpdate=true;
   neonA.material.color.setHex(teams[0].def.glow); neonB.material.color.setHex(teams[1].def.glow);
-  q=1; qClock=Q_LEN; shotClock=24; phase='PLAY'; possArrow=1; quarterPending=false;
-  tGlobal=0;
-  play.possessionNo=0; play.seenSchemes.clear(); play.seenCoverages.clear(); play.freeThrow=null;
-  play.teamFouls=[0,0];play.schemeResults={};play.coverageResults={};
-  play.inbound=null; play.inboundsCompleted=0; play.lastInbound=null; ball.inbound=false;
-  play.transitionT=0;
+  q=1; qClock=Q_LEN; shotClock=24; phase='PLAY'; breakT=0; possArrow=1; quarterPending=false;
+  tGlobal=0;lowCam=false;shake=0;crowdHype=0;pendingCut=false;
+  Object.assign(play,{state:'BRINGUP',t:0,offense:0,passes:0,wait:.55,windKind:'jumper',windDur:.3,released:false,decided:false,
+    stealChecked:false,dunk:null,saidReb:false,scorer:null,shooter:null,driveLane:1,driveKind:'rim',schemeId:'EARLY_DRAG',coverageId:'MAN',
+    step:0,possessionNo:0,actionLabel:'PUSHING THE BREAK',shotQuality:0,shotContext:'',lastPasser:null,lastPassAt:-99,
+    reboundClaimed:false,freeThrow:null,possessionReason:'TIP',transition:false,transitionT:0,
+    createdAdvantage:0,paintTouches:0,decision:'ORGANIZE',helpPlayer:null,helpTarget:null,kickTarget:null,
+    catchAndShoot:null,catchKind:'jumper',screenContact:false,driveStart:null,readMade:false,
+    shootingFoulPending:false,foulChecked:false,foulDefender:null,lastOutcome:'TIP',outcomeRecorded:false,
+    teamFouls:[0,0],schemeResults:{},coverageResults:{},inbound:null,inboundsCompleted:0,lastInbound:null});
+  play.seenSchemes.clear();play.seenCoverages.clear();
+  Object.assign(ball,{state:'HELD',holder:null,passTo:null,pending:null,t:0,T:0,vy:0,shot:null,lastTeam:0,inbound:false,passer:null,passStealChecked:false});
   hideCard(); updateHUDTeams();
-  say(`MATCHDAY — ${teams[0].def.name} VS ${teams[1].def.name} — TIP-OFF IN THE HOOPDOME`);
-  flashMsg('TIP-OFF', `${teams[0].def.name} VS ${teams[1].def.name}`, '#ff8a3d');
-  ball.pos.set(0,1.4,0); ball.vel.set(0,0,0); ball.shot=null;
+  window.CyberligaEstablishing?.show({sportId:'basketball',homeTeam:teams[0].def.source,awayTeam:teams[1].def.source,duration:2600});
+  holdForEstablishing();
+  say(`MATCHDAY — ${teams[0].def.name} VS ${teams[1].def.name} — TIP-OFF AT ${teams[0].def.brand.venue} — ${teams[0].def.brand.ritual}`);
+  elTicker.textContent=`${teams[0].def.brand.venue.toUpperCase()} — ${teams[0].def.brand.venueLine.toUpperCase()} — ${teams[0].def.brand.ritual.toUpperCase()}`;
+  flashMsg('TIP-OFF', `${teams[0].def.name} VS ${teams[1].def.name}`, teams[0].def.css,.65);
+  ball.pos.set(0,1.4,0); ball.vel.set(0,0,0);
   outlet(chance(.5)?0:1,'TIP');
   cut();
 }
@@ -1751,10 +1818,17 @@ function fxStep(dt){
   const tension=phase==='PLAY'?(shotClock<5?.35:q>=4&&Math.abs(teams[0].score-teams[1].score)<=5?.22:0):0;
   crowdHype=Math.max(tension,crowdHype*Math.exp(-.9*dt));
   crowdGroup.position.y=Math.abs(Math.sin(tGlobal*(7+crowdHype*4)))*.07*crowdHype+Math.sin(tGlobal*1.6)*.012;
-  crowdFlags.forEach((flag,i)=>{flag.rotation.z=Math.sin(tGlobal*(2.3+(i%3)*.25)+i)*(.08+crowdHype*.22);flag.scale.y=1+Math.sin(tGlobal*7+i)*crowdHype*.08;});
+  const ritual=venueIdentity?.kitPattern||'pulse';
+  crowdFlags.forEach((flag,i)=>{
+    const section=i/crowdFlags.length,phase=ritual==='wave'||ritual==='drift'?section*Math.PI*4:ritual==='spiral'?section*Math.PI*8:i;
+    const hit=ritual==='hex'?Math.sin(tGlobal*5+Math.floor(i/3)*Math.PI*.66):Math.sin(tGlobal*(2.3+(i%3)*.25)+phase);
+    flag.rotation.z=hit*(.08+crowdHype*.22);flag.scale.y=1+Math.max(0,hit)*crowdHype*.14;
+  });
   heroFans.forEach((fan,i)=>{const energy=.15+crowdHype*.85,wave=Math.sin(tGlobal*(3.2+(i%4)*.25)+fan.userData.phase);fan.position.y=1.3+Math.max(0,wave)*.16*energy;fan.children.slice(2).forEach((arm,j)=>{arm.rotation.z=(j?1:-1)*(.65+Math.max(0,wave)*.9*energy);});});
   centerCube.rotation.y=Math.sin(tGlobal*.08)*.035;
   truss.material.emissiveIntensity=.38+crowdHype*.85;
+  venueScreen.material.opacity=.86+crowdHype*.14;
+  venueLights.forEach((light,i)=>{light.intensity=38+crowdHype*(24+(i%3)*7);});
   for (const h of hoops){
     h.glow*=Math.exp(-4*dt);
     h.rimMat.emissiveIntensity=0.85+h.glow*4;
@@ -1796,7 +1870,7 @@ function tuneIntoHoopsBroadcast(){
   if(target<=0){tuneInMeta.entryState=play.state;return;}
   const steps=Math.round(target/.05);
   for(let i=0;i<steps;i++){
-    tick(.05,true);
+    tick(.05,true,true);
     if(phase==='FINAL')break;
   }
   tuneInMeta.offsetSeconds=+tGlobal.toFixed(1);
@@ -1807,7 +1881,11 @@ function tuneIntoHoopsBroadcast(){
   say(`JOINING LIVE — Q${q} ${fmtGameClock(Math.max(0,qClock))} — ${PLAYBOOK_BY_ID[play.schemeId]?.label||'LIVE POSSESSION'}`,true);
 }
 tuneIntoHoopsBroadcast();
-function tick(dt, skipRender=false){
+function tick(dt, skipRender=false, bypassEstablishing=false){
+  if(establishingHold&&!bypassEstablishing){
+    if(!skipRender){setTargets(0);updatePlayers(0);updateBall(0);updateCamera(0);fxStep(0);tickerStep(0);composer.render();}
+    return;
+  }
   tGlobal+=dt;
   if (phase==='PLAY') flow(dt); else breakFlow(dt);
   setTargets(dt);
@@ -1881,7 +1959,7 @@ window.render_game_to_text=()=>JSON.stringify({
   schemesSeen:[...play.seenSchemes],
   coveragesSeen:[...play.seenCoverages],
   offense:teams[play.offense]?.def.name||null,
-  transition:play.transition,
+  inTransition:play.transition,
   advantage:+play.createdAdvantage.toFixed(3),
   paintTouches:play.paintTouches,
   helpDefender:play.helpPlayer?.name||null,
@@ -1890,7 +1968,7 @@ window.render_game_to_text=()=>JSON.stringify({
   schemeResults:play.schemeResults,
   coverageResults:play.coverageResults,
   teams:teams.map(t=>({name:t.def.name,score:t.score,fg:`${t.fgm}/${t.fga}`,rebounds:t.rebounds,assists:t.assists,steals:t.steals,blocks:t.blocks,turnovers:t.turnovers,fouls:t.fouls})),
-  arena:{name:'THE HIGH ROOM',spectators:(crowdBodies?.count||0)+heroFans.length,centerHungScoreboard:true,upperLightTruss:true},
+  arena:{name:teams[0]?.def.brand.venue||'HOME COURT',description:teams[0]?.def.brand.venueLine||'',ritual:teams[0]?.def.brand.ritual||'',statement:teams[0]?.def.brand.statement||'',scene:teams[0]?.def.brand.scene||'',kitPattern:teams[0]?.def.brand.kitPattern||'',spectators:(crowdBodies?.count||0)+heroFans.length,centerHungScoreboard:true,upperLightTruss:true},
   ball:{state:ball.state,x:+ball.pos.x.toFixed(2),y:+ball.pos.y.toFixed(2),z:+ball.pos.z.toFixed(2),holder:ball.holder?.name||null},
   players:allPlayers().map(p=>({name:p.name,team:p.td.name,role:p.roleName,x:+p.pos.x.toFixed(2),z:+p.pos.z.toFixed(2),bodyScale:{x:+p.renderScale[0].toFixed(2),y:+p.renderScale[1].toFixed(2),z:+p.renderScale[2].toFixed(2)},points:p.pts,rebounds:p.reb,assists:p.ast,fouls:p.fouls,fg:`${p.fgm}/${p.fga}`,hasBall:ball.holder===p}))
 });
@@ -1899,10 +1977,13 @@ window.advanceTime=(ms)=>{
   for(let i=0;i<steps;i++) tick(1/60,i<steps-1);
 };
 window.__CYBERLIGA_HOOPS_TEST__={
-  resetPaused(){restartMatch();paused=true;elPause.textContent='RESUME';elStatus.textContent='PAUSED';},
+  restart(){matchNo=Math.max(0,matchNo-1);newMatch();return JSON.parse(window.render_game_to_text());},
+  fixture(index=0){matchNo=((Number(index)||0)%FIXTURES.length+FIXTURES.length)%FIXTURES.length;newMatch();return JSON.parse(window.render_game_to_text());},
+  simulateToFinal(maxSeconds=700){releaseEstablishingHold(true);const maxSteps=Math.max(1,Math.round(maxSeconds*60));for(let i=0;i<maxSteps&&phase!=='FINAL';i++)tick(1/60,true);tick(1/60,false);return JSON.parse(window.render_game_to_text());},
   forceScheme(id){ if(!PLAYBOOK_BY_ID[id])throw new Error(`Unknown play ${id}`);play.schemeId=id;play.step=0;play.actionLabel=PLAYBOOK_BY_ID[id].actions[0][2];play.seenSchemes.add(id);setState('SET');updateGamePlan(); },
   forceCoverage(id){ if(!COVERAGE_BY_ID[id])throw new Error(`Unknown coverage ${id}`);play.coverageId=id;play.seenCoverages.add(id);updateGamePlan(); },
   forceTransition(side=play.offense){
+    releaseEstablishingHold(true);
     const idx=clamp(side|0,0,1),attack=teams[idx],defense=teams[1-idx],runner=attack.players[0],lanes=[0,-6.1,6.1,-3.35,3.35];
     attack.players.forEach((p,i)=>{p.pos.set(-attack.dir*(8-i*.55),0,lanes[i]);p.vel.set(0,0,0);p.target.copy(p.pos);});
     defense.players.forEach((p,i)=>{p.pos.set(-attack.dir*(4.6-i*.32),0,lanes[i]+(i%2?.52:-.52));p.vel.set(0,0,0);p.target.copy(p.pos);});
@@ -1911,6 +1992,7 @@ window.__CYBERLIGA_HOOPS_TEST__={
     callPossession('STEAL');setState('BRINGUP');play.transitionT=3.8;cut();return JSON.parse(window.render_game_to_text());
   },
   forceMadeBasket(side=play.offense,pts=2){
+    releaseEstablishingHold(true);
     const idx=clamp(side|0,0,1),tm=teams[idx],opp=teams[1-idx],scorer=tm.players[2],rim=atkRim(tm);
     phase='PLAY';hideCard();play.inbound=null;play.freeThrow=null;play.offense=idx;play.scorer=null;play.transitionT=0;lowCam=false;
     tm.players.forEach((p,i)=>{p.pos.set(rim.x-tm.dir*(1.3+i*.72),0,(i-2)*1.45);p.vel.set(0,0,0);p.target.copy(p.pos);});

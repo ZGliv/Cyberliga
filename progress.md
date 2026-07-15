@@ -567,3 +567,57 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   arenas with HTTP 200, finite autonomous/view-only state, no horizontal overflow and zero console,
   page or request errors. Every final screenshot was visually inspected and shows cyan versus hot-pink
   athletes while preserving club identity in HUDs, venues and crowds.
+
+## Spectator-Product / Living-World Pass — 2026-07-14
+- Current user objective: turn the six autonomous arenas from promising simulations into compelling,
+  smooth broadcasts that can sustain a viral audience and eventually support a separately governed
+  casino-grade event product. Gameplay, motion causality, broadcast direction, player/kit coherence,
+  club-specific venues, crowds and persistent world identity are all in scope; one reconciled release
+  must be verified and deployed from the canonical worktree.
+- Added `SPECTATOR_AUDIT.md`, an evidence-based baseline and exit standard. The central diagnosis is
+  that 19,000+ lines of mostly page-local simulation/render/presentation code hide deep sport logic
+  behind inconsistent motion and broadcast grammar. League HQ already owns 48 detailed venue/ritual/
+  kit identities, but the arenas usually consume only names and colors. The repository has five
+  league hero images, not a complete 48-stadium / 144-uniform approved AI asset commission.
+- Real-money boundary is explicit: browser simulations are not a wagerable source of truth. A future
+  betting product requires a separate server-authoritative, versioned, auditable event/RNG/logging/
+  settlement platform and legal/compliance program; renderer polish cannot substitute for integrity.
+- Parallel sport owners are auditing and improving football/soccer, basketball/hockey, and baseball/
+  combat. Shared classic rigs now accept club color, trim, code, number, pattern and role metadata so
+  cyan/pink athletes can carry readable club-authored jersey identity without reverting to generic
+  humanoids or recoloring the entire player.
+- The shared arena establishing system now binds the league hero, exact club venue copy, scene family,
+  ritual and kit pattern into an automatic, non-interactive opening beat. Live arenas translate that
+  canon into procedural architecture, fascia/signage, club crowd sections, ritual lighting and athlete
+  trim; the opening card clears before the first snap, kickoff, tip, faceoff or pitch.
+- Football adds four authored concepts (Counter GT, Jet Sweep, Flood Concept and Seam Shot), smoother
+  motion/facing interpolation, corrected blocker assignments, less line clustering and explicit carrier,
+  intended-target and coordinator-causality reads. Soccer keeps the complete pitch visible, moves all
+  added architecture to the far stand, rotates venue identity with fixtures and exposes possession,
+  pressure, transition and tactical causality.
+- Basketball preserves a complete legal baseline inbound sequence after makes and now carries club venue,
+  crowd and uniform identity through the broadcast. Hockey uses seeded gameplay randomness, more wrist/
+  slap/one-timer shooting, airborne puck reads, stronger puck tracking, lane/screen/block causality and
+  visible check/fall/slide/get-up recovery.
+- Baseball corrects home/away presentation, makes pitcher workload/fatigue/bullpen changes real, adds
+  readable pitch family/velocity/location/intent tunnels and preserves batter/catcher/umpire continuity
+  through calls and swings. Combat expands athlete selection, overhand/liver attacks, clinch ownership and
+  inside work, rope exits, footwork, compact club-tinted boots and impact causality while reducing bloom.
+- A guarded `npm run release:check` now refuses deployment from the wrong branch, worktree, Vercel project,
+  dirty tree or alternate homepage lineage. This establishes one commit as the source for both the canonical
+  `127.0.0.1:4173` preview and the production Vercel alias.
+- Final pre-commit verification passes 9/9 API tests, 1,108/1,108 repository checks, 28/28 football brain/
+  rules tests, all arena module/standalone JavaScript syntax checks and `git diff --check`. Official web-game
+  client plus 390x844 mobile captures cover all six arenas with finite autonomous/view-only state, no
+  horizontal overflow and zero console, page, request or HTTP errors; every final frame was visually reviewed.
+- A final independent audit caught presentation RNG advancing sporting decisions in soccer crowds, baseball
+  commentary and combat commentary. Soccer now injects domain-separated simulation/presentation streams into
+  tactics, ball flight, officials, control, goalkeeping, crowds and copy; baseball commentary no longer consumes
+  its pitch/result stream; combat independently seeds sporting and narration streams. A behavioral twin-run gate
+  varied render/presentation cadence while holding seed and simulated time constant: soccer, baseball and combat
+  produced byte-identical sporting-state digests with zero browser errors.
+- Honest remaining fidelity tier: live venues are branded procedural translations of the authored hero art,
+  not exact image-derived 3D reconstructions; crowds are interactive instances rather than articulated people.
+  Baseball still needs steals/pickoffs/bunts, combat needs deeper role-to-style motion libraries, and any
+  real-money product still requires server authority, signed ledgers, independent randomness/security audits,
+  risk/settlement controls, licensing, KYC/AML and responsible-gaming systems.
