@@ -646,3 +646,14 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   (51/51 combined), 1,225/1,225 repository checks, standalone and inline-script syntax, and `git diff --check`.
   Fan calls remain deliberately free, local and unresolved; the browser fallback is not an authoritative event
   or settlement stream and no cash, prize, wager, payout or client-result settlement surface was added.
+
+## Arena Narrative Overlay Removal — Final QA — 2026-07-15
+- Removed the shared `WHY THIS MATTERS` explainer module from all six arena documents and deleted its unused
+  stylesheet/script. The release verifier now rejects either import on every arena while leaving character,
+  Mythos, gameplay, and deterministic QA hooks intact.
+- `npm run verify` passes 13/13 API tests and 1,209/1,209 repository checks; `git diff --check` and verifier
+  syntax pass. The official web-game client produced live 1280x720 captures/state for all six arenas, all of
+  which were visually inspected with no overlay or generated error artifacts.
+- A separate 390x844 all-arena browser matrix confirms 6/6 HTTP 200, zero narrative panels/labels, zero
+  horizontal overflow, advancing state, `autonomous:true`, `interaction:'view-only'`, and no console, page,
+  or request errors. No scoreboard, selector, gameplay, or arena navigation behavior was changed.
