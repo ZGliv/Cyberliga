@@ -14,7 +14,7 @@
     'american-football':[['GAMES',8,17],['SNAPS',128,812],['IMPACT',44,99]]
   };
   var state = { elapsed:0, requested:{}, fallback:false, sport:null, team:null, athlete:null, rival:null, rating:0, form:[], stats:[], career:{}, headlines:[], canonical:'', visual:{founding:false,record:null,descriptor:null,transform:null} };
-  var visualClock = { started:false, manual:false, autoElapsed:0, lastNow:null, observer:null };
+  var visualClock = { started:false, manual:false, autoElapsed:0, lastNow:null, observer:null, motionQuery:null, framePending:false };
 
   function hash(value) { return C && C.hash ? C.hash(value) : String(value).split('').reduce(function(a,c){return ((a<<5)-a+c.charCodeAt(0))>>>0;},2166136261); }
   function randomFor(seed) { return C.seededRandom(seed); }
@@ -124,21 +124,31 @@
     canvas.dataset.logicalWidth=String(width);canvas.dataset.logicalHeight=String(height);canvas.dataset.dpr=String(dpr);
     drawFoundingVisual();
   }
+  function queueFoundingFrame() {
+    if(visualClock.framePending||visualClock.manual||!state.visual.founding)return;
+    visualClock.framePending=true;window.requestAnimationFrame(animateFoundingVisual);
+  }
   function animateFoundingVisual(now) {
-    if(state.visual.founding&&!visualClock.manual) {
-      var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if(!reduced&&visualClock.lastNow!=null)visualClock.autoElapsed+=Math.max(0,Math.min(48,now-visualClock.lastNow));
-      visualClock.lastNow=now;
-      drawFoundingVisual();
-    } else visualClock.lastNow=null;
-    window.requestAnimationFrame(animateFoundingVisual);
+    visualClock.framePending=false;
+    if(!state.visual.founding||visualClock.manual){visualClock.lastNow=null;return;}
+    var reduced=Boolean(visualClock.motionQuery&&visualClock.motionQuery.matches);
+    if(!reduced&&visualClock.lastNow!=null)visualClock.autoElapsed+=Math.max(0,Math.min(48,now-visualClock.lastNow));
+    visualClock.lastNow=reduced?null:now;
+    drawFoundingVisual();
+    if(!reduced)queueFoundingFrame();
   }
   function startVisualRuntime() {
     if(visualClock.started)return;visualClock.started=true;
     var portrait=document.getElementById('portrait');
     if('ResizeObserver' in window&&portrait){visualClock.observer=new ResizeObserver(resizeFoundingVisual);visualClock.observer.observe(portrait);}
     else window.addEventListener('resize',resizeFoundingVisual);
-    window.requestAnimationFrame(animateFoundingVisual);
+    if(window.matchMedia){
+      visualClock.motionQuery=window.matchMedia('(prefers-reduced-motion: reduce)');
+      var motionChanged=function(){visualClock.lastNow=null;drawFoundingVisual();queueFoundingFrame();};
+      if(typeof visualClock.motionQuery.addEventListener==='function')visualClock.motionQuery.addEventListener('change',motionChanged);
+      else if(typeof visualClock.motionQuery.addListener==='function')visualClock.motionQuery.addListener(motionChanged);
+    }
+    queueFoundingFrame();
   }
   function configureVisual() {
     var record=CHARACTER_DATA&&typeof CHARACTER_DATA.get==='function'?CHARACTER_DATA.get(state.athlete.id):null;

@@ -794,3 +794,6 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - Exact-source gates pass 13/13 API tests, 11/11 live-moment tests, 9/9 shared-visual tests, 38/38 football and
   Mythos tests, and 1,336/1,336 repository checks. Standalone/inline syntax and `git diff --check` pass. This is
   an isolated, undeployed feature slice; it does not replace classic cyan/hot-pink live arena athletes.
+- Release Manager audit removed the last two legacy creative-tool masthead destinations outside Home/Leagues
+  and changed Founding Athlete Files to render only once when reduced motion is requested, waking again only
+  for resize, explicit deterministic stepping, or a motion-preference change instead of repainting at 60 Hz.

@@ -54,7 +54,6 @@
       .mast { grid-template-columns:1fr auto; min-height:58px; padding:0 17px; }
       .mast .live { display:none; }
       .mast nav { gap:13px; }
-      .mast nav a:first-child { display:none; }
       main { display:flex; flex-direction:column; padding:24px 18px 54px; gap:40px; }
       .poster-shell { width:min(100%,420px); }
       .poster-shell::before { inset:9px -7px -9px 7px; }
@@ -78,7 +77,7 @@
   <header class="mast">
     <a class="brand" href="world.html">CYBERLIGA <span>/ MOMENT MAKER</span></a>
     <div class="live"><span data-cyberliga-presence>1 WATCHING · LOCAL</span></div>
-    <nav><a href="menu.html">GUIDE</a><a href="replay.html">REPLAYS</a><a href="social.html">WORLD WIRE</a><a id="league-link" href="league.html">LEAGUE</a><a href="world.html">WORLD ↗</a></nav>
+    <nav aria-label="Primary navigation"><a href="world.html">HOME</a><a id="league-link" href="league.html">LEAGUES</a></nav>
   </header>
 
   <main>

@@ -331,6 +331,11 @@ check(/drawGenericSilhouette/.test(momentSource), 'Moment Maker must retain its 
 check(/drawGenericAthlete/.test(clipSource), 'Clip Director must retain its exact generic procedural fallback');
 check(/sportProp\s*:\s*false/.test(clipSource), 'Clip Director must suppress duplicate authored props while retaining its moving game object');
 check(/founding-canvas/.test(playerSource) && /is-founding/.test(playerStyles), 'Athlete Files must switch Founding athletes onto the shared canvas without removing generic CSS portraits');
+const momentPrimaryNav = momentSource.match(/<nav\b[^>]*aria-label=["']Primary navigation["'][^>]*>([\s\S]*?)<\/nav>/i)?.[1] || '';
+const momentPrimaryTargets = [...momentPrimaryNav.matchAll(/href=["']([^"']+)["']/gi)].map((match) => match[1]);
+check(JSON.stringify(momentPrimaryTargets) === JSON.stringify(['world.html', 'league.html']), 'Moment Maker primary navigation must expose only Home and Leagues', momentPrimaryTargets.join(', '));
+check(/<a\b[^>]*class=["'][^"']*status-seal[^"']*["'][^>]*href=["']league\.html["'][^>]*>\s*<span>Leagues<\/span>\s*<\/a>/i.test(characterLabSource), 'Character Lab masthead must pair its Home brand with a Leagues destination');
+check(!/<header\b[^>]*class=["'][^"']*masthead[^"']*["'][\s\S]*?href=["']menu\.html["'][\s\S]*?<\/header>/i.test(characterLabSource), 'Character Lab masthead must not restore the retired Broadcast Guide destination');
 check(await exists('presence.js'), 'Missing shared presence client');
 check(await exists('livebridge.js'), 'Missing shared live bridge');
 const presenceSource = await text('presence.js');
