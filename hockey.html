@@ -4,8 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" href="data:," />
+<link rel="stylesheet" href="arena-score-fit.css" />
 <title>CYBERLIGA ICE — AUTONOMOUS AI HOCKEY</title>
 <script src="watchonly.js"></script>
+<script src="arena-score-fit.js" defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -15,13 +17,15 @@
 
   #scoreboard {
     position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
-    display: flex; align-items: stretch; height: 46px;
+    display:flex; align-items:stretch; width:min(700px, calc(100vw - 320px)); height:46px;
+    max-width:calc(100vw - 32px);
     background: linear-gradient(180deg, rgba(8,12,28,.92), rgba(4,6,16,.92));
     border: 1px solid rgba(0,229,255,.25); border-radius: 8px;
     box-shadow: 0 0 24px rgba(0,229,255,.18), inset 0 1px 0 rgba(255,255,255,.06);
     overflow: hidden; backdrop-filter: blur(6px);
   }
-  .team { display:flex; align-items:center; gap:10px; padding: 0 16px; font-family:'Orbitron'; font-weight:700; font-size:15px; letter-spacing:2px; }
+  .team { display:flex; align-items:center; min-width:0; gap:10px; padding:0 16px; overflow:hidden; font-family:'Orbitron'; font-weight:700; font-size:15px; letter-spacing:2px; }
+  .team .tn { --score-fit-max:15px; --score-fit-min:9px; --score-fit-floor:6.25px; --score-fit-tracking:2px; --score-fit-min-tracking:0px; }
   .team .tc { display:none; }
   .team .dot { width:10px; height:10px; border-radius:2px; transform: rotate(45deg); }
   #score {
@@ -124,7 +128,7 @@
     }
     .team { min-width:0; gap:7px; padding:0 9px; font-size:10.5px; letter-spacing:.75px; white-space:nowrap; overflow:hidden; }
     .team .tn { display:none; }
-    .team .tc { display:inline; min-width:0; flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; font-size:12px; letter-spacing:1.5px; }
+    .team .tc { --score-fit-max:12px; --score-fit-min:8px; --score-fit-floor:6px; --score-fit-tracking:1.5px; display:inline; min-width:0; flex:1 1 auto; overflow:hidden; text-overflow:clip; font-size:12px; letter-spacing:1.5px; }
     #teamB { justify-content:flex-end; text-align:right; }
     .team .dot { width:8px; height:8px; flex:0 0 8px; }
     #score { min-width:70px; height:100%; padding:0 8px; font-size:18px; letter-spacing:1.8px; }
@@ -159,7 +163,7 @@
     #badge { left:calc(env(safe-area-inset-left, 0px) + 8px); }
     #scoreboard { width:calc(100vw - 16px); height:42px; }
     .team { padding:0 7px; gap:6px; font-size:9.5px; letter-spacing:.55px; }
-    .team .tc { font-size:11px; letter-spacing:1.2px; }
+    .team .tc { --score-fit-max:11px; --score-fit-min:7.5px; --score-fit-floor:5.75px; --score-fit-tracking:1.2px; font-size:11px; letter-spacing:1.2px; }
     .team .dot { width:7px; height:7px; flex-basis:7px; }
     #score { min-width:64px; font-size:16px; letter-spacing:1.5px; }
     #clockwrap { max-width:calc(100vw - 16px); padding:4px 8px; }
@@ -174,9 +178,9 @@
 <div id="hud">
   <div id="badge"><a id="leaguepill" class="watch-only-exit" href="world.html" aria-label="Back to the Cyberliga globe">← GLOBE</a></div>
   <div id="scoreboard">
-    <div class="team" id="teamA"><span class="dot"></span><span class="tn">NEON FC</span><span class="tc">NEO</span></div>
-    <div id="score"><span id="sA">0</span>&nbsp;&ndash;&nbsp;<span id="sB">0</span></div>
-    <div class="team" id="teamB"><span class="tn">VOLT UTD</span><span class="tc">VLT</span><span class="dot"></span></div>
+    <div class="team" id="teamA"><span class="dot"></span><span class="tn" data-score-fit>NEON FC</span><span class="tc" data-score-fit>NEO</span></div>
+    <div id="score" class="arena-score-readout" role="group" aria-label="Match score"><span class="score-value" id="sA" aria-label="Home score">0</span><span class="score-separator" aria-hidden="true"></span><span class="score-reader">to</span><span class="score-value" id="sB" aria-label="Away score">0</span></div>
+    <div class="team" id="teamB"><span class="tn" data-score-fit>VOLT UTD</span><span class="tc" data-score-fit>VLT</span><span class="dot"></span></div>
   </div>
   <div id="clockwrap"><span class="live"></span><span id="clock">01:30</span><span id="period">1ST PERIOD</span><span id="playstatus">FACEOFF</span></div>
   <div id="eventbug" aria-live="polite"></div>

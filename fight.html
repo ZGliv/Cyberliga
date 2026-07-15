@@ -4,8 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" href="data:," />
+<link rel="stylesheet" href="arena-score-fit.css" />
 <title>CYBERLIGA FIGHT NIGHT — AUTONOMOUS AI FIGHTING</title>
 <script src="watchonly.js"></script>
+<script src="arena-score-fit.js" defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -63,11 +65,14 @@
     backdrop-filter:blur(6px); box-shadow:0 0 22px rgba(0,0,0,.4);
   }
   #fpA { left:22px; } #fpB { right:22px; }
-  .fname { font-family:'Orbitron'; font-weight:900; font-size:15px; letter-spacing:2px; color:#fff; display:flex; align-items:center; gap:8px; }
+  .fname { min-width:0; overflow:hidden; font-family:'Orbitron'; font-weight:900; font-size:15px; letter-spacing:2px; color:#fff; display:flex; align-items:center; gap:8px; }
+  .fname > span:not(.dot) { --score-fit-max:15px; --score-fit-min:9px; --score-fit-floor:6.25px; --score-fit-tracking:2px; --score-fit-min-tracking:0px; min-width:0; width:0; flex:1 1 auto; }
   #fpB .fname { justify-content:flex-end; }
   .fname .dot { width:10px; height:10px; border-radius:2px; transform:rotate(45deg); flex:0 0 auto; }
-  .frec { font-size:12px; font-weight:600; letter-spacing:2px; color:rgba(255,255,255,.55); margin-top:1px; }
-  #fpB .frec { text-align:right; }
+  .frec { width:100%; min-width:0; display:flex; align-items:center; font-size:12px; font-weight:600; letter-spacing:2px; color:rgba(255,255,255,.55); margin-top:1px; }
+  .fclub { --score-fit-max:12px; --score-fit-min:8px; --score-fit-floor:5.75px; --score-fit-tracking:2px; --score-fit-min-tracking:-.5px; min-width:0; flex:0 1 auto; }
+  .frecord { flex:0 0 auto; white-space:nowrap; }
+  #fpB .frec { justify-content:flex-end; text-align:right; }
   .fidentity { display:flex; gap:6px; align-items:center; margin-top:5px; }
   #fpB .fidentity { justify-content:flex-end; }
   .fidentity span { font-family:'Orbitron'; font-size:8px; font-weight:900; letter-spacing:1.3px; color:#ffd8de; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05); border-radius:999px; padding:3px 6px; }
@@ -179,9 +184,11 @@
     #fpA { left:10px; }
     #fpB { right:10px; }
     .fname { min-width:0; gap:6px; font-size:11px; letter-spacing:1px; }
-    .fname span:not(.dot) { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .fname span:not(.dot) { --score-fit-max:11px; --score-fit-min:7.25px; --score-fit-floor:5.5px; --score-fit-tracking:1px; --score-fit-min-tracking:-.65px; min-width:0; overflow:hidden; text-overflow:clip; white-space:nowrap; }
     .fname .dot { width:8px; height:8px; flex:0 0 8px; }
     .frec { font-size:10px; letter-spacing:1px; }
+    .fclub { --score-fit-max:10px; --score-fit-min:7px; --score-fit-floor:5.5px; --score-fit-tracking:1px; --score-fit-min-tracking:-.75px; }
+    .frecord { display:none; }
     .fidentity { gap:3px; margin-top:4px; }
     .fidentity span { font-size:7px; letter-spacing:.55px; padding:2px 4px; }
     .fplan { font-size:8px; letter-spacing:.55px; margin-top:4px; }
@@ -234,8 +241,10 @@
     #fpA { left:8px; }
     #fpB { right:8px; }
     .fname { font-size:10px; letter-spacing:.7px; }
+    .fname span:not(.dot) { --score-fit-max:10px; --score-fit-min:6.75px; --score-fit-floor:5.25px; --score-fit-tracking:.7px; --score-fit-min-tracking:-.75px; }
     .fname .dot { width:7px; height:7px; flex-basis:7px; }
     .frec { font-size:9px; letter-spacing:.7px; }
+    .fclub { --score-fit-max:9px; --score-fit-min:6.5px; --score-fit-floor:5.25px; --score-fit-tracking:.7px; --score-fit-min-tracking:-.95px; }
     .barlbl { font-size:8.5px; letter-spacing:.7px; }
     #tickerlabel { padding:0 8px; font-size:9px; letter-spacing:1.2px; }
     #tickertext { font-size:12px; }
@@ -255,8 +264,8 @@
   <div id="playstatus">FIGHTERS WALKING</div>
   <div id="venuebug"><strong id="venuename">THE HANDMADE UNDERCARD</strong><span id="venueline">THE ROOM CLOSES IN</span></div>
   <div class="fpanel" id="fpA">
-    <div class="fname"><span class="dot" id="dotA"></span><span id="nameA">—</span></div>
-    <div class="frec" id="recA"></div>
+    <div class="fname"><span class="dot" id="dotA"></span><span id="nameA" data-score-fit>—</span></div>
+    <div class="frec" id="recA"><span class="fclub" data-score-fit>—</span><span class="frecord"></span></div>
     <div class="fidentity"><span id="styleA">—</span><span id="stanceA">—</span></div>
     <div class="fplan" id="planA">READING CORNER</div>
     <div class="barlbl"><span>HEALTH</span><span id="hpAt"></span></div>
@@ -267,8 +276,8 @@
     <div class="bar guard"><div class="fill" id="gdA"></div></div>
   </div>
   <div class="fpanel" id="fpB">
-    <div class="fname"><span id="nameB">—</span><span class="dot" id="dotB"></span></div>
-    <div class="frec" id="recB"></div>
+    <div class="fname"><span id="nameB" data-score-fit>—</span><span class="dot" id="dotB"></span></div>
+    <div class="frec" id="recB"><span class="fclub" data-score-fit>—</span><span class="frecord"></span></div>
     <div class="fidentity"><span id="styleB">—</span><span id="stanceB">—</span></div>
     <div class="fplan" id="planB">READING CORNER</div>
     <div class="barlbl"><span>HEALTH</span><span id="hpBt"></span></div>
@@ -924,7 +933,8 @@ function applyFighterHUD() {
   const [A, B] = fighters;
   const setP = (f, nameEl, recEl, dotEl, hpEl) => {
     el(nameEl).textContent = f.name; el(nameEl).style.color = f.club.css;
-    el(recEl).textContent = `${f.club.name} · ${recStr(f.name)}`;
+    el(recEl).querySelector('.fclub').textContent = f.club.name;
+    el(recEl).querySelector('.frecord').textContent = ` · ${recStr(f.name)}`;
     el(dotEl).style.background = f.club.css; el(dotEl).style.boxShadow = `0 0 10px ${f.club.css}`;
     el(hpEl).style.background = f.club.css; el(hpEl).style.color = f.club.css;
   };

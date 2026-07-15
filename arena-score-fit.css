@@ -1,0 +1,71 @@
+/* Shared scoreboard typography contract.
+   Team/fighter labels stay on one measured line; the runtime fitter lowers only
+   the label size needed for the current fixture and viewport. */
+[data-score-fit] {
+  min-width: 0;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+  font-size: var(--score-fit-max, inherit);
+  letter-spacing: var(--score-fit-tracking, inherit);
+  line-height: 1.05;
+}
+
+#scoreboard .team {
+  min-width: 0;
+  flex: 1 1 0;
+  overflow: hidden;
+}
+
+#scoreboard .team > [data-score-fit] {
+  flex: 1 1 auto;
+}
+
+/* A drawn rule is optically centered independent of the webfont's en-dash
+   metrics. The screen-reader-only word keeps the score understandable aloud. */
+.arena-score-readout {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid !important;
+  grid-template-columns: minmax(1ch, auto) .78em minmax(1ch, auto);
+  align-items: center;
+  justify-items: center;
+  column-gap: .3em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.arena-score-readout .score-value {
+  min-width: 1ch;
+  line-height: 1;
+  text-align: center;
+}
+
+.arena-score-readout .score-separator {
+  display: block;
+  width: .72em;
+  height: 2px;
+  align-self: center;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 7px currentColor;
+  opacity: .88;
+}
+
+.arena-score-readout .score-reader {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* At the narrowest supported phone width the club-colored type already carries
+   side identity. Reclaim the decorative diamonds so full names remain legible. */
+@media (max-width: 340px) {
+  #scoreboard .team .dot { display: none; }
+}

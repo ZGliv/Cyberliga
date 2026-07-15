@@ -6,6 +6,8 @@
 <title>CYBERLIGA SOCCER</title>
 <script src="watchonly.js"></script>
 <link rel="icon" href="data:," />
+<link rel="stylesheet" href="arena-score-fit.css" />
+<script src="arena-score-fit.js" defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -16,14 +18,18 @@
   /* Scoreboard */
   #scoreboard {
     position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
-    display: flex; align-items: stretch; height: 46px;
+    display: flex; align-items: stretch; width:min(700px, calc(100vw - 320px)); height: 46px;
+    max-width:calc(100vw - 32px);
     background: linear-gradient(180deg, rgba(8,12,28,.92), rgba(4,6,16,.92));
     border: 1px solid rgba(0,229,255,.25); border-radius: 8px;
     box-shadow: 0 0 24px rgba(0,229,255,.18), inset 0 1px 0 rgba(255,255,255,.06);
     overflow: hidden; backdrop-filter: blur(6px);
   }
-  .team { display:flex; align-items:center; gap:10px; min-width:0; padding: 0 16px; font-family:'Orbitron'; font-weight:700; font-size:15px; letter-spacing:2px; white-space:nowrap; }
-  .team-name { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .team { display:flex; align-items:center; gap:10px; min-width:0; padding: 0 16px; font-family:'Orbitron'; font-weight:700; font-size:15px; letter-spacing:2px; white-space:nowrap; overflow:hidden; }
+  .team-name {
+    --score-fit-max:15px; --score-fit-min:9px; --score-fit-floor:6.25px; --score-fit-tracking:2px; --score-fit-min-tracking:0px;
+    min-width:0; overflow:hidden; text-overflow:clip;
+  }
   .team .dot { width:10px; height:10px; border-radius:2px; transform: rotate(45deg); }
   #teamA { color:#7ef0ff; } #teamA .dot { background:#00e5ff; box-shadow:0 0 10px #00e5ff; }
   #teamB { color:#ffb1d4; justify-content:flex-end; text-align:right; } #teamB .dot { background:#ff2d78; box-shadow:0 0 10px #ff2d78; }
@@ -202,6 +208,7 @@
       border-radius:10px;
     }
     .team { gap:7px; padding:0 9px; font-size:11px; letter-spacing:1px; }
+    .team-name { --score-fit-max:11px; --score-fit-min:7.5px; --score-fit-floor:5.75px; --score-fit-tracking:1px; --score-fit-min-tracking:-1.2px; }
     .team .dot { width:8px; height:8px; flex:0 0 8px; }
     #score { min-width:70px; padding:0 10px; font-size:18px; letter-spacing:2px; }
     #momentum {
@@ -276,6 +283,7 @@
   @media (max-width: 390px) {
     #scoreboard { width:calc(100vw - 16px); }
     .team { padding:0 7px; font-size:10px; letter-spacing:.7px; }
+    .team-name { --score-fit-max:10px; --score-fit-min:7px; --score-fit-floor:5.5px; --score-fit-tracking:.7px; --score-fit-min-tracking:-1.45px; }
     #score { min-width:62px; padding:0 8px; font-size:17px; }
   }
 
@@ -294,9 +302,9 @@
 <body data-cyberliga-presence-manual>
 <div id="hud">
   <div id="scoreboard">
-    <div class="team" id="teamA"><span class="dot"></span><span class="team-name">NEON FC</span></div>
-    <div id="score"><span id="sA">0</span>&nbsp;–&nbsp;<span id="sB">0</span></div>
-    <div class="team" id="teamB"><span class="team-name">VOLT UTD</span><span class="dot"></span></div>
+    <div class="team" id="teamA"><span class="dot"></span><span class="team-name" data-score-fit>NEON FC</span></div>
+    <div id="score" class="arena-score-readout" role="group" aria-label="Match score"><span class="score-value" id="sA" aria-label="Home score">0</span><span class="score-separator" aria-hidden="true"></span><span class="score-reader">to</span><span class="score-value" id="sB" aria-label="Away score">0</span></div>
+    <div class="team" id="teamB"><span class="team-name" data-score-fit>VOLT UTD</span><span class="dot"></span></div>
   </div>
   <div id="momentum"></div>
   <div id="feed"></div>
@@ -3981,9 +3989,9 @@ function startMatch() {
   stats.reset(); replaySys.reset();
   elSA.textContent = '0'; elSB.textContent = '0'; elHalf.textContent = '1ST HALF';
   const cA = hex6(TEAM_A.glow), cB = hex6(TEAM_B.glow);
-  elTeamAEl.innerHTML = `<span class="dot" style="background:${cA};box-shadow:0 0 10px ${cA}"></span><span class="team-name">${TEAM_A.name}</span>`;
+  elTeamAEl.innerHTML = `<span class="dot" style="background:${cA};box-shadow:0 0 10px ${cA}"></span><span class="team-name" data-score-fit>${TEAM_A.name}</span>`;
   elTeamAEl.style.color = cA;
-  elTeamBEl.innerHTML = `<span class="team-name">${TEAM_B.name}</span><span class="dot" style="background:${cB};box-shadow:0 0 10px ${cB}"></span>`;
+  elTeamBEl.innerHTML = `<span class="team-name" data-score-fit>${TEAM_B.name}</span><span class="dot" style="background:${cB};box-shadow:0 0 10px ${cB}"></span>`;
   elTeamBEl.style.color = cB;
   resetPositions(simRandom() < 0.5 ? TEAM_A : TEAM_B);
   state.mode = 'kickoff'; state.modeT = 0;
