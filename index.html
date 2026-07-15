@@ -175,23 +175,25 @@
   #lineup .lrow .num { font-family:'Orbitron'; font-weight:700; font-size:13px; color:var(--lucolor,#00e5ff); width:24px; text-align:right; flex:0 0 auto; }
   #lineup .lrow .role { margin-left:auto; font-size:11px; letter-spacing:2px; color:rgba(180,210,235,.6); }
 
-  /* Corner badge: league hub link + arena wordmark (matches ICE/HOOPS treatment) */
-  #badge { position:absolute; top:22px; left:22px; display:flex; gap:12px; align-items:center; z-index:60; }
-  #wordmark { font-family:'Orbitron'; font-weight:900; font-size:16px; letter-spacing:3px; color:#7ef0ff; text-shadow:0 0 14px rgba(0,229,255,.55); white-space:nowrap; }
-  #wordmark em { font-style:normal; color:#fff; }
-  /* narrow viewports: the centered scoreboard reaches the corner badge — stack under the pill */
-  @media (max-width: 1100px) { #badge { flex-direction:column; align-items:flex-start; gap:6px; } #wordmark { font-size:12px; letter-spacing:2px; } }
+  /* One consistent watch-only exit across every arena. */
+  #badge {
+    position:absolute;
+    top:calc(env(safe-area-inset-top, 0px) + 22px);
+    left:calc(env(safe-area-inset-left, 0px) + 22px);
+    z-index:60;
+  }
   #leaguepill {
     pointer-events:auto;
-    display:inline-flex; align-items:center; gap:6px;
-    font-family:'Rajdhani'; font-weight:700; font-size:13px; letter-spacing:2px;
+    min-height:42px; display:inline-flex; align-items:center; justify-content:center;
+    padding:0 16px; white-space:nowrap;
+    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:13px; line-height:1; letter-spacing:2px;
     color:#7ef0ff; text-decoration:none; border:1px solid rgba(0,229,255,.4);
-    padding:6px 14px; border-radius:99px; background:rgba(4,8,20,.7);
+    border-radius:99px; background:rgba(4,8,20,.7);
     box-shadow:0 0 12px rgba(0,229,255,.18);
     transition:color .15s, border-color .15s, box-shadow .15s;
   }
-  #leaguepill .pill-short { display:none; }
   #leaguepill:hover { color:#fff; background:rgba(0,229,255,.16); border-color:rgba(0,229,255,.7); box-shadow:0 0 18px rgba(0,229,255,.5); }
+  #leaguepill:focus-visible { color:#fff; outline:2px solid #fff; outline-offset:3px; }
   @media (max-width: 700px) {
     #scoreboard {
       top:calc(env(safe-area-inset-top, 0px) + 54px);
@@ -215,21 +217,12 @@
     #half { font-size:10px; letter-spacing:1.2px; white-space:nowrap; }
     #badge {
       top:calc(env(safe-area-inset-top, 0px) + 10px);
-      left:10px; right:10px;
-      display:grid; grid-template-columns:auto minmax(0, 1fr);
-      align-items:center; gap:10px;
+      left:calc(env(safe-area-inset-left, 0px) + 10px);
     }
     #leaguepill {
-      min-height:34px; padding:7px 11px;
-      font-size:12px; letter-spacing:1.2px;
+      min-height:42px; padding:0 14px;
+      font-size:12px; letter-spacing:1.6px;
       background:rgba(4,8,20,.82);
-    }
-    #leaguepill .pill-full { display:none; }
-    #leaguepill .pill-short { display:inline; }
-    #wordmark {
-      justify-self:end;
-      min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis;
-      font-size:12px; letter-spacing:1.6px; text-align:right;
     }
     #feed {
       top:calc(env(safe-area-inset-top, 0px) + 142px);
@@ -285,13 +278,11 @@
     #scoreboard { width:calc(100vw - 16px); }
     .team { padding:0 7px; font-size:10px; letter-spacing:.7px; }
     #score { min-width:62px; padding:0 8px; font-size:17px; }
-    #wordmark { font-size:11px; letter-spacing:1.1px; }
   }
 
   /* OG CUT — let the match be the graphic. The simulation still produces every
      event, but routine information stays in the ticker instead of covering play. */
   #feed, #momentum, #lineup, #penstinger, #pentag { display:none !important; }
-  #wordmark { display:none; }
   #clockwrap { top:74px; }
   #ticker { background:linear-gradient(180deg,rgba(4,6,16,.78),rgba(2,3,10,.92)); }
   #scanlines { opacity:.62; }
@@ -313,7 +304,7 @@
   <div id="clockwrap"><span class="live"></span><span id="clock">00:00</span><span id="half">1ST HALF</span></div>
   <div id="matchcontext"><span class="phase">KICKOFF RITUAL</span><span class="sep">◆</span><span class="plans">CLUB ANTHEMS · OPENING SHAPES</span></div>
   <div id="analyststrip"><span id="analystA">50% · 0 SH · 0.00 xG</span><span id="analystphase">OPENING SHAPES</span><span id="analystB">0.00 xG · 0 SH · 50%</span></div>
-  <div id="badge"><a id="leaguepill" class="watch-only-exit" href="world.html" aria-label="Back to Cyberliga globe"><span aria-hidden="true">◉</span><span class="pill-full">GLOBE</span><span class="pill-short">GLOBE</span></a><span id="wordmark">CYBERLIGA <em>SOCCER</em></span></div>
+  <div id="badge"><a id="leaguepill" class="watch-only-exit" href="world.html" aria-label="Back to the Cyberliga globe">← GLOBE</a></div>
   <div id="broadcasttag"><span data-cyberliga-presence>1 WATCHING · LOCAL</span><b id="broadcastid">SYNCING</b></div>
   <div id="goalflash"><div id="goaltext">GOAL</div><div id="goalsub"></div></div>
   <div id="penstinger"><div class="pflash"></div><div class="ptext">PENALTY!</div><div class="psub" id="pensub"></div></div>

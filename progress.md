@@ -1,5 +1,16 @@
 Original prompt: Can you make boxing work way better? Make the actual fighting and animations and shit way better, you might need to make the characters better too /goal
 
+## Arena navigation consistency pass — 2026-07-15
+- Scope is task 4 only: soccer, American football, basketball, hockey, baseball, and combat arena top-left navigation.
+- Replaced every arena's top-left treatment with one rounded, safe-area-aware, watch-only `← GLOBE` link to `world.html`, retaining only each sport's accent color.
+- Removed the obsolete top-left `CYBERLIGA <mode>` wordmarks and exhibition-era pills; football's extra top-left `LEAGUE` link was also removed so all six arenas expose exactly one exit.
+- The shared visual contract is a 42px touch target, Rajdhani 700 typography, 99px pill radius, consistent arrow text, 22px desktop inset / 10px mobile inset, visible keyboard focus, and the existing `watch-only-exit` exemption.
+- First official-client run correctly caught four obsolete venue-identity writes targeting the removed DOM nodes in hoops, hockey, baseball, and combat. Removed those stale writes while retaining venue identity in the arenas, tickers, and existing venue readouts; the corrected rerun is recorded below.
+- Corrected official-client rerun passed all six arenas with finite `render_game_to_text` output, `autonomous:true`, `interaction:"view-only"`, and no browser error artifacts. The 1280×720 screenshots were visually inspected for every sport.
+- A separate 12-case browser matrix passed every arena at 1280×720 and 390×844: exactly one `← GLOBE` exit, exact `world.html` target, zero obsolete wordmark/era nodes, identical 97×42 desktop / 87×42 mobile geometry, Rajdhani 700 typography, pointer-enabled exit exemption, visible keyboard focus, zero scoreboard overlap, zero horizontal overflow, and zero console/page/request/HTTP errors.
+- Mobile live-play screenshots were visually inspected for all six sports after their establishing sequences; the exit stays clear of every top scoreboard/round treatment and the simulations remain autonomous. No remaining task-4 TODOs.
+- Added repository verifier contracts for every arena: exactly one watch-only exit, exact `← GLOBE` text and `world.html` destination, and no obsolete `wordmark` / `erapill` nodes.
+
 - Arena polish: hockey puck now renders true black with a separate cyan locator ring; hockey, hoops, and soccer arena return controls now read `GLOBE` and link back to the world view.
 - Mobile camera pass: soccer uses an 11s overhead / 7s elevated end-zone rhythm and hockey uses 10s / 7s; goals, replays, and major hockey action hold the angle long enough to restore depth without camera rolls or roof fly-throughs. Portrait captures confirm both views at 390×844, desktop and phone-landscape remain on their authored broadcast paths, hockey restart clears any angle hold, and browser runs report no page errors.
 - Corrected the hockey/hoops `GLOBE` links to use the watch-only exit exemption, so those top-left controls remain visible, focusable, and linked to `world.html` after the autonomous-broadcast guard initializes.
