@@ -92,7 +92,7 @@ const supportingPages = [
   { file: 'league.html', scriptFile: 'league-page.js', screen: /screen\s*:\s*['"]league-hq['"]/ },
   { file: 'social.html', screen: /screen\s*:\s*['"](?:social|world-wire)['"]/ },
   { file: 'moment.html', screen: /screen\s*:\s*['"](?:moment|moment-maker)['"]/ },
-  { file: 'clip.html', screen: /screen\s*:\s*['"]animated-clip-director['"]/ },
+  { file: 'clip.html', screen: /screen\s*:\s*(?:viewer\s*\?\s*['"]animated-clip-viewer['"]\s*:\s*)?['"]animated-clip-director['"]/ },
   { file: 'menu.html', scriptFile: 'menu.js', screen: /screen\s*:\s*['"]broadcast-guide['"]/ },
   { file: 'replay.html', scriptFile: 'replay.js', screen: /screen\s*:\s*['"]replay-center['"]/ },
   { file: 'player.html', scriptFile: 'player.js', screen: /screen\s*:\s*['"]athlete-profile['"]/ },
@@ -124,6 +124,7 @@ const replaySource = await text('replay.html');
 const replayScript = await text('replay.js');
 const playerSource = await text('player.html');
 const playerScript = await text('player.js');
+const playerStyles = await text('player.css');
 const footballSource = await text('football.html');
 const footballScript = await text('football.js');
 const baseballSource = await text('baseball.html');
@@ -132,11 +133,14 @@ const fightSource = await text('fight.html');
 
 const worldPrimaryNav = worldSource.match(/<nav class=["']nav["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
 const leaguePrimaryNav = leagueMarkupSource.match(/<nav class=["']league-nav["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
-for (const [label, nav] of [['World', worldPrimaryNav], ['League HQ', leaguePrimaryNav]]) {
+const playerPrimaryNav = playerSource.match(/<nav[^>]*aria-label=["']Primary navigation["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
+const clipPrimaryNav = clipSource.match(/<nav[^>]*aria-label=["']Primary navigation["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
+for (const [label, nav] of [['World', worldPrimaryNav], ['League HQ', leaguePrimaryNav], ['Athlete Files', playerPrimaryNav], ['Clip Viewer', clipPrimaryNav]]) {
   check((nav.match(/<a\b/gi) || []).length === 2, `${label} primary navigation must expose exactly Home and Leagues`);
   check(/world\.html/i.test(nav) && /league\.html/i.test(nav), `${label} primary navigation must link Home and Leagues`);
   check(!/(?:menu\.html|social\.html|COMMUNITY|LIVE NOW|>\s*WATCH\s*<\/)/i.test(nav), `${label} primary navigation restored a removed destination`);
 }
+check(!/\.masthead\s+nav\s+a:not\(:last-child\)\s*\{\s*display\s*:\s*none/i.test(playerStyles), 'Athlete Files must keep both primary destinations visible on mobile');
 
 check(/export const CLASSIC_PLAYER_COLORS\s*=\s*Object\.freeze\(\[0x00e5ff,\s*0xff45d6\]\)/i.test(blobRigSource), 'Shared rig must preserve the canonical cyan/hot-pink athlete palette');
 check(/export function classicPlayerColor\s*\(/.test(blobRigSource), 'Shared rig must expose side-stable classic athlete colors');
@@ -178,6 +182,10 @@ check(momentSource.includes('clip.html?'), 'Moment Maker does not preserve its c
 check(/canvas\.captureStream\(30\)/.test(clipSource), 'Clip Director must capture a real 30fps canvas stream');
 check(/new MediaRecorder/.test(clipSource), 'Clip Director must use MediaRecorder for WebM output');
 check(/DURATION\s*=\s*12000/.test(clipSource), 'Clip Director must keep the 12-second viral format');
+check(/params\.get\(['"]view['"]\)===['"]1['"]/.test(clipSource), 'Shared story clips must expose a passive viewer mode');
+check(clipSource.indexOf('document.documentElement.dataset.clipMode') >= 0 && clipSource.indexOf('document.documentElement.dataset.clipMode') < clipSource.indexOf('<style>'), 'Passive clip mode must be established before viewer controls can paint');
+check(/controls:viewer\?\[\]/.test(clipSource) && /interaction:viewer\?['"]view-only['"]/.test(clipSource), 'Passive story clips must publish a view-only, control-free state');
+check(/FICTIONAL OUTCOME[^<]*NOT A RECORDED LIVE RESULT/.test(clipSource), 'Synthetic clip outcomes must be visibly labeled as fictional concepts');
 check(/id=["']channel-grid["']/.test(menuSource), 'Broadcast Guide must expose the canonical live channel grid');
 check(/id=["']sport-grid["']/.test(menuSource), 'Broadcast Guide must expose every playable arena');
 check(/UNIVERSE\.liveMatches/.test(menuScript), 'Broadcast Guide must use the shared UTC match schedule');
@@ -202,6 +210,22 @@ check(await exists('gamehub.js'), 'Missing shared in-game navigation hub');
 const gameHubSource = await text('gamehub.js');
 check(/removeLegacyCyberligaGameHub/.test(gameHubSource), 'Legacy gamehub compatibility file must remain removal-only');
 for (const arena of arenas) check(!(await text(arena.file)).includes('gamehub.js'), `${arena.file} must not restore the removed Navigate menu`);
+const arenaSignalSource = await text('arena-signal.js');
+const arenaSignalStyles = await text('arena-signal.css');
+check(Boolean(arenaSignalSource) && Boolean(arenaSignalStyles), 'Missing shared view-only arena narrative signal');
+check(/interaction:\s*['"]view-only['"]/.test(arenaSignalSource) && /autonomous:\s*true/.test(arenaSignalSource), 'Arena Signal must expose an autonomous view-only QA contract');
+check(/pointer-events:\s*none\s*!important/.test(arenaSignalStyles), 'Arena Signal must remain pointer-inert');
+check(!/element\(\s*['"](?:a|button|input|select|textarea)['"]/.test(arenaSignalSource), 'Arena Signal must not create interactive arena controls');
+for (const arena of arenas) {
+  const source = await text(arena.file);
+  const worldAt = source.indexOf('worlddata.js');
+  const characterAt = source.indexOf('characterdata.js');
+  const mythosAt = source.indexOf('mythos.js');
+  const signalAt = source.indexOf('arena-signal.js');
+  check(source.includes('arena-signal.css'), `${arena.file} must load the shared arena narrative styles`);
+  check(worldAt >= 0 && worldAt < characterAt && characterAt < mythosAt && mythosAt < signalAt, `${arena.file} must load world → characters → mythos → arena signal in order`);
+}
+check(/CyberligaCharacters\?\.featuredForTeam/.test(fightSource), 'Combat must put its Founding 12 athlete into each authored club cast');
 const characterLabSource = await text('characterlab.html');
 const characterLabScript = await text('characterlab.js');
 check(/Marquee 12/i.test(characterLabSource), 'Character Lab must expose the first twelve marquee athletes');
@@ -278,6 +302,78 @@ if (content) {
   check(teamIds.size === 48, 'Worlddata must have 48 unique team ids', String(teamIds.size));
   check(athleteIds.size === 416, 'Worlddata must have 416 unique athlete ids', String(athleteIds.size));
 }
+
+const characterDataPresent = await exists('characterdata.js');
+check(characterDataPresent, 'Missing shared Founding 12 character canon', 'characterdata.js');
+if (characterDataPresent && content) {
+  const characterContext = vm.createContext({ CYBERLIGA_CONTENT: content, console });
+  vm.runInContext(await text('characterdata.js'), characterContext, { filename: 'characterdata.js', timeout: 2000 });
+  const characters = characterContext.CyberligaCharacters;
+  check(Boolean(characters), 'characterdata.js did not expose CyberligaCharacters');
+  if (characters) {
+    check(Object.isFrozen(characters), 'CyberligaCharacters public API must be frozen');
+    check(characters.records?.length === 12, 'Character canon must contain exactly 12 founding athletes', String(characters.records?.length));
+    check(characters.records?.every((record) => content.getAthlete(record.teamId, record.id)), 'Every founding character must resolve to the 416-athlete world roster');
+    check(new Set(characters.records?.map((record) => record.teamId)).size === 12, 'Founding characters must represent 12 distinct clubs');
+    check(content.sports.every((sport) => characters.records?.filter((record) => record.sportId === sport.id).length === 2), 'Every sport must have exactly two founding characters');
+    check(characters.validate(content)?.valid === true, 'CyberligaCharacters.validate must accept the canonical world roster', (characters.validate(content)?.errors || []).join('; '));
+  }
+}
+
+const mythosPresent = await exists('mythos.js');
+check(mythosPresent, 'Missing shared mythos engine', 'mythos.js');
+if (mythosPresent) {
+  const mythosWindow = {};
+  evaluateBrowserScript(await text('worlddata.js'), 'worlddata.js', mythosWindow);
+  evaluateBrowserScript(await text('mythos.js'), 'mythos.js', mythosWindow);
+  const mythos = mythosWindow.CyberligaMythos;
+  const supporterContract = 'Fictional supporter picks only. No cash, prizes, deposits, payouts or gameplay influence.';
+  check(Boolean(mythos), 'mythos.js did not expose CyberligaMythos');
+  if (mythos) {
+    check(Object.isFrozen(mythos), 'CyberligaMythos public API must be frozen');
+    for (const method of ['epoch', 'resolveSport', 'resolveTeam', 'resolveAthlete', 'athleteProfile', 'matchStory', 'slate', 'world', 'arenaHref']) {
+      check(typeof mythos[method] === 'function', `CyberligaMythos is missing ${method}()`);
+    }
+    check(mythos.epochMs === 15 * 60 * 1000, 'CyberligaMythos must use the shared 15-minute story epoch', String(mythos.epochMs));
+    check(mythos.supporterContract === supporterContract, 'CyberligaMythos must publish the fictional supporter contract');
+
+    const scheduleBoundaryBefore = mythos.epoch((14 * 10 - 1) * mythos.epochMs);
+    const scheduleBoundaryAfter = mythos.epoch(14 * 10 * mythos.epochMs);
+    check(scheduleBoundaryBefore.roundIndex === 13 && scheduleBoundaryAfter.roundIndex === 0, 'Mythos schedule cycles must complete all 14 rounds before rollover');
+    check(scheduleBoundaryBefore.seasonId !== scheduleBoundaryAfter.seasonId, 'Mythos schedule seed must rotate only after a complete cycle');
+    check(scheduleBoundaryBefore.continuityId === scheduleBoundaryAfter.continuityId, 'Short schedule rollover must not rewrite athlete continuity');
+
+    const mythosWorld = mythos.world(Date.UTC(2030, 0, 15, 12, 7, 30));
+    check(mythosWorld?.matches?.length === 24, 'CyberligaMythos must publish all 24 simultaneous matches', String(mythosWorld?.matches?.length));
+    check(mythosWorld?.metrics?.athletes === 416, 'CyberligaMythos must preserve all 416 public athletes', String(mythosWorld?.metrics?.athletes));
+    check(mythosWorld?.supporterContract === supporterContract, 'Mythos world state must carry the public supporter contract');
+    check(mythosWorld?.matches?.every((story) => story.supporterContract === supporterContract), 'Every mythos match must carry the public supporter contract');
+    check(mythosWorld?.matches?.every((story) => story.home.pickShare + story.away.pickShare === 100), 'Mythos fictional supporter splits must total 100');
+    check(mythosWorld?.matches?.every((story) => !Object.prototype.hasOwnProperty.call(story, 'arenaQuery')), 'Mythos stories must not expose unsupported home/away routing metadata');
+    check(!/[?&](?:home|away|league)=/.test(mythos.arenaHref(mythosWorld.matches[0])), 'Mythos arena links must not emit unsupported team query parameters');
+    const publicMythosKeys = Object.keys(mythos).join(' ').toLowerCase();
+    check(!/\b(?:bet|wager|odds|wallet|deposit|payout|prize)\b/.test(publicMythosKeys), 'CyberligaMythos must not expose cash or prize mechanics');
+  }
+}
+
+const fanworldFiles = ['fanworld.js','fanworld.css'];
+for (const file of fanworldFiles) check(await exists(file), 'Missing shared supporter experience artifact', file);
+for (const [surface, source] of [['Home',worldSource],['League HQ',atlasSource],['Athlete Files',`${playerSource}\n${playerScript}`]]) {
+  check(source.includes('characterdata.js'), `${surface} must load the Founding 12 canon`);
+  check(source.includes('mythos.js'), `${surface} must load the shared mythos engine`);
+  check(source.includes('fanworld.js') && source.includes('fanworld.css'), `${surface} must load My Signal supporter UI`);
+}
+const fanworldSource = await text('fanworld.js');
+const fanworldStyles = await text('fanworld.css');
+check(/local-fan-signal/.test(fanworldSource), 'My Signal calls must remain explicitly device-local');
+check(/status:\s*['"]open['"][\s\S]{0,120}resolution:\s*null[\s\S]{0,80}points:\s*null/.test(fanworldSource), 'Fan calls must remain unresolved until an authoritative event stream exists');
+check(/NO MONEY[\s\S]{0,80}NO PRIZE[\s\S]{0,140}NOT SETTLED AGAINST (?:THIS )?CLIENT SIMULATION/.test(fanworldSource), 'My Signal must visibly disclose its free, unresolved supporter contract');
+check(/data-fw-action=["']share-story["']/.test(fanworldSource) && /OPEN 12-SECOND CLIP/.test(fanworldSource), 'Fixture stories must expose both share and 12-second clip actions');
+check(/function storyClipUrl\s*\([\s\S]{0,500}clip\.html\?/.test(fanworldSource), 'Shared fixture stories must preserve their context into Clip Director');
+check(/match:\s*story\.key[\s\S]{0,80}story:\s*story\.id[\s\S]{0,80}view:\s*['"]1['"]/.test(fanworldSource), 'Shared clip URLs must carry permanent match/story seeds into passive viewer mode');
+check(/navigator\.share/.test(fanworldSource) && /navigator\.clipboard/.test(fanworldSource) && /fallbackCopy/.test(fanworldSource), 'Story sharing must support native share, clipboard, and fallback copy paths');
+check(/\.fw-call-note\s*\{[^}]*rgba\(255,255,255,\.68\)[^}]*8px/.test(fanworldStyles), 'Free-call disclosure must remain legible at the point of action');
+check(/\.fw-drawer-foot\s*\{[^}]*rgba\(255,255,255,\.68\)[^}]*8px/.test(fanworldStyles), 'Supporter passport disclosure must remain legible');
 
 const universeWindow = {};
 evaluateBrowserScript(await text('worlddata.js'), 'worlddata.js', universeWindow);

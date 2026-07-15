@@ -567,3 +567,53 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   arenas with HTTP 200, finite autonomous/view-only state, no horizontal overflow and zero console,
   page or request errors. Every final screenshot was visually inspected and shows cyan versus hot-pink
   athletes while preserving club identity in HUDs, venues and crowds.
+
+## Cyberliga Living World One-Shot — 2026-07-14
+- Current goal prompt: reimagine Cyberliga as a state-of-the-art autonomous AI sports world whose
+  characters become beloved, whose broadcasts are irresistible, and whose prediction, supporter and
+  collectible loops create genuine reasons to return and share—while preserving all six sports, 48
+  clubs, 24 simultaneous games, 416 athletes, classic cyan/hot-pink live athletes, fixture deep links,
+  deterministic hooks, mobile broadcast cameras and view-only gameplay.
+- Worktree: `codex/ai-sports-world-one-shot`, created from canonical commit `a1ed7f4`; no deployment is
+  authorized. Initial work is an architecture/product/visual audit before the cohesive implementation.
+- Product boundary: supporter predictions will be free, fictional and non-cash. No deposits, payouts,
+  real-money odds or gameplay influence will be introduced.
+- Architecture/product/visual audits converged on the same missing loop: Cyberliga already has deep
+  simulations, expressive club identity and share tools, but no continuity from athlete recognition to
+  pressure, supporter choice, saved moment and return visit. The feature is therefore additive rather
+  than a six-arena rewrite.
+- Added `characterdata.js`, the exact shared Founding 12 canon extracted from Character Lab, and made
+  the lab consume that immutable source without changing its visual behavior. Every founding athlete
+  resolves to the 416-athlete roster; there are exactly two per sport and twelve distinct clubs.
+- Added `mythos.js`, a deterministic 15-minute narrative layer that gives all 416 athletes durable arcs,
+  desire, gift, flaw, ritual, relationship, pressure, trajectory, voice and concept collectible identity.
+  It builds four story-bearing fixtures per sport / 24 per world epoch, with exact fixed-time output.
+- Added the My Signal supporter loop to Home, League HQ and Athlete Files: device-local follows, free
+  unresolved fan calls, supporter XP/tier, concept-drop locker, fixture stakes, star duels and an explicit
+  no-money/no-prize/no-client-settlement disclosure. Home World Pulse is derived from the actual rendered
+  24 fixtures, not a parallel schedule.
+- League HQ now exposes four premium character-intelligence cards for the active league and adds club /
+  athlete follow actions throughout the existing dossier and roster. Athlete Files expose follow, club and
+  concept-drop actions without replacing their existing editorial presentation.
+- Canonical fallback score events now carry stable roster athlete IDs, actor roles, leverage and story tags.
+  This is the first honest bridge from immutable match events to future career/story/media continuity; it
+  does not claim the browser arenas are already the server-authoritative simulation.
+- Mythos schedule continuity now spans every round of the complete 14-round cycle without rewriting athlete
+  identity at short season rollover. Every four-game slate and all 24 simultaneous World stories carry distinct,
+  matchup-specific headlines; safe arena links use only selectors the destination actually supports.
+- Every fixture story now has an intentional viral path: native share / clipboard fallback, a stable seeded URL,
+  and an existing 12-second Clip surface promoted into a passive auto-looping viewer. Viewer mode exposes no
+  playback/fullscreen controls, preserves the story across future clocks, uses only Home/Leagues navigation and
+  labels its score as a fictional concept rather than a recorded live result.
+- Added one shared pointer-inert Arena Signal to all six broadcasts. Desktop shows stakes, headline, star duel
+  and a factual live beat; 390×844 receives a 31px safe-zone ribbon so the broadcast camera remains primary.
+  Combat now guarantees each authored club's Founding athlete can enter its live cast; Bangkok's Sticky Rice
+  (`bangkok-banana-leaf-a4`) is verified in both the simulation state and the visible bout.
+- Canonical fallback events now normalize active/public/sport-matched rosters, attribute only verified athlete
+  IDs, carry before/after score context and refuse to call late blowout extensions pressure moments. Football
+  field goals remain unattributed unless a verified kicker exists; public match payloads do not leak rosters.
+- Final exact-source validation passes 13/13 API tests, 10/10 Mythos tests, 28/28 football rules/brain tests and
+  1,152/1,152 repository checks. Core desktop/mobile flows preserve 24 fixtures / 48 endpoints with stable share,
+  persistence, XP idempotence, dialog focus and zero browser/request errors. The official game client passes all
+  six arenas; the 12-cell 1280×720 + 390×844 arena matrix is finite, autonomous, view-only, overflow-free and
+  error-free, with visually confirmed cyan/hot-pink athletes and collision-free narrative signals in every sport.

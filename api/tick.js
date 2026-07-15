@@ -4,8 +4,8 @@ import { canonicalTickPayload } from '../lib/canonical-server.js';
 const DUE_FIXTURE_SELECT = [
   'public_id', 'round_number', 'channel', 'seed', 'starts_at', 'scheduled_end_at', 'status',
   'season:seasons!fixtures_season_id_fkey(public_id,sport_key,name,status)',
-  'home_team:teams!fixtures_home_team_id_fkey(public_id,name,code,city,primary_color)',
-  'away_team:teams!fixtures_away_team_id_fkey(public_id,name,code,city,primary_color)'
+  'home_team:teams!fixtures_home_team_id_fkey(public_id,name,code,city,primary_color,athletes:athletes!athletes_team_id_fkey(public_id,role,squad_number,active,sport_key,is_public))',
+  'away_team:teams!fixtures_away_team_id_fkey(public_id,name,code,city,primary_color,athletes:athletes!athletes_team_id_fkey(public_id,role,squad_number,active,sport_key,is_public))'
 ].join(',');
 
 function setCommonHeaders(response) {

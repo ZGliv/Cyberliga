@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" href="data:," />
+<link rel="stylesheet" href="arena-signal.css" />
 <title>CYBERLIGA FIGHT NIGHT — AUTONOMOUS AI FIGHTING</title>
 <script src="watchonly.js"></script>
 <style>
@@ -292,6 +293,9 @@
 </div>
 
 <script src="worlddata.js"></script>
+<script src="characterdata.js"></script>
+<script src="mythos.js"></script>
+<script src="arena-signal.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -333,7 +337,12 @@ const COMBAT_CONTENT=window.CYBERLIGA_CONTENT;
 const COMBAT_TEAMS=COMBAT_CONTENT.getTeams('combat');
 const LEAGUE_TEAMS=COMBAT_TEAMS.map(team=>{const hex=Number.parseInt(team.colors.primary.slice(1),16);return {name:team.name,css:team.colors.primary,kit:hex,glow:hex};});
 // Star fighter + alternate come from the same world cast as the atlas and World Wire.
-const CLUB_FIGHTERS=COMBAT_TEAMS.map(team=>team.athletes.slice(0,2).map(a=>a.name));
+const CLUB_FIGHTERS=COMBAT_TEAMS.map(team=>{
+  const founding=window.CyberligaCharacters?.featuredForTeam?.(team.id,'arena-cast');
+  const lead=team.athletes.find(athlete=>athlete.id===founding?.id)||team.athletes[0];
+  const alternate=team.athletes.find(athlete=>athlete.id!==lead?.id)||lead;
+  return [lead,alternate].filter(Boolean).map(athlete=>athlete.name);
+});
 const FIXTURES=COMBAT_CONTENT.createSeason('combat','arena').rounds.flatMap(round=>round.matches.map(match=>[COMBAT_TEAMS.findIndex(t=>t.id===match.homeId),COMBAT_TEAMS.findIndex(t=>t.id===match.awayId)]));
 const fightQuery = new URLSearchParams(location.search);
 const requestedFixture = fightQuery.get('match') ?? fightQuery.get('fixture');
