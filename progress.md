@@ -50,6 +50,13 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - Browser smoke reload passed with clean console logs.
 - Production deployment succeeded and was aliased to `https://cyberliga-ten.vercel.app`.
 
+## Home game-selector identity pass — 2026-07-15
+- Scope is task 3 only: make the Home/world sport and matchup selector unmistakably sport-specific, add a canonical club crest to both sides of every fixture, and materially increase selector typography at desktop and narrow mobile widths.
+- Preserve all six sports, 24 deep-linked games, globe interactions, compact horizontal rails, and a zero-horizontal-overflow document. Do not alter any arena explainer, arena scoreboard, or arena navigation.
+- Implemented the selector identity layer in `world.html`: seven large sport controls now carry distinct inline SVG symbols, full sport names, and game counts; all fixture cards render two canonical `branddata.js` club crests plus enlarged codes/names and a matching sport symbol. A deterministic code/color fallback remains available if a crest cannot resolve.
+- Updated compact layouts at 1200, 760, 360, and short-landscape breakpoints so the richer controls remain horizontal swipe rails. Added machine-readable crest/control counts and verifier coverage without changing any arena file.
+- QA passed at 1280×720, 390×844, and stress width 320×700: every All/Soccer/American Football/Basketball/Hockey/Baseball/Combat filter returned 24/4 fixtures and 48/8 crests, respectively; all links retained the correct six arena destinations; the compact carousel reached Game 2/4; panel bounds and document overflow were clean; minimum visible sport/team type was 11/12px; and console, page, request, and HTTP errors were empty. Required-client state and screenshots are in `/tmp/cyberliga-selector-official`, `/tmp/cyberliga-selector-*.png`, with the structured matrix at `/tmp/cyberliga-selector-qa.json`.
+
 ## Baseball Pass
 - Scope: `baseball.html`; make the game read better on mobile and add an obvious crowd/stadium atmosphere.
 - Starting point: the page already has a working Three.js field, basic crowd texture, ball physics, announcer ticker, score HUD, and hidden `_dbg/_ff` helpers.

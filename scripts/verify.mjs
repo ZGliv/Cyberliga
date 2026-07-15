@@ -201,6 +201,10 @@ for (const [sportId, source] of classicArenaSources) {
 check(!/buildAthleteRig/.test(footballScript) && /from\s+['"]\.\/blobrig\.js['"]/.test(footballScript), 'Football must render the accepted classic capsule athletes');
 
 check(/football\.html/.test(worldSource), 'World map does not route to American football');
+check(/<script src=["']branddata\.js["']><\/script>/.test(worldSource) && /BRAND\?\.crestSvg/.test(worldSource), 'World fixture selector must render canonical club crests');
+check(/clubEmblemMarkup\(card\.home,card\.league\)/.test(worldSource) && /clubEmblemMarkup\(card\.away,card\.league\)/.test(worldSource), 'Every World fixture must show both club crests');
+check(/const SPORT_ICONS = Object\.freeze/.test(worldSource) && ['soccer','american-football','basketball','hockey','baseball','combat'].every(sportId => worldSource.includes(`${sportId}:\``) || worldSource.includes(`'${sportId}':\``)), 'World sport selector must expose a distinct visual symbol for every sport');
+check(/class=["']sport-label["']/.test(worldSource) && /filter\.sport/.test(worldSource), 'World sport selector must render readable full sport labels');
 check(/['"]american-football['"]\s*:\s*\{[\s\S]{0,500}?arena\s*:\s*['"]football\.html['"]/.test(atlasSource), 'League HQ does not route American football to football.html');
 check(/id=["']standings-shell["']/.test(atlasSource) && /class=["']standings-table["']/.test(atlasSource), 'League HQ is missing its standings table');
 check(/api\/league\?sport=/.test(atlasSource), 'League atlas does not load the shared league-state API');
