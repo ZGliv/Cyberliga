@@ -40,7 +40,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(440px, calc(100vw - 24px));
+  width: min(468px, calc(100vw - 24px));
   display: grid;
   grid-template-rows: auto auto 1fr auto;
   overflow: hidden;
@@ -80,12 +80,48 @@ html.fw-open .fw-drawer { transform: none; }
 .fw-section-title span { color: rgba(255,255,255,.48); font: 800 7px/1 'Barlow Condensed',sans-serif; letter-spacing: .12em; }
 .fw-empty { padding: 18px; border: 1px dashed rgba(255,255,255,.18); color: rgba(255,255,255,.55); font: 700 10px/1.5 'Barlow Condensed',sans-serif; letter-spacing: .07em; }
 .fw-list { display: grid; gap: 7px; }
-.fw-list-item { min-width: 0; display: grid; grid-template-columns: 35px 1fr auto; align-items: center; gap: 10px; padding: 11px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.035); }
+.fw-list-item { min-width: 0; display: grid; grid-template-columns: 35px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 11px; border: 1px solid rgba(255,255,255,.12); color: inherit; background: rgba(255,255,255,.035); text-decoration: none; }
+.fw-list-item:hover, .fw-list-item:focus-visible { border-color: color-mix(in srgb,var(--item-color,var(--fw-drawer-accent)) 55%,rgba(255,255,255,.18)); background: rgba(255,255,255,.055); }
 .fw-list-item > b { width: 35px; height: 35px; display: grid; place-items: center; color: var(--item-color,var(--fw-drawer-accent)); border: 1px solid color-mix(in srgb,var(--item-color,var(--fw-drawer-accent)) 46%,rgba(255,255,255,.12)); font: 900 8px/1 'Barlow Condensed',sans-serif; }
 .fw-list-item div { min-width: 0; }
 .fw-list-item strong { display: block; overflow: hidden; font: 850 10px/1.15 'Barlow Condensed',sans-serif; letter-spacing: .055em; text-overflow: ellipsis; white-space: nowrap; }
 .fw-list-item small { display: block; margin-top: 5px; overflow: hidden; color: rgba(255,255,255,.48); font: 700 7px/1 'Barlow Condensed',sans-serif; letter-spacing: .1em; text-overflow: ellipsis; white-space: nowrap; }
 .fw-list-item em { color: var(--item-color,var(--fw-drawer-accent)); font: 800 7px/1 'Barlow Condensed',sans-serif; font-style: normal; letter-spacing: .1em; }
+.fw-live-source { display: grid; grid-template-columns: 7px auto minmax(0,1fr); align-items: center; gap: 8px; margin-bottom: 10px; padding: 10px; border: 1px solid rgba(255,255,255,.11); color: rgba(255,255,255,.52); background: rgba(255,255,255,.025); font: 750 8px/1.35 'Barlow Condensed',sans-serif; letter-spacing: .085em; }
+.fw-live-source i { width: 7px; height: 7px; border-radius: 50%; background: #879093; box-shadow: 0 0 0 3px rgba(135,144,147,.09); }
+.fw-live-source b { color: #f4f4ef; font-weight: 900; }
+.fw-live-source span { min-width: 0; text-align: right; }
+.fw-live-source[data-state='ready'] i { background: var(--fw-drawer-accent); box-shadow: 0 0 11px var(--fw-drawer-accent); }
+.fw-live-source[data-state='loading'] i { animation: fw-signal-pulse 1.15s ease-in-out infinite; }
+.fw-live-source[data-state='error'] { border-color: rgba(255,128,112,.25); color: rgba(255,190,180,.72); }
+.fw-live-source[data-state='error'] i { background: #ff806f; }
+@keyframes fw-signal-pulse { 50% { opacity: .32; transform: scale(.72); } }
+.fw-live-boundary { margin: -1px 0 12px; color: rgba(255,255,255,.64); font: 700 9px/1.45 'Barlow Condensed',sans-serif; letter-spacing: .055em; overflow-wrap: anywhere; }
+.fw-moment-stack { display: grid; gap: 9px; }
+.fw-moment-card { --moment-color: var(--fw-drawer-accent); position: relative; min-width: 0; overflow: hidden; border: 1px solid rgba(255,255,255,.14); background: radial-gradient(circle at 100% 0,color-mix(in srgb,var(--moment-color) 13%,transparent),transparent 43%),rgba(255,255,255,.025); }
+.fw-moment-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 2px; background: var(--moment-color); opacity: .65; }
+.fw-moment-card.is-unread { border-color: color-mix(in srgb,var(--moment-color) 52%,rgba(255,255,255,.16)); box-shadow: inset 0 0 24px color-mix(in srgb,var(--moment-color) 5%,transparent); }
+.fw-moment-main { display: block; padding: 13px 13px 12px 15px; color: inherit; text-decoration: none; }
+.fw-moment-main:hover, .fw-moment-main:focus-visible { background: rgba(255,255,255,.035); outline: 1px solid var(--moment-color); outline-offset: -1px; }
+.fw-moment-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--moment-color); font: 850 8px/1 'Barlow Condensed',sans-serif; letter-spacing: .12em; }
+.fw-moment-top em { color: #050607; padding: 4px 6px; background: var(--moment-color); font-style: normal; }
+.fw-moment-card h4 { margin-top: 10px; color: #fff; font: 900 19px/.94 'Archivo',sans-serif; letter-spacing: -.045em; text-transform: uppercase; }
+.fw-moment-identity { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 8px; margin-top: 8px; }
+.fw-moment-identity strong { color: #f4f4ef; font: 900 11px/1 'Barlow Condensed',sans-serif; letter-spacing: .035em; }
+.fw-moment-identity span { color: rgba(255,255,255,.55); font: 750 8px/1 'Barlow Condensed',sans-serif; letter-spacing: .085em; }
+.fw-moment-score { display: grid; grid-template-columns: auto auto auto 1fr; align-items: center; gap: 7px; margin-top: 11px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.11); }
+.fw-moment-score span { color: rgba(255,255,255,.66); font: 850 9px/1 'Barlow Condensed',sans-serif; letter-spacing: .075em; }
+.fw-moment-score b { color: #fff; font: 900 14px/1 'Barlow Condensed',sans-serif; letter-spacing: .035em; }
+.fw-moment-score em { overflow: hidden; color: var(--moment-color); font: 800 8px/1 'Barlow Condensed',sans-serif; font-style: normal; letter-spacing: .085em; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.fw-moment-proof { display: block; margin-top: 9px; overflow: hidden; color: rgba(255,255,255,.43); font: 700 7px/1 'Barlow Condensed',sans-serif; letter-spacing: .075em; text-overflow: ellipsis; white-space: nowrap; }
+.fw-moment-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); border-top: 1px solid rgba(255,255,255,.11); }
+.fw-moment-actions a { min-width: 0; min-height: 38px; display: grid; place-items: center; padding: 0 6px; color: rgba(255,255,255,.68); text-decoration: none; font: 800 8px/1.15 'Barlow Condensed',sans-serif; letter-spacing: .075em; text-align: center; }
+.fw-moment-actions a + a { border-left: 1px solid rgba(255,255,255,.11); }
+.fw-moment-actions a:hover, .fw-moment-actions a:focus-visible { color: #fff; background: color-mix(in srgb,var(--moment-color) 9%,transparent); }
+.fw-moment-empty { padding: 17px; border: 1px dashed rgba(255,255,255,.18); color: rgba(255,255,255,.57); font: 700 10px/1.5 'Barlow Condensed',sans-serif; letter-spacing: .06em; }
+.fw-moment-empty b { display: block; margin-bottom: 7px; color: #f4f4ef; font-size: 8px; letter-spacing: .13em; }
+.fw-section-action { min-height: 26px; padding: 0 8px; border: 1px solid rgba(255,255,255,.15) !important; color: rgba(255,255,255,.66) !important; background: transparent; cursor: pointer; font: 800 6px/1 'Barlow Condensed',sans-serif !important; letter-spacing: .1em; }
+.fw-section-action:hover, .fw-section-action:focus-visible { border-color: var(--fw-drawer-accent) !important; color: #fff !important; }
 .fw-drawer-foot { padding: 14px 18px calc(14px + env(safe-area-inset-bottom)); color: rgba(255,255,255,.68); border-top: 1px solid rgba(255,255,255,.13); background: rgba(0,0,0,.24); font: 700 8px/1.5 'Barlow Condensed',sans-serif; letter-spacing: .1em; }
 
 .fw-world-pulse {
@@ -197,6 +233,7 @@ html.fw-open .fw-drawer { transform: none; }
   .fw-story-card { padding: 20px 17px; }
   .fw-story-card h3 { font-size: 31px; }
   .fw-drawer { width: 100vw; border-left: 0; }
+  .fw-moment-actions a { min-height: 44px; }
   [data-fw-page='player'] .fw-trigger { top: 74px; right: 10px; }
 }
 @media (max-width: 420px) {
@@ -207,4 +244,5 @@ html.fw-open .fw-drawer { transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fw-backdrop, .fw-drawer, .fw-world-pulse, .fw-toast { transition-duration: .01ms !important; }
+  .fw-live-source i { animation: none !important; }
 }

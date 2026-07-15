@@ -711,3 +711,49 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - Final exact-source gates pass 13/13 API tests, 28/28 football brain/rules tests, 10/10 Mythos tests, and
   1,263/1,263 repository checks. No canonical preview, release branch, or production deployment was changed;
   this feature snapshot is ready for Release Manager integration and the mandatory canonical release gate.
+## My Signal / Live Athlete Moments — 2026-07-15
+- Continued the state-of-the-art AI sports-world objective by closing the largest verified fandom-loop gap:
+  My Signal now turns the shared `/api/live` ledger into a readable six-sport discovery feed and, once a
+  supporter follows an athlete/club or makes a free fan call, an honestly personalized feed. It no longer
+  promises evolving stories while showing only static saved-name rows.
+- Added the frozen `CyberligaAthleteMoments` model. It resolves every event through the local 48-club / 416-
+  athlete canon, rejects malformed, lifecycle, cross-team and unattributed data, deduplicates by match plus
+  event key, derives editorial headlines from trusted identities, and emits validated player, arena and
+  event-reference clip URLs. Arbitrary API copy and colors never enter the UI.
+- My Signal performs one background load, then polls every five seconds only while its drawer is open and the
+  document is visible. It stops while hidden/closed, retries with backoff, retains a stale in-memory snapshot
+  without resetting drawer scroll/focus, reranks locally after follows/calls, and never mutates XP, awards,
+  drops, activity or the persisted fan-call schema.
+- Empty supporters see at most one current moment per sport under `LIVE WORLD DISCOVERY`; personalized feeds
+  rank followed athletes, called sides, followed clubs, open-call matches and athlete clubs without disguising
+  unrelated events as “for you.” Followed club/athlete rows now deep-link to their real League HQ or Athlete
+  File instead of remaining inert.
+- Provenance is explicit at the point of use. Canonical data is accepted only from the exact trusted
+  `supabase` source when `canonical:true` and not degraded. Fallback, degraded, stale and offline states each
+  have distinct copy. Every state repeats that the
+  feed is read-only, does not score or settle calls, and has no money or prizes. Deterministic fallback remains
+  visibly non-authoritative.
+- Event-reference clips carry the exact fixture, event, athlete and score into the passive 12-second viewer,
+  but the viewer never trusts a URL parameter as proof of authority. It labels the animation an unverified
+  interpretation, not an official result or recorded footage, and exposes that same boundary through
+  `render_game_to_text`.
+- Final rebased verification passes 13/13 API tests, 10/10 athlete-moment tests and 1,294 repository checks. A 28-
+  assertion deterministic browser matrix covers canonical, fallback, degraded, personalized, six-sport
+  discovery, forged-copy rejection, exact routes, clip provenance, desktop and 390×844 layouts with zero
+  browser/page/request errors or overflow. Stale refresh preserves scroll, closing the drawer stops polling,
+  all six arena URLs load the intended matchup, and all six athlete URLs resolve without fallback.
+- Independent safety and broadcast audits then caught and closed five commit-gate defects: soccer deep links
+  now require the exact ordered universe pair, channel and six-minute observation window; scoreless events
+  cannot create event-reference clip links; manually forged scoreless clip URLs say `CONCEPT SCORE` instead
+  of inventing a referenced result; stale snapshots retain their per-moment source; and BFCache restoration
+  clears/rearms the request lifecycle. Arena CTAs visibly say `MATCHUP SIM` because they open an autonomous
+  client simulation, not a replay of the feed event.
+- Poll rendering is now keyed by card markup. An unchanged poll preserves the exact focused DOM node; a changed
+  poll restores the same event action and drawer scroll position. The post-audit 19-assertion browser matrix
+  covers both paths, canonical-to-stale provenance, recovery, pagehide/pageshow, scoreless event URLs, 44px
+  mobile targets and 390x844 overflow with zero console, page or request errors. Desktop, mobile and passive
+  clip captures were visually inspected.
+- Honest next tracks: the current local preview has no canonical backend and therefore remains a deterministic
+  story feed; calls still stay open. The next high-impact product work is unifying Founding 12 visual identity
+  across live arenas/profile/clips, then a named-moment autonomous replay director. Neither limitation is hidden
+  or papered over by this feature.

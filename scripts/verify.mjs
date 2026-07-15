@@ -64,7 +64,8 @@ try {
 if (packageManifest) {
   check(packageManifest.scripts?.dev === 'node server.mjs', 'npm run dev must use the project-owned dependency-free server');
   check(packageManifest.scripts?.['test:api'] === 'node --test api/canonical-server.test.mjs', 'npm run test:api must cover the canonical API boundary');
-  check(packageManifest.scripts?.verify === 'npm run test:api && node scripts/verify.mjs', 'npm run verify must cover APIs before static/data invariants');
+  check(packageManifest.scripts?.['test:moments'] === 'node --test athlete-moments.test.mjs', 'npm run test:moments must cover athlete event normalization');
+  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && node scripts/verify.mjs', 'npm run verify must cover APIs and athlete moments before static/data invariants');
   check(packageManifest.scripts?.['release:check'] === 'npm run verify && node scripts/release-check.mjs', 'npm run release:check must verify the repository before checking the canonical release source');
   check(Object.keys(packageManifest.dependencies || {}).length === 0, 'Runtime dependencies must remain empty');
   check(Object.keys(packageManifest.devDependencies || {}).length === 0, 'Development dependencies must remain empty');
@@ -249,6 +250,10 @@ check(clipSource.indexOf('document.documentElement.dataset.clipMode') >= 0 && cl
 check(/controls:viewer\?\[\]/.test(clipSource) && /interaction:viewer\?['"]view-only['"]/.test(clipSource), 'Passive story clips must publish a view-only, control-free state');
 check(/data-clip-mode=["']viewer["'][^}]*\.links\s*\{\s*display\s*:\s*none!important/i.test(clipSource), 'Passive story clips must not expose legacy secondary destinations');
 check(/FICTIONAL OUTCOME[^<]*NOT A RECORDED LIVE RESULT/.test(clipSource), 'Synthetic clip outcomes must be visibly labeled as fictional concepts');
+check(/EVENT-REFERENCED ANIMATED INTERPRETATION[^<]*URL DATA IS UNVERIFIED[^<]*NOT AN OFFICIAL RESULT OR RECORDED FOOTAGE/.test(clipSource), 'Event-referenced clips must visibly reject URL claims of authority');
+check(!/params\.get\(['"]eventCanonical['"]\)/.test(clipSource), 'Clip Viewer must never trust a query parameter as canonical event authority');
+check(/CONCEPT SCORE · EVENT SCORE MISSING/.test(clipSource) && /scoreClaimPresent:[^,}]+,scoreVerified:false/.test(clipSource), 'Event-referenced clips without a score claim must visibly use an unverified concept score');
+check(!/REFERENCED SCORE/.test(clipSource), 'Clip Viewer must never label an unverified URL score as a referenced result');
 check(/id=["']channel-grid["']/.test(menuSource), 'Broadcast Guide must expose the canonical live channel grid');
 check(/id=["']sport-grid["']/.test(menuSource), 'Broadcast Guide must expose every playable arena');
 check(/UNIVERSE\.liveMatches/.test(menuScript), 'Broadcast Guide must use the shared UTC match schedule');
@@ -432,22 +437,49 @@ if (mythosPresent) {
 
 const fanworldFiles = ['fanworld.js','fanworld.css'];
 for (const file of fanworldFiles) check(await exists(file), 'Missing shared supporter experience artifact', file);
+const athleteMomentsPresent = await exists('athlete-moments.js');
+check(athleteMomentsPresent, 'Missing shared live athlete moments model', 'athlete-moments.js');
+if (athleteMomentsPresent) {
+  const momentWindow = {};
+  evaluateBrowserScript(await text('worlddata.js'), 'worlddata.js', momentWindow);
+  evaluateBrowserScript(await text('athlete-moments.js'), 'athlete-moments.js', momentWindow);
+  const moments = momentWindow.CyberligaAthleteMoments;
+  check(Boolean(moments), 'athlete-moments.js did not expose CyberligaAthleteMoments');
+  if (moments) {
+    check(Object.isFrozen(moments), 'CyberligaAthleteMoments public API must be frozen');
+    for (const method of ['create','normalizeLive','normalizeStoredMoment','selectForFollows','followMatch']) {
+      check(typeof moments[method] === 'function', `CyberligaAthleteMoments is missing ${method}()`);
+    }
+    check(moments.safety?.fanCallSettlement === false && moments.safety?.realMoney === false && moments.safety?.prizes === false, 'Athlete moments must publish the read-only no-money/no-prize boundary');
+  }
+}
 for (const [surface, source] of [['Home',worldSource],['League HQ',atlasSource],['Athlete Files',`${playerSource}\n${playerScript}`]]) {
   check(source.includes('characterdata.js'), `${surface} must load the Founding 12 canon`);
   check(source.includes('mythos.js'), `${surface} must load the shared mythos engine`);
+  check(source.includes('athlete-moments.js'), `${surface} must load the shared live athlete moments model`);
   check(source.includes('fanworld.js') && source.includes('fanworld.css'), `${surface} must load My Signal supporter UI`);
 }
 const fanworldSource = await text('fanworld.js');
 const fanworldStyles = await text('fanworld.css');
+const athleteMomentSource = await text('athlete-moments.js');
 check(/local-fan-signal/.test(fanworldSource), 'My Signal calls must remain explicitly device-local');
 check(/status:\s*['"]open['"][\s\S]{0,120}resolution:\s*null[\s\S]{0,80}points:\s*null/.test(fanworldSource), 'Fan calls must remain unresolved until an authoritative event stream exists');
 check(/NO MONEY[\s\S]{0,80}NO PRIZE[\s\S]{0,140}NOT SETTLED AGAINST (?:THIS )?CLIENT SIMULATION/.test(fanworldSource), 'My Signal must visibly disclose its free, unresolved supporter contract');
+check(/SERVER-PUBLISHED MATCH MOMENTS[\s\S]{0,120}DOES NOT SCORE OR SETTLE FAN CALLS[\s\S]{0,80}NO MONEY[\s\S]{0,30}NO PRIZE/.test(fanworldSource), 'Canonical live moments must retain the watching-only no-settlement boundary');
+check(/DETERMINISTIC FALLBACK MOMENTS[\s\S]{0,120}NOT A RECORDED OR AUTHORITATIVE LIVE RESULT[\s\S]{0,140}NO MONEY[\s\S]{0,30}NO PRIZE/.test(fanworldSource), 'Fallback live moments must reject authoritative-result language');
+check(/scoresCalls:false[\s\S]{0,40}settlesCalls:false[\s\S]{0,40}money:false[\s\S]{0,30}prizes:false/.test(fanworldSource), 'render_game_to_text must publish the live-moment safety contract');
+check(/LAST SERVER SNAPSHOT/.test(fanworldSource) && /LAST FALLBACK SNAPSHOT/.test(fanworldSource), 'Stale live moments must preserve snapshot provenance');
+check(/data-fw-moment-id/.test(fanworldSource) && /dataset\.renderSignature/.test(fanworldSource) && /preventScroll:true/.test(fanworldSource), 'Live-moment polling must preserve focus and scroll when card content is unchanged or updated');
+check(/addEventListener\(['"]pagehide['"][\s\S]{0,300}refreshing\s*=\s*false[\s\S]{0,160}addEventListener\(['"]pageshow['"]/.test(fanworldSource), 'Live-moment polling must recover cleanly from BFCache pagehide/pageshow');
+check(/MATCHUP SIM/.test(fanworldSource), 'Moment arena links must visibly identify autonomous matchup simulations');
+check(/source\s*===\s*['"]supabase['"]/.test(athleteMomentSource), 'Canonical live-moment provenance must use the explicit trusted-source allowlist');
 check(/data-fw-action=["']share-story["']/.test(fanworldSource) && /OPEN 12-SECOND CLIP/.test(fanworldSource), 'Fixture stories must expose both share and 12-second clip actions');
 check(/function storyClipUrl\s*\([\s\S]{0,500}clip\.html\?/.test(fanworldSource), 'Shared fixture stories must preserve their context into Clip Director');
 check(/match:\s*story\.key[\s\S]{0,80}story:\s*story\.id[\s\S]{0,80}view:\s*['"]1['"]/.test(fanworldSource), 'Shared clip URLs must carry permanent match/story seeds into passive viewer mode');
 check(/navigator\.share/.test(fanworldSource) && /navigator\.clipboard/.test(fanworldSource) && /fallbackCopy/.test(fanworldSource), 'Story sharing must support native share, clipboard, and fallback copy paths');
 check(/\.fw-call-note\s*\{[^}]*rgba\(255,255,255,\.68\)[^}]*8px/.test(fanworldStyles), 'Free-call disclosure must remain legible at the point of action');
 check(/\.fw-drawer-foot\s*\{[^}]*rgba\(255,255,255,\.68\)[^}]*8px/.test(fanworldStyles), 'Supporter passport disclosure must remain legible');
+check(/@media \(max-width: 760px\)[\s\S]*\.fw-moment-actions a\s*\{[^}]*min-height:\s*44px/.test(fanworldStyles), 'Moment actions must retain 44px mobile touch targets');
 
 const universeWindow = {};
 evaluateBrowserScript(await text('worlddata.js'), 'worlddata.js', universeWindow);

@@ -3,10 +3,14 @@
 
   var C = root.CYBERLIGA_CONTENT;
   var M = root.CyberligaMythos;
+  var MomentEngine = root.CyberligaAthleteMoments;
   if (!C || !M || typeof document === 'undefined') return;
 
   var STORAGE_KEY = 'cyberliga_fan_signal_v1';
   var VERSION = 1;
+  var LIVE_POLL_MS = 5000;
+  var LIVE_STALE_MS = 15000;
+  var LIVE_TIMEOUT_MS = 4000;
   var pageKind = document.getElementById('globe') ? 'world' : document.getElementById('league-hq') ? 'league' : document.body.classList.contains('athlete-file') || /player\.html$/i.test(location.pathname) ? 'player' : 'supporting';
   document.documentElement.dataset.fwPage = pageKind;
   var baseRenderer = null;
@@ -22,6 +26,28 @@
   var lastDossierId = '';
   var pulseFixtureSignature = '';
   var drawerReturnFocus = null;
+  var liveModel = null;
+  try { if (MomentEngine && typeof MomentEngine.create === 'function') liveModel = MomentEngine.create(C); }
+  catch (_error) { liveModel = null; }
+  var liveMomentState = {
+    phase: 'idle',
+    refreshing: false,
+    source: 'none',
+    canonical: false,
+    degraded: false,
+    degradedReason: null,
+    observedAt: null,
+    receivedAt: 0,
+    stale: false,
+    errorCode: null,
+    raw: [],
+    items: [],
+    discovery: true
+  };
+  var liveMomentTimer = 0;
+  var liveMomentAbort = null;
+  var liveMomentGeneration = 0;
+  var liveMomentRetry = 0;
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
@@ -125,6 +151,7 @@
     fan = normalizeState(fan);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(fan)); }
     catch (_error) {}
+    rerankLiveMoments();
     renderDrawer();
     refreshInteractiveStates();
   }
@@ -167,6 +194,233 @@
       if (athlete) return {athlete:athlete,team:teams[i],sport:C.getSport(teams[i].sportId)};
     }
     return null;
+  }
+  function pairKey(sportId, homeId, awayId) {
+    var teams = [cleanString(homeId,120),cleanString(awayId,120)].sort();
+    return [cleanString(sportId,80),teams[0],teams[1]].join('|');
+  }
+  function hasPersonalSignal() {
+    return Boolean(fan.follows.teams.length || fan.follows.athletes.length || Object.keys(fan.calls).length);
+  }
+  function rerankLiveMoments() {
+    var followedAthletes = fan.follows.athletes;
+    var followedTeams = fan.follows.teams;
+    var followedAthleteTeams = followedAthletes.map(athleteById).filter(Boolean).map(function (record) { return record.team.id; });
+    var calls = Object.keys(fan.calls).map(function (key) { return fan.calls[key]; });
+    var personalized = hasPersonalSignal();
+    var ranked = liveMomentState.raw.map(function (moment,index) {
+      var weight = personalized ? 0 : 1;
+      var relevance = personalized ? '' : 'WORLD MOMENT';
+      if (followedAthletes.indexOf(moment.athleteId) >= 0) { weight = 600; relevance = 'FOLLOWED ATHLETE'; }
+      var matchingCalls = calls.filter(function (call) {
+        return pairKey(call.sportId,call.home.id,call.away.id) === pairKey(moment.sportId,moment.home.id,moment.away.id);
+      });
+      var calledSideMoment = matchingCalls.some(function (call) { return call.teamId === moment.teamId; });
+      if (calledSideMoment && weight < 520) { weight = 520; relevance = 'YOUR CALLED SIDE'; }
+      if (followedTeams.indexOf(moment.teamId) >= 0 && weight < 450) { weight = 450; relevance = 'FOLLOWED CLUB'; }
+      if (matchingCalls.length && weight < 350) { weight = 350; relevance = 'OPEN CALL MATCH'; }
+      var involvesAthleteClub = followedAthleteTeams.indexOf(moment.home.id) >= 0 || followedAthleteTeams.indexOf(moment.away.id) >= 0;
+      if (involvesAthleteClub && weight < 260) { weight = 260; relevance = 'ATHLETE CLUB'; }
+      var involvesFollowedClub = followedTeams.indexOf(moment.home.id) >= 0 || followedTeams.indexOf(moment.away.id) >= 0;
+      if (involvesFollowedClub && weight < 220) { weight = 220; relevance = 'FOLLOWED MATCH'; }
+      if (!weight) return null;
+      return {
+        moment: moment,
+        relevance: relevance,
+        weight: weight,
+        signature: moment.signatureCandidate ? 1 : 0,
+        leverage: Number.isFinite(Number(moment.leverage)) ? Number(moment.leverage) : 0,
+        occurredAt: Date.parse(moment.occurredAt || '') || Number(moment.elapsedMs) || 0,
+        index: index
+      };
+    }).filter(Boolean);
+    ranked.sort(function (left,right) {
+      return right.weight-left.weight || right.signature-left.signature || right.leverage-left.leverage || right.occurredAt-left.occurredAt || left.index-right.index;
+    });
+    var perFixture = Object.create(null);
+    var perSport = Object.create(null);
+    liveMomentState.items = ranked.filter(function (entry) {
+      var key = entry.moment.fixtureId || entry.moment.eventKey;
+      perFixture[key] = perFixture[key] || 0;
+      perSport[entry.moment.sportId] = perSport[entry.moment.sportId] || 0;
+      if (!personalized && perSport[entry.moment.sportId] >= 1) return false;
+      if (personalized && perFixture[key] >= 2) return false;
+      perFixture[key] += 1;
+      perSport[entry.moment.sportId] += 1;
+      return true;
+    }).slice(0,personalized ? 5 : 6);
+    liveMomentState.discovery = !personalized;
+  }
+  function liveSourceCopy() {
+    if (liveMomentState.stale && liveMomentState.raw.length) {
+      if (liveMomentState.canonical) return {
+        label: 'LAST SERVER SNAPSHOT', note: 'SIGNAL TEMPORARILY UNAVAILABLE',
+        boundary: 'LAST SERVER-PUBLISHED MATCH SNAPSHOT, HELD IN MEMORY FOR WATCHING ONLY. IT IS NOT USED TO SCORE OR SETTLE FAN CALLS. NO MONEY · NO PRIZE.'
+      };
+      if (liveMomentState.degraded) return {
+        label: 'LAST DEGRADED SNAPSHOT', note: 'SERVER FEED UNAVAILABLE',
+        boundary: 'LAST DETERMINISTIC FALLBACK SNAPSHOT — NOT AN OFFICIAL RESULT. FAN CALLS STAY OPEN AND ARE NEVER SCORED HERE. NO MONEY · NO PRIZE.'
+      };
+      return {
+        label: 'LAST FALLBACK SNAPSHOT', note: 'SIGNAL TEMPORARILY UNAVAILABLE',
+        boundary: 'LAST DETERMINISTIC FALLBACK SNAPSHOT — NOT A RECORDED OR AUTHORITATIVE LIVE RESULT. FAN CALLS STAY OPEN. NO MONEY · NO PRIZE.'
+      };
+    }
+    if (liveMomentState.phase === 'error' && !liveMomentState.raw.length) return {
+      label: 'SIGNAL OFFLINE', note: 'RETRY WHEN CONNECTED',
+      boundary: 'LIVE MOMENTS COULD NOT BE LOADED. YOUR FOLLOWS AND OPEN FAN CALLS ARE UNCHANGED. NO MONEY · NO PRIZE.'
+    };
+    if ((liveMomentState.phase === 'idle' || liveMomentState.phase === 'loading') && !liveMomentState.raw.length) return {
+      label: 'LISTENING', note: 'CONNECTING TO THE WORLD',
+      boundary: 'MATCH MOMENTS ARE READ-ONLY. THIS SECTION NEVER SCORES OR SETTLES FAN CALLS. NO MONEY · NO PRIZE.'
+    };
+    if (liveMomentState.degraded) return {
+      label: 'STORY FEED · DEGRADED', note: 'SERVER FEED UNAVAILABLE',
+      boundary: 'THE SERVER FEED IS UNAVAILABLE, SO THESE ARE DETERMINISTIC FALLBACK MOMENTS — NOT OFFICIAL RESULTS. FAN CALLS STAY OPEN. NO MONEY · NO PRIZE.'
+    };
+    if (liveMomentState.canonical) return {
+      label: 'SERVER FEED', note: 'WATCHING ONLY',
+      boundary: 'SERVER-PUBLISHED MATCH MOMENTS FOR WATCHING ONLY. THIS SECTION DOES NOT SCORE OR SETTLE FAN CALLS. NO MONEY · NO PRIZE.'
+    };
+    return {
+      label: 'STORY FEED · FALLBACK', note: 'DETERMINISTIC PREVIEW',
+      boundary: 'DETERMINISTIC FALLBACK MOMENTS — NOT A RECORDED OR AUTHORITATIVE LIVE RESULT. FAN CALLS STAY OPEN AND ARE NEVER SCORED HERE. NO MONEY · NO PRIZE.'
+    };
+  }
+  function liveSectionShell() {
+    return '<section id="fw-live-moments" class="fw-drawer-section" aria-labelledby="fw-live-moments-title"><header class="fw-section-title"><p id="fw-live-moments-title">LIVE WORLD DISCOVERY</p><button class="fw-section-action" type="button" data-fw-action="refresh-live">REFRESH SIGNAL</button></header><div class="fw-live-source" data-state="loading" aria-live="polite"><i aria-hidden="true"></i><b>LISTENING</b><span>CONNECTING TO THE WORLD</span></div><p class="fw-live-boundary"></p><div id="fw-moment-stack" class="fw-moment-stack" role="feed" aria-busy="true"></div></section>';
+  }
+  function momentSourceLabel(moment) {
+    var provenance = moment && moment.provenance || {};
+    if (moment && moment.canonical === true) return liveMomentState.stale ? 'LAST SERVER SNAPSHOT' : 'SERVER-PUBLISHED';
+    if (provenance.degraded === true) return liveMomentState.stale ? 'LAST DEGRADED FALLBACK' : 'DEGRADED FALLBACK';
+    return liveMomentState.stale ? 'LAST FALLBACK SNAPSHOT' : 'FALLBACK PREVIEW';
+  }
+  function momentCard(entry) {
+    var moment = entry.moment;
+    var score = moment.scoreAfter || moment.score && (moment.score.after || moment.score.current) || {home:0,away:0};
+    var pressure = moment.signatureCandidate || Number(moment.leverage) >= .78 ? 'HIGH PRESSURE' : 'MATCH MOMENT';
+    var sourceLabel = momentSourceLabel(moment);
+    var arenaUrl = cleanString(moment.arenaUrl || moment.links && moment.links.arena,500) || ('world.html?sport=' + encodeURIComponent(moment.sportId));
+    var profileUrl = cleanString(moment.profileUrl || moment.links && moment.links.profile,500) || 'world.html';
+    var clipUrl = cleanString(moment.clipUrl || moment.links && moment.links.clip,900) || 'world.html';
+    var arenaLabel = /^world\.html(?:\?|$)/.test(arenaUrl) ? 'OPEN WORLD' : 'MATCHUP SIM';
+    var momentId = esc(moment.id || moment.eventKey);
+    return '<article class="fw-moment-card" data-fw-moment-card="' + momentId + '" style="--moment-color:' + esc(moment.team.color || '#00e5ff') + '" aria-label="' + esc(moment.athlete.name + ' ' + moment.kindLabel) + '"><div class="fw-moment-main"><div class="fw-moment-top"><span>' + esc(entry.relevance + ' · ' + moment.sportName.toUpperCase()) + '</span><em>' + esc(pressure) + '</em></div><h4>' + esc(moment.headline) + '</h4><div class="fw-moment-identity"><strong>' + esc(moment.athlete.name) + '</strong><span>#' + esc(moment.athlete.number == null ? '—' : moment.athlete.number) + ' · ' + esc(moment.team.code) + ' · ' + esc(moment.kindLabel) + '</span></div><div class="fw-moment-score" aria-label="' + esc(moment.home.code + ' ' + score.home + ', ' + moment.away.code + ' ' + score.away) + '"><span>' + esc(moment.home.code) + '</span><b>' + esc(score.home) + '–' + esc(score.away) + '</b><span>' + esc(moment.away.code) + '</span><em>' + esc(moment.phaseLabel) + '</em></div><small class="fw-moment-proof">EVENT ' + esc(moment.eventKey) + ' · ' + esc(sourceLabel) + '</small></div><nav class="fw-moment-actions" aria-label="Moment destinations"><a href="' + esc(arenaUrl) + '" data-fw-moment-id="' + momentId + '" data-fw-moment-action="arena" aria-label="' + esc(arenaLabel === 'MATCHUP SIM' ? 'Open autonomous matchup simulation, not this event' : 'Open this sport in World') + '">' + arenaLabel + '</a><a href="' + esc(profileUrl) + '" data-fw-moment-id="' + momentId + '" data-fw-moment-action="athlete">ATHLETE FILE</a><a href="' + esc(clipUrl) + '" data-fw-moment-id="' + momentId + '" data-fw-moment-action="clip" title="Open an unverified animated interpretation of the shared event reference">12S CONCEPT</a></nav></article>';
+  }
+  function liveStackMarkup() {
+    if (liveMomentState.items.length) return liveMomentState.items.map(momentCard).join('');
+    if (liveMomentState.phase === 'loading' || liveMomentState.phase === 'idle') return '<div class="fw-moment-empty"><b>TUNING THE WORLD SIGNAL</b>Listening for athlete-attributed match moments across all six sports.</div>';
+    if (!liveMomentState.discovery) return '<div class="fw-moment-empty"><b>NO FOLLOWED MOMENT IN THIS SNAPSHOT</b>Your follows and open fan calls are saved. The feed will update when one of those stories moves.</div>';
+    return '<div class="fw-moment-empty"><b>NO ATHLETE MOMENT IN THIS SNAPSHOT</b>The world signal is connected, but no locally verifiable athlete event is available yet.</div>';
+  }
+  function updateMomentStack(stackNode, markup, refreshButton) {
+    var signature = String(C.hash(markup));
+    if (stackNode.__fwRenderMarkup === markup) return;
+    var active = document.activeElement;
+    var focusRef = active && stackNode.contains(active) ? {
+      id: active.getAttribute('data-fw-moment-id') || '',
+      action: active.getAttribute('data-fw-moment-action') || ''
+    } : null;
+    var scrollNode = document.getElementById('fw-drawer-scroll');
+    var scrollTop = scrollNode ? scrollNode.scrollTop : 0;
+    stackNode.innerHTML = markup;
+    stackNode.__fwRenderMarkup = markup;
+    stackNode.dataset.renderSignature = signature;
+    if (scrollNode) scrollNode.scrollTop = scrollTop;
+    if (!focusRef) return;
+    var target = Array.prototype.slice.call(stackNode.querySelectorAll('[data-fw-moment-id][data-fw-moment-action]')).filter(function (candidate) {
+      return candidate.getAttribute('data-fw-moment-id') === focusRef.id && candidate.getAttribute('data-fw-moment-action') === focusRef.action;
+    })[0] || refreshButton;
+    if (target && target.focus) target.focus({preventScroll:true});
+    if (scrollNode) scrollNode.scrollTop = scrollTop;
+  }
+  function renderLiveSection() {
+    var sectionNode = document.getElementById('fw-live-moments');
+    if (!sectionNode) return;
+    var titleNode = document.getElementById('fw-live-moments-title');
+    var sourceNode = sectionNode.querySelector('.fw-live-source');
+    var boundaryNode = sectionNode.querySelector('.fw-live-boundary');
+    var stackNode = document.getElementById('fw-moment-stack');
+    var refreshButton = sectionNode.querySelector('[data-fw-action="refresh-live"]');
+    var copy = liveSourceCopy();
+    titleNode.textContent = liveMomentState.discovery ? 'LIVE WORLD DISCOVERY' : 'LIVE MOMENTS FOR YOU';
+    sourceNode.dataset.state = liveMomentState.phase === 'error' ? 'error' : liveMomentState.refreshing || liveMomentState.phase === 'loading' ? 'loading' : 'ready';
+    sourceNode.querySelector('b').textContent = copy.label;
+    sourceNode.querySelector('span').textContent = copy.note;
+    boundaryNode.textContent = copy.boundary;
+    stackNode.setAttribute('aria-busy',String(Boolean(liveMomentState.refreshing || liveMomentState.phase === 'loading')));
+    updateMomentStack(stackNode,liveStackMarkup(),refreshButton);
+    refreshButton.disabled = liveMomentState.refreshing;
+    refreshButton.textContent = liveMomentState.refreshing ? 'REFRESHING…' : 'REFRESH SIGNAL';
+  }
+  function drawerIsOpen() { return document.documentElement.classList.contains('fw-open'); }
+  function clearLiveMomentTimer() {
+    if (liveMomentTimer) clearTimeout(liveMomentTimer);
+    liveMomentTimer = 0;
+  }
+  function scheduleLiveMomentRefresh(delay) {
+    clearLiveMomentTimer();
+    if (!drawerIsOpen() || document.hidden) return;
+    liveMomentTimer = setTimeout(function () { liveMomentTimer = 0; refreshLiveMoments(false); },Math.max(250,Number(delay) || LIVE_POLL_MS));
+  }
+  function refreshLiveMoments(force) {
+    if (liveMomentState.refreshing) return;
+    if (!liveModel || typeof root.fetch !== 'function' || !/^https?:$/.test(location.protocol)) {
+      liveMomentState.phase = 'error';
+      liveMomentState.errorCode = 'live_model_unavailable';
+      liveMomentState.stale = Boolean(liveMomentState.raw.length);
+      renderLiveSection();
+      return;
+    }
+    if (!force && liveMomentState.receivedAt && Date.now() - liveMomentState.receivedAt < LIVE_POLL_MS - 250) {
+      scheduleLiveMomentRefresh(LIVE_POLL_MS - (Date.now() - liveMomentState.receivedAt));
+      return;
+    }
+    var generation = ++liveMomentGeneration;
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var timeout = setTimeout(function () { if (controller) controller.abort(); },LIVE_TIMEOUT_MS);
+    liveMomentAbort = controller;
+    liveMomentState.refreshing = true;
+    liveMomentState.phase = liveMomentState.raw.length ? 'ready' : 'loading';
+    liveMomentState.errorCode = null;
+    renderLiveSection();
+    root.fetch('/api/live',{cache:'no-store',headers:{Accept:'application/json'},signal:controller && controller.signal}).then(function (response) {
+      if (!response.ok) throw new Error('http_' + response.status);
+      return response.json();
+    }).then(function (payload) {
+      if (generation !== liveMomentGeneration) return;
+      var normalized = liveModel.normalizeLive(payload);
+      var degraded = Boolean(payload && payload.degraded === true || normalized.degraded === true);
+      liveMomentState.phase = 'ready';
+      liveMomentState.source = cleanString(normalized.source,80) || 'unknown';
+      liveMomentState.canonical = Boolean(normalized.canonical === true && !degraded);
+      liveMomentState.degraded = degraded;
+      liveMomentState.degradedReason = cleanString(payload && payload.degradedReason,120) || null;
+      liveMomentState.observedAt = cleanString(normalized.observedAt,80) || null;
+      liveMomentState.receivedAt = Date.now();
+      liveMomentState.stale = false;
+      liveMomentState.errorCode = null;
+      liveMomentState.raw = normalized.moments.slice(0,120);
+      liveMomentRetry = 0;
+      rerankLiveMoments();
+    }).catch(function (error) {
+      if (generation !== liveMomentGeneration) return;
+      liveMomentState.phase = 'error';
+      liveMomentState.stale = Boolean(liveMomentState.raw.length);
+      liveMomentState.errorCode = cleanString(error && (error.name === 'AbortError' ? 'timeout' : error.message),80) || 'network_error';
+      liveMomentRetry = Math.min(4,liveMomentRetry + 1);
+    }).then(function () {
+      clearTimeout(timeout);
+      if (generation !== liveMomentGeneration) return;
+      liveMomentAbort = null;
+      liveMomentState.refreshing = false;
+      renderLiveSection();
+      if (drawerIsOpen() && !document.hidden) {
+        var retryDelays = [LIVE_POLL_MS,15000,30000,60000];
+        scheduleLiveMomentRefresh(liveMomentState.phase === 'error' ? retryDelays[Math.max(0,liveMomentRetry-1)] : LIVE_POLL_MS);
+      }
+    });
   }
   function hasFollow(kind, id) { return fan.follows[kind].indexOf(id) >= 0; }
   function toggleFollow(kind, id, label) {
@@ -244,7 +498,22 @@
       follows: {teams:fan.follows.teams.slice(),athletes:fan.follows.athletes.slice()},
       openCalls: Object.keys(fan.calls).length,
       savedDrops: fan.savedDrops.length,
-      supporterContract: M.supporterContract
+      supporterContract: M.supporterContract,
+      liveMoments: {
+        phase: liveMomentState.phase,
+        source: liveMomentState.source,
+        canonical: liveMomentState.canonical,
+        degraded: liveMomentState.degraded,
+        stale: liveMomentState.stale,
+        observedAt: liveMomentState.observedAt,
+        mode: liveMomentState.discovery ? 'world-discovery' : 'personalized',
+        count: liveMomentState.items.length,
+        items: liveMomentState.items.map(function (entry) {
+          var moment = entry.moment;
+          return {id:moment.id,fixtureId:moment.fixtureId,matchId:moment.matchId,eventKey:moment.eventKey,sportId:moment.sportId,kind:moment.kind,phase:moment.phase,teamId:moment.teamId,athleteId:moment.athleteId,relevance:entry.relevance,score:moment.scoreAfter || moment.score && moment.score.after || null,pressure:moment.signatureCandidate || Number(moment.leverage) >= .78 ? 'high' : 'standard'};
+        }),
+        contract: {readOnly:true,callsRemainOpen:true,scoresCalls:false,settlesCalls:false,money:false,prizes:false}
+      }
     };
   }
   function toast(message) {
@@ -383,10 +652,15 @@
     drawer.setAttribute('aria-hidden','false');
     document.getElementById('fw-trigger').setAttribute('aria-expanded','true');
     setTimeout(function () { var close = drawer.querySelector('.fw-close'); if (close) close.focus(); }, 20);
+    var age = liveMomentState.receivedAt ? Date.now() - liveMomentState.receivedAt : Number.POSITIVE_INFINITY;
+    if (age > LIVE_STALE_MS && liveMomentState.raw.length) liveMomentState.stale = true;
+    if (liveMomentState.phase === 'idle' || liveMomentState.phase === 'error' || age > LIVE_POLL_MS) refreshLiveMoments(true);
+    else scheduleLiveMomentRefresh(Math.max(250,LIVE_POLL_MS-age));
   }
   function closeDrawer(options) {
     if (!drawer) return;
     var restoreFocus = !options || options.restoreFocus !== false;
+    clearLiveMomentTimer();
     document.documentElement.classList.remove('fw-open');
     drawer.inert = true;
     drawer.setAttribute('aria-hidden','true');
@@ -432,9 +706,9 @@
     var athletes = fan.follows.athletes.map(athleteById).filter(Boolean).slice(0,6);
     var teams = fan.follows.teams.map(teamById).filter(Boolean).slice(0,6);
     var followRows = teams.map(function (team) {
-      return '<div class="fw-list-item" style="--item-color:' + esc(team.colors.primary) + '"><b>' + esc(team.code) + '</b><div><strong>' + esc(team.name) + '</strong><small>' + esc(team.city.toUpperCase()) + ' · CLUB</small></div><em>FOLLOWING</em></div>';
+      return '<a class="fw-list-item" href="league.html?sport=' + encodeURIComponent(team.sportId) + '&amp;team=' + encodeURIComponent(team.id) + '" style="--item-color:' + esc(team.colors.primary) + '"><b>' + esc(team.code) + '</b><div><strong>' + esc(team.name) + '</strong><small>' + esc(team.city.toUpperCase()) + ' · CLUB</small></div><em>OPEN ↗</em></a>';
     }).concat(athletes.map(function (record) {
-      return '<div class="fw-list-item" style="--item-color:' + esc(record.team.colors.primary) + '"><b>' + esc(String(record.athlete.number).padStart(2,'0')) + '</b><div><strong>' + esc(record.athlete.name) + '</strong><small>' + esc(record.team.code) + ' · ' + esc(record.athlete.role.toUpperCase()) + '</small></div><em>STAR</em></div>';
+      return '<a class="fw-list-item" href="player.html?sport=' + encodeURIComponent(record.sport.id) + '&amp;team=' + encodeURIComponent(record.team.id) + '&amp;player=' + encodeURIComponent(record.athlete.id) + '" style="--item-color:' + esc(record.team.colors.primary) + '"><b>' + esc(String(record.athlete.number).padStart(2,'0')) + '</b><div><strong>' + esc(record.athlete.name) + '</strong><small>' + esc(record.team.code) + ' · ' + esc(record.athlete.role.toUpperCase()) + '</small></div><em>OPEN ↗</em></a>';
     }));
     var callRows = calls.map(function (call) {
       var chosen = call.side === 'home' ? call.home : call.away;
@@ -449,10 +723,12 @@
       return '<section class="fw-drawer-section"><header class="fw-section-title"><p>' + label + '</p><span>' + count + '</span></header>' + (rows.length ? '<div class="fw-list">' + rows.join('') + '</div>' : '<div class="fw-empty">' + empty + '</div>') + '</section>';
     }
     document.getElementById('fw-drawer-scroll').innerHTML =
-      section('FOLLOWED WORLD', followRows.length + ' SAVED', followRows, 'Follow a club or athlete and their stories will collect here.') +
+      liveSectionShell() +
+      section('FOLLOWED WORLD', followRows.length + ' SAVED', followRows, 'Follow a club or athlete and their live moments will collect above.') +
       section('MY FAN CALLS', calls.length + ' OPEN', callRows, 'Call a side from a fixture story. Calls are local, free, and deliberately unresolved until Cyberliga has one authoritative event stream.') +
       section('CONCEPT LOCKER', fan.savedDrops.length + ' OBJECTS', dropRows, 'Save an athlete or club drop concept. No checkout is connected.') +
       section('WHY THIS EXISTS', 'ONE WORLD', ['<div class="fw-empty">Watch → recognize someone → understand the pressure → call your side → save the memory → come back because the story changed.</div>'], '');
+    renderLiveSection();
     var trigger = document.getElementById('fw-trigger');
     if (trigger) trigger.innerHTML = triggerLabel();
   }
@@ -493,6 +769,7 @@
     var action = target.dataset.fwAction;
     if (action === 'open') { event.preventDefault(); openDrawer(target); return; }
     if (action === 'close') { event.preventDefault(); closeDrawer(); return; }
+    if (action === 'refresh-live') { event.preventDefault(); refreshLiveMoments(true); return; }
     if (action === 'pulse-next') { event.preventDefault(); pulseIndex = (pulseIndex + 1) % Math.max(1,pulseStories.length); renderWorldPulse(); return; }
     if (action === 'share-story') {
       event.preventDefault();
@@ -740,6 +1017,7 @@
       },100);
     }
     persist();
+    setTimeout(function () { refreshLiveMoments(false); },80);
   }
 
   document.addEventListener('click',handleAction);
@@ -756,14 +1034,39 @@
     if (event.key !== STORAGE_KEY || event.storageArea !== localStorage) return;
     try { fan = event.newValue == null ? normalizeState({}) : normalizeState(JSON.parse(event.newValue)); }
     catch (_error) { return; }
+    rerankLiveMoments();
     renderDrawer();
     refreshInteractiveStates();
+  });
+  document.addEventListener('visibilitychange',function () {
+    if (document.hidden) { clearLiveMomentTimer(); return; }
+    if (!drawerIsOpen()) return;
+    var age = liveMomentState.receivedAt ? Date.now()-liveMomentState.receivedAt : Number.POSITIVE_INFINITY;
+    if (age > LIVE_STALE_MS) refreshLiveMoments(true);
+    else scheduleLiveMomentRefresh(Math.max(250,LIVE_POLL_MS-age));
+  });
+  root.addEventListener('online',function () { if (drawerIsOpen()) refreshLiveMoments(true); });
+  root.addEventListener('pagehide',function () {
+    clearLiveMomentTimer();
+    liveMomentGeneration += 1;
+    if (liveMomentAbort) liveMomentAbort.abort();
+    liveMomentAbort = null;
+    liveMomentState.refreshing = false;
+  });
+  root.addEventListener('pageshow',function () {
+    liveMomentState.refreshing = false;
+    liveMomentAbort = null;
+    if (!drawerIsOpen() || document.hidden) return;
+    var age = liveMomentState.receivedAt ? Date.now()-liveMomentState.receivedAt : Number.POSITIVE_INFINITY;
+    if (liveMomentState.phase === 'error' || age > LIVE_POLL_MS) refreshLiveMoments(true);
+    else scheduleLiveMomentRefresh(Math.max(250,LIVE_POLL_MS-age));
   });
   root.CyberligaFanworld = Object.freeze({
     version: VERSION,
     getState: function () { return JSON.parse(JSON.stringify(publicState())); },
     open: openDrawer,
     close: closeDrawer,
+    refreshLive: function () { refreshLiveMoments(true); },
     reset: function () { fan = normalizeState({}); persist(); }
   });
 
