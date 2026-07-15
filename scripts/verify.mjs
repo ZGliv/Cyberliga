@@ -79,7 +79,12 @@ for (const arena of arenas) {
   check(arena.label.test(source), `${arena.file} does not identify its sport`);
   check(/<script\s+src=["']watchonly\.js["']><\/script>/i.test(htmlSource), `${arena.file} must load the shared watch-only guard`);
   const arenaAnchors = htmlSource.match(/<a\b[^>]*>/gi) || [];
-  check(arenaAnchors.length > 0 && arenaAnchors.every((anchor) => /class=["'][^"']*watch-only-exit/.test(anchor)), `${arena.file} must expose only exempt Home/League exit links`);
+  check(arenaAnchors.length > 0 && arenaAnchors.every((anchor) => /class=["'][^"']*watch-only-exit/.test(anchor)), `${arena.file} must expose only exempt watch-only exit links`);
+  const globeExits = htmlSource.match(/<a\b[^>]*class=["'][^"']*\bwatch-only-exit\b[^"']*["'][^>]*>[\s\S]*?<\/a>/gi) || [];
+  const globeExitText = globeExits[0]?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  check(globeExits.length === 1, `${arena.file} must expose exactly one watch-only arena exit`, String(globeExits.length));
+  check(/href\s*=\s*["']world\.html["']/i.test(globeExits[0] || '') && globeExitText === '← GLOBE', `${arena.file} arena exit must read ← GLOBE and target world.html`);
+  check(!/id=["'](?:wordmark|erapill)["']/i.test(htmlSource), `${arena.file} must not restore the obsolete top-left mode wordmark or era pill`);
   check(/(?:href\s*=\s*["']world\.html|location\.href\s*=\s*["']world\.html)/i.test(source), `${arena.file} has no route back to world.html`);
   check(/window\.render_game_to_text\s*=/.test(source), `${arena.file} is missing window.render_game_to_text`);
   check(/window\.advanceTime\s*=/.test(source), `${arena.file} is missing window.advanceTime`);

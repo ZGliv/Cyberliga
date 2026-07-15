@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@700&display=swap');
+
 :root {
   --ink: #f7f8fa;
   --muted: #bac0c7;
@@ -165,30 +167,41 @@ button { cursor: pointer; }
 #playClock { min-width: 34px; justify-content: center; color: #fff; background: #20252c; font-size: 12px; font-weight: 950; }
 #playClock.warning { background: #b51f2f; }
 
-/* Navigation stays out of the picture until the viewer asks for it. */
+/* Match the single rounded watch-only exit used by every Cyberliga arena. */
 #broadcastNav {
   position: absolute;
   z-index: 30;
-  top: 14px;
-  left: 14px;
-  display: flex;
-  gap: 6px;
+  top: calc(env(safe-area-inset-top, 0px) + 22px);
+  left: calc(env(safe-area-inset-left, 0px) + 22px);
   pointer-events: auto;
 }
 #broadcastNav a {
-  min-height: 31px;
+  min-height: 42px;
   display: inline-flex;
   align-items: center;
-  padding: 0 10px;
-  color: #e8ebed;
-  background: rgba(10, 13, 17, .82);
-  border: 1px solid rgba(255, 255, 255, .3);
+  justify-content: center;
+  padding: 0 16px;
+  color: var(--gold);
+  background: rgba(4, 8, 20, .7);
+  border: 1px solid rgba(243, 201, 79, .4);
+  border-radius: 99px;
+  box-shadow: 0 0 12px rgba(243, 201, 79, .18);
   text-decoration: none;
-  font-size: 8px;
-  font-weight: 900;
-  letter-spacing: .7px;
+  font-family: "Rajdhani", "Arial Narrow", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  transition: color .15s, background .15s, border-color .15s, box-shadow .15s;
 }
-#broadcastNav a:hover, #broadcastNav a:focus-visible { border-color: #fff; outline: none; }
+#broadcastNav a:hover {
+  color: #fff;
+  background: rgba(243, 201, 79, .16);
+  border-color: rgba(243, 201, 79, .7);
+  box-shadow: 0 0 18px rgba(243, 201, 79, .5);
+}
+#broadcastNav a:focus-visible { color: #fff; outline: 2px solid #fff; outline-offset: 3px; }
 #arenaNav { position: absolute; z-index: 30; top: 14px; left: 14px; pointer-events: auto; }
 #arenaNav details { position: relative; }
 #arenaNav summary {
@@ -466,8 +479,11 @@ body #cgh-toggle { z-index: 28; top: 14px; right: 14px; bottom: auto; opacity: .
 body #cgh-toggle:hover, body #cgh-toggle:focus-visible { opacity: 1; }
 
 @media (max-width: 760px) {
-  #broadcastNav { top: 10px; left: 10px; }
-  #broadcastNav a { min-height: 28px; padding-inline: 8px; font-size: 7px; }
+  #broadcastNav {
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    left: calc(env(safe-area-inset-left, 0px) + 10px);
+  }
+  #broadcastNav a { min-height: 42px; padding-inline: 14px; font-size: 12px; letter-spacing: 1.6px; }
   #scoreboard { width: calc(100vw - 16px); }
   #scorebugMain { min-height: 53px; grid-template-columns: 64px minmax(0, 1fr) 78px minmax(0, 1fr); }
   #networkBug { padding-inline: 5px; }
@@ -535,7 +551,10 @@ body #cgh-toggle:hover, body #cgh-toggle:focus-visible { opacity: 1; }
   #situation, #situation strong, #situation span, #situation em, #playClock { min-height: 20px; height: 20px; }
   #situation strong { min-width: 96px; font-size: 10px; }
   #situation span, #situation em { font-size: 8px; }
-  #arenaNav { top: 8px; left: 8px; }
+  #broadcastNav {
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    left: calc(env(safe-area-inset-left, 0px) + 8px);
+  }
   #arenaNav summary { width: 34px; height: 34px; }
   .arenaNavTray { top: 38px; }
   #replayBug { top: 8px; right: 8px; padding-block: 5px; }
