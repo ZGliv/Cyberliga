@@ -763,3 +763,7 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   claimed positive points exactly match the attributed-side delta. The 11-test moment suite now covers unchanged,
   decreasing, opponent-only, both-sides, mismatched-points and zero-points failures plus valid away scoring and
   events that legitimately omit the optional points field; rejection occurs before headline/link construction.
+- Mobile score-phase review found that the full missing-score warning lived below the first phone viewport even
+  though its state and page copy were correct. The visible 12-second canvas reveal now prints `CONCEPT SCORE ·
+  EVENT SCORE MISSING` itself for an event reference without a score claim, and the verifier requires both the
+  canvas and page-copy warning before release.

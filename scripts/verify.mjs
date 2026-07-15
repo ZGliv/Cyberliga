@@ -252,7 +252,7 @@ check(/data-clip-mode=["']viewer["'][^}]*\.links\s*\{\s*display\s*:\s*none!impor
 check(/FICTIONAL OUTCOME[^<]*NOT A RECORDED LIVE RESULT/.test(clipSource), 'Synthetic clip outcomes must be visibly labeled as fictional concepts');
 check(/EVENT-REFERENCED ANIMATED INTERPRETATION[^<]*URL DATA IS UNVERIFIED[^<]*NOT AN OFFICIAL RESULT OR RECORDED FOOTAGE/.test(clipSource), 'Event-referenced clips must visibly reject URL claims of authority');
 check(!/params\.get\(['"]eventCanonical['"]\)/.test(clipSource), 'Clip Viewer must never trust a query parameter as canonical event authority');
-check(/CONCEPT SCORE · EVENT SCORE MISSING/.test(clipSource) && /scoreClaimPresent:[^,}]+,scoreVerified:false/.test(clipSource), 'Event-referenced clips without a score claim must visibly use an unverified concept score');
+check((clipSource.match(/CONCEPT SCORE · EVENT SCORE MISSING/g) || []).length >= 2 && /scoreClaimPresent:[^,}]+,scoreVerified:false/.test(clipSource), 'Event-referenced clips without a score claim must visibly use an unverified concept score in both the canvas reveal and page copy');
 check(!/REFERENCED SCORE/.test(clipSource), 'Clip Viewer must never label an unverified URL score as a referenced result');
 check(/id=["']channel-grid["']/.test(menuSource), 'Broadcast Guide must expose the canonical live channel grid');
 check(/id=["']sport-grid["']/.test(menuSource), 'Broadcast Guide must expose every playable arena');
