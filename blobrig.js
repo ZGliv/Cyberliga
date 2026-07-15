@@ -32,11 +32,9 @@ const identityHash = value => {
 };
 
 function prepareFoundingLive(athlete, team) {
-  const characters = globalThis.CyberligaCharacters;
-  const visual = globalThis.CyberligaFoundingVisual;
   const live = globalThis.CyberligaFoundingLive;
-  if (!athlete || !team || !characters || !visual || !live || typeof live.prepare !== 'function') return null;
-  return live.prepare(athlete, team, characters, visual);
+  if (!athlete || !team || !live || typeof live.prepare !== 'function') return null;
+  return live.prepare(athlete, team);
 }
 
 function signedArea(points) {

@@ -46,7 +46,7 @@ test('exports a frozen, valid twelve-body live cue catalogue', () => {
 test('strictly prepares every canonical Founder with the shared identity key', () => {
   const prepared = Characters.records.map((record) => {
     const { athlete, team } = sourceTuple(record);
-    const descriptor = Live.prepare(athlete, team, Characters, Visual);
+    const descriptor = Live.prepare(athlete, team);
     const state = Live.describe(descriptor);
     assert.ok(descriptor, record.id);
     assert.ok(Object.isFrozen(descriptor));
@@ -69,12 +69,18 @@ test('rejects generic, cloned, cross-team, and forged inputs', () => {
   const { athlete, team } = sourceTuple(Characters.records[0]);
   const generic = team.athletes.find((candidate) => !Characters.get(candidate.id));
   const wrongTeam = Content.getTeams('soccer').find((candidate) => candidate.id !== team.id);
-  assert.equal(Live.prepare(generic, team, Characters, Visual), null);
-  assert.equal(Live.prepare({ ...athlete }, team, Characters, Visual), null);
-  assert.equal(Live.prepare(athlete, wrongTeam, Characters, Visual), null);
-  assert.equal(Live.prepare(athlete, team, {}, Visual), null);
-  assert.equal(Live.prepare(athlete, team, Characters, {}), null);
-  assert.equal(Live.prepare(null, team, Characters, Visual), null);
+  const clonedTeam = { ...team, athletes: team.athletes };
+  const forgedTeam = { ...team, athletes: [athlete], colors: { ...team.colors } };
+  const forgedContent = { getTeam: () => clonedTeam, getAthlete: () => athlete };
+  const forgedCharacters = { get: () => Characters.get(athlete.id) };
+  const forgedVisual = { prepare: () => ({}), describe: () => ({ athleteId: athlete.id, teamId: team.id, sportId: team.sportId }) };
+  assert.equal(Live.prepare(generic, team), null);
+  assert.equal(Live.prepare({ ...athlete }, team), null);
+  assert.equal(Live.prepare(athlete, clonedTeam), null);
+  assert.equal(Live.prepare(athlete, forgedTeam), null);
+  assert.equal(Live.prepare(athlete, wrongTeam), null);
+  assert.equal(Live.prepare(athlete, clonedTeam, forgedContent, forgedCharacters, forgedVisual), null);
+  assert.equal(Live.prepare(null, team), null);
   assert.equal(Live.describe({ athleteId: athlete.id }), null);
   assert.equal(Live.recipeFor({ athleteId: athlete.id }), null);
 });
@@ -93,6 +99,18 @@ test('recipes stay rear-mounted, body-attached, low-poly, and prop-safe', () => 
         assert.ok(solid.z <= -.21 && solid.z >= -.55, `${item.bodyKey}/${entry.id}/z`);
         assert.ok(solid.depth > 0 && solid.depth <= .12, `${item.bodyKey}/${entry.id}/depth`);
         assert.ok(solid.points.length >= 3);
+        let direction = 0;
+        for (let index = 0; index < solid.points.length; index += 1) {
+          const a = solid.points[index];
+          const b = solid.points[(index + 1) % solid.points.length];
+          const c = solid.points[(index + 2) % solid.points.length];
+          const cross = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+          if (Math.abs(cross) < 1e-9) continue;
+          const sign = cross > 0 ? 1 : -1;
+          assert.ok(!direction || direction === sign, `${item.bodyKey}/${entry.id}/convex`);
+          direction = sign;
+        }
+        assert.notEqual(direction, 0, `${item.bodyKey}/${entry.id}/area`);
         for (const point of solid.points) {
           assert.ok(Math.abs(point[0]) <= .60);
           assert.ok(point[1] >= (entry.anchor === 'head' ? -.32 : -.85));
@@ -122,8 +140,8 @@ test('preparation is deterministic and never mutates canon inputs', () => {
   const { athlete, team } = sourceTuple(Characters.records[10]);
   const athleteBefore = JSON.stringify(athlete);
   const teamBefore = JSON.stringify(team);
-  const first = Live.describe(Live.prepare(athlete, team, Characters, Visual));
-  const second = Live.describe(Live.prepare(athlete, team, Characters, Visual));
+  const first = Live.describe(Live.prepare(athlete, team));
+  const second = Live.describe(Live.prepare(athlete, team));
   assert.deepEqual(first, second);
   assert.equal(JSON.stringify(athlete), athleteBefore);
   assert.equal(JSON.stringify(team), teamBefore);

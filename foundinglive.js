@@ -2,15 +2,18 @@
   'use strict';
 
   if (typeof define === 'function' && define.amd) {
-    define([], factory);
+    define([], function () { return factory(root); });
   } else if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
+    module.exports = factory(root);
   } else {
-    root.CyberligaFoundingLive = factory();
+    root.CyberligaFoundingLive = factory(root);
   }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (root) {
   'use strict';
 
+  var CONTENT = root && root.CYBERLIGA_CONTENT;
+  var CHARACTERS = root && root.CyberligaCharacters;
+  var VISUAL = root && root.CyberligaFoundingVisual;
   var VERSION = '1.0.0';
   var MAX_CUES = 3;
   var MAX_TRIANGLES_PER_CUE = 32;
@@ -58,7 +61,7 @@
       cue('rear-ribbon', 'body', [solid(-.48, .08, [[.15,.35],[.55,-.62],[.23,-.78]])])
     ]),
     recipe('sugar', 'MAPLE SEAL', [
-      cue('maple-backplate', 'body', [solid(-.49, .08, [[0,.78],[.25,.50],[.56,.30],[.42,0],[0,-.42],[-.42,0],[-.56,.30],[-.25,.50]])]),
+      cue('maple-backplate', 'body', [solid(-.49, .08, [[0,.78],[.48,.38],[.48,-.14],[0,-.55],[-.48,-.14],[-.48,.38]])]),
       cue('waist-shelf', 'body', [solid(-.50, .08, [[-.58,-.10],[.58,-.10],[.58,.04],[-.58,.04]])]),
       cue('drip-wedge', 'body', [solid(-.50, .08, [[-.34,-.12],[-.10,-.78],[-.46,-.62]])])
     ]),
@@ -155,15 +158,19 @@
   function recipeTriangles(item) {
     return item.cues.reduce(function (sum, entry) { return sum + cueTriangles(entry); }, 0);
   }
-  function prepare(athlete, team, characters, visual) {
-    if (!athlete || !team || !characters || !visual ||
-        typeof characters.get !== 'function' || typeof visual.prepare !== 'function' ||
-        typeof visual.describe !== 'function' || !Array.isArray(team.athletes) ||
-        team.athletes.indexOf(athlete) < 0) return null;
-    var record = characters.get(athlete.id);
+  function prepare(athlete, team) {
+    if (!athlete || !team || !CONTENT || !CHARACTERS || !VISUAL ||
+        typeof CONTENT.getTeam !== 'function' || typeof CONTENT.getAthlete !== 'function' ||
+        typeof CHARACTERS.get !== 'function' || typeof VISUAL.prepare !== 'function' ||
+        typeof VISUAL.describe !== 'function') return null;
+    var canonicalTeam = CONTENT.getTeam(team.id, team.sportId);
+    var canonicalAthlete = CONTENT.getAthlete(team.id, athlete.id);
+    if (canonicalTeam !== team || canonicalAthlete !== athlete ||
+        !Array.isArray(canonicalTeam.athletes) || canonicalTeam.athletes.indexOf(canonicalAthlete) < 0) return null;
+    var record = CHARACTERS.get(athlete.id);
     if (!record || record.id !== athlete.id) return null;
-    var vectorDescriptor = visual.prepare(record, team);
-    var vectorState = vectorDescriptor && visual.describe(vectorDescriptor, 0, 'live-broadcast', null);
+    var vectorDescriptor = VISUAL.prepare(record, canonicalTeam);
+    var vectorState = vectorDescriptor && VISUAL.describe(vectorDescriptor, 0, 'live-broadcast', null);
     var item = vectorDescriptor && byBody[vectorDescriptor.bodyKey];
     if (!vectorState || !item || vectorState.athleteId !== athlete.id ||
         vectorState.teamId !== team.id || vectorState.sportId !== team.sportId) return null;
@@ -198,6 +205,21 @@
   function recipeFor(descriptor) {
     return describe(descriptor) ? descriptor.recipe : null;
   }
+  function convex(points) {
+    if (!Array.isArray(points) || points.length < 3) return false;
+    var direction = 0;
+    for (var index = 0; index < points.length; index += 1) {
+      var a = points[index];
+      var b = points[(index + 1) % points.length];
+      var c = points[(index + 2) % points.length];
+      var cross = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+      if (Math.abs(cross) < 1e-9) continue;
+      var sign = cross > 0 ? 1 : -1;
+      if (direction && sign !== direction) return false;
+      direction = sign;
+    }
+    return direction !== 0;
+  }
   function validate() {
     var errors = [];
     var seen = Object.create(null);
@@ -211,6 +233,7 @@
         if (triangles < 1 || triangles > MAX_TRIANGLES_PER_CUE) errors.push('Cue triangles: ' + item.bodyKey + '/' + entry.id);
         entry.solids.forEach(function (part) {
           if (!Number.isFinite(part.z) || !Number.isFinite(part.depth) || part.depth <= 0 || part.depth > .12) errors.push('Depth: ' + item.bodyKey + '/' + entry.id);
+          if (!convex(part.points)) errors.push('Convexity: ' + item.bodyKey + '/' + entry.id);
           part.points.forEach(function (point) {
             var yLimit = entry.anchor === 'head' ? .36 : .90;
             var yFloor = entry.anchor === 'head' ? -.32 : -.85;

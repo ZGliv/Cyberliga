@@ -470,7 +470,12 @@ const foundingLivePresent = await exists('foundinglive.js');
 check(foundingLivePresent, 'Missing shared Founding live-broadcast cue canon', 'foundinglive.js');
 if (foundingLivePresent) {
   const foundingLiveSource = await text('foundinglive.js');
-  const liveContext = vm.createContext({ console });
+  const liveContext = vm.createContext({
+    console,
+    CYBERLIGA_CONTENT: content,
+    CyberligaCharacters: characterCanon,
+    CyberligaFoundingVisual: foundingVisualApi
+  });
   vm.runInContext(foundingLiveSource, liveContext, { filename: 'foundinglive.js', timeout: 2000 });
   const live = liveContext.CyberligaFoundingLive;
   check(Boolean(live), 'foundinglive.js did not expose CyberligaFoundingLive');
@@ -488,7 +493,7 @@ if (foundingLivePresent) {
       const prepared = characterCanon.records.map((record) => {
         const team = content.getTeam(record.teamId, record.sportId);
         const athlete = content.getAthlete(record.teamId, record.id);
-        return live.prepare(athlete, team, characterCanon, foundingVisualApi);
+        return live.prepare(athlete, team);
       });
       check(prepared.every(Boolean), 'Every exact Founding athlete must prepare for live broadcast');
       check(prepared.every((descriptor) => {

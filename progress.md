@@ -821,3 +821,12 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - Exact-source gates pass 13/13 API tests, 11/11 live-moment tests, 16/16 shared visual/live-cue tests, 38/38
   football/rules/Mythos tests and 1,381/1,381 repository checks. Standalone syntax and `git diff --check` pass.
   This remains an isolated, undeployed feature slice pending Release Manager integration and the canonical gate.
+- Release Manager audit found that membership alone allowed a cloned team wrapper containing an exact athlete.
+  The live-cue API now binds the already-loaded canonical content, character and shared-visual modules when the
+  catalogue initializes; callers can no longer substitute forged dependency adapters. It resolves the team and
+  athlete through that bound `CYBERLIGA_CONTENT` API and requires both objects to be reference-identical before
+  any descriptor is constructed. Regressions reject cloned athletes, cloned/forged teams and forged adapters.
+- The same audit found one concave Sugar backplate even though the merged-prism path intentionally uses a convex
+  triangle fan. The plate is now an authored convex six-point maple silhouette and catalogue validation plus unit
+  coverage reject any future non-convex solid. The corrected 16-test shared visual/live suite, all 1,381 static
+  checks, standalone syntax checks and `git diff --check` pass before browser recapture.
