@@ -692,3 +692,22 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - The official web-game client passes all six arenas with finite state and no error artifacts; all six official
   desktop captures plus the narrow mobile capture set were visually inspected. Final static verification passes
   13/13 API tests and 1,257/1,257 repository checks, and `git diff --check` is clean.
+
+## Integrated Arena UI Consistency Gate — 2026-07-15
+- Reconciled the four independently owned changes on `codex/arena-ui-consistency` without restoring the deleted
+  Arena Signal resources: explainer removal, fitted scoreboards, crest-rich sport/game selector, and uniform
+  arena navigation now coexist on the same six-sport source snapshot.
+- Required web-game client captures pass all six arenas with finite autonomous/view-only state and no generated
+  error artifacts. A separate 12-case arena navigation matrix at 1280x720 and 390x844 reports exactly one
+  rounded `← GLOBE` exit per arena, zero obsolete wordmarks/explainers, zero overlaps or horizontal overflow,
+  and no console, page, request, or HTTP errors.
+- The integrated scoreboard stress matrix passes 18/18 cases at 1280x720, 390x844, and 320x700. Every measured
+  club/fighter label remains within its parent, all drawn score separators stay centered to one pixel, and the
+  exact reported 848px baseball case keeps `CAPE TOWN JACKALS` and `HAVANA SUGAR KINGS` on one unclipped line.
+- The integrated Home selector has seven full sport labels and distinct pictograms, 24 fixture links and 48
+  canonical club crests. All and per-sport filters return 24/48 and 4/8 fixture/crest counts respectively at
+  desktop, mobile, and 320px, with working arena deep links, readable type, functional swipe rails, no overflow,
+  and no browser errors.
+- Final exact-source gates pass 13/13 API tests, 28/28 football brain/rules tests, 10/10 Mythos tests, and
+  1,263/1,263 repository checks. No canonical preview, release branch, or production deployment was changed;
+  this feature snapshot is ready for Release Manager integration and the mandatory canonical release gate.
