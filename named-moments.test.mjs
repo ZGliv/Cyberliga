@@ -230,6 +230,9 @@ test('rejects malformed, ambiguous, cloned, and cross-team event inputs', () => 
     { ...event, eventKey: '<script>' },
     { ...event, kind: 'GOAL' },
     { ...event, kind: 'touchdown' },
+    { ...event, kind: 'constructor' },
+    { ...event, kind: 'toString' },
+    { ...event, kind: 'hasOwnProperty' },
     { ...event, side: null },
     { ...event, side: 'away' },
     { ...event, team: { ...tuple.home } },
@@ -365,6 +368,10 @@ test('IDs, ranking, state, and routes are deterministic', () => {
   const second = secondDirector.record(payload);
   assert.deepEqual(first, second);
   assert.deepEqual(firstDirector.state(), secondDirector.state());
+  assert.equal(Named.verify(first, config), true);
+  assert.equal(Named.verify({ ...first }, config), false);
+  assert.equal(Named.verify(first, { ...config, fixtureId:'different-fixture' }), false);
+  assert.equal(Named.verify(first, { ...config, homeTeam:{ ...tuple.home } }), false);
 
   const scoreVariant = Named.create(config).record({ ...payload, score: { home: 9, away: 2 } });
   assert.equal(scoreVariant.id, first.id, 'score is deliberately outside the stable identity tuple');
@@ -389,6 +396,19 @@ test('IDs, ranking, state, and routes are deterministic', () => {
   assert.equal(clip.searchParams.get('view'), '1');
   assert.equal(clip.searchParams.get('score'), '5-2');
   assert.deepEqual(clip.searchParams.getAll('kind'), ['grand_slam']);
+});
+
+test('stable IDs frame delimiter-bearing tuple fields without ambiguity', () => {
+  const tuple = genericTuple('soccer');
+  const first = Named.create({
+    sportId:'soccer', fixtureId:'fixture|segment', homeTeam:tuple.home, awayTeam:tuple.away
+  }).record(baseEvent(tuple, { eventKey:'event', kind:'goal' }));
+  const second = Named.create({
+    sportId:'soccer', fixtureId:'fixture', homeTeam:tuple.home, awayTeam:tuple.away
+  }).record(baseEvent(tuple, { eventKey:'segment|event', kind:'goal' }));
+  assert.ok(first);
+  assert.ok(second);
+  assert.notEqual(first.id, second.id);
 });
 
 test('score is omitted unless supplied and recorded footage defaults false', () => {

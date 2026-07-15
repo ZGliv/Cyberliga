@@ -745,6 +745,7 @@ function releaseEstablishingHold(removeOverlay=false){clearTimeout(establishingT
 let hoopsMomentDirector=null,hoopsBroadcastSpine=null,activeHoopsFixtureIndex=0,hoopsMomentFixtureId='';
 let hoopsMomentSequence=0,hoopsMomentCounters={steal:0,block:0,dunk:0,three_pointer:0};
 let suppressHoopsSpinePresentation=false;
+const MATCH_MEMORY_FINAL_HOLD=10;
 function hoopsMomentClock(){return `${q>4?`OT${q-4}`:`Q${q}`} ${fmtGameClock(Math.max(0,qClock))}`;}
 function hoopsMomentLeverage(kind){
   const close=1-clamp(Math.abs((teams[0]?.score||0)-(teams[1]?.score||0))/18,0,1);
@@ -1796,7 +1797,7 @@ function enterBreak(){
       ${all.map(p=>`<tr><td class="n" style="color:${p.td.css}">${p.name}</td><td>${p.pts}</td><td>${p.reb}</td><td>${p.ast}</td></tr>`).join('')}</table>
       <table><tr><th>CLUB</th><th>FG</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th></tr>
       ${teams.map(t=>`<tr><td class="n" style="color:${t.def.css}">${t.def.name}</td><td>${t.fgm}/${t.fga}</td><td>${t.rebounds}</td><td>${t.assists}</td><td>${t.steals}</td><td>${t.blocks}</td></tr>`).join('')}</table>
-      <div class="sub" id="countd" style="margin-top:14px">NEXT TIP-OFF IN 7</div>`);
+      <div class="sub" id="countd" style="margin-top:14px">NEXT TIP-OFF IN ${MATCH_MEMORY_FINAL_HOLD}</div>`);
     say(`FINAL BUZZER IN THE HOOPDOME — ${line}`);
     flashMsg('FINAL','', '#ff8a3d');
   } else {
@@ -1824,8 +1825,8 @@ function breakFlow(dt){
   }
   if (phase==='FINAL'){
     const cd=document.getElementById('countd');
-    if (cd) cd.textContent=`NEXT TIP-OFF IN ${Math.max(1,Math.ceil(6.5-breakT))}`;
-    if (breakT>6.5) newMatch();
+    if (cd) cd.textContent=`NEXT TIP-OFF IN ${Math.max(0,Math.ceil(MATCH_MEMORY_FINAL_HOLD-breakT))}`;
+    if (breakT>MATCH_MEMORY_FINAL_HOLD) newMatch();
   }
 }
 

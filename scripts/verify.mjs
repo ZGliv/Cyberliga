@@ -67,8 +67,9 @@ if (packageManifest) {
   check(packageManifest.scripts?.['test:moments'] === 'node --test athlete-moments.test.mjs', 'npm run test:moments must cover athlete event normalization');
   check(packageManifest.scripts?.['test:named-moments'] === 'node --test named-moments.test.mjs', 'npm run test:named-moments must cover deterministic match memory');
   check(packageManifest.scripts?.['test:broadcast'] === 'node --test broadcast-spine.test.mjs', 'npm run test:broadcast must cover the shared Match Memory presentation state machine');
+  check(packageManifest.scripts?.['test:football-replay-memory'] === 'node --test football-replay-memory.test.mjs', 'npm run test:football-replay-memory must cover football replay adjudication and truthful footage provenance');
   check(packageManifest.scripts?.['test:visuals'] === 'node --test foundingvisual.test.mjs foundinglive.test.mjs', 'npm run test:visuals must cover shared Founding portrait and live-cue renderers');
-  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, named match memory, broadcast presentation, and Founding visuals before static/data invariants');
+  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:football-replay-memory && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, named match memory, broadcast presentation, football replay memory, and Founding visuals before static/data invariants');
   check(packageManifest.scripts?.['release:check'] === 'npm run verify && node scripts/release-check.mjs', 'npm run release:check must verify the repository before checking the canonical release source');
   check(Object.keys(packageManifest.dependencies || {}).length === 0, 'Runtime dependencies must remain empty');
   check(Object.keys(packageManifest.devDependencies || {}).length === 0, 'Development dependencies must remain empty');
@@ -529,6 +530,7 @@ if (namedMomentsPresent) {
     check(namedMoments.limits?.candidates === 12 && namedMoments.limits?.top === 3, 'Match Memory must cap retained candidates and the final broadcast memory');
     check(namedMoments.safety?.authoritative === false && namedMoments.safety?.wagerable === false && namedMoments.safety?.settles === false, 'Match Memory must reject authority, wagering, and fan-call settlement');
     check(typeof namedMoments.create === 'function', 'Match Memory API is missing create()');
+    check(typeof namedMoments.verify === 'function', 'Match Memory API must certify exact emitted moment objects');
   }
 }
 if (broadcastSpinePresent) {
@@ -539,6 +541,7 @@ if (broadcastSpinePresent) {
   check(/NOT AUTHORITATIVE · NO MONEY · NO PRIZE/.test(broadcastSpineSource) && /VIEW-ONLY · CLIENT SIM/.test(broadcastSpineSource), 'Broadcast spine must visibly publish its client-only safety boundary');
   check(/pointer-events:\s*none\s*!important/.test(broadcastSpineStyles), 'Broadcast spine must remain pointer-inert');
   check(/@media \(max-width: 700px\)/.test(broadcastSpineStyles) && /orientation: landscape/.test(broadcastSpineStyles), 'Broadcast spine must define phone and landscape broadcast layouts');
+  check(/font:\s*750 9px\/1\.3/.test(broadcastSpineStyles) && /font-size:\s*10px/.test(broadcastSpineStyles), 'Broadcast spine safety provenance must remain readable on desktop and phones');
 }
 for (const arena of arenas) {
   const htmlSource = await text(arena.file);
@@ -547,6 +550,25 @@ for (const arena of arenas) {
   check(/named-moments\.js/.test(htmlSource) && /broadcast-spine\.js/.test(htmlSource), `${arena.file} must load the shared Match Memory runtime`);
   check(htmlSource.indexOf('named-moments.js') < htmlSource.indexOf('broadcast-spine.js'), `${arena.file} must bind deterministic memory before presentation`);
   check(/matchMemory\s*:/.test(source) && /broadcastSpine\s*:/.test(source), `${arena.file} render state must expose Match Memory and broadcast-spine state`);
+  if (arena.file === 'hoops.html' || arena.file === 'hockey.html') {
+    const hold = Number(source.match(/const MATCH_MEMORY_FINAL_HOLD\s*=\s*([0-9.]+)/)?.[1]);
+    check(Number.isFinite(hold) && hold >= 8.5, `${arena.file} final hold must preserve all three Match Memory cards`);
+  }
+  if (arena.file === 'hockey.html') {
+    check(/const scorer\s*=\s*\(puck\.lastTouch && puck\.lastTouch\.team === team\)\s*\?\s*puck\.lastTouch\s*:\s*null/.test(source), 'Hockey must not invent a named scorer when causal last touch is unavailable');
+    check(/if\s*\(scorer\)\s*recordHockeyNamedMoment\('goal',scorer\)/.test(source), 'Hockey must skip athlete Match Memory when a goal scorer is unconfirmed');
+  }
+  if (arena.file === 'football.html') {
+    const queueReplaySource = source.match(/function queueReplay\([^]*?\n\}/)?.[0] || '';
+    const maybeStartReplaySource = source.match(/function maybeStartReplay\([^]*?\n\}/)?.[0] || '';
+    check(!/recordFootballNamedReplay/.test(queueReplaySource), 'Football must not record a named moment before penalty adjudication and replay selection');
+    check(/!selection[^]*?selection\.duration < 0\.45[^]*?!replayBuffer\.start\(selection[^]*?recordFootballNamedReplay\(candidate, \{ recordedFootage: false \}\)[^]*?state\.replayCandidate = null/.test(maybeStartReplaySource), 'Football must retain a surviving official moment as LIVE when replay selection, duration, or start fails');
+    check(/replayBuffer\.start\(selection[^]*?recordFootballNamedReplay\(candidate, \{ recordedFootage: true \}\)/.test(maybeStartReplaySource), 'Football may claim recorded footage only after replay playback starts successfully');
+  }
+  if (arena.file === 'index.html') {
+    const canonicalDriverSource = source.match(/function driveCanonicalFrame\([^]*?\n\}/)?.[0] || '';
+    check(/state\.mode === 'fulltime'[^]*?broadcastSpine\?\.tick\(presentationDeltaMs\)[^]*?composer\.render\(\)[^]*?return/.test(canonicalDriverSource), 'Canonical soccer must advance the full Match Memory finale after simulation reaches full time');
+  }
 }
 
 const mythosPresent = await exists('mythos.js');

@@ -154,6 +154,36 @@ test('committed moments preempt spotlights and truthfully distinguish replay foo
   spine.destroy();
 });
 
+test('rejects forged and cross-fixture moments before presentation or finale', () => {
+  const { director, spine } = createPair('trust');
+  const legitimate = director.record({
+    eventKey:'trusted-goal', kind:'goal', side:'home', team:home, athlete:home.athletes[1],
+    sequence:1, clock:'70:00', score:{home:1,away:0}, leverage:.8, recordedFootage:false
+  });
+  const forged = {
+    ...legitimate,
+    id:'forged-event',
+    title:'FORGED REPLAY',
+    provenance:{ source:'remote', authoritative:true, wagerable:true, settles:true, recordedFootage:true }
+  };
+  const otherDirector = Named.create({
+    sportId:'soccer', fixtureId:'soccer-broadcast-other', homeTeam:home, awayTeam:away
+  });
+  const otherFixture = otherDirector.record({
+    eventKey:'other-goal', kind:'goal', side:'home', team:home, athlete:home.athletes[1]
+  });
+
+  assert.equal(spine.present(forged), false);
+  assert.equal(spine.present(otherFixture), false);
+  assert.equal(spine.finale([legitimate, forged]), false);
+  assert.equal(spine.state().visible, false);
+  assert.equal(spine.present(legitimate), true);
+  assert.equal(spine.state().eventId, legitimate.id);
+  assert.equal(spine.state().recordedFootage, false);
+  assert.equal(findByClass(body, 'cl-spine-kicker').textContent, 'LIVE MOMENT · GOAL');
+  spine.destroy();
+});
+
 test('finale deterministically sequences the supplied top three and then clears', () => {
   const { director, spine } = createPair('finale');
   const moments = ['juke','save','goal'].map((kind, index) => director.record({

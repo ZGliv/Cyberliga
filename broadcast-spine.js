@@ -4,6 +4,7 @@
   var C = root && root.CYBERLIGA_CONTENT;
   var Characters = root && root.CyberligaCharacters;
   var Brand = root && root.CyberligaBrand;
+  var Named = root && root.CyberligaNamedMoments;
   var VERSION = '1.0.0';
   var MAX_QUEUE = 6;
   var DEFAULT_MOMENT_MS = 4800;
@@ -121,6 +122,9 @@
 
     function resolveMomentIdentity(moment) {
       if (!moment || typeof moment !== 'object') return null;
+      if (!Named || typeof Named.verify !== 'function' || !Named.verify(moment, {
+        sportId:sport.id, fixtureId:fixtureId, homeTeam:home, awayTeam:away
+      })) return null;
       var teamId = moment.team && moment.team.id || moment.teamId;
       var athleteId = moment.athlete && moment.athlete.id || moment.athleteId;
       var team = C.getTeam(teamId, sport.id);
@@ -241,14 +245,16 @@
     function finale(moments) {
       var list = Array.isArray(moments) ? moments.slice(0, 3) : [];
       if (!list.length) return false;
-      queue = [];
-      hide();
-      list.forEach(function (moment, index) {
-        enqueue(itemForMoment(moment, {
+      var items = list.map(function prepare(moment, index) {
+        return itemForMoment(moment, {
           mode:'final', delayMs:index === 0 ? 0 : index * DEFAULT_FINAL_MS,
           durationMs:DEFAULT_FINAL_MS, kicker:'MATCH MEMORY ' + (index + 1) + ' / ' + list.length
-        }));
+        });
       });
+      if (items.some(function invalid(item) { return !item; })) return false;
+      queue = [];
+      hide();
+      items.forEach(enqueue);
       return true;
     }
 

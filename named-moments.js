@@ -104,6 +104,10 @@
     settles: false,
     recordedFootage: false
   });
+  // A private certificate binds each emitted immutable moment to the exact
+  // canonical fixture references that created it. Presentation layers can
+  // reject lookalike objects without exposing or serializing a trust token.
+  var CERTIFICATES = typeof WeakMap === 'function' ? new WeakMap() : null;
 
   function plainObject(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -151,7 +155,7 @@
   var FOUNDING = Object.create(null);
   var HASH = CONTENT && typeof CONTENT.hash === 'function' ? CONTENT.hash : null;
   var BOUND = Boolean(
-    CONTENT && CHARACTERS && HASH &&
+    CERTIFICATES && CONTENT && CHARACTERS && HASH &&
     typeof CONTENT.getSport === 'function' && typeof CONTENT.getTeam === 'function' &&
     typeof CONTENT.getAthlete === 'function' && Array.isArray(CONTENT.sports) &&
     typeof CHARACTERS.get === 'function' && Array.isArray(CHARACTERS.records)
@@ -236,7 +240,12 @@
     });
   }
   function stableId(fixtureId, eventKey, kind, athleteId) {
-    var value = [fixtureId, eventKey, kind, athleteId].join('|');
+    // Length-prefix every field so embedded delimiters cannot make distinct
+    // fixture/event tuples hash the same ambiguous input string.
+    var value = [fixtureId, eventKey, kind, athleteId].map(function frame(part) {
+      var text = String(part);
+      return text.length + ':' + text;
+    }).join('|');
     return 'moment-' + HASH(value).toString(36).padStart(7, '0');
   }
   function playerHref(sportId, teamId, athleteId) {
@@ -336,7 +345,7 @@
       var kind = identifier(input.kind, 80);
       var side = input.side;
       var sideTeam = side === 'home' ? homeTeam : side === 'away' ? awayTeam : null;
-      var definition = EVENT_DEFINITIONS[sportId][kind];
+      var definition = own(EVENT_DEFINITIONS[sportId], kind) ? EVENT_DEFINITIONS[sportId][kind] : null;
       var team = input.team;
       var athlete = input.athlete;
       var canonicalAthlete = sideTeam && athlete && CANONICAL_ATHLETES[sportId][sideTeam.id] &&
@@ -392,6 +401,12 @@
         clipHref: clipHref(fixture, eventKey, kind, athlete.id, title, score),
         provenance: momentProvenance
       });
+      CERTIFICATES.set(moment, Object.freeze({
+        sportId: sportId,
+        fixtureId: fixtureId,
+        homeTeam: homeTeam,
+        awayTeam: awayTeam
+      }));
       seen[eventKey] = true;
       ordinal += 1;
       accepted += 1;
@@ -424,6 +439,19 @@
     });
   }
 
+  function verify(moment, options) {
+    if (!CERTIFICATES || !plainObject(options) || !moment || typeof moment !== 'object') return false;
+    var certificate = CERTIFICATES.get(moment);
+    var momentSafety = moment.provenance;
+    if (!certificate || options.sportId !== certificate.sportId || options.fixtureId !== certificate.fixtureId ||
+        options.homeTeam !== certificate.homeTeam || options.awayTeam !== certificate.awayTeam) return false;
+    return Boolean(
+      momentSafety && momentSafety.source === SAFETY.source &&
+      momentSafety.authoritative === false && momentSafety.wagerable === false && momentSafety.settles === false &&
+      (momentSafety.recordedFootage === true || momentSafety.recordedFootage === false)
+    );
+  }
+
   return Object.freeze({
     version: VERSION,
     schemaVersion: SCHEMA_VERSION,
@@ -433,6 +461,7 @@
     eventTitles: EVENT_TITLES,
     limits: LIMITS,
     safety: SAFETY,
+    verify: verify,
     create: create
   });
 });

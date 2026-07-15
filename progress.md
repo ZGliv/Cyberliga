@@ -860,7 +860,37 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - The official web-game client and exact 390x844 browser matrix produced finite state across all six broadcasts.
   Desktop and phone captures were visually inspected; the spine stayed within the viewport, pointer-inert and
   readable with no horizontal overflow, page/console/request errors, or loss of the classic cyan/pink athletes.
-- Exact gates pass 13/13 API tests, 11/11 live-moment tests, 14/14 named-memory tests, 4/4 broadcast-spine tests,
+- Initial feature gates passed 13/13 API tests, 11/11 live-moment tests, 14/14 named-memory tests, 4/4 broadcast-spine tests,
   16/16 shared visual/live-cue tests, 28/28 football brain/rules tests and 1,442/1,442 repository checks. All inline
   and standalone module syntax plus `git diff --check` pass. This is an isolated, undeployed feature slice pending
   Release Manager integration and the complete canonical production gate.
+- Independent release audit found three trust edges before integration. Event kinds now require an own-property
+  vocabulary match, stable IDs length-prefix every tuple field, and a private WeakMap certificate binds each exact
+  immutable moment to its canonical fixture references. The presenter rejects cloned, forged, authoritative,
+  wagering, cross-fixture and false-replay objects before either a live card or finale can enter its queue.
+- The same audit removed Hockey's arbitrary scorer fallback: a deflection/own goal without a causal same-team last
+  touch still counts on the scoreboard but says SCORER UNCONFIRMED and creates no athlete memory or clip route.
+  Basketball and Hockey final holds are now ten seconds, preserving all three 2.7-second Match Memory cards before
+  fixture rotation. Focused browser QA proved all three exact IDs display through 8.25 seconds in both sports,
+  rotation occurs only after ten seconds, and the unconfirmed Hockey goal records zero athlete moments.
+- Repaired gates pass 15/15 named-memory tests, 5/5 broadcast-spine tests and 1,447/1,447 repository checks; the
+  complete API, live-moment, shared-visual, football, syntax and diff gates remain green. The repaired slice—not
+  its original pre-audit commit—is the only version eligible for Release Manager integration.
+- Final presentation audit raised the provenance strip from 7–7.5px low-contrast fine print to 9px desktop and
+  10px phone text at 74% white. Exact 390x844 and 1280x720 forced-moment captures show the complete no-money/no-
+  prize boundary, no overflow and full card containment; the phone card remains above its ticker and safe area.
+- Football now commits a surviving official moment exactly once after live-penalty adjudication. A forced
+  defensive-pass-interference interception ends as an accepted FLAG with zero ledger candidates; monkey-patched
+  selection and playback-start failures each preserve exactly one certified LIVE MOMENT with
+  `recordedFootage:false`, no replay playback and no REPLAY label; a successful field-goal start creates exactly
+  one certified `recordedFootage:true` moment, enters replay playback and shows REPLAY MOMENT. The permanent
+  five-case extracted state-machine regression also covers the sub-threshold-duration failure path.
+- Canonical-live Soccer now advances presentation time after the simulation clock stops at full time. Browser QA
+  proved ranked IDs `moment-0i9jjnh` → `moment-096us5i` → `moment-0kff8cr` at 0ms, 2,083ms and 4,845ms, then an
+  idle/cleared spine at 7,542ms, without restarting or advancing the finished match and with zero browser errors.
+- The final repaired gate passes all 15 named-memory, 5 spine and 5 football replay-memory regressions plus
+  1,453/1,453 repository checks; 28/28 football brain/rules tests, syntax/diff checks, the current-byte football
+  browser triad (including both selection and start failure) and canonical-live Soccer sequence are green.
+- A final organic 900,000ms Football soak reached the 0–2 final with 16 accepted memories, zero duplicates/rejects,
+  twelve retained candidates and a ranked safety/contested-catch/contested-catch top three; the finale opened on
+  card 1/3 with two cards queued, exact safe provenance and no console, page or request failures.

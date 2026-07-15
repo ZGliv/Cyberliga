@@ -293,7 +293,7 @@ const footballNamedActorField = Object.freeze({
   field_goal: 'playerId',
 });
 
-function recordFootballNamedReplay(marker) {
+function recordFootballNamedReplay(marker, { recordedFootage = false } = {}) {
   if (!footballMomentDirector || !footballBroadcastSpine || !marker) return null;
   const actorField = footballNamedActorField[marker.type];
   const sequence = Number(marker.id);
@@ -311,7 +311,7 @@ function recordFootballNamedReplay(marker) {
     leverage: footballMomentLeverage(marker),
     clock: footballMomentClock(),
     score: { home: state.score[0], away: state.score[1] },
-    recordedFootage: marker.replayable !== false && replayBuffer.status.recordedFrames > 0,
+    recordedFootage: recordedFootage === true,
   });
   if (moment) footballBroadcastSpine.present(moment);
   return moment;
@@ -865,21 +865,30 @@ function queueReplay(type, data = {}, options = {}) {
   const marker = replayBuffer.markEvent(type, presentationTime, data, options);
   state.replayCandidate = marker;
   state.replayStarted = false;
-  recordFootballNamedReplay(marker);
   return marker;
 }
 
 function maybeStartReplay() {
   if (state.phase !== 'dead' || state.replayActive || state.replayStarted || !state.replayCandidate || state.t < 0.48) return false;
   state.replayStarted = true;
+  const candidate = state.replayCandidate;
   const selection = replayBuffer.selectReplay({
-    eventId: state.replayCandidate.id,
-    before: state.replayCandidate.priority >= 90 ? 3.5 : 2.7,
+    eventId: candidate.id,
+    before: candidate.priority >= 90 ? 3.5 : 2.7,
     after: 0.42,
     maxAge: 8,
   });
-  if (!selection || selection.duration < 0.45 || !replayBuffer.start(selection, { speed: 0.78 })) return false;
+  if (!selection || selection.duration < 0.45 || !replayBuffer.start(selection, { speed: 0.78 })) {
+    // The ruling is official even when the replay system cannot supply or start
+    // a playable segment. Preserve it once as a truthful LIVE MOMENT.
+    recordFootballNamedReplay(candidate, { recordedFootage: false });
+    state.replayCandidate = null;
+    return false;
+  }
   state.replayActive = true;
+  // The event has survived live-penalty adjudication and now owns a playable,
+  // successfully started replay segment. Only this point may claim footage.
+  recordFootballNamedReplay(candidate, { recordedFootage: true });
   setReplayUi(true, selection.event.type);
   audioDirector.triggerReplay({ direction: 'in' });
   return true;

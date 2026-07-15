@@ -938,6 +938,7 @@ function releaseEstablishingHold(removeOverlay=false){clearTimeout(establishingT
 let hockeyMomentDirector=null,hockeyBroadcastSpine=null,activeHockeyFixtureIndex=0,hockeyMomentFixtureId='';
 let hockeyMomentSequence=0,hockeyMomentCounters={goal:0,save:0,check:0};
 let suppressHockeySpinePresentation=false;
+const MATCH_MEMORY_FINAL_HOLD=10;
 function hockeyMomentClock(){return `${S.period===4?'OT':`P${S.period}`} ${fmtClock(Math.max(0,S.clock))}`;}
 function hockeyMomentLeverage(kind){
   const close=1-clamp(Math.abs(S.score[0]-S.score[1])/5,0,1);
@@ -1007,6 +1008,7 @@ function setupMatch(firstLoad) {
   S.systems=[(fixtureIdx+ia)%SYSTEMS.length,(fixtureIdx+ib+1)%SYSTEMS.length]; S.possessionTeam=null;
   S.zoneTime=[0,0]; S.entries=[0,0]; S.controlledEntries=[0,0]; S.dumps=[0,0]; S.dumpRecoveries=[0,0]; S.cycles=[0,0]; S.slotChances=[0,0]; S.takeaways=[0,0]; S.blockedShots=[0,0]; S.lastZone=[0,0]; S.support=[0,0]; S.lateMode=['STANDARD','STANDARD'];
   S.entryDecision=''; S.lastDecision='Opening faceoff'; S.battle=''; S.shotQuality=0; S.goalieRead='SET';
+  S.scorerName=''; S.scorer=null;
   S.eventTTL = S.cameraBeat = S.ledBeat = 0; S.push = 0; elEvent.className = '';
   S.entryMode='fresh';S.tuneInSeconds=0;S.entryTargetSeconds=0;S.entryBucket=null;S.entryRecued=false;S.entryPhase=null;
   S.forceSave = ''; S.forceCheck = false; S.forceOneTimer = false; S.forcePenalty=false;
@@ -1661,14 +1663,14 @@ function scoreGoal(s) {
     if(serving) { serving.penaltyT=0; serving.energy=.92; cueEvent(`POWER-PLAY GOAL · ${serving.name} RELEASED`,'danger',1.7); }
   }
   S.scoredSide = s; S.scoringTeam = team;
-  const scorer = (puck.lastTouch && puck.lastTouch.team === team) ? puck.lastTouch : teamPlayers(team)[1];
-  S.scorerName = scorer.name; S.scorer = scorer;
-  S.lastDecision=`GOAL · ${scorer.name} · Q${Math.round((puck.shotQuality||.25)*100)}`;
+  const scorer = (puck.lastTouch && puck.lastTouch.team === team) ? puck.lastTouch : null;
+  S.scorerName = scorer ? scorer.name : 'SCORER UNCONFIRMED'; S.scorer = scorer;
+  S.lastDecision=`GOAL · ${S.scorerName} · Q${Math.round((puck.shotQuality||.25)*100)}`;
   elSA.textContent = S.score[0]; elSB.textContent = S.score[1];
-  recordHockeyNamedMoment('goal',scorer);
+  if(scorer)recordHockeyNamedMoment('goal',scorer);
   const tdef = team === 0 ? TEAM_A : TEAM_B;
   document.documentElement.style.setProperty('--goalcolor', tdef.css);
-  elGoalSub.textContent = `${S.scorerName} — ${tdef.name}`;
+  elGoalSub.textContent = scorer ? `${S.scorerName} — ${tdef.name}` : `${tdef.name} — SCORER UNCONFIRMED`;
   elFlash.classList.add('show');
   S.eventTTL = 0; elEvent.className = '';
   say(fill(pick(COMM.goal), S.scorerName), true);
@@ -1716,7 +1718,7 @@ function showFinalCard() {
   const [na, nb] = FIXTURES[(fixtureIdx + 1) % FIXTURES.length]; // the fixture we rotate to, not the one just played
   elPanel.innerHTML = `<h1>FINAL</h1>
     <h2>${TEAM_A.name} ${S.score[0]} — ${S.score[1]} ${TEAM_B.name}</h2>${statsTable()}
-    <p class="next">NEXT FACEOFF — ${LEAGUE_TEAMS[na].name} vs ${LEAGUE_TEAMS[nb].name} — <span id="nextin">8</span>s</p>`;
+    <p class="next">NEXT FACEOFF — ${LEAGUE_TEAMS[na].name} vs ${LEAGUE_TEAMS[nb].name} — <span id="nextin">${MATCH_MEMORY_FINAL_HOLD}</span>s</p>`;
   elCard.classList.add('show');
   const w = S.score[0] > S.score[1] ? TEAM_A.name : S.score[1] > S.score[0] ? TEAM_B.name : null;
   say(w ? `FINAL HORN — ${w} TAKE IT ${Math.max(...S.score)}-${Math.min(...S.score)}` : 'FINAL HORN — HONOURS EVEN ON THE ICE', true);
@@ -2075,8 +2077,8 @@ function stateStep(dt) {
     }
     case 'FINAL': {
       steerFaceoff(); integratePlayers(dt);
-      const n = el('nextin'); if (n) n.textContent = Math.max(0, Math.ceil(8 - S.t));
-      if (S.t > 8) { fixtureIdx = (fixtureIdx + 1) % FIXTURES.length; setupMatch(true); lastCamMode = 'x'; }
+      const n = el('nextin'); if (n) n.textContent = Math.max(0, Math.ceil(MATCH_MEMORY_FINAL_HOLD - S.t));
+      if (S.t > MATCH_MEMORY_FINAL_HOLD) { fixtureIdx = (fixtureIdx + 1) % FIXTURES.length; setupMatch(true); lastCamMode = 'x'; }
       break;
     }
   }
@@ -2207,9 +2209,10 @@ function forceIceMoment(kind,athleteId='') {
   const requestedAthlete=players.find(p=>p.athlete?.id===athleteId);
   const shooter = requestedAthlete&&requestedAthlete.team===0&&!requestedAthlete.isGK?requestedAthlete:teamPlayers(0).find(p=>p.idx===2), passer = teamPlayers(0).find(p=>p.idx===1);
   const receiver = teamPlayers(0).find(p=>p.idx===3), hitter = requestedAthlete&&requestedAthlete.team===1&&!requestedAthlete.isGK?requestedAthlete:teamPlayers(1).find(p=>p.idx===2);
-  if (kind === 'goal') {
+  if (kind === 'goal' || kind === 'unattributedGoal') {
     shooter.x=GLX-1; shooter.z=1.65; shooter.vx=shooter.vz=0;
-    puck.x=GLX-.22; puck.z=1.65; puck.vx=28; puck.lastTouch=shooter; puck.saveChecked=true;
+    puck.x=GLX-.22; puck.z=1.65; puck.vx=28;
+    puck.lastTouch=kind==='goal'?shooter:null; puck.saveChecked=true;
   } else if (kind === 'save' || kind === 'cover') {
     const gk=gkOfSide(1); gk.x=GLX-.9; gk.z=0; gk.vx=gk.vz=0;
     shooter.x=GLX-6; shooter.z=kind==='cover' ? .2 : 1.45;
