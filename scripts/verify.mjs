@@ -65,7 +65,8 @@ if (packageManifest) {
   check(packageManifest.scripts?.dev === 'node server.mjs', 'npm run dev must use the project-owned dependency-free server');
   check(packageManifest.scripts?.['test:api'] === 'node --test api/canonical-server.test.mjs', 'npm run test:api must cover the canonical API boundary');
   check(packageManifest.scripts?.['test:moments'] === 'node --test athlete-moments.test.mjs', 'npm run test:moments must cover athlete event normalization');
-  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && node scripts/verify.mjs', 'npm run verify must cover APIs and athlete moments before static/data invariants');
+  check(packageManifest.scripts?.['test:visuals'] === 'node --test foundingvisual.test.mjs', 'npm run test:visuals must cover the shared Founding 12 renderer');
+  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, and Founding visuals before static/data invariants');
   check(packageManifest.scripts?.['release:check'] === 'npm run verify && node scripts/release-check.mjs', 'npm run release:check must verify the repository before checking the canonical release source');
   check(Object.keys(packageManifest.dependencies || {}).length === 0, 'Runtime dependencies must remain empty');
   check(Object.keys(packageManifest.devDependencies || {}).length === 0, 'Development dependencies must remain empty');
@@ -311,6 +312,25 @@ check(/Marquee 12/i.test(characterLabSource), 'Character Lab must expose the fir
 check(/window\.render_game_to_text\s*=/.test(characterLabScript), 'Character Lab is missing window.render_game_to_text');
 check(/window\.advanceTime\s*=/.test(characterLabScript), 'Character Lab is missing window.advanceTime');
 check(/view.*match[\s\S]*portrait[\s\S]*clip/i.test(characterLabScript), 'Character Lab must cover match, portrait, and clip contexts');
+const foundingSurfaceSources = [
+  ['Character Lab', characterLabSource, characterLabScript, 'founding-vector'],
+  ['Athlete Files', playerSource, playerScript, 'generic-css'],
+  ['Clip Director', clipSource, clipSource, 'generic-procedural'],
+  ['Moment Maker', momentSource, momentSource, 'generic-procedural']
+];
+for (const [label, markup, source, fallbackMode] of foundingSurfaceSources) {
+  const worldAt = markup.indexOf('worlddata.js');
+  const characterAt = markup.indexOf('characterdata.js');
+  const visualAt = markup.indexOf('foundingvisual.js');
+  check(worldAt >= 0 && worldAt < characterAt && characterAt < visualAt, `${label} must load world → characters → Founding visual renderer in order`);
+  check(/\bvisual\s*:/.test(source), `${label} must publish its shared visual identity in render_game_to_text`);
+  check(fallbackMode === 'founding-vector' ? /VISUAL\.describe\s*\(/.test(source) : source.includes(fallbackMode), `${label} must publish the ${fallbackMode} visual mode`);
+}
+check(/FoundingVisual|CyberligaFoundingVisual/.test(characterLabScript), 'Character Lab must delegate its marquee bodies to the shared visual renderer');
+check(/drawGenericSilhouette/.test(momentSource), 'Moment Maker must retain its exact generic procedural fallback');
+check(/drawGenericAthlete/.test(clipSource), 'Clip Director must retain its exact generic procedural fallback');
+check(/sportProp\s*:\s*false/.test(clipSource), 'Clip Director must suppress duplicate authored props while retaining its moving game object');
+check(/founding-canvas/.test(playerSource) && /is-founding/.test(playerStyles), 'Athlete Files must switch Founding athletes onto the shared canvas without removing generic CSS portraits');
 check(await exists('presence.js'), 'Missing shared presence client');
 check(await exists('livebridge.js'), 'Missing shared live bridge');
 const presenceSource = await text('presence.js');
@@ -382,12 +402,14 @@ if (content) {
   check(athleteIds.size === 416, 'Worlddata must have 416 unique athlete ids', String(athleteIds.size));
 }
 
+let characterCanon = null;
 const characterDataPresent = await exists('characterdata.js');
 check(characterDataPresent, 'Missing shared Founding 12 character canon', 'characterdata.js');
 if (characterDataPresent && content) {
   const characterContext = vm.createContext({ CYBERLIGA_CONTENT: content, console });
   vm.runInContext(await text('characterdata.js'), characterContext, { filename: 'characterdata.js', timeout: 2000 });
   const characters = characterContext.CyberligaCharacters;
+  characterCanon = characters || null;
   check(Boolean(characters), 'characterdata.js did not expose CyberligaCharacters');
   if (characters) {
     check(Object.isFrozen(characters), 'CyberligaCharacters public API must be frozen');
@@ -396,6 +418,34 @@ if (characterDataPresent && content) {
     check(new Set(characters.records?.map((record) => record.teamId)).size === 12, 'Founding characters must represent 12 distinct clubs');
     check(content.sports.every((sport) => characters.records?.filter((record) => record.sportId === sport.id).length === 2), 'Every sport must have exactly two founding characters');
     check(characters.validate(content)?.valid === true, 'CyberligaCharacters.validate must accept the canonical world roster', (characters.validate(content)?.errors || []).join('; '));
+  }
+}
+
+const foundingVisualPresent = await exists('foundingvisual.js');
+check(foundingVisualPresent, 'Missing shared Founding 12 vector renderer', 'foundingvisual.js');
+if (foundingVisualPresent) {
+  const foundingVisualSource = await text('foundingvisual.js');
+  const visualContext = vm.createContext({ console });
+  vm.runInContext(foundingVisualSource, visualContext, { filename: 'foundingvisual.js', timeout: 2000 });
+  const visual = visualContext.CyberligaFoundingVisual;
+  check(Boolean(visual), 'foundingvisual.js did not expose CyberligaFoundingVisual');
+  check(!/\bMath\.random\b/.test(foundingVisualSource), 'Founding visual renderer must not read global randomness');
+  check(!/\b(?:document|location|localStorage|sessionStorage)\b/.test(foundingVisualSource), 'Founding visual renderer must remain independent of DOM, URL, and storage state');
+  if (visual) {
+    check(Object.isFrozen(visual), 'CyberligaFoundingVisual public API must be frozen');
+    check(visual.version === '1.0.0' && visual.durationMs === 4800, 'Founding visual renderer must publish a stable version and loop duration');
+    check(visual.bodyKeys?.length === 12 && visual.descriptors?.length === 12, 'Founding visual renderer must cover exactly the canonical twelve bodies');
+    for (const method of ['prepare', 'describe', 'fit', 'draw', 'drawFit', 'drawSportProp']) {
+      check(typeof visual[method] === 'function', `CyberligaFoundingVisual is missing ${method}()`);
+    }
+    if (characterCanon && content) {
+      const prepared = characterCanon.records.map((record) => visual.prepare(record, content.getTeam(record.teamId, record.sportId)));
+      check(prepared.every(Boolean), 'Every Founding 12 record must prepare against its canonical club');
+      const transform = visual.fit({ x:80, y:390, width:920, height:880 }, { padding:28 });
+      const identity = prepared[0] && visual.describe(prepared[0], visual.showcasePhase, 'verification', transform);
+      check(Object.isFrozen(transform) && transform.scale > 0, 'Founding visual fit must produce a frozen finite transform');
+      check(Object.isFrozen(identity) && identity.mode === 'founding-vector' && identity.identityKey?.startsWith('founding-vector@1.0.0/'), 'Founding visual identities must be frozen, versioned, and athlete-addressable');
+    }
   }
 }
 

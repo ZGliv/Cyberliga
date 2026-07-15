@@ -9,7 +9,8 @@
     "start": "node server.mjs",
     "test:api": "node --test api/canonical-server.test.mjs",
     "test:moments": "node --test athlete-moments.test.mjs",
-    "verify": "npm run test:api && npm run test:moments && node scripts/verify.mjs",
+    "test:visuals": "node --test foundingvisual.test.mjs",
+    "verify": "npm run test:api && npm run test:moments && npm run test:visuals && node scripts/verify.mjs",
     "release:check": "npm run verify && node scripts/release-check.mjs"
   },
   "engines": {

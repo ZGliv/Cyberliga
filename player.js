@@ -2,6 +2,8 @@
   'use strict';
 
   var C = window.CYBERLIGA_CONTENT;
+  var CHARACTER_DATA = window.CyberligaCharacters;
+  var FOUNDING_VISUAL = window.CyberligaFoundingVisual;
   var ARENAS = { soccer:'index.html', basketball:'hoops.html', hockey:'hockey.html', baseball:'baseball.html', combat:'fight.html', 'american-football':'football.html' };
   var STAT_SETS = {
     soccer:[['APPS',16,25],['GOALS',2,16],['KEY PASSES',14,51]],
@@ -11,7 +13,8 @@
     combat:[['BOUTS',4,11],['WINS',2,10],['KNOCKDOWNS',1,8]],
     'american-football':[['GAMES',8,17],['SNAPS',128,812],['IMPACT',44,99]]
   };
-  var state = { elapsed:0, requested:{}, fallback:false, sport:null, team:null, athlete:null, rival:null, rating:0, form:[], stats:[], career:{}, headlines:[], canonical:'' };
+  var state = { elapsed:0, requested:{}, fallback:false, sport:null, team:null, athlete:null, rival:null, rating:0, form:[], stats:[], career:{}, headlines:[], canonical:'', visual:{founding:false,record:null,descriptor:null,transform:null} };
+  var visualClock = { started:false, manual:false, autoElapsed:0, lastNow:null, observer:null };
 
   function hash(value) { return C && C.hash ? C.hash(value) : String(value).split('').reduce(function(a,c){return ((a<<5)-a+c.charCodeAt(0))>>>0;},2166136261); }
   function randomFor(seed) { return C.seededRandom(seed); }
@@ -67,6 +70,89 @@
     Object.keys(vars).forEach(function(k){figure.style.setProperty(k,vars[k]);});
   }
 
+  function visualDuration() {
+    var value=FOUNDING_VISUAL&&Number(FOUNDING_VISUAL.durationMs);
+    return Number.isFinite(value)&&value>0?value:4800;
+  }
+  function visualPhase() {
+    var duration=visualDuration(),elapsed=visualClock.manual?state.elapsed:visualClock.autoElapsed;
+    var showcase=FOUNDING_VISUAL&&Number(FOUNDING_VISUAL.showcasePhase);
+    if(!Number.isFinite(showcase))showcase=.43;
+    return ((showcase+(elapsed%duration)/duration)%1+1)%1;
+  }
+  function visualFrame(width,height) {
+    var side=Math.max(10,Math.min(24,width*.045));
+    var top=Math.max(70,Math.min(96,height*.13));
+    var caption=Math.max(92,Math.min(124,height*.18));
+    return {x:side,y:top,width:Math.max(1,width-side*2),height:Math.max(1,height-top-caption)};
+  }
+  function genericVisualPayload() {
+    var athlete=state.athlete||{},sport=state.sport||{},team=state.team||{};
+    return {mode:'generic-css',founding:false,rendererVersion:null,athleteId:athlete.id||null,bodyKey:null,sportId:sport.id||null,teamId:team.id||null,identityKey:'generic/'+String(athlete.id||'unknown'),phase:null,surface:'athlete-file',transform:null};
+  }
+  function visualPayload() {
+    if(!state.visual.founding||!FOUNDING_VISUAL||typeof FOUNDING_VISUAL.describe!=='function')return genericVisualPayload();
+    return FOUNDING_VISUAL.describe(state.visual.descriptor,visualPhase(),'athlete-file',state.visual.transform);
+  }
+  function applyGenericVisual() {
+    var portrait=document.getElementById('portrait'),canvas=document.getElementById('founding-canvas'),meta=document.getElementById('founding-meta');
+    state.visual={founding:false,record:null,descriptor:null,transform:null};
+    if(portrait){portrait.classList.remove('is-founding');portrait.dataset.visual='generic-css';}
+    if(canvas)canvas.hidden=true;
+    if(meta)meta.hidden=true;
+  }
+  function drawFoundingVisual() {
+    if(!state.visual.founding||!FOUNDING_VISUAL||typeof FOUNDING_VISUAL.drawFit!=='function')return;
+    var canvas=document.getElementById('founding-canvas'),ctx=canvas&&canvas.getContext('2d');
+    if(!canvas||!ctx||canvas.hidden)return;
+    var width=Number(canvas.dataset.logicalWidth)||0,height=Number(canvas.dataset.logicalHeight)||0,dpr=Number(canvas.dataset.dpr)||1;
+    if(width<=0||height<=0)return;
+    ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.setTransform(dpr,0,0,dpr,0,0);
+    try {
+      state.visual.transform=FOUNDING_VISUAL.drawFit(ctx,state.visual.descriptor,visualFrame(width,height),{phase:visualPhase(),surface:'athlete-file',shadow:true});
+    } catch (_error) {
+      applyGenericVisual();
+    }
+  }
+  function resizeFoundingVisual() {
+    if(!state.visual.founding)return;
+    var canvas=document.getElementById('founding-canvas');if(!canvas)return;
+    var rect=canvas.getBoundingClientRect(),width=Math.max(1,Math.round(rect.width)),height=Math.max(1,Math.round(rect.height));
+    var dpr=Math.max(1,Math.min(2,Number(window.devicePixelRatio)||1));
+    var pixelWidth=Math.max(1,Math.round(width*dpr)),pixelHeight=Math.max(1,Math.round(height*dpr));
+    if(canvas.width!==pixelWidth)canvas.width=pixelWidth;if(canvas.height!==pixelHeight)canvas.height=pixelHeight;
+    canvas.dataset.logicalWidth=String(width);canvas.dataset.logicalHeight=String(height);canvas.dataset.dpr=String(dpr);
+    drawFoundingVisual();
+  }
+  function animateFoundingVisual(now) {
+    if(state.visual.founding&&!visualClock.manual) {
+      var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if(!reduced&&visualClock.lastNow!=null)visualClock.autoElapsed+=Math.max(0,Math.min(48,now-visualClock.lastNow));
+      visualClock.lastNow=now;
+      drawFoundingVisual();
+    } else visualClock.lastNow=null;
+    window.requestAnimationFrame(animateFoundingVisual);
+  }
+  function startVisualRuntime() {
+    if(visualClock.started)return;visualClock.started=true;
+    var portrait=document.getElementById('portrait');
+    if('ResizeObserver' in window&&portrait){visualClock.observer=new ResizeObserver(resizeFoundingVisual);visualClock.observer.observe(portrait);}
+    else window.addEventListener('resize',resizeFoundingVisual);
+    window.requestAnimationFrame(animateFoundingVisual);
+  }
+  function configureVisual() {
+    var record=CHARACTER_DATA&&typeof CHARACTER_DATA.get==='function'?CHARACTER_DATA.get(state.athlete.id):null;
+    var descriptor=null;
+    if(record&&FOUNDING_VISUAL&&typeof FOUNDING_VISUAL.prepare==='function')descriptor=FOUNDING_VISUAL.prepare(record,state.team);
+    if(!record||!descriptor){applyGenericVisual();return;}
+    var portrait=document.getElementById('portrait'),canvas=document.getElementById('founding-canvas'),meta=document.getElementById('founding-meta');
+    state.visual={founding:true,record:record,descriptor:descriptor,transform:null};
+    portrait.classList.add('is-founding');portrait.dataset.visual='founding-vector';canvas.hidden=false;meta.hidden=false;
+    setText('founding-body','BODY / '+record.bodyFamily.toUpperCase());setText('founding-signature','SIGNATURE / '+record.motionName.toUpperCase());
+    canvas.setAttribute('aria-label','Animated Founding 12 portrait of '+state.athlete.name+'. Body: '+record.bodyFamily+'. Signature: '+record.motionName+'.');
+    startVisualRuntime();resizeFoundingVisual();
+  }
+
   function updateMetadata() {
     var title=state.athlete.name+' / '+state.team.name+' / Cyberliga';
     var desc='#'+state.athlete.number+' '+state.athlete.role+' — '+state.athlete.signature+'. Meet '+state.athlete.name+' of '+state.team.name+'.';
@@ -102,7 +188,7 @@
     setHref('rivalry-link','league.html?sport='+encodeURIComponent(s.id));setHref('wire-link','social.html?'+qs(focus)+'#player-'+encodeURIComponent(a.id));setHref('team-link','league.html?sport='+encodeURIComponent(s.id)+'#'+encodeURIComponent(t.id));
     var destinations=[['LIVE ARENA',ARENAS[s.id]],['LEAGUE ATLAS','league.html?sport='+encodeURIComponent(s.id)],['FOCUSED WORLD WIRE','social.html?'+qs(focus)+'#player-'+encodeURIComponent(a.id)],['REPLAY CENTER','replay.html?sport='+encodeURIComponent(s.id)],['MOMENT MAKER','moment.html?'+qs(media)],['CLIP DIRECTOR','clip.html?'+qs(media)],['BROADCAST GUIDE','menu.html'],['PHYSICAL WORLD','world.html']];
     document.getElementById('destination-grid').innerHTML=destinations.map(function(d,i){return '<a class="destination" href="'+esc(d[1])+'"><span>0'+(i+1)+'</span><b>'+esc(d[0])+'</b><i>↗</i></a>';}).join('');
-    setText('footer-file',state.canonical.toUpperCase());portraitVars();updateMetadata();
+    setText('footer-file',state.canonical.toUpperCase());portraitVars();configureVisual();updateMetadata();
   }
 
   function capitalize(value){value=String(value||'');return value.charAt(0).toUpperCase()+value.slice(1);}
@@ -110,7 +196,7 @@
   function fail(){document.body.innerHTML='<main style="padding:10vw;font-family:Arial"><h1>THE FILE ROOM IS OFFLINE</h1><p>The shared Cyberliga world model could not load.</p><p><a href="world.html">Return to the world map →</a></p></main>';}
   function init(){if(!resolve()){fail();return;}buildStats();render();if(state.fallback)history.replaceState(null,'',state.canonical);document.getElementById('share-button').addEventListener('click',share);}
 
-  window.advanceTime=function(ms){state.elapsed+=Math.max(0,Number(ms)||0);return state.elapsed;};
-  window.render_game_to_text=function(){var media=state.sport&&{sport:state.sport.id,home:state.team.id,away:state.rival.id,athlete:state.athlete.id,headline:state.headlines[0]};return JSON.stringify({screen:'athlete-profile',coordinateSystem:'document flow; top to bottom; portrait is decorative CSS, no gameplay coordinates',canonical:state.canonical,fallbackUsed:state.fallback,requested:state.requested,sport:state.sport&&{id:state.sport.id,name:state.sport.name,league:state.sport.league},team:state.team&&{id:state.team.id,name:state.team.name,code:state.team.code,city:state.team.city,rival:state.rival&&state.rival.name},athlete:state.athlete&&{id:state.athlete.id,name:state.athlete.name,number:state.athlete.number,role:state.athlete.role,archetype:state.athlete.archetype,temperament:state.athlete.temperament,signature:state.athlete.signature,flaw:state.athlete.flaw||null},form:{rating:state.rating,lastFive:state.form,stats:state.stats},career:state.career,headlineCount:state.headlines.length,teammateCount:state.team?Math.min(8,state.team.athletes.length-1):0,elapsedMs:state.elapsed,links:{arena:state.sport&&ARENAS[state.sport.id],league:state.sport&&'league.html?sport='+state.sport.id,wire:state.canonical&&'social.html?'+qs({sport:state.sport.id,team:state.team.id,player:state.athlete.id}),replay:state.sport&&'replay.html?sport='+state.sport.id,moment:media&&'moment.html?'+qs(media),clip:media&&'clip.html?'+qs(media),guide:'menu.html',world:'world.html'}});};
+  window.advanceTime=function(ms){visualClock.manual=true;visualClock.lastNow=null;state.elapsed+=Math.max(0,Number(ms)||0);drawFoundingVisual();return state.elapsed;};
+  window.render_game_to_text=function(){var media=state.sport&&{sport:state.sport.id,home:state.team.id,away:state.rival.id,athlete:state.athlete.id,headline:state.headlines[0]};return JSON.stringify({screen:'athlete-profile',coordinateSystem:'document flow; top to bottom; Founding portrait canvas uses CSS-pixel coordinates with origin top-left; all portraits are decorative and view-only',canonical:state.canonical,fallbackUsed:state.fallback,requested:state.requested,sport:state.sport&&{id:state.sport.id,name:state.sport.name,league:state.sport.league},team:state.team&&{id:state.team.id,name:state.team.name,code:state.team.code,city:state.team.city,rival:state.rival&&state.rival.name},athlete:state.athlete&&{id:state.athlete.id,name:state.athlete.name,number:state.athlete.number,role:state.athlete.role,archetype:state.athlete.archetype,temperament:state.athlete.temperament,signature:state.athlete.signature,flaw:state.athlete.flaw||null},visual:visualPayload(),form:{rating:state.rating,lastFive:state.form,stats:state.stats},career:state.career,headlineCount:state.headlines.length,teammateCount:state.team?Math.min(8,state.team.athletes.length-1):0,elapsedMs:state.elapsed,links:{arena:state.sport&&ARENAS[state.sport.id],league:state.sport&&'league.html?sport='+state.sport.id,wire:state.canonical&&'social.html?'+qs({sport:state.sport.id,team:state.team.id,player:state.athlete.id}),replay:state.sport&&'replay.html?sport='+state.sport.id,moment:media&&'moment.html?'+qs(media),clip:media&&'clip.html?'+qs(media),guide:'menu.html',world:'world.html'}});};
   init();
 })();

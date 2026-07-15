@@ -767,3 +767,30 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   though its state and page copy were correct. The visible 12-second canvas reveal now prints `CONCEPT SCORE ·
   EVENT SCORE MISSING` itself for an event reference without a score claim, and the verifier requires both the
   canvas and page-copy warning before release.
+
+## Founding 12 Shared Visual Identity — 2026-07-15
+- Extracted the twelve authored Character Lab bodies into a frozen, deterministic `CyberligaFoundingVisual`
+  renderer. Its strict preparation gate accepts only the exact canonical athlete, club, sport and body tuple;
+  it owns no product data, DOM, URL, clock, storage or global randomness and publishes versioned identity keys.
+- Character Lab now delegates to the shared renderer without changing its accepted art or controls. All 36
+  pre/post PNG hashes—12 athletes across match, portrait and clip views at the showcase frame—match byte for
+  byte, while operation digests lock all twelve bodies at three animation phases.
+- Athlete Files gives only the Founding 12 a DPR-aware, reduced-motion-safe vector canvas plus readable body and
+  named-signature metadata. All twelve passed the 390x844 containment/state matrix; representative desktop and
+  mobile generic portraits remained pixel-identical to canonical for the other 404 athletes and never start the
+  Founding animation loop.
+- Moment Maker and Clip Director now resolve the same versioned identity, show the character's named signature,
+  and deep-link back to the permanent Athlete File. Their exact procedural renderer remains the fallback for
+  every non-Founding athlete; fixed generic Clip and Moment canvases are byte-identical to canonical.
+- Clip Director retains its moving game object, impact layer, 12-second WebM path and all My Signal provenance.
+  Visual review caught three bodies drawing an authored prop in addition to the moving clip ball; clips now
+  suppress only that embedded prop while Character Lab, Athlete Files and posters keep the iconic full pose.
+  The scoreless event warning and every `authoritative:false`, `eventDataCanonical:false`,
+  `syntheticConcept:true` and `scoreVerified:false` boundary remain intact.
+- Cross-surface QA passes 48/48 Founding identity cases (12 athletes × Character Lab, Athlete Files, Clip and
+  Moment) with one stable identity key per athlete and zero browser/request errors. The separate Moment matrix
+  passes all twelve athletes at desktop and 390x844 plus generic fallbacks with zero overflow; all twelve mobile
+  posters were visually inspected.
+- Exact-source gates pass 13/13 API tests, 11/11 live-moment tests, 9/9 shared-visual tests, 38/38 football and
+  Mythos tests, and 1,336/1,336 repository checks. Standalone/inline syntax and `git diff --check` pass. This is
+  an isolated, undeployed feature slice; it does not replace classic cyan/hot-pink live arena athletes.
