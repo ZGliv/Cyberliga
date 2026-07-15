@@ -757,3 +757,9 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   story feed; calls still stay open. The next high-impact product work is unifying Founding 12 visual identity
   across live arenas/profile/clips, then a named-moment autonomous replay director. Neither limitation is hidden
   or papered over by this feature.
+- Release-manager audit caught one remaining score-integrity gap before integration: a present but unchanged or
+  wrong-side score pair could be described as a scoring moment. Normalization now rejects every transition unless
+  the attributed side increases, the opponent stays unchanged, scores remain nonnegative/monotonic, and any
+  claimed positive points exactly match the attributed-side delta. The 11-test moment suite now covers unchanged,
+  decreasing, opponent-only, both-sides, mismatched-points and zero-points failures plus valid away scoring and
+  events that legitimately omit the optional points field; rejection occurs before headline/link construction.

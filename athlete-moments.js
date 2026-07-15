@@ -356,6 +356,13 @@
     var after = scorePair(payload.scoreAfter || payload.score_after);
     if (!before || !after) return null;
     var points = finiteInteger(payload.points, 0, 100);
+    var scoringSide = team.id === context.home.id ? 'home' : 'away';
+    var opponentSide = scoringSide === 'home' ? 'away' : 'home';
+    var scoringDelta = after[scoringSide] - before[scoringSide];
+    var opponentDelta = after[opponentSide] - before[opponentSide];
+    var hasClaimedPoints = payload.points != null;
+    if (scoringDelta <= 0 || opponentDelta !== 0 ||
+        hasClaimedPoints && (points == null || points <= 0 || points !== scoringDelta)) return null;
     var leverage = boundedNumber(payload.leverage, 0, 1);
     var eventPhase = safeText(payload.phase, 80).toLowerCase() || context.phase;
     var home = teamRecord(context.home);
@@ -405,7 +412,7 @@
       away: away,
       team: normalizedTeam,
       opponent: normalizedOpponent,
-      side: normalizedTeam.id === home.id ? 'home' : 'away',
+      side: scoringSide,
       athlete: normalizedAthlete,
       score: { before: before, after: after, current: current },
       scoreBefore: before,

@@ -73,6 +73,9 @@ function fixtureFor(sportId, options = {}) {
   const fixtureId = options.fixtureId || `fixture:${sportId}`;
   const kind = options.kind || EVENT_KIND[sportId];
   const eventKey = options.eventKey || `event:${sportId}:1`;
+  const points = options.points ?? (sportId === 'baseball' ? 2 : 1);
+  const scoreBefore = options.scoreBefore || { home: 0, away: 0 };
+  const scoreAfter = options.scoreAfter || { home: scoreBefore.home + points, away: scoreBefore.away };
   const event = {
     eventKey,
     sequence: options.sequence ?? 1,
@@ -83,9 +86,9 @@ function fixtureFor(sportId, options = {}) {
     athleteId: options.athleteId || athlete.id,
     payload: {
       phase: 'live',
-      scoreBefore: { home: 0, away: 0 },
-      scoreAfter: { home: 1, away: 0 },
-      points: options.points ?? (sportId === 'baseball' ? 2 : 1),
+      scoreBefore,
+      scoreAfter,
+      points,
       leverage: options.leverage ?? 0.82,
       signatureCandidate: options.signatureCandidate ?? true,
       actorRole: athlete.role,
@@ -106,8 +109,8 @@ function fixtureFor(sportId, options = {}) {
     durationMs: 360_000,
     startsAt,
     scheduledEndAt: options.scheduledEndAt || new Date(Date.parse(startsAt) + DEFAULT_SLOT_MS).toISOString(),
-    homeScore: 1,
-    awayScore: 0,
+    homeScore: scoreAfter.home,
+    awayScore: scoreAfter.away,
     homeTeam: { publicId: home.id },
     awayTeam: { publicId: away.id },
     events: options.events || [event]
@@ -346,6 +349,58 @@ test('does not create an event-reference clip without a validated score-after pa
   const missingScoreSnapshot = bound.normalizeLive(payloadFor([fixture]));
   assert.equal(missingScoreSnapshot.moments.length, 0);
   assert.equal(missingScoreSnapshot.summary.ignored, 1);
+});
+
+test('rejects scoreless and side-inconsistent scoring events before creating headlines or links', () => {
+  const invalidTransitions = [
+    { label: 'unchanged', before: { home: 0, away: 0 }, after: { home: 0, away: 0 }, points: 1 },
+    { label: 'attributed-side decrease', before: { home: 1, away: 0 }, after: { home: 0, away: 0 }, points: 1 },
+    { label: 'opponent-only change', before: { home: 0, away: 0 }, after: { home: 0, away: 1 }, points: 1 },
+    { label: 'both sides changed', before: { home: 0, away: 0 }, after: { home: 1, away: 1 }, points: 1 },
+    { label: 'claimed points mismatch', before: { home: 0, away: 0 }, after: { home: 2, away: 0 }, points: 1 },
+    { label: 'non-positive claimed points', before: { home: 0, away: 0 }, after: { home: 1, away: 0 }, points: 0 }
+  ];
+
+  invalidTransitions.forEach(({ label, before, after, points }, index) => {
+    const fixture = fixtureFor('basketball', {
+      fixtureId: `fixture:invalid-score:${index}`,
+      matchId: `match:invalid-score:${index}`,
+      eventKey: `event:invalid-score:${index}`,
+      scoreBefore: before,
+      scoreAfter: after,
+      points
+    });
+    const snapshot = bound.normalizeLive(payloadFor([fixture]));
+    assert.equal(snapshot.moments.length, 0, label);
+    assert.equal(snapshot.summary.ignored, 1, label);
+    assert.ok(!JSON.stringify(snapshot).includes('clip.html?'), label);
+  });
+
+  const awayFixture = fixtureFor('basketball', {
+    fixtureId: 'fixture:valid-away-score',
+    matchId: 'match:valid-away-score',
+    eventKey: 'event:valid-away-score'
+  });
+  const awayTeam = content.getTeam(awayFixture.awayTeam.publicId, 'basketball');
+  awayFixture.events[0].teamId = awayTeam.id;
+  awayFixture.events[0].athleteId = awayTeam.athletes[0].id;
+  awayFixture.events[0].payload.scoreBefore = { home: 3, away: 4 };
+  awayFixture.events[0].payload.scoreAfter = { home: 3, away: 6 };
+  awayFixture.events[0].payload.points = 2;
+  const validAway = bound.normalizeLive(payloadFor([awayFixture]));
+  assert.equal(validAway.moments.length, 1);
+  assert.equal(validAway.moments[0].side, 'away');
+  assert.ok(validAway.moments[0].clipUrl.startsWith('clip.html?'));
+
+  const optionalPointsFixture = fixtureFor('hockey', {
+    fixtureId: 'fixture:valid-without-points',
+    matchId: 'match:valid-without-points',
+    eventKey: 'event:valid-without-points'
+  });
+  delete optionalPointsFixture.events[0].payload.points;
+  const validWithoutPoints = bound.normalizeLive(payloadFor([optionalPointsFixture]));
+  assert.equal(validWithoutPoints.moments.length, 1);
+  assert.ok(validWithoutPoints.moments[0].clipUrl.startsWith('clip.html?'));
 });
 
 test('ignores malformed, unattributed, cross-team, and lifecycle events', () => {
