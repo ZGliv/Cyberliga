@@ -269,20 +269,13 @@ check(await exists('gamehub.js'), 'Missing shared in-game navigation hub');
 const gameHubSource = await text('gamehub.js');
 check(/removeLegacyCyberligaGameHub/.test(gameHubSource), 'Legacy gamehub compatibility file must remain removal-only');
 for (const arena of arenas) check(!(await text(arena.file)).includes('gamehub.js'), `${arena.file} must not restore the removed Navigate menu`);
-const arenaSignalSource = await text('arena-signal.js');
-const arenaSignalStyles = await text('arena-signal.css');
-check(Boolean(arenaSignalSource) && Boolean(arenaSignalStyles), 'Missing shared view-only arena narrative signal');
-check(/interaction:\s*['"]view-only['"]/.test(arenaSignalSource) && /autonomous:\s*true/.test(arenaSignalSource), 'Arena Signal must expose an autonomous view-only QA contract');
-check(/pointer-events:\s*none\s*!important/.test(arenaSignalStyles), 'Arena Signal must remain pointer-inert');
-check(!/element\(\s*['"](?:a|button|input|select|textarea)['"]/.test(arenaSignalSource), 'Arena Signal must not create interactive arena controls');
 for (const arena of arenas) {
   const source = await text(arena.file);
   const worldAt = source.indexOf('worlddata.js');
   const characterAt = source.indexOf('characterdata.js');
   const mythosAt = source.indexOf('mythos.js');
-  const signalAt = source.indexOf('arena-signal.js');
-  check(source.includes('arena-signal.css'), `${arena.file} must load the shared arena narrative styles`);
-  check(worldAt >= 0 && worldAt < characterAt && characterAt < mythosAt && mythosAt < signalAt, `${arena.file} must load world → characters → mythos → arena signal in order`);
+  check(worldAt >= 0 && worldAt < characterAt && characterAt < mythosAt, `${arena.file} must load world → characters → mythos in order`);
+  check(!source.includes('arena-signal.css') && !source.includes('arena-signal.js'), `${arena.file} must not restore the removed arena narrative overlay`);
 }
 check(/CyberligaCharacters\?\.featuredForTeam/.test(fightSource), 'Combat must put its Founding 12 athlete into each authored club cast');
 const characterLabSource = await text('characterlab.html');
