@@ -800,3 +800,24 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - Final phone broadcast review caught Combat's outside-the-fascia camera passing behind a double-sided venue
   board during live exchanges and knockdown counts. Portrait broadcasts now retain those boards for walkouts
   but suppress them once live action begins, keeping the full cage and both cyan/pink fighters unobstructed.
+
+## Founding 12 Live Broadcast Cues — 2026-07-15
+- Added a frozen, deterministic `CyberligaFoundingLive` catalogue that translates the exact shared Founding
+  identity key into one to three rear/body-attached low-poly silhouette cues. Its strict gate accepts only the
+  canonical athlete object inside the canonical team and rejects generic, cloned, cross-team and forged inputs.
+- `blobrig.js` merges all solids on each moving torso/head anchor into at most two meshes, reuses the athlete's
+  existing classic cyan or hot-pink material, disables raycasting and shadows, and adds no textures, lights,
+  particles, labels, free props, animation loops, collision surfaces, randomness or gameplay state.
+- All six arenas pass the exact source athlete and team into the shared rig. Only real competitors are eligible;
+  referees, officials, corner crews and synthetic identities remain excluded. Machine-readable broadcast state
+  publishes the accepted identity key, body, cue/mesh/triangle budgets, classic color, side and exact lineup role.
+- The two-Founder matrix passes 14/14 cases across desktop and 390x844: all twelve bodies appear in their sport,
+  exact identity keys and classic side colors match, each athlete stays within three cues, two meshes and 96
+  triangles, broadcasts remain autonomous/view-only, and no page, console, request, HTTP or overflow errors occur.
+  Seven desktop and seven mobile captures were visually inspected for gameplay/equipment clarity and HUD safety.
+- A separate generic-only negative-control matrix passes 12/12 desktop/mobile cases across all six sports. Each
+  selected matchup was proven to contain two non-Founding teams, emitted zero cue state, preserved the autonomous
+  view-only contract and produced no browser or layout errors; the other 404 athletes never enter the cue path.
+- Exact-source gates pass 13/13 API tests, 11/11 live-moment tests, 16/16 shared visual/live-cue tests, 38/38
+  football/rules/Mythos tests and 1,381/1,381 repository checks. Standalone syntax and `git diff --check` pass.
+  This remains an isolated, undeployed feature slice pending Release Manager integration and the canonical gate.

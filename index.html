@@ -326,6 +326,8 @@
 
 <script src="worlddata.js"></script>
 <script src="characterdata.js"></script>
+<script src="foundingvisual.js"></script>
+<script src="foundinglive.js"></script>
 <script src="mythos.js"></script>
 <script src="universe.js"></script>
 <script src="presence.js"></script>
@@ -793,6 +795,8 @@ const ROSTERS = {
 // Six players per club keeps the field open and makes each named blob readable at broadcast distance.
 CONTENT_SOCCER.forEach(team => {
   ROSTERS[team.name] = team.athletes.map((athlete, index) => ({
+    athleteId: athlete.id,
+    athlete,
     n: athlete.name,
     num: athlete.number,
     flair: index >= 3 ? ['signature'] : [],
@@ -856,6 +860,8 @@ function buildPlayer(team, isGK, r, captain) {
   // public simulation uses the readable blob vocabulary.
   const rig = buildRig({
     side, kitColor: playerColor, glowColor: playerColor,
+    athlete: r.athlete,
+    foundingTeam: team.content,
     skinTone: SKIN_TONES[Math.floor(presentationRandom()*SKIN_TONES.length)],
     hairColor: HAIR_COLORS[Math.floor(presentationRandom()*HAIR_COLORS.length)],
     isGK, headband: r.hb ?? (presentationRandom() < 0.35),
@@ -924,7 +930,8 @@ function makeTeam(team, dir) { // dir: -1 defends left goal, +1 defends right go
     mesh.scale.setScalar(sc);
     scene.add(mesh);
     players.push({
-      team, dir, role: slot.role, mesh, name: r.n, number: r.num,
+      team, dir, role: slot.role, mesh, athleteId: r.athleteId, athlete: r.athlete,
+      name: r.n, number: r.num,
       home: new THREE.Vector3(dir * slot.x * HALF_W, 0, slot.z * HALF_H * 1.6),
       pos: new THREE.Vector3(), vel: new THREE.Vector3(),
       speed: slot.role === 'GK' ? 6.0 : (slot.role === 'FWD' ? 7.8 : 7.1) * (0.95 + simRandom()*0.12),
@@ -4541,6 +4548,16 @@ function forceSoccerMoment(type) {
 window.CL = { state, ball, players, goalScored, ref, beginFoul, sendOff, markInjury,
   triggerTacticalSwitch, forceMoment:forceSoccerMoment, flight, present, tactics, keeperAI,
   stats, replaySys, buildMatchPoster, posterSnapshot };
+function renderedFoundingCues() {
+  return players.map((player, entityIndex) => {
+    const cue = player.mesh?.userData?.foundingCue;
+    if (!cue) return null;
+    const side = player.team === TEAM_A ? 0 : player.team === TEAM_B ? 1 : -1;
+    if (side < 0) return null;
+    const teamPlayerIndex = player.team.content?.athletes?.indexOf(player.athlete) ?? -1;
+    return { ...cue, side, entityIndex, teamPlayerIndex, arenaRole:player.role };
+  }).filter(Boolean).sort((a, b) => a.entityIndex - b.entityIndex);
+}
 window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'pitch center is 0,0; +x attacks toward the right goal; +z points toward the near touchline',
   autonomous: true,
@@ -4588,6 +4605,7 @@ window.render_game_to_text = () => JSON.stringify({
   technicalAreas:technicalAreas.map(a=>({team:a.team.name,reaction:a.reaction})),
   venue:venueIdentity.state(),
   departures:state.departures.map(d=>({name:d.p.name,team:d.p.team.name,seconds:+d.t.toFixed(1)})),
+  foundingCues:renderedFoundingCues(),
   players: players.map(p => ({ name: p.name, team: p.team.name, role: p.role,
     x: +p.pos.x.toFixed(1), z: +p.pos.z.toFixed(1), stamina:+p.stamina.toFixed(2),
     injury:p.injuryT>0?{kind:p.injuryKind,seconds:+p.injuryT.toFixed(1)}:null,

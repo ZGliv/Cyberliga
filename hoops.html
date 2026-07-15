@@ -230,9 +230,11 @@
 </div>
 
 <script src="worlddata.js"></script>
+<script src="characterdata.js"></script>
+<script src="foundingvisual.js"></script>
+<script src="foundinglive.js"></script>
 <script src="branddata.js"></script>
 <script src="arena-establishing.js"></script>
-<script src="characterdata.js"></script>
 <script src="mythos.js"></script>
 <script type="importmap">
 { "imports": {
@@ -690,18 +692,19 @@ function makeTeam(def, dir, side){
   const players=[];
   for (let r=0;r<5;r++){
     const playerColor=classicSideVisual(side);
-    const athlete=lineup[r], shape=ROLE_SHAPES[r];
+    const athlete=lineup[r], teamPlayerIndex=def.roster.indexOf(athlete), shape=ROLE_SHAPES[r];
     const rig=buildBlobRig({
       side,kitColor:playerColor,glowColor:playerColor,captain:r===0,
       brandColor:def.col,secondaryColor:def.secondaryCol,accentColor:def.accentCol,
-      teamCode:def.code,jerseyNumber:athlete.number,kitPattern:def.brand.kitPattern,role:shape.label
+      teamCode:def.code,jerseyNumber:athlete.number,kitPattern:def.brand.kitPattern,role:shape.label,
+      athlete,foundingTeam:def.source
     });
     const signature=addHoopsSilhouette(rig,r,playerColor);
     scene.add(rig.group);
     const renderScale=identityScale(athlete,shape),identity=hash32(athlete.id);
     signature.group.rotation.y=((identity%7)-3)*.08;
     signature.group.scale.set(.9+((identity>>>5)%5)*.05,.9+((identity>>>8)%4)*.06,.9+((identity>>>11)%5)*.04);
-    players.push({ rig,signature,athlete,side,role:r,roleName:shape.label,name:athlete.name,td:def,
+    players.push({ rig,signature,athlete,side,teamPlayerIndex,role:r,roleName:shape.label,name:athlete.name,td:def,
       pos:V3(-dir*(2.2+r*1.7),0,(r-2)*2.7),vel:V3(),heading:dir>0?Math.PI/2:-Math.PI/2,
       jumpY:0,jumpV:0,air:false,squash:0,pts:0,ast:0,reb:0,fouls:0,fgm:0,fga:0,threes:0,
       contest:false,screened:0,ph:rand()*6.28,target:V3(),sprint:shape.speed,shape,renderScale,
@@ -1969,6 +1972,9 @@ window.render_game_to_text=()=>JSON.stringify({
   teams:teams.map(t=>({name:t.def.name,score:t.score,fg:`${t.fgm}/${t.fga}`,rebounds:t.rebounds,assists:t.assists,steals:t.steals,blocks:t.blocks,turnovers:t.turnovers,fouls:t.fouls})),
   arena:{name:teams[0]?.def.brand.venue||'HOME COURT',description:teams[0]?.def.brand.venueLine||'',ritual:teams[0]?.def.brand.ritual||'',statement:teams[0]?.def.brand.statement||'',scene:teams[0]?.def.brand.scene||'',kitPattern:teams[0]?.def.brand.kitPattern||'',spectators:(crowdBodies?.count||0)+heroFans.length,centerHungScoreboard:true,upperLightTruss:true},
   ball:{state:ball.state,x:+ball.pos.x.toFixed(2),y:+ball.pos.y.toFixed(2),z:+ball.pos.z.toFixed(2),holder:ball.holder?.name||null},
+  foundingCues:allPlayers().map((p,entityIndex)=>p.rig.group.userData.foundingCue?{
+    ...p.rig.group.userData.foundingCue,side:p.side,entityIndex,teamPlayerIndex:p.teamPlayerIndex,arenaRole:p.roleName
+  }:null).filter(Boolean).sort((a,b)=>a.entityIndex-b.entityIndex),
   players:allPlayers().map(p=>({name:p.name,team:p.td.name,role:p.roleName,x:+p.pos.x.toFixed(2),z:+p.pos.z.toFixed(2),bodyScale:{x:+p.renderScale[0].toFixed(2),y:+p.renderScale[1].toFixed(2),z:+p.renderScale[2].toFixed(2)},points:p.pts,rebounds:p.reb,assists:p.ast,fouls:p.fouls,fg:`${p.fgm}/${p.fga}`,hasBall:ball.holder===p}))
 });
 window.advanceTime=(ms)=>{

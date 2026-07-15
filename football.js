@@ -675,6 +675,8 @@ function buildPlayerView(player) {
   const club = footballClubEquipmentPalette(teams[player.teamIndex]);
   const rig = buildBlobRig({
     side: player.teamIndex,
+    athlete: player.athlete,
+    foundingTeam: teams[player.teamIndex],
     captain: player.role === 'QB' || player.role === 'MIKE',
     brandColor: teams[player.teamIndex].colors.primary,
     secondaryColor: teams[player.teamIndex].colors.secondary || teams[player.teamIndex].colors.primary,
@@ -3160,6 +3162,12 @@ function renderGameState() {
     : carrier();
   const runnerIdentity = runner ? getPlayerById(runner.id) || runner : null;
   const kick = ball.kick;
+  const foundingCues = players.map((player, entityIndex) => {
+    const cue = views.get(player.id)?.rig?.group?.userData?.foundingCue;
+    if (!cue) return null;
+    const teamPlayerIndex = teams[player.teamIndex].athletes.indexOf(player.athlete);
+    return { ...cue, side:player.teamIndex, entityIndex, teamPlayerIndex, arenaRole:player.role };
+  }).filter(Boolean).sort((a, b) => a.entityIndex - b.entityIndex);
   return JSON.stringify({
     screen: 'american-football', renderer: 'three-only-sideline-broadcast',
     autonomous: true, interaction: 'view-only',
@@ -3238,6 +3246,7 @@ function renderGameState() {
       teams: teamGameStats.map((stats, index) => ({ team: teams[index].code, ...stats })),
     },
     lastSnap: state.lastSnap,
+    foundingCues,
     players: players.map((player) => {
       const visible = visiblePlayers?.get(player.id) || player;
       return ({

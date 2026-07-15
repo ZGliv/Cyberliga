@@ -266,9 +266,11 @@
 </div>
 
 <script src="worlddata.js"></script>
+<script src="characterdata.js"></script>
+<script src="foundingvisual.js"></script>
+<script src="foundinglive.js"></script>
 <script src="branddata.js"></script>
 <script src="arena-establishing.js"></script>
-<script src="characterdata.js"></script>
 <script src="mythos.js"></script>
 <script type="importmap">
 { "imports": {
@@ -843,7 +845,8 @@ function makeClub(def, side){
     const athlete=def.team.athletes[i]||null,number=athlete?.number??(70+i);
     const rig=buildBlobRig({ side, kitColor:playerColor, glowColor:playerColor, captain:i===0,
       brandColor:def.col,secondaryColor:def.secondary,accentColor:def.accent,teamCode:def.code,jerseyNumber:number,
-      kitPattern:def.brand?.kitPattern||'pulse',role:athlete?.role||position });
+      kitPattern:def.brand?.kitPattern||'pulse',role:athlete?.role||position,
+      athlete,foundingTeam:def.team });
     const gear=addBaseballGear(rig,position,def.col);
     scene.add(rig.group);
     players.push({ rig, gear, name, athlete, number, side, role:i, position, x:-6, z:(side?-1:1)*(9+i*0.9), vx:0, vz:0,
@@ -2625,6 +2628,9 @@ function gameSnapshot(){
     lastPitch:S.lastPitch,
     pitchCall:S.callT>0?{label:S.callLabel,detail:S.callDetail,tone:S.callTone,seconds:+S.callT.toFixed(2)}:null,
     ball:{ mode:ball.mode, pos:[+ball.pos.x.toFixed(1), +ball.pos.y.toFixed(1), +ball.pos.z.toFixed(1)], vel:[+ball.vel.x.toFixed(1),+ball.vel.y.toFixed(1),+ball.vel.z.toFixed(1)] },
+    foundingCues:allPlayers().map((p,entityIndex)=>p.rig.group.userData.foundingCue?{
+      ...p.rig.group.userData.foundingCue,side:p.side,entityIndex,teamPlayerIndex:p.role,arenaRole:p.position
+    }:null).filter(Boolean).sort((a,b)=>a.entityIndex-b.entityIndex),
     play:pl ? {
       type:pl.type==='HOMER'&&!pl.resultFinalized?'DEEP DRIVE':pl.type, quality:pl.quality == null ? null : +pl.quality.toFixed(2),
       resolved:!!pl.resolved, bounced:!!pl.bounced, fielded:!!pl.fielded, caught:!!pl.caught, batterOut:!!pl.batterOut,

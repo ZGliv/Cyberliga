@@ -65,7 +65,7 @@ if (packageManifest) {
   check(packageManifest.scripts?.dev === 'node server.mjs', 'npm run dev must use the project-owned dependency-free server');
   check(packageManifest.scripts?.['test:api'] === 'node --test api/canonical-server.test.mjs', 'npm run test:api must cover the canonical API boundary');
   check(packageManifest.scripts?.['test:moments'] === 'node --test athlete-moments.test.mjs', 'npm run test:moments must cover athlete event normalization');
-  check(packageManifest.scripts?.['test:visuals'] === 'node --test foundingvisual.test.mjs', 'npm run test:visuals must cover the shared Founding 12 renderer');
+  check(packageManifest.scripts?.['test:visuals'] === 'node --test foundingvisual.test.mjs foundinglive.test.mjs', 'npm run test:visuals must cover shared Founding portrait and live-cue renderers');
   check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, and Founding visuals before static/data invariants');
   check(packageManifest.scripts?.['release:check'] === 'npm run verify && node scripts/release-check.mjs', 'npm run release:check must verify the repository before checking the canonical release source');
   check(Object.keys(packageManifest.dependencies || {}).length === 0, 'Runtime dependencies must remain empty');
@@ -302,11 +302,20 @@ for (const arena of arenas) {
   const source = await text(arena.file);
   const worldAt = source.indexOf('worlddata.js');
   const characterAt = source.indexOf('characterdata.js');
+  const visualAt = source.indexOf('foundingvisual.js');
+  const liveAt = source.indexOf('foundinglive.js');
   const mythosAt = source.indexOf('mythos.js');
-  check(worldAt >= 0 && worldAt < characterAt && characterAt < mythosAt, `${arena.file} must load world → characters → mythos in order`);
+  check(worldAt >= 0 && worldAt < characterAt && characterAt < visualAt && visualAt < liveAt && liveAt < mythosAt, `${arena.file} must load world → characters → Founding visual → live cues → mythos in order`);
   check(!source.includes('arena-signal.css') && !source.includes('arena-signal.js'), `${arena.file} must not restore the removed arena narrative overlay`);
 }
 check(/CyberligaCharacters\?\.featuredForTeam/.test(fightSource), 'Combat must put its Founding 12 athlete into each authored club cast');
+check(/founding-cue-/.test(blobRigSource) && /new THREE\.Mesh\(geometry, bodyMaterial\)/.test(blobRigSource), 'Shared rig must build Founding cues from the existing classic athlete material');
+check(/mesh\.raycast\s*=\s*\(\)\s*=>\s*\{\}/.test(blobRigSource) && /castShadow\s*=\s*false/.test(blobRigSource), 'Founding live cues must remain non-interactive and shadow-free');
+check(/athlete\s*=\s*null,\s*foundingTeam\s*=\s*null/.test(blobRigSource), 'Shared rig must keep Founding identity an explicit optional presentation input');
+for (const [sportId, source] of classicArenaSources) {
+  check(/\bfoundingTeam\s*:/.test(source), `${sportId} arena must pass the exact world team into the strict Founding cue gate`);
+  check(/\bfoundingCues\s*:|const\s+foundingCues\s*=/.test(source), `${sportId} arena must expose currently rendered Founding cues in machine-readable state`);
+}
 const characterLabSource = await text('characterlab.html');
 const characterLabScript = await text('characterlab.js');
 check(/Marquee 12/i.test(characterLabSource), 'Character Lab must expose the first twelve marquee athletes');
@@ -427,6 +436,7 @@ if (characterDataPresent && content) {
   }
 }
 
+let foundingVisualApi = null;
 const foundingVisualPresent = await exists('foundingvisual.js');
 check(foundingVisualPresent, 'Missing shared Founding 12 vector renderer', 'foundingvisual.js');
 if (foundingVisualPresent) {
@@ -434,6 +444,7 @@ if (foundingVisualPresent) {
   const visualContext = vm.createContext({ console });
   vm.runInContext(foundingVisualSource, visualContext, { filename: 'foundingvisual.js', timeout: 2000 });
   const visual = visualContext.CyberligaFoundingVisual;
+  foundingVisualApi = visual || null;
   check(Boolean(visual), 'foundingvisual.js did not expose CyberligaFoundingVisual');
   check(!/\bMath\.random\b/.test(foundingVisualSource), 'Founding visual renderer must not read global randomness');
   check(!/\b(?:document|location|localStorage|sessionStorage)\b/.test(foundingVisualSource), 'Founding visual renderer must remain independent of DOM, URL, and storage state');
@@ -451,6 +462,39 @@ if (foundingVisualPresent) {
       const identity = prepared[0] && visual.describe(prepared[0], visual.showcasePhase, 'verification', transform);
       check(Object.isFrozen(transform) && transform.scale > 0, 'Founding visual fit must produce a frozen finite transform');
       check(Object.isFrozen(identity) && identity.mode === 'founding-vector' && identity.identityKey?.startsWith('founding-vector@1.0.0/'), 'Founding visual identities must be frozen, versioned, and athlete-addressable');
+    }
+  }
+}
+
+const foundingLivePresent = await exists('foundinglive.js');
+check(foundingLivePresent, 'Missing shared Founding live-broadcast cue canon', 'foundinglive.js');
+if (foundingLivePresent) {
+  const foundingLiveSource = await text('foundinglive.js');
+  const liveContext = vm.createContext({ console });
+  vm.runInContext(foundingLiveSource, liveContext, { filename: 'foundinglive.js', timeout: 2000 });
+  const live = liveContext.CyberligaFoundingLive;
+  check(Boolean(live), 'foundinglive.js did not expose CyberligaFoundingLive');
+  check(!/\bMath\.random\b/.test(foundingLiveSource), 'Founding live cues must not consume randomness');
+  check(!/\b(?:document|location|localStorage|sessionStorage|fetch|XMLHttpRequest|requestAnimationFrame|performance|Date)\b/.test(foundingLiveSource), 'Founding live cues must remain independent of DOM, URL, storage, network, and clocks');
+  if (live) {
+    check(Object.isFrozen(live), 'CyberligaFoundingLive public API must be frozen');
+    check(live.version === '1.0.0' && live.bodyKeys?.length === 12 && live.recipes?.length === 12, 'Founding live cues must publish a stable twelve-body catalogue');
+    for (const method of ['prepare', 'describe', 'recipeFor', 'cueTriangles', 'recipeTriangles', 'validate']) {
+      check(typeof live[method] === 'function', `CyberligaFoundingLive is missing ${method}()`);
+    }
+    const validation = live.validate();
+    check(validation?.valid === true && validation?.maxCues === 3 && validation?.maxTrianglesPerCue === 32 && validation?.maxTrianglesPerAthlete === 96, 'Founding live cue recipes must satisfy geometry and cue budgets', (validation?.errors || []).join('; '));
+    if (characterCanon && foundingVisualApi && content) {
+      const prepared = characterCanon.records.map((record) => {
+        const team = content.getTeam(record.teamId, record.sportId);
+        const athlete = content.getAthlete(record.teamId, record.id);
+        return live.prepare(athlete, team, characterCanon, foundingVisualApi);
+      });
+      check(prepared.every(Boolean), 'Every exact Founding athlete must prepare for live broadcast');
+      check(prepared.every((descriptor) => {
+        const state = live.describe(descriptor);
+        return Object.isFrozen(state) && state.mode === 'founding-live-cue' && state.identityKey?.startsWith('founding-vector@1.0.0/') && state.cueCount <= 3 && state.triangleCount <= 96;
+      }), 'Every Founding live identity must be frozen, versioned, and budgeted');
     }
   }
 }

@@ -298,9 +298,11 @@
 </div>
 
 <script src="worlddata.js"></script>
+<script src="characterdata.js"></script>
+<script src="foundingvisual.js"></script>
+<script src="foundinglive.js"></script>
 <script src="branddata.js"></script>
 <script src="arena-establishing.js"></script>
-<script src="characterdata.js"></script>
 <script src="mythos.js"></script>
 <script type="importmap">
 { "imports": {
@@ -868,7 +870,8 @@ function mkFighter(side, clubIdx) {
   const playerColor=classicSideVisual(side);
   const rig = buildBlobRig({ side, kitColor:playerColor, glowColor:playerColor, captain: true,
     brandColor:club.kit,secondaryColor:club.secondary,accentColor:club.accent,teamCode:club.code,jerseyNumber:athlete.number,
-    kitPattern:club.brand?.kitPattern||'pulse',role:athlete.role });
+    kitPattern:club.brand?.kitPattern||'pulse',role:athlete.role,
+    athlete,foundingTeam:club.team });
   scene.add(rig.group);
   const r = nameRng(name); // style is identity: seeded from the name, tiny per-fight jitter
   const style=styleFor(name), j = () => (frand() - 0.5) * 0.04;
@@ -2164,6 +2167,10 @@ function fightSnapshot() {
     exchange:S.exchangeNo,lastImpact:S.lastImpact,lastImpactAge:+S.lastImpactT.toFixed(2),
     actionCausality:{impactBeatSeconds:+S.impactBeatT.toFixed(2),clinchOwner:S.clinchOwner?.name||null,clinchInsideWork:S.clinchTurns,rangeBand:distance<1.2?'CLINCH':distance<1.82?'POCKET':distance<2.5?'STRIKE':'OUTSIDE'},
     liveRoundEdge:S.roundEdge.map(v=>+v.toFixed(2)),completedBouts:S.completedBouts,
+    foundingCues:fighters.map((f,entityIndex)=>f.rig.group.userData.foundingCue?{
+      ...f.rig.group.userData.foundingCue,side:f.side,entityIndex,
+      teamPlayerIndex:f.club.team.athletes.findIndex(athlete=>athlete.id===f.athlete?.id),arenaRole:f.role
+    }:null).filter(Boolean).sort((a,b)=>a.entityIndex-b.entityIndex),
     fighters: fighters.map(f => ({
       name: f.name,
       club: f.club.name,

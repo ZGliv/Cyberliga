@@ -192,9 +192,11 @@
 </div>
 
 <script src="worlddata.js"></script>
+<script src="characterdata.js"></script>
+<script src="foundingvisual.js"></script>
+<script src="foundinglive.js"></script>
 <script src="branddata.js"></script>
 <script src="arena-establishing.js"></script>
-<script src="characterdata.js"></script>
 <script src="mythos.js"></script>
 <script type="importmap">
 { "imports": {
@@ -826,7 +828,8 @@ function mkPlayer(team, idx, name, teamDef) {
   const rig = buildBlobRig({
     side:team,kitColor:playerColor,glowColor:playerColor,isGK,captain:idx===1,
     brandColor:teamDef.kit,secondaryColor:teamDef.secondary,accentColor:teamDef.accent,
-    teamCode:teamDef.code,jerseyNumber:athlete?.number||idx+1,kitPattern:teamDef.brand.kitPattern,role
+    teamCode:teamDef.code,jerseyNumber:athlete?.number||idx+1,kitPattern:teamDef.brand.kitPattern,role,
+    athlete,foundingTeam:teamDef.source
   });
   const playerCss=`#${new THREE.Color(playerColor).getHexString()}`;
   const badge=new THREE.Sprite(new THREE.SpriteMaterial({map:roleTexture(role,playerCss),transparent:true,depthTest:false,depthWrite:false}));
@@ -893,7 +896,7 @@ function mkPlayer(team, idx, name, teamDef) {
   }
   rig.group.add(gear);
   scene.add(rig.group);
-  return { team, idx, name, role, isGK, rig, badge, x: 0, z: 0, vx: 0, vz: 0, heading: 0, turn: 0,
+  return { team, idx, name, athlete, role, isGK, rig, badge, x: 0, z: 0, vx: 0, vz: 0, heading: 0, turn: 0,
     tx: 0, tz: 0, sprint: 1, fallT: 0, fallDuration:2.35, fallSide:1, rejoinT:0, checkCd: 0, touchCd: 0, puffCd: 0, recvT: 0,
     fox: 0, foz: 0, holdT: 0, carryT:0, butterT: 0, breakaway: false, wasBreakaway:false,
     action:null, gear, checkReady:0, hitT:0, saveT:0, saveKind:'', saveSide:1, edge:0, motionAccel:0,
@@ -2225,6 +2228,9 @@ window.render_game_to_text = () => JSON.stringify({
     up:[+camera.up.x.toFixed(1),+camera.up.y.toFixed(1),+camera.up.z.toFixed(1)]},
   puck: { x: +puck.x.toFixed(2), y: +puck.y.toFixed(2), z: +puck.z.toFixed(2), held: puck.held, carrier: puck.carrier?.name || null,
     passTarget:puck.passTarget?.name||null, speed: +Math.hypot(puck.vx, puck.vz).toFixed(2), verticalSpeed:+puck.vy.toFixed(2) },
+  foundingCues:players.map((p,entityIndex)=>p.rig.group.userData.foundingCue?{
+    ...p.rig.group.userData.foundingCue,side:p.team,entityIndex,teamPlayerIndex:p.idx,arenaRole:p.role
+  }:null).filter(Boolean).sort((a,b)=>a.entityIndex-b.entityIndex),
   players: players.map(p => ({ name: p.name, team: p.team === 0 ? TEAM_A.name : TEAM_B.name, role:p.role,
     x: +p.x.toFixed(2), z: +p.z.toFixed(2), speed:+Math.hypot(p.vx,p.vz).toFixed(2), fallen: p.fallT > 0, breakaway: p.breakaway,
     downPhase:p.fallT>0?(p.fallT<.68?'getting-up':p.fallT>p.fallDuration-.56?'falling':'sliding'):p.rejoinT>0?'rejoining':null,

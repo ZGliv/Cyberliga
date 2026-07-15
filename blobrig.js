@@ -31,6 +31,94 @@ const identityHash = value => {
   return result >>> 0;
 };
 
+function prepareFoundingLive(athlete, team) {
+  const characters = globalThis.CyberligaCharacters;
+  const visual = globalThis.CyberligaFoundingVisual;
+  const live = globalThis.CyberligaFoundingLive;
+  if (!athlete || !team || !characters || !visual || !live || typeof live.prepare !== 'function') return null;
+  return live.prepare(athlete, team, characters, visual);
+}
+
+function signedArea(points) {
+  let area = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const current = points[index];
+    const next = points[(index + 1) % points.length];
+    area += current[0] * next[1] - next[0] * current[1];
+  }
+  return area * 0.5;
+}
+
+// Merge every convex prism on one anchor into one geometry. This keeps a complete
+// Founder silhouette to one draw call per moving anchor (torso and, only when used,
+// head) while allowing paired fins/leaves to count as a single authored cue.
+function foundingPrismGeometry(solids) {
+  const positions = [];
+  const indices = [];
+  for (const source of solids) {
+    const points = source.points.map(point => [Number(point[0]), Number(point[1])]);
+    if (signedArea(points) < 0) points.reverse();
+    const count = points.length;
+    const base = positions.length / 3;
+    const frontZ = source.z + source.depth * 0.5;
+    const backZ = source.z - source.depth * 0.5;
+    for (const point of points) positions.push(point[0], point[1], frontZ);
+    for (const point of points) positions.push(point[0], point[1], backZ);
+    for (let index = 1; index < count - 1; index += 1) {
+      indices.push(base, base + index, base + index + 1);
+      indices.push(base + count, base + count + index + 1, base + count + index);
+    }
+    for (let index = 0; index < count; index += 1) {
+      const next = (index + 1) % count;
+      const front = base + index;
+      const frontNext = base + next;
+      const back = base + count + index;
+      const backNext = base + count + next;
+      indices.push(front, back, backNext, front, backNext, frontNext);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  geometry.userData.foundingTriangleCount = indices.length / 3;
+  return geometry;
+}
+
+function buildFoundingLiveCues(descriptor, body, headPivot, bodyMaterial, classicColor) {
+  const live = globalThis.CyberligaFoundingLive;
+  const publicState = descriptor && live && live.describe(descriptor);
+  const recipe = publicState && live.recipeFor(descriptor);
+  if (!publicState || !recipe) return null;
+
+  const targets = { body, head: headPivot };
+  const cueMeshes = [];
+  for (const anchor of ['body', 'head']) {
+    const entries = recipe.cues.filter(entry => entry.anchor === anchor);
+    if (!entries.length) continue;
+    const geometry = foundingPrismGeometry(entries.flatMap(entry => entry.solids));
+    const mesh = new THREE.Mesh(geometry, bodyMaterial);
+    mesh.name = `founding-cue-${anchor}`;
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+    mesh.frustumCulled = true;
+    mesh.raycast = () => {};
+    mesh.userData.foundingCueIds = entries.map(entry => entry.id);
+    targets[anchor].add(mesh);
+    cueMeshes.push(mesh);
+  }
+
+  const triangleCount = cueMeshes.reduce((sum, mesh) => sum + (mesh.geometry.userData.foundingTriangleCount || 0), 0);
+  return Object.freeze({
+    ...publicState,
+    meshCount: cueMeshes.length,
+    triangleCount,
+    classicColor: new THREE.Color(classicColor).getHex(),
+  });
+}
+
 function roundedRect(ctx, x, y, width, height, radius) {
   const r = Math.min(radius, width * 0.5, height * 0.5);
   ctx.beginPath();
@@ -196,7 +284,7 @@ const normalizeClassicAction = name => {
 export function buildBlobRig({
   kitColor, glowColor, side, isGK = false, captain = false,
   brandColor, secondaryColor, accentColor, teamCode = '', jerseyNumber = '',
-  kitPattern = 'pulse', role = '',
+  kitPattern = 'pulse', role = '', athlete = null, foundingTeam = null,
 } = {}) {
   const g = new THREE.Group();
   const hasClassicSide = side !== undefined && side !== null;
@@ -287,6 +375,9 @@ export function buildBlobRig({
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.62, 24), ringMat);
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.03;
+
+  const foundingDescriptor = prepareFoundingLive(athlete, foundingTeam);
+  const foundingState = buildFoundingLiveCues(foundingDescriptor, body, headPivot, bodyMat, resolvedKitColor);
 
   g.add(body, headPivot, ring);
 
@@ -484,6 +575,7 @@ export function buildBlobRig({
           kitPattern: String(kitPattern || ''),
           role: String(role || ''),
           visible: hasIdentity,
+          founding: foundingState,
         },
       };
     },
@@ -741,5 +833,6 @@ export function buildBlobRig({
   api.ready = Promise.resolve(api);
   g.userData.athleteRig = api;
   g.userData.athleteRenderer = 'classic-blob';
+  if (foundingState) g.userData.foundingCue = foundingState;
   return api;
 }
