@@ -391,6 +391,17 @@ button { cursor: pointer; }
 #hud:has(#playerFocus:not([hidden])) #driveStrip,
 #hud:has(#kickRead:not([hidden])) #broadcast,
 #hud:has(#kickRead:not([hidden])) #driveStrip { opacity: 0; transform: translateY(5px); }
+
+/* Match Memory is the active lower third while it is on air. Keep the scorebug
+   fully readable and retire the competing player/drive rails for that beat. */
+body:has(#scoreboard) .cl-broadcast-spine {
+  bottom: calc(var(--safe-bottom) + 96px);
+}
+body:has(.cl-broadcast-spine.is-visible) #playerFocus,
+body:has(.cl-broadcast-spine.is-visible) #lowerThirdRail {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
 @keyframes lowerThirdVisit {
   0% { opacity: 0; transform: translateY(9px); }
   9%, 78% { opacity: 1; transform: none; }

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" href="data:," />
 <link rel="stylesheet" href="arena-score-fit.css" />
+<link rel="stylesheet" href="broadcast-spine.css" />
 <title>CYBERLIGA DIAMOND — AUTONOMOUS AI BASEBALL</title>
 <script src="watchonly.js"></script>
 <script src="arena-score-fit.js" defer></script>
@@ -269,7 +270,9 @@
 <script src="characterdata.js"></script>
 <script src="foundingvisual.js"></script>
 <script src="foundinglive.js"></script>
+<script src="named-moments.js"></script>
 <script src="branddata.js"></script>
+<script src="broadcast-spine.js"></script>
 <script src="arena-establishing.js"></script>
 <script src="mythos.js"></script>
 <script type="importmap">
@@ -884,6 +887,74 @@ const S={ state:'SETUP', t:0, inning:1, half:0, outs:0, balls:0, strikes:0,
   approach:'READ & REACT', defense:'STRAIGHT UP', intent:'ESTABLISH THE ZONE', lastPitch:null, pitchHistory:[], forceNext:null, playLog:[],
   callLabel:'', callDetail:'', callTone:'live', callT:0,
   transition:null, strikeoutHold:null, entryMode:'fresh', tuneInSeconds:0, entryTargetSeconds:0, entryBucket:null, entryRecued:false, entryPhase:null };
+let baseballMomentDirector=null,baseballBroadcastSpine=null,activeBaseballFixtureIndex=0,baseballMomentFixtureId='';
+let baseballMomentSequence=0,baseballMomentCounters={grand_slam:0,home_run:0,wall_robbery:0,double_play:0,triple:0,run:0,strikeout:0};
+let suppressBaseballSpinePresentation=false;
+function baseballMomentClock(){return `${S.half===0?'T':'B'}${S.inning} · ${S.outs} OUT${S.outs===1?'':'S'}`;}
+function baseballMomentLeverage(kind){
+  const close=1-clamp(Math.abs((teams[0]?.runs||0)-(teams[1]?.runs||0))/7,0,1);
+  const late=clamp((S.inning-1)/Math.max(1,INNINGS-1),0,1);
+  const traffic=clamp(S.bases.filter(Boolean).length/3,0,1);
+  const base={grand_slam:.91,home_run:.82,wall_robbery:.78,double_play:.66,triple:.61,run:.56,strikeout:.48}[kind]||.4;
+  return +clamp(base+close*.1+late*.12+traffic*.06,0,1).toFixed(3);
+}
+function destroyBaseballBroadcastMemory(){
+  baseballMomentDirector?.reset();
+  baseballBroadcastSpine?.destroy();
+  baseballMomentDirector=null;baseballBroadcastSpine=null;baseballMomentFixtureId='';
+  baseballMomentSequence=0;baseballMomentCounters={grand_slam:0,home_run:0,wall_robbery:0,double_play:0,triple:0,run:0,strikeout:0};
+}
+function initializeBaseballBroadcastMemory(fixtureIndex){
+  activeBaseballFixtureIndex=fixtureIndex;
+  baseballMomentSequence=0;baseballMomentCounters={grand_slam:0,home_run:0,wall_robbery:0,double_play:0,triple:0,run:0,strikeout:0};
+  baseballMomentFixtureId=`diamond-${fixtureIndex}-${TEAM_B.id}-${TEAM_A.id}`;
+  baseballMomentDirector=window.CyberligaNamedMoments?.create({
+    sportId:'baseball',fixtureId:baseballMomentFixtureId,homeTeam:TEAM_B.team,awayTeam:TEAM_A.team
+  })||null;
+  baseballBroadcastSpine=window.CyberligaBroadcastSpine?.create({
+    sportId:'baseball',fixtureId:baseballMomentFixtureId,homeTeam:TEAM_B.team,awayTeam:TEAM_A.team
+  })||null;
+  queueBaseballWhoToWatch();
+}
+function queueBaseballWhoToWatch(){
+  baseballBroadcastSpine?.clear();
+  const eligible=teams.flatMap(team=>team.players).filter(player=>player.athlete&&teams[player.side]?.def.team.athletes.includes(player.athlete));
+  const founder=eligible.find(player=>window.CyberligaCharacters?.get(player.athlete.id));
+  const watch=founder||eligible[hash32(baseballMomentFixtureId)%Math.max(1,eligible.length)];
+  const team=watch&&teams[watch.side];
+  if(watch&&team)baseballBroadcastSpine?.spotlight({team:team.def.team,athlete:watch.athlete},{delayMs:3000});
+}
+function baseballActorContext(player){
+  if(!player?.athlete)return null;
+  const team=teams[player.side];
+  if(!team||team.def.team.athletes.indexOf(player.athlete)<0)return null;
+  const side=team.def.team===TEAM_B.team?'home':team.def.team===TEAM_A.team?'away':null;
+  return side?{team,side}:null;
+}
+function recordBaseballNamedMoment(kind,player){
+  const context=baseballActorContext(player);
+  if(!baseballMomentDirector||!context||!Object.prototype.hasOwnProperty.call(baseballMomentCounters,kind))return null;
+  const count=++baseballMomentCounters[kind],sequence=++baseballMomentSequence;
+  const moment=baseballMomentDirector.record({
+    eventKey:`diamond:${activeBaseballFixtureIndex}:${kind}:${count}`,kind,
+    side:context.side,team:context.team.def.team,athlete:player.athlete,
+    sequence,leverage:baseballMomentLeverage(kind),clock:baseballMomentClock(),
+    score:{home:teams[1].runs,away:teams[0].runs},recordedFootage:false
+  });
+  if(moment&&!suppressBaseballSpinePresentation)baseballBroadcastSpine?.present(moment);
+  return moment;
+}
+function recordBaseballFinalizedPlay(play){
+  if(!play||play.memoryRecorded||!play.runsFinalized||!play.resultFinalized)return;
+  play.memoryRecorded=true;
+  if(play.wallRobbery)recordBaseballNamedMoment('wall_robbery',play.chaser);
+  if(play.finalResult==='DOUBLE PLAY')recordBaseballNamedMoment('double_play',play.fielder);
+  else if(play.finalResult==='HOME RUN')recordBaseballNamedMoment(play.grandSlam?'grand_slam':'home_run',play.batter);
+  else if(play.finalResult==='TRIPLE')recordBaseballNamedMoment('triple',play.batter);
+  // A home-run moment already owns the entire scoring play. Recording each
+  // trot as another RUN would produce duplicate cards for one committed event.
+  if(play.finalResult!=='HOME RUN')for(const runner of play.officialRunActors||[])recordBaseballNamedMoment('run',runner);
+}
 function logPlay(type,detail={}){
   S.playLog.push({type,inning:S.inning,half:S.half,outs:S.outs,score:teams.map(t=>t.runs),...detail});
   if(S.playLog.length>32) S.playLog.shift();
@@ -975,6 +1046,7 @@ function hudStep(){
 }
 
 function setupMatch(){
+  destroyBaseballBroadcastMemory();
   disposeClubs();
   const [homeIdx,awayIdx]=FIXTURES[fixtureIdx%FIXTURES.length];
   // Scoreboard convention is away on the left / home on the right; the season
@@ -991,6 +1063,7 @@ function setupMatch(){
   S.approach='READ & REACT'; S.defense='STRAIGHT UP'; S.intent='ESTABLISH THE ZONE'; S.lastPitch=null; S.pitchHistory=[]; S.forceNext=null; S.playLog=[];
   S.callLabel=''; S.callDetail=''; S.callTone='live'; S.callT=0; elPitchCall.classList.remove('show');
   S.transition=null;S.strikeoutHold=null;S.entryMode='fresh';S.tuneInSeconds=0;S.entryTargetSeconds=0;S.entryBucket=null;S.entryRecued=false;S.entryPhase=null;
+  initializeBaseballBroadcastMemory(fixtureIdx);
   applyTeamHUD(); applyVenueIdentity(); hideCard();
   // Clear the venue card before the 3.03s setup + windup releases the first
   // pitch.  A longer card looked beautiful but hid the entire opening at-bat.
@@ -1241,6 +1314,7 @@ function pitchGuideStep(){
 }
 
 const pitcherP = () => fldTeam().players[0];
+const activePitcherPlayer=()=>{const tm=fldTeam();return tm.players.find(player=>player.name===tm.staff.active&&player.athlete)||null;};
 const infielders = () => fldTeam().players.filter(p => p.fieldPos >= 2 && p.fieldPos <= 5);
 const allSettled = () => batTeam().players.every(p => !p.path);
 function clearRunnerFromBases(p){
@@ -1489,6 +1563,7 @@ function strikeOut(how) {
   const swinging=!!S.pitchPlan?.swing&&S.swingT>=0;
   S.outs++; callBeep(false); glovePop();
   fldTeam().strikeouts++; commitPitch('STRIKEOUT','out');
+  recordBaseballNamedMoment('strikeout',activePitcherPlayer());
   swellCrowd(0.22);
   flashMsg('K', `${S.batter.name} ${how}`, '#ff4d5e');
   say(`PUNCHED OUT — ${S.batter.name} ${how} — ${S.outs} ${S.outs === 1 ? 'OUT' : 'OUTS'}`);
@@ -1589,9 +1664,10 @@ function inPlay(plan) {
   const fieldClean = forced==='double_play'?true:type !== 'GROUND' || forced==='error'?false:simRandom() > clamp(quality*0.22 + 0.08, 0.08, 0.26);
   const aboard=S.bases.filter(Boolean).length;
   const originalBases=S.bases.slice();
-  S.play = { type, quality, chaser, lx, lz, resolved:false, bounced:false, fielded:false,
+  S.play = { type, quality, batter:S.batter, chaser, lx, lz, resolved:false, bounced:false, fielded:false,
              fielder:null, bobbleT:0, thrown:false, throwT:0, tt:0, cleared:false, fwT:0, collect:false, caught:false,
              canCatch, fieldClean, routePressure:+routePressure.toFixed(2),
+             pendingResult:type==='HOMER'?'HOME RUN':null,
              originalBases, forcedResult:forced, launchAngle:Math.round(e*180/Math.PI), exitVelo:Math.round(v*2.45),
              grandSlam:type==='HOMER' && aboard===3, moonshot:type==='HOMER' && quality>0.9 };
   showPitchCall('CONTACT',`${S.play.exitVelo} MPH · ${S.play.launchAngle}° · ${type}`,'contact',1.05);
@@ -2019,14 +2095,14 @@ function resolveThrow(pl,target){
 }
 function finalizePendingRuns(pl){
   if(!pl||pl.runsFinalized) return;
-  const pending=pl.pendingRuns||[],official=[],nullified=[];
+  const pending=pl.pendingRuns||[],official=[],officialActors=[],nullified=[];
   for(const run of pending){
     const counts=!pl.thirdOutCancelsRuns&&(!pl.thirdOutAt||run.crossedAt<pl.thirdOutAt);
-    if(counts){applyOfficialRun(run.runner);official.push(run.runner.name);}
+    if(counts){applyOfficialRun(run.runner);official.push(run.runner.name);officialActors.push(run.runner);}
     else nullified.push(run.runner.name);
   }
   if(nullified.length) say(`NO RUN — ${pl.thirdOutCancelsRuns?'THE THIRD OUT WAS A FORCE OR THE BATTER-RUNNER LOST FIRST':'THE TAG BEAT THE RUN ACROSS HOME'}`);
-  pl.officialRuns=official;pl.nullifiedRuns=nullified;pl.runsFinalized=true;
+  pl.officialRuns=official;pl.officialRunActors=officialActors;pl.nullifiedRuns=nullified;pl.runsFinalized=true;
 }
 function finalizePlayCall(pl){
   if(!pl||pl.resultFinalized||pl.type==='WALK') return;
@@ -2071,6 +2147,7 @@ function finalizePlayCall(pl){
     flashMsg('OUT',result,'#ff4d5e');
   }
   pl.callAt={state:S.state,allRunnersSettled:allSettled(),throwsComplete:!pl.activeThrow};
+  recordBaseballFinalizedPlay(pl);
 }
 function afterPlay() {
   if(S.state==='POSTPLAY') return;
@@ -2147,6 +2224,7 @@ function showFinal() {
     <tr><td class="n" style="color:${TEAM_A.css}">${TEAM_A.name}</td><td>${a.runs}</td><td>${a.hits}</td><td>${a.errors}</td><td>${a.hrs}</td><td>${a.strikeouts}</td></tr>
     <tr><td class="n" style="color:${TEAM_B.css}">${TEAM_B.name}</td><td>${b.runs}</td><td>${b.hits}</td><td>${b.errors}</td><td>${b.hrs}</td><td>${b.strikeouts}</td></tr></table>
     <p style="margin-top:14px;font-size:14px;letter-spacing:3px;color:#7dffc0">NEXT — ${TEAMS[ni].name} vs ${TEAMS[nj].name} — <span id="nextin">12</span>s</p>`);
+  if(!suppressBaseballSpinePresentation)baseballBroadcastSpine?.finale(baseballMomentDirector?.top()||[]);
   setState('FINAL'); cut('card');
 }
 
@@ -2606,6 +2684,8 @@ function gameSnapshot(){
     fixture:{index:fixtureIdx,total:FIXTURES.length,teams:teams.map(t=>t.def.name),next:[TEAMS[nextA].name,TEAMS[nextB].name]},
     venue:TEAM_B?{name:TEAM_B.brand?.venue||TEAM_B.city,city:TEAM_B.city,scene:TEAM_B.brand?.scene||null,ritual:TEAM_B.brand?.ritual||null,statement:TEAM_B.brand?.statement||null,kitPattern:TEAM_B.brand?.kitPattern||null}:null,
     entry:{mode:S.entryMode,tuneInSeconds:+S.tuneInSeconds.toFixed(1),targetSeconds:+S.entryTargetSeconds.toFixed(1),bucket:S.entryBucket,recued:S.entryRecued,phase:S.entryPhase,freshURL:'?fresh=1',qaURL:'?at=465&bucket=2077'},
+    matchMemory:baseballMomentDirector?.state()||null,
+    broadcastSpine:baseballBroadcastSpine?.state()||null,
     status:elPlayStatus.textContent, clipMoment:S.clipMoment || null, clipSeconds:+S.clipT.toFixed(1), clipsThisGame:S.clips.slice(),
     resultBanner:{visible:elFlash.classList.contains('show'),big:elFT.textContent,sub:elFS.textContent},
     state:S.state, t:+S.t.toFixed(2), inning:S.inning, half:S.half,
@@ -2682,7 +2762,11 @@ window._baseballTest={
     forceSettle();
     for(const p of batTeam().players) if(p!==S.batter){ p.duty='dugout'; p.baseIdx=-1; p.path=null; }
     S.bases=[null,null,null]; S.outs=result==='side_change'?2:0; S.balls=result==='walk'?3:0; S.strikes=(result==='strikeout'||result==='side_change'||result==='called_strikeout')?2:0; S.play=null; ball.mode='IDLE';
-    if(result==='double_play'){
+    const requestedBases=Array.isArray(situation.bases)?situation.bases.filter(base=>Number.isInteger(base)&&base>=0&&base<=2):[];
+    if(requestedBases.length){
+      const runners=batTeam().players.filter(p=>p!==S.batter);
+      requestedBases.forEach((base,index)=>{const runner=runners[index];if(!runner)return;runner.duty='runner';runner.baseIdx=base;S.bases[base]=runner;});
+    }else if(result==='double_play'){
       const runner=batTeam().players.find(p=>p!==S.batter); runner.duty='runner'; runner.baseIdx=0; S.bases[0]=runner;
     }else if(result==='sac_fly'&&!S.bases[2]){
       const runner=batTeam().players.find(p=>p!==S.batter); runner.duty='runner'; runner.baseIdx=2; S.bases[2]=runner;
@@ -2702,6 +2786,7 @@ window._baseballTest={
   getSeed(){ return simSeed>>>0; }
 };
 function tick(dt, skipRender = false) {
+  if(!suppressBaseballSpinePresentation)baseballBroadcastSpine?.tick(dt*1000);
   tGlobal += dt;
   steerIdle();          // duty stations first; live-play steering overrides below
   stateStep(dt);
@@ -2740,21 +2825,26 @@ function applyBroadcastTuneIn(){
     }
     return actual;
   };
-  let actual=runTo(target), recued=S.state==='FINAL'||fixtureIdx!==fixtureAtEntry;
-  if(recued){
-    // Re-seed and re-cue the same fixture to a safe late-middle window. This
-    // preserves the 24/7 illusion even when a long explicit offset crosses a
-    // particularly fast game ending.
-    fixtureIdx=fixtureAtEntry;setupMatch();seedSim(`cyberliga-baseball:recue:${fixtureAtEntry}:${entryBucket}`);
-    window._games.length=gamesAtEntry;
-    actual=runTo(300+(h%111));
-    if(S.state==='FINAL'){
-      setupMatch();seedSim(`cyberliga-baseball:recue-2:${fixtureAtEntry}:${entryBucket}`);
-      window._games.length=gamesAtEntry;actual=runTo(240);
+  let actual=0,recued=false;
+  suppressBaseballSpinePresentation=true;
+  try{
+    actual=runTo(target);recued=S.state==='FINAL'||fixtureIdx!==fixtureAtEntry;
+    if(recued){
+      // Re-seed and re-cue the same fixture to a safe late-middle window. This
+      // preserves the 24/7 illusion even when a long explicit offset crosses a
+      // particularly fast game ending.
+      fixtureIdx=fixtureAtEntry;setupMatch();seedSim(`cyberliga-baseball:recue:${fixtureAtEntry}:${entryBucket}`);
+      window._games.length=gamesAtEntry;actual=runTo(300+(h%111));
+      if(S.state==='FINAL'){
+        setupMatch();seedSim(`cyberliga-baseball:recue-2:${fixtureAtEntry}:${entryBucket}`);
+        window._games.length=gamesAtEntry;actual=runTo(240);
+      }
     }
-  }
+  }finally{suppressBaseballSpinePresentation=false;}
   S.entryMode='live-tune-in';S.tuneInSeconds=actual;S.entryTargetSeconds=target;S.entryBucket=entryBucket;S.entryRecued=recued;
   S.entryPhase={inning:S.inning,half:S.half===0?'TOP':'BOTTOM',outs:S.outs,state:S.state};
+  if(S.state==='FINAL')baseballBroadcastSpine?.finale(baseballMomentDirector?.top()||[]);
+  else queueBaseballWhoToWatch();
   tick(0,false);
 }
 applyBroadcastTuneIn();

@@ -7,6 +7,7 @@
 <script src="watchonly.js"></script>
 <link rel="icon" href="data:," />
 <link rel="stylesheet" href="arena-score-fit.css" />
+<link rel="stylesheet" href="broadcast-spine.css" />
 <script src="arena-score-fit.js" defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
@@ -328,6 +329,9 @@
 <script src="characterdata.js"></script>
 <script src="foundingvisual.js"></script>
 <script src="foundinglive.js"></script>
+<script src="named-moments.js"></script>
+<script src="branddata.js"></script>
+<script src="broadcast-spine.js"></script>
 <script src="mythos.js"></script>
 <script src="universe.js"></script>
 <script src="presence.js"></script>
@@ -1037,8 +1041,56 @@ const state = {
   },
   offsideWatch:null,
   lastOffside:null,
+  pendingNamedGoal:null,
 };
 const HALF_LEN = 120; // seconds of sim per half
+
+let namedMomentDirector = null;
+let broadcastSpine = null;
+let soccerMomentSequence = 0;
+let suppressMomentPresentation = Boolean(LIVE_BROADCAST);
+
+function fixtureMemoryId() {
+  const raw = LIVE_BROADCAST?.id || `soccer:${TEAM_A.content?.id || TEAM_A.name}:${TEAM_B.content?.id || TEAM_B.name}:${league.fixture}`;
+  return String(raw).replace(/[^a-z0-9._:|\-]/gi, '-').slice(0, 240);
+}
+
+function queueSoccerSpotlight() {
+  const home = TEAM_A.content, away = TEAM_B.content, fixtureId = fixtureMemoryId();
+  if (!home || !away || !broadcastSpine || suppressMomentPresentation) return;
+  const featured = window.CyberligaCharacters?.matchup?.(home.id, away.id, fixtureId)?.featured?.[0] || null;
+  const team = featured ? window.CYBERLIGA_CONTENT.getTeam(featured.teamId, 'soccer') : home;
+  const athlete = featured ? window.CYBERLIGA_CONTENT.getAthlete(team.id, featured.id)
+    : team.athletes[window.CYBERLIGA_CONTENT.hash(`${fixtureId}|who-to-watch`) % team.athletes.length];
+  broadcastSpine.spotlight({ team, athlete }, { delayMs:1450, durationMs:5200 });
+}
+
+function setupSoccerMatchMemory() {
+  broadcastSpine?.destroy?.();
+  namedMomentDirector = null;
+  broadcastSpine = null;
+  soccerMomentSequence = 0;
+  const home = TEAM_A.content, away = TEAM_B.content, fixtureId = fixtureMemoryId();
+  if (!home || !away || !window.CyberligaNamedMoments || !window.CyberligaBroadcastSpine) return;
+  namedMomentDirector = window.CyberligaNamedMoments.create({ sportId:'soccer', fixtureId, homeTeam:home, awayTeam:away });
+  broadcastSpine = window.CyberligaBroadcastSpine.create({ sportId:'soccer', fixtureId, homeTeam:home, awayTeam:away });
+  if (!namedMomentDirector || !broadcastSpine) return;
+  queueSoccerSpotlight();
+}
+
+function recordSoccerMoment(kind, player, options={}) {
+  if (!namedMomentDirector || !broadcastSpine || !player?.athlete || !player.team?.content) return null;
+  const side = player.team === TEAM_A ? 'home' : player.team === TEAM_B ? 'away' : null;
+  if (!side) return null;
+  const sequence = ++soccerMomentSequence;
+  const moment = namedMomentDirector.record({
+    eventKey:`scl:${sequence}:${kind}`, kind, side, team:player.team.content, athlete:player.athlete, sequence,
+    leverage:THREE.MathUtils.clamp(Number(options.leverage ?? .7),0,1), clock:fmtClock(state.clock),
+    score:{home:state.scoreA,away:state.scoreB}, recordedFootage:options.recordedFootage === true
+  });
+  if (moment && options.present !== false && !suppressMomentPresentation) broadcastSpine.present(moment);
+  return moment;
+}
 
 const elMatchContext = document.getElementById('matchcontext');
 const elContextPhase = elMatchContext.querySelector('.phase');
@@ -1271,6 +1323,7 @@ function applyDribbleAction(p, act) {
       crowdExcitement = Math.max(crowdExcitement, 0.55);
       crowd.onBigKick();
       story.event('juke', { player: p.name, team: p.team.name, victim: act.victim.name });
+      recordSoccerMoment('juke', p, { leverage:.73 });
       const note = story.feedNote('juke', { player: p.name, team: p.team.name, victim: act.victim.name });
       if (note) present.post({ kind: 'context', simTime: simT + 1.6, title: note, color: css });
     } else if (act.beat && presentationRandom() < 0.35) {
@@ -1928,6 +1981,7 @@ function aiStep(dt) {
             story.event('save', { keeper: p.name, team: p.team.name });
           }
           const note = story.feedNote('save', { keeper: p.name, team: p.team.name });
+          recordSoccerMoment('save', p, { leverage:gkAct.save.mode === 'catch' ? .72 : .8 });
           if (note) present.post({ kind: 'context', simTime: simT + 1.2, title: note, color: css });
           thump(8);
         }
@@ -2822,6 +2876,7 @@ function goalScored(side) {
   // per-goal log for the FT share poster (additive — nothing else reads it)
   state.goalLog.push({ name: state.scorer ? state.scorer.name : 'OWN GOAL',
     team: scoringTeam.name, minute: fmtClock(state.clock) });
+  state.pendingNamedGoal = state.scorer;
   document.documentElement.style.setProperty('--goalcolor', '#' + scoringTeam.glow.toString(16).padStart(6,'0'));
   elGoalText.style.color = '#fff';
   elGoalSub.textContent = (state.scorer ? `#${state.scorer.number} ${state.scorer.name}  ·  ` : 'OWN GOAL  ·  ')
@@ -3948,6 +4003,7 @@ function finishMatch() {
   showCard('FULL TIME', `${TEAM_A.name} ${state.scoreA} — ${state.scoreB} ${TEAM_B.name}`, true);
   commentate(`FULL TIME: ${TEAM_A.name} ${state.scoreA}-${state.scoreB} ${TEAM_B.name}`, true);
   state.mode = 'fulltime'; state.modeT = 0; state.ritual='final';
+  if (!suppressMomentPresentation && namedMomentDirector && broadcastSpine) broadcastSpine.finale(namedMomentDirector.top());
   benchReaction('goal',state.scoreA===state.scoreB?null:(state.scoreA>state.scoreB?TEAM_A:TEAM_B),5.5);
 }
 
@@ -3978,11 +4034,13 @@ function startMatch() {
   makeTeam(TEAM_A, -1); makeTeam(TEAM_B, 1);
   state.scoreA = 0; state.scoreB = 0; state.clock = 0; state.half = 1;
   state.lastTouchTeam = null; state.lastTouchPlayer = null; state.goalTeam = null; state.scorer = null;
+  state.pendingNamedGoal = null;
   state.goalLog = []; // fresh scorer ledger for the FT share poster
   state.ritual='opening'; state.contextEvent=null; state.lastTechnique=null;
   state.goalTechnique=null;
   state.spectacleLog=[]; state.spectacleCooldown=0; state.cameraBeat=null;
   state.offsideWatch=null;state.lastOffside=null;offsideLine.visible=offsideBand.visible=false;
+  setupSoccerMatchMemory();
   state.tactical={ home:'BALANCED 2-1-2',away:'BALANCED 2-1-2',reason:'OPENING SHAPES',switches:0 };
   state._halfSwitchDone=false; state._lateSwitchA=false; state._lateSwitchB=false;
   for (const d of state.departures) {
@@ -4072,6 +4130,7 @@ let simT = 0; // manual sim-time accumulator: stays consistent when catch-up ste
 function tick(forcedDt, skipRender) {
   const dt = typeof forcedDt === 'number' ? forcedDt : Math.min(clock3.getDelta(), 0.05);
   simT += dt;
+  broadcastSpine?.tick(dt * 1000);
   const t = simT;
   state.spectacleCooldown = Math.max(0,state.spectacleCooldown-dt);
   if (state.cameraBeat) {
@@ -4128,7 +4187,13 @@ function tick(forcedDt, skipRender) {
     if (prevModeT <= 0.1 && state.modeT > 0.1) camShake = 1;
     if (state.modeT > 1.5) {
       elFlash.classList.remove('show');
-      if (replaySys.startClip(5)) {
+      const hasReplay = replaySys.startClip(5);
+      if (state.pendingNamedGoal) {
+        const late = state.half === 2 ? THREE.MathUtils.clamp(state.clock / (HALF_LEN * 2), 0, 1) : 0;
+        recordSoccerMoment('goal', state.pendingNamedGoal, { leverage:Math.min(1,.86+late*.1), recordedFootage:hasReplay });
+        state.pendingNamedGoal = null;
+      }
+      if (hasReplay) {
         // hold the live framing for the transition tick — cameraStep reads replayCam
         // THIS frame, but replaySys.step only writes it from the next tick (the old
         // first frame rendered from a zero/stale camera)
@@ -4434,6 +4499,10 @@ if (LIVE_BROADCAST) {
     canonicalSteps++;
     if (state.mode === 'fulltime') break;
   }
+  suppressMomentPresentation = false;
+  broadcastSpine?.clear();
+  if (state.mode === 'fulltime') broadcastSpine?.finale(namedMomentDirector?.top() || []);
+  else queueSoccerSpotlight();
   composer.render();
   clock3.getDelta();
   setInterval(() => {
@@ -4606,6 +4675,8 @@ window.render_game_to_text = () => JSON.stringify({
   venue:venueIdentity.state(),
   departures:state.departures.map(d=>({name:d.p.name,team:d.p.team.name,seconds:+d.t.toFixed(1)})),
   foundingCues:renderedFoundingCues(),
+  matchMemory:namedMomentDirector?namedMomentDirector.state():null,
+  broadcastSpine:broadcastSpine?broadcastSpine.state():null,
   players: players.map(p => ({ name: p.name, team: p.team.name, role: p.role,
     x: +p.pos.x.toFixed(1), z: +p.pos.z.toFixed(1), stamina:+p.stamina.toFixed(2),
     injury:p.injuryT>0?{kind:p.injuryKind,seconds:+p.injuryT.toFixed(1)}:null,

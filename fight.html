@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" href="data:," />
 <link rel="stylesheet" href="arena-score-fit.css" />
+<link rel="stylesheet" href="broadcast-spine.css" />
 <title>CYBERLIGA FIGHT NIGHT — AUTONOMOUS AI FIGHTING</title>
 <script src="watchonly.js"></script>
 <script src="arena-score-fit.js" defer></script>
@@ -301,7 +302,9 @@
 <script src="characterdata.js"></script>
 <script src="foundingvisual.js"></script>
 <script src="foundinglive.js"></script>
+<script src="named-moments.js"></script>
 <script src="branddata.js"></script>
+<script src="broadcast-spine.js"></script>
 <script src="arena-establishing.js"></script>
 <script src="mythos.js"></script>
 <script type="importmap">
@@ -929,6 +932,70 @@ const S = {
   clipMoment:'', clipT:0, clips:[], roundStats:[], cards:null, seed:0,
   lastImpact:null,lastImpactT:99,impactBeatT:0,exchangeNo:0,clinchOwner:null,clinchWorkT:0,clinchTurns:0,roundEdge:[0,0],judgeDetail:[],completedBouts:0,
 };
+let fightMomentDirector=null,fightBroadcastSpine=null,activeFightFixtureIndex=0,fightMomentFixtureId='';
+let fightMomentSequence=0,fightMomentCounters={knockout:0,technical_knockout:0,knockdown:0,decision:0,perfect_counter:0,last_stand:0,guard_break:0,round_won:0};
+let suppressFightSpinePresentation=false,fightWatchQueued=false;
+function fightMomentClock(){return `R${S.round} ${fmtClock(Math.max(0,S.clock))}`;}
+function fightMomentLeverage(kind){
+  const close=fighters.length===2?1-clamp(Math.abs(fighters[0].hp-fighters[1].hp)/100,0,1):0;
+  const late=clamp(1-Math.max(0,S.clock)/ROUND_LEN,0,1);
+  const base={knockout:.98,technical_knockout:.96,knockdown:.82,decision:.84,perfect_counter:.72,last_stand:.68,guard_break:.61,round_won:.56}[kind]||.4;
+  return +clamp(base+close*.08+late*.1+(S.round-1)*.035,0,1).toFixed(3);
+}
+function destroyFightBroadcastMemory(){
+  fightMomentDirector?.reset();
+  fightBroadcastSpine?.destroy();
+  fightMomentDirector=null;fightBroadcastSpine=null;fightMomentFixtureId='';
+  fightMomentSequence=0;fightMomentCounters={knockout:0,technical_knockout:0,knockdown:0,decision:0,perfect_counter:0,last_stand:0,guard_break:0,round_won:0};
+  fightWatchQueued=false;
+}
+function initializeFightBroadcastMemory(fixtureIndex){
+  activeFightFixtureIndex=fixtureIndex;
+  fightMomentSequence=0;fightMomentCounters={knockout:0,technical_knockout:0,knockdown:0,decision:0,perfect_counter:0,last_stand:0,guard_break:0,round_won:0};
+  fightMomentFixtureId=`undercard-${fixtureIndex}-${fighters[0].club.id}-${fighters[1].club.id}`;
+  fightMomentDirector=window.CyberligaNamedMoments?.create({
+    sportId:'combat',fixtureId:fightMomentFixtureId,homeTeam:fighters[0].club.team,awayTeam:fighters[1].club.team
+  })||null;
+  fightBroadcastSpine=window.CyberligaBroadcastSpine?.create({
+    sportId:'combat',fixtureId:fightMomentFixtureId,homeTeam:fighters[0].club.team,awayTeam:fighters[1].club.team
+  })||null;
+  fightWatchQueued=false;
+}
+function resetFightBroadcastMemory(){
+  fightMomentDirector?.reset();
+  fightMomentSequence=0;fightMomentCounters={knockout:0,technical_knockout:0,knockdown:0,decision:0,perfect_counter:0,last_stand:0,guard_break:0,round_won:0};
+  fightBroadcastSpine?.clear();fightWatchQueued=false;
+}
+function queueFightWhoToWatch(delayMs=500){
+  if(suppressFightSpinePresentation||fightWatchQueued)return false;
+  fightBroadcastSpine?.clear();
+  const eligible=fighters.filter(fighter=>fighter.athlete&&fighter.club.team.athletes.indexOf(fighter.athlete)>=0);
+  const founder=eligible.find(fighter=>window.CyberligaCharacters?.get(fighter.athlete.id));
+  const watch=founder||eligible[hashText(fightMomentFixtureId)%Math.max(1,eligible.length)];
+  fightWatchQueued=Boolean(watch&&fightBroadcastSpine?.spotlight({team:watch.club.team,athlete:watch.athlete},{delayMs}));
+  return fightWatchQueued;
+}
+function fightActorContext(fighter){
+  if(!fighter?.athlete||fighter.club?.team?.athletes.indexOf(fighter.athlete)<0)return null;
+  if(fighter===fighters[0])return {side:'home',team:fighters[0].club.team};
+  if(fighter===fighters[1])return {side:'away',team:fighters[1].club.team};
+  return null;
+}
+function recordFightNamedMoment(kind,fighter){
+  const context=fightActorContext(fighter);
+  if(!fightMomentDirector||!context||!Object.prototype.hasOwnProperty.call(fightMomentCounters,kind))return null;
+  const count=++fightMomentCounters[kind],sequence=++fightMomentSequence;
+  const moment=fightMomentDirector.record({
+    eventKey:`undercard:${activeFightFixtureIndex}:r${S.round}:${kind}:${count}`,kind,
+    side:context.side,team:context.team,athlete:fighter.athlete,
+    sequence,leverage:fightMomentLeverage(kind),clock:fightMomentClock(),recordedFootage:false
+  });
+  if(moment&&!suppressFightSpinePresentation)fightBroadcastSpine?.present(moment);
+  return moment;
+}
+function presentFightFinale(){
+  if(!suppressFightSpinePresentation)fightBroadcastSpine?.finale(fightMomentDirector?.top()||[]);
+}
 function recordClip(label,dur=3.5){ S.clipMoment=label; S.clipT=dur; S.clips.push({label,round:S.round,clock:+S.clock.toFixed(1)}); if(S.clips.length>10)S.clips.shift(); }
 function setState(s) { S.state = s; S.t = 0; }
 let punchHeat = 0, shake = 0, camCut = false;
@@ -973,6 +1040,7 @@ function applyFightVenueIdentity(home,away){
   say(`${brand.venue||home.city} IS LIVE — ${brand.ritual||'THE ROOM CLOSES AROUND THE RING'}`,true);
 }
 function setupCard() {
+  destroyFightBroadcastMemory();
   for (const f of fighters) {
     if(f.punchTrail){scene.remove(f.punchTrail.line,f.punchTrail.points);f.punchTrail.geometry.dispose();f.punchTrail.material.dispose();f.punchTrail.pointMaterial.dispose();}
     scene.remove(f.rig.group); f.rig.dispose();
@@ -998,6 +1066,7 @@ function setupCard() {
   S.lastImpact=null;S.lastImpactT=99;S.impactBeatT=0;S.exchangeNo=0;S.clinchOwner=null;S.clinchWorkT=0;S.clinchTurns=0;S.roundEdge=[0,0];S.judgeDetail=[];
   S.clipMoment=''; S.clipT=0; S.clips=[];
   punchHeat = 0;
+  initializeFightBroadcastMemory(fixtureIdx);
   applyFighterHUD();
   applyFightVenueIdentity(LEAGUE_TEAMS[ia],LEAGUE_TEAMS[ib]);
   elCard.classList.remove('show'); elFlash.classList.remove('show'); elCount.classList.remove('show');
@@ -1009,6 +1078,7 @@ function setupCard() {
   setState('WALKON'); cut();
 }
 function resetLiveFight(seedLabel='broadcast'){
+  resetFightBroadcastMemory();
   const [ia,ib]=FIXTURES[fixtureIdx%FIXTURES.length];seedFight(`fight:${fixtureIdx}:${ia}:${ib}:${seedLabel}`);S.seed=fightSeed;simClockTotal=0;
   S.round=1;S.clock=ROUND_LEN;S.roundDmg=[[0,0]];S.kdRound=[[0,0]];S.roundStats=[[roundStat(),roundStat()]];S.cards=null;
   S.walkIdx=2;S.announced=2;S.count=0;S.countT=0;S.getUpAt=11;S.downF=null;S.slowmo=0;S.noAction=0;S.fightT=0;
@@ -1033,16 +1103,24 @@ function resetLiveFight(seedLabel='broadcast'){
 function tuneIntoFightBroadcast(){
   let goal=fightTuneMeta.targetOffsetSeconds;
   if(goal<=0){fightTuneMeta.entryState=S.state;fightTuneMeta.round=S.round;fightTuneMeta.clock=+S.clock.toFixed(1);return;}
-  resetLiveFight(`broadcast:${fightTuneSlot}`);
   let elapsed=0,recued=false;
-  while(elapsed+1e-6<goal){
-    tick(Math.min(.05,goal-elapsed),true);elapsed+=Math.min(.05,goal-elapsed);
-    if(S.state==='KO_SEQ'||S.state==='DECISION'){
-      if(recued)break;
-      recued=true;goal=10+(fightTuneHash%34);elapsed=0;resetLiveFight(`broadcast-recue:${fightTuneSlot}`);fightTuneMeta.mode='live-recue';
+  suppressFightSpinePresentation=true;
+  try{
+    resetLiveFight(`broadcast:${fightTuneSlot}`);
+    while(elapsed+1e-6<goal){
+      tick(Math.min(.05,goal-elapsed),true);elapsed+=Math.min(.05,goal-elapsed);
+      if(S.state==='KO_SEQ'||S.state==='DECISION'){
+        if(recued)break;
+        recued=true;goal=10+(fightTuneHash%34);elapsed=0;resetLiveFight(`broadcast-recue:${fightTuneSlot}`);fightTuneMeta.mode='live-recue';
+      }
     }
-  }
+  }finally{suppressFightSpinePresentation=false;}
   fightTuneMeta.offsetSeconds=+elapsed.toFixed(1);fightTuneMeta.entryState=S.state;fightTuneMeta.round=S.round;fightTuneMeta.clock=+S.clock.toFixed(1);
+  // A live join should reveal the fight and its identity card immediately; the
+  // opening venue slate is only truthful for a fresh broadcast.
+  window.CyberligaEstablishing?.remove();
+  if(S.state==='KO_SEQ'||S.state==='DECISION')presentFightFinale();
+  else if(S.state==='FIGHT')queueFightWhoToWatch(650);
   camCut=true;updateRigs(.016);updateFX(0);cameraStep(.016);tickerStep(0);hudStep();composer.render();
   say(`JOINING LIVE — ROUND ${S.round}, ${fmtClock(S.clock)} — ${fighters[0].name} AND ${fighters[1].name} ARE ALREADY WORKING`,true);
 }
@@ -1093,6 +1171,7 @@ function guardBreak(o, f) {
   o.openT = 2.2; o.armJolt = 1;
   flashMsg('GUARD BREAK', `${o.name} IS WIDE OPEN`, f.club.css, 1.2);
   recordClip(`GUARD BREAK · ${f.name}`,3);
+  recordFightNamedMoment('guard_break',f);
   say(fill(ppick(COMM.gbreak), f.name, o.name), true);
   punchThud(0.8); shake = Math.min(1, shake + 0.4); crowdLevel = Math.min(0.42, crowdLevel + 0.1);
 }
@@ -1224,6 +1303,7 @@ function resolveStrike(f) {
   f.comboN = (f.comboT > 0 ? f.comboN : 0) + 1; f.comboT = 2.2;
   if ((caughtSlipping || stunned) && k.heavy) {
     recordClip(`PERFECT COUNTER · ${f.name}`,3.4);
+    recordFightNamedMoment('perfect_counter',f);
     flashMsg('PERFECT COUNTER', `${o.name} WALKED INTO IT`, f.club.css, 1.4);
     flashBurst=Math.max(flashBurst,1.2); shake=Math.max(shake,.78);
   }
@@ -1270,6 +1350,7 @@ function knockdown(att, vic) {
   crowdLevel = 0.38; shake = 1;
   S.slowmo = vic.hp <= 0 ? 1.5 : 0.8;   // slow-mo on the big blow
   recordClip(`KNOCKDOWN · ${att.name}`,4);
+  recordFightNamedMoment('knockdown',att);
   refP.tx = vic.x * 0.5; refP.tz = vic.z * 0.5;
   setState('KNOCKDOWN'); cut();
 }
@@ -1357,6 +1438,7 @@ function moveFighter(f, dt) {
   if (S.state==='FIGHT' && f.hp<28 && !f.lastStand) {
     f.lastStand=true; f.surgeT=6; f.stam=Math.max(f.stam,55); f.guard=Math.max(f.guard,48);
     recordClip(`LAST STAND · ${f.name}`,3.5);
+    recordFightNamedMoment('last_stand',f);
     flashMsg('LAST STAND', `${f.name} REFUSES TO FOLD`, f.club.css, 1.5);
     say(`${f.name} IS HURT BUT THE ENGINE JUST REDLINED — SIX SECONDS OF PURE SURVIVAL`,true);
     flashBurst=Math.max(flashBurst,1); crowdLevel=.42;
@@ -1468,6 +1550,7 @@ function startRound() {
       `ROUND ${S.round} — ${S.round === ROUNDS ? 'LAST CHANCE FOR A FINISH' : 'BACK TO WORK'}`, true);
   S.noAction = 0; crowdLevel = Math.max(crowdLevel, 0.2);
   refP.tx = 0; refP.tz = FIGHT_R + 0.3;
+  queueFightWhoToWatch(500);
   setState('FIGHT'); cut();
 }
 function meritFor(s,d,profile='balanced'){
@@ -1497,6 +1580,7 @@ function endRound() {
     setState('DECISION'); cut();
   } else {
     const [da, db] = S.roundDmg[S.round-1];
+    if(Math.abs(da-db)>=4)recordFightNamedMoment('round_won',fighters[da>db?0:1]);
     say(Math.abs(da - db) < 4 ? `END OF ROUND ${S.round} — DEAD EVEN ON MY CARD` :
         `END OF ROUND ${S.round} — ${fighters[da > db ? 0 : 1].name} BANKED THAT ONE`, true);
     bannerShow(`END OF ROUND ${S.round}`, 'CORNERS — BREATHE, RESET, GO AGAIN', '#ff3d5a');
@@ -1516,7 +1600,7 @@ function beatCount() {
   flashBurst = Math.max(flashBurst, 1); crowdLevel = 0.4;
   S.downF = null;
   refP.tx = 0; refP.tz = -(FIGHT_R + 0.3);
-  setState('FIGHT'); cut();
+  setState('FIGHT'); queueFightWhoToWatch(650); cut();
 }
 function winFight(w, method) {
   S.winner = w; S.method = method;
@@ -1524,6 +1608,7 @@ function winFight(w, method) {
   const rw = recOf(w.name), rl = recOf(l.name);
   rw.w++; if (method === 'KO' || method === 'TKO') rw.ko++;
   rl.l++; saveRecs();
+  recordFightNamedMoment(method==='TKO'?'technical_knockout':'knockout',w);
   recordClip(`${method} · ${w.name}`,8);
   window._results && window._results.push(method);
   window._bouts && window._bouts.push({fighters:fighters.map(f=>f.name),clubs:fighters.map(f=>f.club.name),winner:w.name,method,round:S.round,clips:S.clips.slice()});
@@ -1537,6 +1622,7 @@ function winFight(w, method) {
   koHorn(); bell(3);
   flashBurst = 2.2; crowdLevel = 0.42; shake = 1;
   refP.tx = w.x*0.5; refP.tz = w.z*0.5;
+  presentFightFinale();
   setState('KO_SEQ'); cut();
 }
 function judgeDecision() {
@@ -1568,6 +1654,7 @@ function judgeDecision() {
   }
   S.winner = w; S.method = method;
   S.cards=cards;
+  if(w)recordFightNamedMoment('decision',w);
   recordClip(w ? `${method} · ${w.name}` : 'SPLIT DRAW',8);
   window._results && window._results.push(method);
   window._bouts && window._bouts.push({fighters:fighters.map(f=>f.name),clubs:fighters.map(f=>f.club.name),winner:w&&w.name,method,round:S.round,clips:S.clips.slice()});
@@ -1578,6 +1665,7 @@ function judgeDecision() {
   if (w) flashBurst = 1.4;
   crowdLevel = 0.36;
   showResultCard(cards);
+  presentFightFinale();
 }
 function showResultCard(cards) {
   const [A, B] = fighters, w = S.winner;
@@ -2148,6 +2236,8 @@ function fightSnapshot() {
     interaction:'view-only',
     deterministicSeed:S.seed,
     tuneIn:{...fightTuneMeta},
+    matchMemory:fightMomentDirector?.state()||null,
+    broadcastSpine:fightBroadcastSpine?.state()||null,
     fixture:{index:fixtureIdx,total:FIXTURES.length,clubs:fighters.map(f=>f.club.name),next:[LEAGUE_TEAMS[nextA].name,LEAGUE_TEAMS[nextB].name]},
     venue:{name:home.brand?.venue||home.city,city:home.city,scene:home.brand?.scene||null,ritual:home.brand?.ritual||null,statement:home.brand?.statement||null,kitPattern:home.brand?.kitPattern||null},
     status:elPlayStatus.textContent, clipMoment:S.clipMoment || null, clipSeconds:+S.clipT.toFixed(1), clipsThisBout:S.clips.slice(),
@@ -2243,9 +2333,14 @@ window._fightTest={
     S.kdRound[S.round-1]=[0,0];S.kdRound[S.round-1][winner.side]=method==='TKO'?3:1;
     loser.hp=0;S.downF=loser;S.threeKD=method==='TKO';winFight(winner,method==='TKO'?'TKO':'KO');return fightSnapshot();
   },
+  forceKnockdown(side=0){
+    const attacker=fighters[clamp(side|0,0,1)],victim=opp(attacker);setState('FIGHT');S.clock=Math.max(20,S.clock);S.lastImpact={attacker:attacker.name,strike:'CROSS',outcome:'LANDED'};
+    victim.hp=Math.max(24,victim.hp);victim.legs=Math.min(victim.legs,58);victim.resolve=Math.min(victim.resolve,58);knockdown(attacker,victim);return fightSnapshot();
+  },
   fresh(){setupCard();fightTuneMeta.mode='forced-fresh';fightTuneMeta.targetOffsetSeconds=0;fightTuneMeta.offsetSeconds=0;fightTuneMeta.entryState='WALKON';fightTuneMeta.round=1;fightTuneMeta.clock=ROUND_LEN;return fightSnapshot();}
 };
 function tick(dt, skipRender = false) {
+  if(!suppressFightSpinePresentation)fightBroadcastSpine?.tick(dt*1000);
   simClockTotal += dt;
   const simDt = S.slowmo > 0 ? dt*0.24 : dt;   // slow-mo on knockdowns / the final blow
   S.slowmo = Math.max(0, S.slowmo - dt);

@@ -235,6 +235,89 @@ const audioDirector = new FootballAudioDirector({
   effectsVolume: 0.82,
 });
 const replayBuffer = new FootballReplayBuffer({ sampleHz: 24, durationSeconds: 11, before: 3.25, after: 0.42 });
+const footballMemoryFixtureId = `afb-${fixture}-${teams[0].id}-${teams[1].id}`;
+const footballMomentDirector = window.CyberligaNamedMoments?.create({
+  sportId: 'american-football',
+  fixtureId: footballMemoryFixtureId,
+  homeTeam: teams[0],
+  awayTeam: teams[1],
+}) || null;
+const footballBroadcastSpine = window.CyberligaBroadcastSpine?.create({
+  sportId: 'american-football',
+  fixtureId: footballMemoryFixtureId,
+  homeTeam: teams[0],
+  awayTeam: teams[1],
+}) || null;
+
+function footballWatchCandidate() {
+  const eligible = teams.flatMap((team) => team.athletes.map((athlete) => ({ team, athlete })));
+  const founder = eligible.find(({ team, athlete }) => {
+    const record = window.CyberligaCharacters?.get?.(athlete.id);
+    return record?.sportId === 'american-football' && record.teamId === team.id;
+  });
+  if (founder) return founder;
+  if (!eligible.length) return null;
+  const index = typeof content.hash === 'function'
+    ? content.hash(`${footballMemoryFixtureId}|who-to-watch`) % eligible.length
+    : 0;
+  return eligible[index];
+}
+
+function queueFootballWhoToWatch(delayMs = 1400) {
+  const watch = footballWatchCandidate();
+  if (!watch) return false;
+  return footballBroadcastSpine?.spotlight(watch, { delayMs, durationMs: 5200 }) || false;
+}
+
+function footballMomentClock() {
+  const seconds = Math.max(0, Math.ceil(state.clock));
+  const period = state.quarter === 5 ? 'OT' : `Q${state.quarter}`;
+  return `${period} ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+function footballMomentLeverage(marker) {
+  const priority = clamp(Number(marker?.priority || 0) / 100, 0, 1);
+  const close = 1 - clamp(Math.abs(state.score[0] - state.score[1]) / 24, 0, 1);
+  const late = state.quarter >= 4 ? clamp(1 - state.clock / QUARTER_SECONDS, 0, 1) : 0;
+  return +clamp(priority * 0.72 + close * 0.12 + late * 0.16, 0, 1).toFixed(3);
+}
+
+const footballNamedActorField = Object.freeze({
+  touchdown: 'playerId',
+  interception: 'playerId',
+  fumble_recovery: 'playerId',
+  contested_catch: 'playerId',
+  explosive_play: 'runnerId',
+  sack: 'playerId',
+  safety: 'playerId',
+  field_goal: 'playerId',
+});
+
+function recordFootballNamedReplay(marker) {
+  if (!footballMomentDirector || !footballBroadcastSpine || !marker) return null;
+  const actorField = footballNamedActorField[marker.type];
+  const sequence = Number(marker.id);
+  const actor = actorField ? getPlayerById(marker.data?.[actorField]) : null;
+  const team = actor && teams[actor.teamIndex];
+  if (!actorField || !Number.isInteger(sequence) || sequence < 0 || !team ||
+      team.athletes.indexOf(actor.athlete) < 0) return null;
+  const moment = footballMomentDirector.record({
+    eventKey: `${footballMemoryFixtureId}:replay-${sequence}`,
+    kind: marker.type,
+    side: actor.teamIndex === 0 ? 'home' : 'away',
+    team,
+    athlete: actor.athlete,
+    sequence,
+    leverage: footballMomentLeverage(marker),
+    clock: footballMomentClock(),
+    score: { home: state.score[0], away: state.score[1] },
+    recordedFootage: marker.replayable !== false && replayBuffer.status.recordedFrames > 0,
+  });
+  if (moment) footballBroadcastSpine.present(moment);
+  return moment;
+}
+
+queueFootballWhoToWatch();
 const input = { left: false, right: false, up: false, down: false, juke: false };
 
 let renderer;
@@ -782,6 +865,7 @@ function queueReplay(type, data = {}, options = {}) {
   const marker = replayBuffer.markEvent(type, presentationTime, data, options);
   state.replayCandidate = marker;
   state.replayStarted = false;
+  recordFootballNamedReplay(marker);
   return marker;
 }
 
@@ -1572,7 +1656,9 @@ function finishSnapLedger({ endSpot = state.ballSpot, result = state.lastEvent, 
     player.wear = player.condition.wear;
     player.snapLoad = 0;
   }
-  if (!touchdown && isSack) queueReplay('sack', { gain, quarterbackId: snap.quarterbackId });
+  if (!touchdown && isSack) queueReplay('sack', {
+    gain, playerId: tackler?.id || snap.sackTacklerId || null, quarterbackId: snap.quarterbackId,
+  });
   else if (!touchdown && !snap.turnover && offensiveGain >= 20) queueReplay('explosive_play', { gain: offensiveGain, runnerId: statisticalRunner?.id || null });
   return state.lastSnap;
 }
@@ -2540,12 +2626,13 @@ function scoreTouchdown(runner) {
 function scoreSafety(runner, result = 'SAFETY') {
   const scoringTeam = 1 - state.possession;
   if (resolveLivePenalty({ endSpot: 0, result: 'SAFETY' })) return;
+  const safetyActor = getPlayerById(state.currentSnap?.sackTacklerId || state.currentSnap?.contact?.tacklerId);
   finishSnapLedger({ endSpot: 0, result, runner });
   state.score[scoringTeam] += 2; state.ballSpot = 1; ball.mode = 'dead';
   event(`SAFETY ${teams[scoringTeam].code}`, withPlayCause(`${runner.name} is taken down in his own end zone.`));
   showMoment('SAFETY', `${teams[scoringTeam].code} earns two and the football`, 'DEFENSIVE SCORE', teams[scoringTeam].colors.accent, 2.2);
   audioDirector.triggerScore();
-  queueReplay('safety', { playerId: runner.id, teamIndex: scoringTeam });
+  queueReplay('safety', { playerId: safetyActor?.id || null, runnerId: runner.id, teamIndex: scoringTeam });
   setDead(() => takePossession(scoringTeam, 35, 'FREE KICK'), 2, true);
 }
 
@@ -2650,7 +2737,7 @@ function resolveFieldGoal() {
     showMoment('FIELD GOAL', `${kick.distance} yards · ${teams[kickingTeam].code} +3`, 'THE PHYSICAL KICK IS GOOD', teams[kickingTeam].colors.accent, 2.2);
     crowdHeat = 0.85;
     audioDirector.triggerScore({ intensity: 0.8 });
-    queueReplay('field_goal', { ruling: ball.ruling, distance: kick.distance });
+    queueReplay('field_goal', { playerId: ball.lastTouchId || null, ruling: ball.ruling, distance: kick.distance });
     setDead(() => kickoffTouchback(receivingTeam, 'FIELD GOAL KICKOFF TOUCHBACK'), 2, true);
   } else {
     finishSnapLedger({ endSpot: state.currentSnap?.startSpot ?? state.ballSpot, result: 'FIELD GOAL NO GOOD' });
@@ -2814,10 +2901,12 @@ function finishGame() {
   $('finalScore').textContent = `${state.score[0]} – ${state.score[1]}`;
   $('finalMeta').textContent = playerOfGame ? `${playerOfGame.name} · player of the game · ${Math.round(playerImpact(playerOfGame))} impact` : `${state.completedPasses} completed catches · ${state.tackles} tackles`;
   $('final').classList.add('show');
+  if (footballMomentDirector && footballBroadcastSpine) footballBroadcastSpine.finale(footballMomentDirector.top());
 }
 
 function step(dt) {
   enforceBallRotationRule();
+  footballBroadcastSpine?.tick(dt * 1000);
   if (state.paused || state.gameOver) return;
   if (state.replayActive) {
     replayBuffer.advance(dt);
@@ -3247,6 +3336,8 @@ function renderGameState() {
     },
     lastSnap: state.lastSnap,
     foundingCues,
+    matchMemory: footballMomentDirector?.state() || null,
+    broadcastSpine: footballBroadcastSpine?.state() || null,
     players: players.map((player) => {
       const visible = visiblePlayers?.get(player.id) || player;
       return ({

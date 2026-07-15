@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" href="data:," />
 <link rel="stylesheet" href="arena-score-fit.css" />
+<link rel="stylesheet" href="broadcast-spine.css" />
 <title>CYBERLIGA ICE — AUTONOMOUS AI HOCKEY</title>
 <script src="watchonly.js"></script>
 <script src="arena-score-fit.js" defer></script>
@@ -57,6 +58,7 @@
 
   #goalflash { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; opacity:0; transition: opacity .25s; }
   #goalflash.show { opacity:1; }
+  body:has(.cl-broadcast-spine.is-visible) #goalflash.show { opacity:0; visibility:hidden; }
   #goaltext {
     font-family:'Orbitron'; font-weight:900; font-size: clamp(60px, 12vw, 140px); letter-spacing: 18px;
     color:#fff; text-shadow: 0 0 30px var(--goalcolor,#00e5ff), 0 0 90px var(--goalcolor,#00e5ff);
@@ -195,7 +197,9 @@
 <script src="characterdata.js"></script>
 <script src="foundingvisual.js"></script>
 <script src="foundinglive.js"></script>
+<script src="named-moments.js"></script>
 <script src="branddata.js"></script>
+<script src="broadcast-spine.js"></script>
 <script src="arena-establishing.js"></script>
 <script src="mythos.js"></script>
 <script type="importmap">
@@ -931,6 +935,52 @@ let completedGames = 0, lastFinal = null;
 let establishingHold=false,establishingTimer=0;
 function holdForEstablishing(){clearTimeout(establishingTimer);establishingHold=true;establishingTimer=setTimeout(()=>{establishingHold=false;},3050);}
 function releaseEstablishingHold(removeOverlay=false){clearTimeout(establishingTimer);establishingTimer=0;establishingHold=false;if(removeOverlay)window.CyberligaEstablishing?.remove();}
+let hockeyMomentDirector=null,hockeyBroadcastSpine=null,activeHockeyFixtureIndex=0,hockeyMomentFixtureId='';
+let hockeyMomentSequence=0,hockeyMomentCounters={goal:0,save:0,check:0};
+let suppressHockeySpinePresentation=false;
+function hockeyMomentClock(){return `${S.period===4?'OT':`P${S.period}`} ${fmtClock(Math.max(0,S.clock))}`;}
+function hockeyMomentLeverage(kind){
+  const close=1-clamp(Math.abs(S.score[0]-S.score[1])/5,0,1);
+  const late=S.period>=3?clamp(1-Math.max(0,S.clock)/(S.period===4?OT_LEN:PERIOD_LEN),0,1):0;
+  const base={goal:.64,save:.50,check:.40}[kind]||.34;
+  return +clamp(base+close*.18+late*.25,0,1).toFixed(3);
+}
+function resetHockeyBroadcastMemory(fixtureIndex){
+  hockeyBroadcastSpine?.destroy();
+  hockeyMomentDirector=null;hockeyBroadcastSpine=null;activeHockeyFixtureIndex=fixtureIndex;
+  hockeyMomentSequence=0;hockeyMomentCounters={goal:0,save:0,check:0};
+  hockeyMomentFixtureId=`ice-${fixtureIndex}-${TEAM_A.id}-${TEAM_B.id}`;
+  hockeyMomentDirector=window.CyberligaNamedMoments?.create({
+    sportId:'hockey',fixtureId:hockeyMomentFixtureId,homeTeam:TEAM_A.source,awayTeam:TEAM_B.source
+  })||null;
+  hockeyBroadcastSpine=window.CyberligaBroadcastSpine?.create({
+    sportId:'hockey',fixtureId:hockeyMomentFixtureId,homeTeam:TEAM_A.source,awayTeam:TEAM_B.source
+  })||null;
+  queueHockeyWhoToWatch();
+}
+function queueHockeyWhoToWatch(){
+  hockeyBroadcastSpine?.clear();
+  const eligible=players.filter(p=>p.athlete&&(p.team===0?TEAM_A:TEAM_B)?.source);
+  const founder=eligible.find(p=>window.CyberligaCharacters?.get(p.athlete.id));
+  const watch=founder||eligible[entryHash(hockeyMomentFixtureId)%Math.max(1,eligible.length)];
+  const team=watch&&(watch.team===0?TEAM_A:TEAM_B);
+  if(watch&&team)hockeyBroadcastSpine?.spotlight({team:team.source,athlete:watch.athlete},{delayMs:3150});
+}
+function recordHockeyNamedMoment(kind,player){
+  if(!hockeyMomentDirector||!hockeyBroadcastSpine||!player?.athlete)return null;
+  const team=player.team===0?TEAM_A:player.team===1?TEAM_B:null;
+  if(!team||team.source.athletes.indexOf(player.athlete)<0)return null;
+  if(!Object.prototype.hasOwnProperty.call(hockeyMomentCounters,kind))return null;
+  const count=++hockeyMomentCounters[kind],sequence=++hockeyMomentSequence;
+  const moment=hockeyMomentDirector.record({
+    eventKey:`ice:${activeHockeyFixtureIndex}:${kind}:${count}`,kind,
+    side:player.team===0?'home':'away',team:team.source,athlete:player.athlete,
+    sequence,leverage:hockeyMomentLeverage(kind),clock:hockeyMomentClock(),
+    score:{home:S.score[0],away:S.score[1]},recordedFootage:false
+  });
+  if(moment&&!suppressHockeySpinePresentation)hockeyBroadcastSpine.present(moment);
+  return moment;
+}
 function setState(s) { S.state = s; S.t = 0; }
 
 function applyTeamHUD() {
@@ -962,6 +1012,7 @@ function setupMatch(firstLoad) {
   S.forceSave = ''; S.forceCheck = false; S.forceOneTimer = false; S.forcePenalty=false;
   applyTeamHUD();
   applyHockeyVenueIdentity();
+  resetHockeyBroadcastMemory(fixtureIdx%FIXTURES.length);
   elSA.textContent = '0'; elSB.textContent = '0';
   elCard.classList.remove('show'); elFlash.classList.remove('show');
   say(`WELCOME TO ${TEAM_A.brand.venue} — ${TEAM_A.name} vs ${TEAM_B.name} — ${TEAM_A.brand.ritual}`, true);
@@ -1432,6 +1483,7 @@ function integratePlayers(dt) {
           hitter.checkCd = 5.8;
           hitter.hitT = 0.72;
           S.hits[hitter.team]++;
+          const forcedMajorCheck=S.forceCheck;
           if (S.forceCheck || rnd() < 0.78) {
             S.forceCheck = false;
             puck.carrier = null;
@@ -1451,6 +1503,7 @@ function integratePlayers(dt) {
             S.cameraBeat = 1.05; S.cameraKind = 'hit'; S.cameraX = carrier.x; S.cameraZ = carrier.z;
             S.ledBeat = 0.52; S.ledColor = hitColor;
             say(fill(pick(COMM.check), hitter.name, carrier.name));
+            if(forcedMajorCheck||relSp>=6.2)recordHockeyNamedMoment('check',hitter);
             if(S.forcePenalty || (relSp>7.25 && rnd()<.075)) {
               S.forcePenalty=false; assessPenalty(hitter,Math.abs(carrier.z)>BZ-3?'BOARDING':'INTERFERENCE');
             }
@@ -1588,6 +1641,7 @@ function goalChecks() {
         S.cameraBeat = 0.5; S.cameraKind = 'save'; S.cameraX = gk.x; S.cameraZ = gk.z;
         S.ledBeat = 0.55; S.ledColor = (gk.team === 0 ? TEAM_A : TEAM_B).glow;
         say(fill(pick(COMM.save), '', '', gk.name), true);
+        if(forcedSave||catchIt||quality>=.55||screened||off>1.35)recordHockeyNamedMoment('save',gk);
         return;
       }
     }
@@ -1611,6 +1665,7 @@ function scoreGoal(s) {
   S.scorerName = scorer.name; S.scorer = scorer;
   S.lastDecision=`GOAL · ${scorer.name} · Q${Math.round((puck.shotQuality||.25)*100)}`;
   elSA.textContent = S.score[0]; elSB.textContent = S.score[1];
+  recordHockeyNamedMoment('goal',scorer);
   const tdef = team === 0 ? TEAM_A : TEAM_B;
   document.documentElement.style.setProperty('--goalcolor', tdef.css);
   elGoalSub.textContent = `${S.scorerName} — ${tdef.name}`;
@@ -1657,6 +1712,7 @@ function showPeriodCard() {
 function showFinalCard() {
   completedGames++;
   lastFinal = { home: TEAM_A.name, away: TEAM_B.name, homeScore: S.score[0], awayScore: S.score[1] };
+  if(!suppressHockeySpinePresentation)hockeyBroadcastSpine?.finale(hockeyMomentDirector?.top()||[]);
   const [na, nb] = FIXTURES[(fixtureIdx + 1) % FIXTURES.length]; // the fixture we rotate to, not the one just played
   elPanel.innerHTML = `<h1>FINAL</h1>
     <h2>${TEAM_A.name} ${S.score[0]} — ${S.score[1]} ${TEAM_B.name}</h2>${statsTable()}
@@ -2051,6 +2107,7 @@ window._dbg = () => ({ state: S.state, t: S.t, dropped: S.dropped, clock: S.cloc
   py: puck.y, px: puck.x, pz: puck.z, carrier: puck.carrier && puck.carrier.name,
   ref: [refP.x, refP.z, refP.tx, refP.tz], c0: players.filter(p => p.idx === 1).map(c => [c.x, c.z, c.fox, c.foz]) });
 function tick(dt, skipRender = false, bypassEstablishing = false) {
+  if(!(skipRender&&bypassEstablishing))hockeyBroadcastSpine?.tick(dt*1000);
   if(establishingHold&&!bypassEstablishing){
     if(!skipRender){updateRigs(0);updateFX(0);cameraStep(0);tickerStep(0);hudStep();composer.render();}
     return;
@@ -2081,14 +2138,20 @@ function applyBroadcastTuneIn(){
     }
     return actual;
   };
-  let actual=runTo(target), recued=S.state==='FINAL'||fixtureIdx!==fixtureAtEntry;
-  if(recued){
-    // A very long explicit QA offset may reach the final card. Re-cue the same
-    // fixture into a deterministic second-period window instead of presenting
-    // a dead broadcast or silently advancing to another matchup.
-    fixtureIdx=fixtureAtEntry;setupMatch(true);completedGames=completedAtEntry;lastFinal=lastFinalAtEntry;
-    actual=runTo(150+(h%66));
-  }
+  let actual=0,recued=false;
+  suppressHockeySpinePresentation=true;
+  try{
+    actual=runTo(target);recued=S.state==='FINAL'||fixtureIdx!==fixtureAtEntry;
+    if(recued){
+      // A very long explicit QA offset may reach the final card. Re-cue the same
+      // fixture into a deterministic second-period window instead of presenting
+      // a dead broadcast or silently advancing to another matchup.
+      fixtureIdx=fixtureAtEntry;setupMatch(true);completedGames=completedAtEntry;lastFinal=lastFinalAtEntry;
+      actual=runTo(150+(h%66));
+    }
+  }finally{suppressHockeySpinePresentation=false;}
+  if(S.state==='FINAL')hockeyBroadcastSpine?.finale(hockeyMomentDirector?.top()||[]);
+  else queueHockeyWhoToWatch();
   S.entryMode='live-tune-in';S.tuneInSeconds=actual;S.entryTargetSeconds=target;S.entryBucket=entryBucket;S.entryRecued=recued;
   S.entryPhase={period:S.period,clock:+Math.max(0,S.clock).toFixed(1),state:S.state};
   tick(0,false);
@@ -2127,7 +2190,7 @@ document.addEventListener('visibilitychange', startDriver);
 startDriver();
 
 function restartMatch() { setupMatch(true); lastCamMode = 'x'; }
-function forceIceMoment(kind) {
+function forceIceMoment(kind,athleteId='') {
   if (kind === 'reset') { restartMatch(); releaseEstablishingHold(true); return true; }
   if (kind === 'rotation') {
     restartMatch();
@@ -2141,8 +2204,9 @@ function forceIceMoment(kind) {
   setState('PLAY'); S.clock = Math.max(S.clock,20); puck.held = false; puck.carrier = null;
   puck.passTarget = null; puck.saveChecked = false; puck.y = PY; puck.vx = puck.vz = puck.vy = 0;
   for (const p of players) { p.action=null; p.fallT=0; p.rejoinT=0; p.carryT=0; p.hitT=0; p.touchCd=0; p.recvT=0; p.wasBreakaway=false; p.penaltyT=0; p.energy=1; }
-  const shooter = teamPlayers(0).find(p=>p.idx===2), passer = teamPlayers(0).find(p=>p.idx===1);
-  const receiver = teamPlayers(0).find(p=>p.idx===3), hitter = teamPlayers(1).find(p=>p.idx===2);
+  const requestedAthlete=players.find(p=>p.athlete?.id===athleteId);
+  const shooter = requestedAthlete&&requestedAthlete.team===0&&!requestedAthlete.isGK?requestedAthlete:teamPlayers(0).find(p=>p.idx===2), passer = teamPlayers(0).find(p=>p.idx===1);
+  const receiver = teamPlayers(0).find(p=>p.idx===3), hitter = requestedAthlete&&requestedAthlete.team===1&&!requestedAthlete.isGK?requestedAthlete:teamPlayers(1).find(p=>p.idx===2);
   if (kind === 'goal') {
     shooter.x=GLX-1; shooter.z=1.65; shooter.vx=shooter.vz=0;
     puck.x=GLX-.22; puck.z=1.65; puck.vx=28; puck.lastTouch=shooter; puck.saveChecked=true;
@@ -2211,6 +2275,8 @@ window.render_game_to_text = () => JSON.stringify({
   interaction: 'view-only',
   mode: S.state,
   entry:{mode:S.entryMode,tuneInSeconds:+S.tuneInSeconds.toFixed(1),targetSeconds:+S.entryTargetSeconds.toFixed(1),bucket:S.entryBucket,recued:S.entryRecued,phase:S.entryPhase,freshURL:'?fresh=1',qaURL:'?at=285&bucket=2077'},
+  matchMemory:hockeyMomentDirector?.state()||null,
+  broadcastSpine:hockeyBroadcastSpine?.state()||null,
   completedGames,
   deterministicSeed:simSeed>>>0,
   lastFinal,

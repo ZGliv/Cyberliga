@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" href="data:," />
 <link rel="stylesheet" href="arena-score-fit.css" />
+<link rel="stylesheet" href="broadcast-spine.css" />
 <title>CYBERLIGA HOOPS — AUTONOMOUS AI BASKETBALL</title>
 <script src="watchonly.js"></script>
 <script src="arena-score-fit.js" defer></script>
@@ -52,6 +53,7 @@
 
   #flash { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; opacity:0; transition:opacity .22s; }
   #flash.show { opacity:1; }
+  body:has(.cl-broadcast-spine.is-visible) #flash.show { opacity:0; visibility:hidden; }
   #flashtext {
     font-family:'Orbitron'; font-weight:900; font-size:clamp(54px, 10vw, 120px); letter-spacing:14px;
     color:#fff; text-shadow:0 0 28px var(--fc,#ff8a3d), 0 0 86px var(--fc,#ff8a3d);
@@ -233,7 +235,9 @@
 <script src="characterdata.js"></script>
 <script src="foundingvisual.js"></script>
 <script src="foundinglive.js"></script>
+<script src="named-moments.js"></script>
 <script src="branddata.js"></script>
+<script src="broadcast-spine.js"></script>
 <script src="arena-establishing.js"></script>
 <script src="mythos.js"></script>
 <script type="importmap">
@@ -738,6 +742,53 @@ let completedGames=0, lastFinal=null;
 let establishingHold=false,establishingTimer=0;
 function holdForEstablishing(){clearTimeout(establishingTimer);establishingHold=true;establishingTimer=setTimeout(()=>{establishingHold=false;},3050);}
 function releaseEstablishingHold(removeOverlay=false){clearTimeout(establishingTimer);establishingTimer=0;establishingHold=false;if(removeOverlay)window.CyberligaEstablishing?.remove();}
+let hoopsMomentDirector=null,hoopsBroadcastSpine=null,activeHoopsFixtureIndex=0,hoopsMomentFixtureId='';
+let hoopsMomentSequence=0,hoopsMomentCounters={steal:0,block:0,dunk:0,three_pointer:0};
+let suppressHoopsSpinePresentation=false;
+function hoopsMomentClock(){return `${q>4?`OT${q-4}`:`Q${q}`} ${fmtGameClock(Math.max(0,qClock))}`;}
+function hoopsMomentLeverage(kind){
+  const close=1-clamp(Math.abs((teams[0]?.score||0)-(teams[1]?.score||0))/18,0,1);
+  const late=q>=4?clamp(1-Math.max(0,qClock)/Q_LEN,0,1):0;
+  const base={dunk:.54,three_pointer:.48,block:.43,steal:.39}[kind]||.35;
+  return +clamp(base+close*.18+late*.24,0,1).toFixed(3);
+}
+function resetHoopsBroadcastMemory(fixtureIndex){
+  hoopsBroadcastSpine?.destroy();
+  hoopsMomentDirector=null;hoopsBroadcastSpine=null;activeHoopsFixtureIndex=fixtureIndex;
+  hoopsMomentSequence=0;hoopsMomentCounters={steal:0,block:0,dunk:0,three_pointer:0};
+  hoopsMomentFixtureId=`hps-${fixtureIndex}-${teams[0].def.id}-${teams[1].def.id}`;
+  hoopsMomentDirector=window.CyberligaNamedMoments?.create({
+    sportId:'basketball',fixtureId:hoopsMomentFixtureId,
+    homeTeam:teams[0].def.source,awayTeam:teams[1].def.source
+  })||null;
+  hoopsBroadcastSpine=window.CyberligaBroadcastSpine?.create({
+    sportId:'basketball',fixtureId:hoopsMomentFixtureId,
+    homeTeam:teams[0].def.source,awayTeam:teams[1].def.source
+  })||null;
+  queueHoopsWhoToWatch();
+}
+function queueHoopsWhoToWatch(){
+  hoopsBroadcastSpine?.clear();
+  const eligible=allPlayers().filter(p=>p.athlete&&p.td?.source);
+  const founder=eligible.find(p=>window.CyberligaCharacters?.get(p.athlete.id));
+  const watch=founder||eligible[hash32(hoopsMomentFixtureId)%Math.max(1,eligible.length)];
+  if(watch)hoopsBroadcastSpine?.spotlight({team:watch.td.source,athlete:watch.athlete},{delayMs:3150});
+}
+function recordHoopsNamedMoment(kind,player){
+  if(!hoopsMomentDirector||!hoopsBroadcastSpine||!player?.athlete)return null;
+  const team=teams[player.side];
+  if(!team||team.def.source!==player.td.source||team.def.source.athletes.indexOf(player.athlete)<0)return null;
+  if(!Object.prototype.hasOwnProperty.call(hoopsMomentCounters,kind))return null;
+  const count=++hoopsMomentCounters[kind],sequence=++hoopsMomentSequence;
+  const moment=hoopsMomentDirector.record({
+    eventKey:`hps:${activeHoopsFixtureIndex}:${kind}:${count}`,kind,
+    side:player.side===0?'home':'away',team:team.def.source,athlete:player.athlete,
+    sequence,leverage:hoopsMomentLeverage(kind),clock:hoopsMomentClock(),
+    score:{home:teams[0].score,away:teams[1].score},recordedFootage:false
+  });
+  if(moment&&!suppressHoopsSpinePresentation)hoopsBroadcastSpine.present(moment);
+  return moment;
+}
 
 // camera
 let camPos=V3(0,11.4,17.6), lookPt=V3(0,1,0), pendingCut=false, lowCam=false, shake=0, crowdHype=0, tGlobal=0;
@@ -826,6 +877,7 @@ function newMatch(){
   play.seenSchemes.clear();play.seenCoverages.clear();
   Object.assign(ball,{state:'HELD',holder:null,passTo:null,pending:null,t:0,T:0,vy:0,shot:null,lastTeam:0,inbound:false,passer:null,passStealChecked:false});
   hideCard(); updateHUDTeams();
+  resetHoopsBroadcastMemory(currentMatch);
   window.CyberligaEstablishing?.show({sportId:'basketball',homeTeam:teams[0].def.source,awayTeam:teams[1].def.source,duration:2600});
   holdForEstablishing();
   say(`MATCHDAY — ${teams[0].def.name} VS ${teams[1].def.name} — TIP-OFF AT ${teams[0].def.brand.venue} — ${teams[0].def.brand.ritual}`);
@@ -917,6 +969,7 @@ function forceTurnover(defender, victim){
   crowdHype=0.8; shake=0.2; cut();
   flashMsg('PICKED!', `${defender.name} • LIVE-BALL STEAL`, defender.td.css);
   say(`${defender.name} RIPS IT FREE — ${defender.td.name} ARE RUNNING`);
+  recordHoopsNamedMoment('steal',defender);
   play.offense=defender.side; shotClock=24; callPossession('STEAL');
   play.actionLabel='LIVE-BALL RUNOUT · TWO LANES FILLED';
   gainPossession(defender,'BRINGUP');
@@ -974,6 +1027,16 @@ function calculateShotQuality(sh,kind,dist,contest){
   }
   return clamp(quality,.16,.84);
 }
+function commitCleanBlock(blocker,sh,tm){
+  teams[blocker.side].blocks++;
+  ball.holder=null; ball.state='LOOSE'; ball.shot=null; ball.lastTeam=sh.side;
+  ball.vel.set(-tm.dir*(4+rand()*3),3.2+rand()*2,(rand()-.5)*6);
+  play.saidReb=true; setState('REBOUND');
+  blocker.rig.poseHeader(0.8); shake=0.55; crowdHype=1; cut();
+  flashMsg('DENIED!', `${blocker.name} • CLEAN BLOCK`, blocker.td.css);
+  say(`${blocker.name} ERASES ${sh.name} AT THE SUMMIT`);
+  recordHoopsNamedMoment('block',blocker);
+}
 function releaseShot(sh, kind){
   const tm=teams[sh.side], rim=atkRim(tm);
   const from=ball.pos.clone();
@@ -984,13 +1047,7 @@ function releaseShot(sh, kind){
     if (dd<2.0){ const pressure=(2.0-dd)/2.0*(d.air?1.25:0.7); if (pressure>contest){ contest=pressure; blocker=d; } } }
   const blockBoost=play.coverageId==='DROP'?.08:play.coverageId==='ZONE'?.035:0;
   if (blocker && contest>0.55 && chance(.08+contest*.15+blockBoost+(blocker.role===4?.06:0))){
-    teams[blocker.side].blocks++;
-    ball.holder=null; ball.state='LOOSE'; ball.shot=null; ball.lastTeam=sh.side;
-    ball.vel.set(-tm.dir*(4+rand()*3),3.2+rand()*2,(rand()-.5)*6);
-    play.saidReb=true; setState('REBOUND');
-    blocker.rig.poseHeader(0.8); shake=0.55; crowdHype=1; cut();
-    flashMsg('DENIED!', `${blocker.name} • CLEAN BLOCK`, blocker.td.css);
-    say(`${blocker.name} ERASES ${sh.name} AT THE SUMMIT`);
+    commitCleanBlock(blocker,sh,tm);
     return;
   }
   const quality=calculateShotQuality(sh,kind,dist,contest), intendedMake=chance(quality);
@@ -1023,6 +1080,8 @@ function scoreBasket(sideSign, pts, scorer, kind){
       say(`${play.lastPasser.name} DRAWS THE DEFENSE — ASSIST ON THE ${scorer.name} FINISH`);
     }
   }
+  if(scorer&&kind==='dunk')recordHoopsNamedMoment('dunk',scorer);
+  else if(scorer&&pts===3)recordHoopsNamedMoment('three_pointer',scorer);
   elSA.textContent=teams[0].score; elSB.textContent=teams[1].score; popScore();
   const who = scorer ? `${scorer.name} • ${tm.def.name}` : tm.def.name;
   if (kind==='dunk'){ flashMsg('SLAM!', who, tm.def.css); shake=1; say(pick([`${scorer.name} DETONATES AT THE RIM`,`${scorer.name} WITH A SEISMIC JAM`,`${scorer.name} POSTERIZES THE FIREWALL`])); }
@@ -1730,6 +1789,7 @@ function enterBreak(){
   if (phase==='FINAL'){
     completedGames++;
     lastFinal={home:teams[0].def.name,away:teams[1].def.name,homeScore:teams[0].score,awayScore:teams[1].score};
+    if(!suppressHoopsSpinePresentation)hoopsBroadcastSpine?.finale(hoopsMomentDirector?.top()||[]);
     const all=[...allPlayers()].sort((a,b)=>(b.pts+b.reb+b.ast)-(a.pts+a.reb+a.ast)).slice(0,4);
     showCard(`<h1>FINAL</h1><h2>${line}</h2>
       <table><tr><th>IMPACT FIVE</th><th>PTS</th><th>REB</th><th>AST</th></tr>
@@ -1871,10 +1931,15 @@ function tuneIntoHoopsBroadcast(){
   const target=tuneInMeta.offsetSeconds;
   if(target<=0){tuneInMeta.entryState=play.state;return;}
   const steps=Math.round(target/.05);
-  for(let i=0;i<steps;i++){
-    tick(.05,true,true);
-    if(phase==='FINAL')break;
-  }
+  suppressHoopsSpinePresentation=true;
+  try{
+    for(let i=0;i<steps;i++){
+      tick(.05,true,true);
+      if(phase==='FINAL')break;
+    }
+  }finally{suppressHoopsSpinePresentation=false;}
+  if(phase==='FINAL')hoopsBroadcastSpine?.finale(hoopsMomentDirector?.top()||[]);
+  else queueHoopsWhoToWatch();
   tuneInMeta.offsetSeconds=+tGlobal.toFixed(1);
   tuneInMeta.entryState=phase==='PLAY'?play.state:phase;
   tuneInMeta.quarter=q;
@@ -1884,6 +1949,7 @@ function tuneIntoHoopsBroadcast(){
 }
 tuneIntoHoopsBroadcast();
 function tick(dt, skipRender=false, bypassEstablishing=false){
+  if(!(skipRender&&bypassEstablishing))hoopsBroadcastSpine?.tick(dt*1000);
   if(establishingHold&&!bypassEstablishing){
     if(!skipRender){setTargets(0);updatePlayers(0);updateBall(0);updateCamera(0);fxStep(0);tickerStep(0);composer.render();}
     return;
@@ -1956,6 +2022,8 @@ window.render_game_to_text=()=>JSON.stringify({
     completed:play.inboundsCompleted,last:play.lastInbound
   }:{active:false,stage:null,completed:play.inboundsCompleted,last:play.lastInbound},
   tuneIn:{...tuneInMeta},
+  matchMemory:hoopsMomentDirector?.state()||null,
+  broadcastSpine:hoopsBroadcastSpine?.state()||null,
   shotQuality:play.shotQuality?{value:+play.shotQuality.toFixed(3),label:qualityLabel(play.shotQuality),context:play.shotContext}:null,
   possession:play.possessionNo,
   schemesSeen:[...play.seenSchemes],
@@ -2008,6 +2076,23 @@ window.__CYBERLIGA_HOOPS_TEST__={
     ball.shot={pts:pts===3?3:2,shooter:scorer,team:tm,bank:false,banked:false,quality:1,intendedMake:true,contest:0};
     play.actionLabel='CLEAN MAKE · VERIFY BASELINE INBOUND';play.decision='BALL MUST CLEAR THE NET BEFORE THE RESTART';
     setState('SHOT');updateGamePlan();cut();return JSON.parse(window.render_game_to_text());
+  },
+  forceNamedMoment(kind='steal',side=0,athleteId=''){
+    releaseEstablishingHold(true);phase='PLAY';hideCard();suppressHoopsSpinePresentation=false;
+    const idx=clamp(side|0,0,1),tm=teams[idx],opp=teams[1-idx];
+    const player=tm.players.find(p=>p.athlete?.id===athleteId)||tm.players.find(p=>window.CyberligaCharacters?.get(p.athlete?.id))||tm.players[0];
+    play.outcomeRecorded=false;play.lastPasser=null;play.lastPassAt=-99;play.inbound=null;play.freeThrow=null;
+    if(kind==='steal'){
+      const victim=opp.players[0];play.offense=victim.side;ball.holder=victim;ball.state='HELD';ball.shot=null;
+      ball.pos.set(victim.pos.x,1.05,victim.pos.z);forceTurnover(player,victim);
+    }else if(kind==='block'){
+      const shooter=opp.players[2]||opp.players[0];play.offense=shooter.side;ball.pos.set(shooter.pos.x,1.4,shooter.pos.z);
+      commitCleanBlock(player,shooter,opp);
+    }else if(kind==='dunk'||kind==='three_pointer'){
+      play.offense=idx;player.fga++;tm.fga++;
+      scoreBasket(tm.dir,kind==='three_pointer'?3:2,player,kind==='dunk'?'dunk':'shot');
+    }else throw new Error(`Unknown named moment ${kind}`);
+    return JSON.parse(window.render_game_to_text());
   },
   fresh(){matchNo=Math.max(0,matchNo-1);newMatch();tuneInMeta.mode='forced-fresh';tuneInMeta.offsetSeconds=0;tuneInMeta.entryState='TIP-OFF';return JSON.parse(window.render_game_to_text());},
   state(){return JSON.parse(window.render_game_to_text());}

@@ -65,8 +65,10 @@ if (packageManifest) {
   check(packageManifest.scripts?.dev === 'node server.mjs', 'npm run dev must use the project-owned dependency-free server');
   check(packageManifest.scripts?.['test:api'] === 'node --test api/canonical-server.test.mjs', 'npm run test:api must cover the canonical API boundary');
   check(packageManifest.scripts?.['test:moments'] === 'node --test athlete-moments.test.mjs', 'npm run test:moments must cover athlete event normalization');
+  check(packageManifest.scripts?.['test:named-moments'] === 'node --test named-moments.test.mjs', 'npm run test:named-moments must cover deterministic match memory');
+  check(packageManifest.scripts?.['test:broadcast'] === 'node --test broadcast-spine.test.mjs', 'npm run test:broadcast must cover the shared Match Memory presentation state machine');
   check(packageManifest.scripts?.['test:visuals'] === 'node --test foundingvisual.test.mjs foundinglive.test.mjs', 'npm run test:visuals must cover shared Founding portrait and live-cue renderers');
-  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, and Founding visuals before static/data invariants');
+  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, named match memory, broadcast presentation, and Founding visuals before static/data invariants');
   check(packageManifest.scripts?.['release:check'] === 'npm run verify && node scripts/release-check.mjs', 'npm run release:check must verify the repository before checking the canonical release source');
   check(Object.keys(packageManifest.dependencies || {}).length === 0, 'Runtime dependencies must remain empty');
   check(Object.keys(packageManifest.devDependencies || {}).length === 0, 'Development dependencies must remain empty');
@@ -502,6 +504,49 @@ if (foundingLivePresent) {
       }), 'Every Founding live identity must be frozen, versioned, and budgeted');
     }
   }
+}
+
+const namedMomentsPresent = await exists('named-moments.js');
+const broadcastSpinePresent = await exists('broadcast-spine.js') && await exists('broadcast-spine.css');
+check(namedMomentsPresent, 'Missing deterministic Match Memory director', 'named-moments.js');
+check(broadcastSpinePresent, 'Missing shared Match Memory broadcast spine', 'broadcast-spine.js / broadcast-spine.css');
+if (namedMomentsPresent) {
+  const namedMomentSource = await text('named-moments.js');
+  const namedMomentContext = vm.createContext({
+    console,
+    CYBERLIGA_CONTENT: content,
+    CyberligaCharacters: characterCanon,
+    encodeURIComponent
+  });
+  vm.runInContext(namedMomentSource, namedMomentContext, { filename:'named-moments.js', timeout:2000 });
+  const namedMoments = namedMomentContext.CyberligaNamedMoments;
+  check(Boolean(namedMoments), 'named-moments.js did not expose CyberligaNamedMoments');
+  check(!/\bMath\.random\b/.test(namedMomentSource), 'Match Memory must not consume simulation or presentation randomness');
+  check(!/\b(?:document|location|localStorage|sessionStorage|fetch|XMLHttpRequest|requestAnimationFrame|setTimeout|setInterval|performance|Date)\b/.test(namedMomentSource), 'Match Memory core must remain independent of DOM, URL, storage, network, scheduling, and clocks');
+  if (namedMoments) {
+    check(Object.isFrozen(namedMoments) && namedMoments.ready === true, 'Match Memory API must be frozen and bound to canonical identity authorities');
+    check(namedMoments.sportIds?.length === 6 && namedMoments.sportIds.every((sportId) => namedMoments.eventKinds?.[sportId]?.length), 'Match Memory must publish fixed event vocabularies for all six sports');
+    check(namedMoments.limits?.candidates === 12 && namedMoments.limits?.top === 3, 'Match Memory must cap retained candidates and the final broadcast memory');
+    check(namedMoments.safety?.authoritative === false && namedMoments.safety?.wagerable === false && namedMoments.safety?.settles === false, 'Match Memory must reject authority, wagering, and fan-call settlement');
+    check(typeof namedMoments.create === 'function', 'Match Memory API is missing create()');
+  }
+}
+if (broadcastSpinePresent) {
+  const broadcastSpineSource = await text('broadcast-spine.js');
+  const broadcastSpineStyles = await text('broadcast-spine.css');
+  check(/Object\.freeze\(\{\s*version:VERSION,\s*create:create\s*\}\)/.test(broadcastSpineSource), 'Broadcast spine must expose a frozen creation API');
+  check(!/addEventListener|onclick\s*=|onpointer|ontouch|onkey/.test(broadcastSpineSource), 'Broadcast spine must never add spectator or gameplay controls');
+  check(/NOT AUTHORITATIVE · NO MONEY · NO PRIZE/.test(broadcastSpineSource) && /VIEW-ONLY · CLIENT SIM/.test(broadcastSpineSource), 'Broadcast spine must visibly publish its client-only safety boundary');
+  check(/pointer-events:\s*none\s*!important/.test(broadcastSpineStyles), 'Broadcast spine must remain pointer-inert');
+  check(/@media \(max-width: 700px\)/.test(broadcastSpineStyles) && /orientation: landscape/.test(broadcastSpineStyles), 'Broadcast spine must define phone and landscape broadcast layouts');
+}
+for (const arena of arenas) {
+  const htmlSource = await text(arena.file);
+  const source = arena.file === 'football.html' ? `${htmlSource}\n${await text('football.js')}` : htmlSource;
+  check(/broadcast-spine\.css/.test(htmlSource), `${arena.file} must load the shared Match Memory styles`);
+  check(/named-moments\.js/.test(htmlSource) && /broadcast-spine\.js/.test(htmlSource), `${arena.file} must load the shared Match Memory runtime`);
+  check(htmlSource.indexOf('named-moments.js') < htmlSource.indexOf('broadcast-spine.js'), `${arena.file} must bind deterministic memory before presentation`);
+  check(/matchMemory\s*:/.test(source) && /broadcastSpine\s*:/.test(source), `${arena.file} render state must expose Match Memory and broadcast-spine state`);
 }
 
 const mythosPresent = await exists('mythos.js');

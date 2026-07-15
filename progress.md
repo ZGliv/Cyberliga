@@ -830,3 +830,37 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   triangle fan. The plate is now an authored convex six-point maple silhouette and catalogue validation plus unit
   coverage reject any future non-convex solid. The corrected 16-test shared visual/live suite, all 1,381 static
   checks, standalone syntax checks and `git diff --check` pass before browser recapture.
+
+## Match Memory Broadcast Spine — 2026-07-15
+- Product and visual audits independently identified the same P0 spectator gap: simulations already know exact
+  athlete identity and action causality, but normal-scale broadcasts rarely name the people responsible. The
+  scoped response is a view-only broadcast spine rather than a permanent explainer panel or any gameplay input.
+- Added frozen deterministic `CyberligaNamedMoments`: exact canonical fixture/team/athlete reference gates, fixed
+  six-sport event vocabularies, stable local event IDs, immutable player/clip routes, twelve-candidate retention,
+  a ranked top-three final memory, and explicit non-authoritative/no-wager/no-settlement provenance. It owns no
+  DOM, URL state, storage, network, timers, clocks or randomness.
+- Added the pointer-inert `CyberligaBroadcastSpine` state machine and responsive lower-third: Founder-first WHO TO
+  WATCH, exact named athlete/team/crest/signature identity, LIVE MOMENT versus genuine buffered REPLAY MOMENT
+  provenance, and a sequenced MATCH MEMORY finale. Every transient state states VIEW-ONLY/CLIENT SIM or NOT
+  AUTHORITATIVE/NO MONEY/NO PRIZE and publishes deterministic QA state.
+- Soccer records committed goals, exact goalkeeper saves and genuine jukes (never mislabeling a juke as a bicycle
+  kick), marks only an actual replay-buffer goal as recorded footage, suppresses stale cards during canonical
+  catch-up while retaining the deterministic ledger, then queues a fresh tune-in spotlight or final memory.
+- Football records exact replay markers and actors for scores, takeaways, contested catches, explosive plays,
+  sacks and other attributable major events. Organic full-game QA retained nine memories with zero rejects,
+  real replay provenance, a top-three finale and post-game ticking; desktop and 390x844 cards were contained.
+- Basketball records exact steals, blocks, dunks and threes; hockey records goals, saves and major checks; baseball
+  waits for finalized grand slams, home runs, wall robberies, double plays, triples, official runs and canonical
+  pitcher strikeouts; combat names exact knockdowns, finishes, decisions, counters, guard breaks, last stands and
+  round winners. None claims recorded replay footage where an arena has no replay buffer.
+- The six arenas all delay or suppress presentation through establishing/catch-up state, then restore a fresh
+  spotlight or finale without replaying stale cards. Football's lower third clears its scorebug, existing giant
+  basketball/hockey flashes yield to the identity card, and a live combat join removes the opening venue slate so
+  WHO TO WATCH appears over the actual fight rather than behind walkout graphics.
+- The official web-game client and exact 390x844 browser matrix produced finite state across all six broadcasts.
+  Desktop and phone captures were visually inspected; the spine stayed within the viewport, pointer-inert and
+  readable with no horizontal overflow, page/console/request errors, or loss of the classic cyan/pink athletes.
+- Exact gates pass 13/13 API tests, 11/11 live-moment tests, 14/14 named-memory tests, 4/4 broadcast-spine tests,
+  16/16 shared visual/live-cue tests, 28/28 football brain/rules tests and 1,442/1,442 repository checks. All inline
+  and standalone module syntax plus `git diff --check` pass. This is an isolated, undeployed feature slice pending
+  Release Manager integration and the complete canonical production gate.
