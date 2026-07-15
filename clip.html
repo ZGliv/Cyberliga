@@ -7,6 +7,7 @@
   <meta name="description" content="Direct a deterministic 12-second animated Cyberliga match clip and export it as WebM." />
   <title>Clip Director — Cyberliga</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23c8ff44'/%3E%3Cpath d='M17 17h30v9H27v12h20v9H17z' fill='%23080a0b'/%3E%3C/svg%3E" />
+  <script>if(new URLSearchParams(location.search).get('view')==='1')document.documentElement.dataset.clipMode='viewer';</script>
   <style>
     :root { --ink:#f4f0e7; --paper:#080a0b; --acid:#c8ff44; --club:#c8ff44; --dim:#8c948e; --line:rgba(244,240,231,.16); }
     * { box-sizing:border-box; }
@@ -59,12 +60,16 @@
     .meta small { display:block; margin-bottom:6px; color:var(--dim); font:700 7px/1 monospace; letter-spacing:.14em; }
     .meta b { display:block; overflow:hidden; font-size:11px; white-space:nowrap; text-overflow:ellipsis; }
     .status { min-height:18px; margin:11px 0 0; color:var(--club); font:750 8px/1.45 monospace; letter-spacing:.08em; }
+    .clip-boundary { margin:0 0 14px; padding:10px 12px; border-left:2px solid var(--club); color:#d8ded9; background:rgba(255,255,255,.035); font:800 8px/1.45 monospace; letter-spacing:.11em; }
     .links { display:flex; flex-wrap:wrap; gap:9px 18px; margin-top:17px; color:var(--dim); font:800 8px/1 monospace; letter-spacing:.1em; }
+    html[data-clip-mode="viewer"] .director-only { display:none!important; }
+    html[data-clip-mode="viewer"] .links { display:none!important; }
+    html[data-clip-mode="viewer"] .panel { align-self:center; }
+    html[data-clip-mode="viewer"] .intro { margin-bottom:16px; }
     @keyframes pulse { 50% { opacity:.28; transform:scale(.7); } }
     @media(max-width:800px) {
       .mast { min-height:56px; grid-template-columns:1fr auto; padding:0 16px; }
       .signal { display:none; }
-      .mast nav a:first-child { display:none; }
       main { display:flex; flex-direction:column; gap:38px; padding:22px 17px 48px; }
       .stage { width:min(100%,390px); }
       .panel { width:min(100%,570px); }
@@ -88,9 +93,9 @@
 </head>
 <body>
   <header class="mast">
-    <a class="brand" href="world.html">CYBERLIGA <span>/ CLIP DIRECTOR</span></a>
+    <a class="brand" href="world.html">CYBERLIGA <span id="clip-brand-mode">/ CLIP DIRECTOR</span></a>
     <div class="signal"><span data-cyberliga-presence>1 WATCHING · LOCAL</span></div>
-    <nav><a href="menu.html">GUIDE</a><a href="replay.html">REPLAYS</a><a href="social.html">WORLD WIRE</a><a href="moment.html">MOMENT MAKER</a><a href="world.html">WORLD ↗</a></nav>
+    <nav aria-label="Primary navigation"><a href="world.html">HOME</a><a href="league.html">LEAGUES</a></nav>
   </header>
   <main>
     <div class="stage" id="stage">
@@ -99,33 +104,34 @@
     </div>
     <section class="panel">
       <p class="eyebrow" id="edition">VERTICAL WORLD SIGNAL</p>
-      <h1>Direct the impossible play.</h1>
-      <p class="intro">A real animated 9:16 clip: one tactile athlete, one readable signature move, one permanent world URL. Scrub every beat, then record the canvas directly to WebM.</p>
+      <h1 id="clip-title">Direct the impossible play.</h1>
+      <p class="intro" id="clip-intro">A real animated 9:16 clip: one tactile athlete, one readable signature move, one permanent world URL. Scrub every beat, then record the canvas directly to WebM.</p>
+      <p class="clip-boundary" id="clip-boundary">DETERMINISTIC STORY CONCEPT · FICTIONAL OUTCOME · NOT A RECORDED LIVE RESULT</p>
       <p class="status" data-cyberliga-presence>1 WATCHING · LOCAL</p>
-      <div class="scrubber">
+      <div class="scrubber director-only">
         <div class="scrub-head"><span id="phase">INTRO</span><b id="duration">00:00.000 / 00:12.000</b></div>
         <input id="scrub" type="range" min="0" max="12000" step="1" value="0" aria-label="Scrub twelve-second clip timeline" />
         <div class="beatline" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       </div>
-      <div class="controls">
+      <div class="controls director-only">
         <button id="play" class="primary" type="button">PAUSE</button>
         <button id="restart" type="button">RESTART</button>
         <button id="randomize" type="button">RANDOMIZE</button>
       </div>
-      <div class="selectors">
+      <div class="selectors director-only">
         <select id="sport" aria-label="Choose sport"></select>
         <button id="copy" type="button">COPY CLIP LINK</button>
       </div>
-      <div class="export-row">
+      <div class="export-row director-only">
         <button id="export" class="primary" type="button">EXPORT WEBM</button>
         <button id="fullscreen" type="button">FULLSCREEN [F]</button>
       </div>
       <div class="meta">
         <div><small>FEATURED ATHLETE</small><b id="athlete">—</b></div>
-        <div><small>FINAL SIGNAL</small><b id="score">—</b></div>
+        <div><small id="score-label">CONCEPT SIGNAL</small><b id="score">—</b></div>
       </div>
-      <div class="canonical"><small>DETERMINISTIC CLIP URL</small><code id="canonical">—</code></div>
-      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <div class="canonical director-only"><small>DETERMINISTIC CLIP URL</small><code id="canonical">—</code></div>
+      <p id="status" class="status director-only" role="status" aria-live="polite"></p>
       <div class="links"><a href="replay.html">← REPLAY CENTER</a><a href="social.html">WORLD WIRE</a><a id="moment-link" href="moment.html">MOMENT MAKER</a><a href="world.html">PHYSICAL WORLD ↑</a></div>
     </section>
   </main>
@@ -141,7 +147,9 @@
     if(!C){document.getElementById('status').textContent='WORLD DATA SIGNAL UNAVAILABLE';return;}
 
     var W=540,H=960,DURATION=12000,CYCLE_MS=12*60*1000,ORIGIN='https://cyberliga-ten.vercel.app';
-    var params=new URLSearchParams(location.search),time=0,playing=true,lastFrame=performance.now(),moment=null,exportState=null,statusTimer=null;
+    var params=new URLSearchParams(location.search),viewer=params.get('view')==='1',time=0,playing=true,lastFrame=performance.now(),moment=null,exportState=null,statusTimer=null,viewerLoopTimer=0;
+    document.documentElement.dataset.clipMode=viewer?'viewer':'director';
+    if(viewer){document.getElementById('clip-brand-mode').textContent='/ STORY VIEWER';document.getElementById('clip-title').textContent='Watch the signal.';document.getElementById('clip-intro').textContent='A passive 12-second story concept built from one Cyberliga fixture and one permanent seed. It loops automatically; the live arena remains the source of truth.';}
     var ranges={soccer:[0,5],'american-football':[7,45],basketball:[74,124],hockey:[0,7],baseball:[0,12],combat:[1,3]};
     var signatures={
       soccer:'THE LAST-GRAIN CURVE',
@@ -163,7 +171,7 @@
     function scoreFor(sport,seed){var range=ranges[sport.id],r=rng(seed+'|score'),a=Math.floor(range[0]+r()*(range[1]-range[0]+1)),b=Math.floor(range[0]+r()*(range[1]-range[0]+1));if(sport.id==='american-football'){a=Math.round(a/3)*3;b=Math.round(b/3)*3;}if(a===b)a+=sport.id==='basketball'?2:sport.id==='american-football'?3:1;return[a,b];}
     function parsedScore(value,fallback){var m=String(value||'').match(/(-?\d+)\s*[-,:x/]\s*(-?\d+)/i);return m?[clamp(parseInt(m[1],10)||0,0,999),clamp(parseInt(m[2],10)||0,0,999)]:fallback;}
     function athleteFrom(home,away,value){return C.getAthlete(home.id,value)||C.getAthlete(away.id,value)||null;}
-    function canonicalParams(data){var q=new URLSearchParams();q.set('sport',data.sport.id);q.set('home',data.home.id);q.set('away',data.away.id);q.set('score',data.score[0]+'-'+data.score[1]);q.set('athlete',data.athlete.id);q.set('headline',data.headline);q.set('match',data.matchSeed);q.set('story',data.storySeed);return q;}
+    function canonicalParams(data){var q=new URLSearchParams();q.set('sport',data.sport.id);q.set('home',data.home.id);q.set('away',data.away.id);q.set('score',data.score[0]+'-'+data.score[1]);q.set('athlete',data.athlete.id);q.set('headline',data.headline);q.set('match',data.matchSeed);q.set('story',data.storySeed);if(viewer)q.set('view','1');return q;}
     function canonicalURL(data){return ORIGIN+'/clip.html?'+canonicalParams(data).toString();}
     function localURL(data){return location.pathname+'?'+canonicalParams(data).toString();}
     function momentURL(data){return 'moment.html?'+canonicalParams(data).toString();}
@@ -230,10 +238,10 @@
       ctx.globalAlpha=.3;ctx.fillStyle='#fff';for(var i=0;i<26;i++){ctx.beginPath();ctx.arc((random()-.5)*bodyW*.65,(random()-.5)*bodyH*.75,1+random()*2,0,Math.PI*2);ctx.fill();}ctx.restore();
     }
     function drawImpact(scene,data){if(scene.impact<=0)return;ctx.save();ctx.translate(scene.ball.visible?scene.ball.x:scene.athlete.x+95,scene.ball.visible?scene.ball.y:scene.athlete.y-80);ctx.globalAlpha=Math.sin(scene.impact*Math.PI);ctx.strokeStyle=data.featuredTeam.colors.accent;ctx.lineWidth=5;for(var i=0;i<10;i++){var a=i*Math.PI/5,r=18+scene.impact*82;line(Math.cos(a)*25,Math.sin(a)*25,Math.cos(a)*r,Math.sin(a)*r,data.featuredTeam.colors.accent,4);}ctx.restore();}
-    function drawHeader(data){ctx.fillStyle='#f4f0e7';ctx.font='950 25px Arial Narrow,Arial,sans-serif';ctx.fillText('CYBERLIGA',25,43);ctx.fillStyle=data.featuredTeam.colors.accent;ctx.font='800 9px monospace';ctx.fillText('WORLD CLIP / '+data.sport.code,27,62);ctx.textAlign='right';ctx.fillStyle='#f4f0e7';ctx.font='800 9px monospace';ctx.fillText(data.sport.league,515,42);ctx.fillStyle='#080a0b';ctx.fillText('12.0 SEC / 9:16',515,59);ctx.textAlign='left';}
+    function drawHeader(data){ctx.fillStyle='#f4f0e7';ctx.font='950 25px Arial Narrow,Arial,sans-serif';ctx.fillText('CYBERLIGA',25,43);ctx.fillStyle=data.featuredTeam.colors.accent;ctx.font='800 9px monospace';ctx.fillText((viewer?'STORY CONCEPT':'WORLD CLIP')+' / '+data.sport.code,27,62);ctx.textAlign='right';ctx.fillStyle='#f4f0e7';ctx.font='800 9px monospace';ctx.fillText(data.sport.league,515,42);ctx.fillStyle='#080a0b';ctx.fillText('12.0 SEC / 9:16',515,59);ctx.textAlign='left';}
     function drawIntro(data,p){var enter=out(clamp(p/.65,0,1)),exit=1-out(clamp((p-.78)/.22,0,1));ctx.save();ctx.globalAlpha=enter*exit;ctx.translate(0,lerp(34,0,enter));ctx.fillStyle='#f4f0e7';ctx.font='950 64px Arial Narrow,Arial,sans-serif';ctx.fillText('ONE PLAY.',27,276);ctx.fillStyle=data.featuredTeam.colors.accent;ctx.fillText('NO REPLAY.',27,336);ctx.fillStyle='#f4f0e7';ctx.font='900 15px monospace';ctx.fillText(data.home.code+'  ×  '+data.away.code+' / ROUND '+data.round,30,374);ctx.restore();}
     function drawPlayLabel(data,p){var appear=out(clamp((p-.05)/.15,0,1));ctx.save();ctx.globalAlpha=appear;ctx.fillStyle='rgba(5,7,7,.78)';ctx.fillRect(20,96,500,83);ctx.fillStyle=data.featuredTeam.colors.accent;ctx.font='850 10px monospace';ctx.fillText(data.athlete.name.toUpperCase()+' / #'+data.athlete.number,34,124);ctx.fillStyle='#f4f0e7';ctx.font='950 27px Arial Narrow,Arial,sans-serif';ctx.fillText(signatures[data.sport.id],34,157);ctx.restore();}
-    function drawScore(data,p){var e=out(p),winner=data.score[0]>=data.score[1]?data.home:data.away;ctx.save();ctx.fillStyle='rgba(5,7,7,'+(.86*e)+')';ctx.fillRect(0,0,W,H);ctx.translate(0,lerp(80,0,e));ctx.globalAlpha=e;ctx.fillStyle=winner.colors.accent;ctx.font='850 10px monospace';ctx.textAlign='center';ctx.fillText('FINAL SIGNAL / '+data.sport.name.toUpperCase(),270,232);ctx.fillStyle='#f4f0e7';ctx.font='950 52px Arial Narrow,Arial,sans-serif';ctx.fillText(data.home.code+'  '+Math.round(data.score[0]*e),270,338);ctx.fillText(data.away.code+'  '+Math.round(data.score[1]*e),270,408);line(94,435,446,435,alpha('#f4f0e7',.35),2);ctx.fillStyle=winner.colors.primary;ctx.font='950 31px Arial Narrow,Arial,sans-serif';ctx.fillText(winner.name,270,485);ctx.fillStyle='#aeb6af';ctx.font='750 10px monospace';ctx.fillText('THE WORLD SAW THE SAME ENDING.',270,518);ctx.restore();}
+    function drawScore(data,p){var e=out(p),winner=data.score[0]>=data.score[1]?data.home:data.away;ctx.save();ctx.fillStyle='rgba(5,7,7,'+(.86*e)+')';ctx.fillRect(0,0,W,H);ctx.translate(0,lerp(80,0,e));ctx.globalAlpha=e;ctx.fillStyle=winner.colors.accent;ctx.font='850 10px monospace';ctx.textAlign='center';ctx.fillText((viewer?'CONCEPT SIGNAL':'FINAL SIGNAL')+' / '+data.sport.name.toUpperCase(),270,232);ctx.fillStyle='#f4f0e7';ctx.font='950 52px Arial Narrow,Arial,sans-serif';ctx.fillText(data.home.code+'  '+Math.round(data.score[0]*e),270,338);ctx.fillText(data.away.code+'  '+Math.round(data.score[1]*e),270,408);line(94,435,446,435,alpha('#f4f0e7',.35),2);ctx.fillStyle=winner.colors.primary;ctx.font='950 31px Arial Narrow,Arial,sans-serif';ctx.fillText(winner.name,270,485);ctx.fillStyle='#aeb6af';ctx.font='750 10px monospace';ctx.fillText(viewer?'A POSSIBLE ENDING — NOT THE LIVE RESULT.':'THE WORLD SAW THE SAME ENDING.',270,518);ctx.restore();}
     function drawCTA(data,p){var e=out(p),lines=wrap(data.headline.toUpperCase(),480,42,3);ctx.save();ctx.fillStyle='#080a0b';ctx.globalAlpha=.94*e;ctx.fillRect(0,0,W,H);ctx.globalAlpha=e;ctx.translate(0,lerp(80,0,e));ctx.fillStyle=data.featuredTeam.colors.primary;ctx.fillRect(0,0,16,H);ctx.fillStyle=data.featuredTeam.colors.accent;ctx.font='850 10px monospace';ctx.fillText(data.sport.name.toUpperCase()+' / '+data.athlete.name.toUpperCase(),38,170);ctx.fillStyle='#f4f0e7';ctx.font='950 42px Arial Narrow,Arial,sans-serif';lines.forEach(function(lineText,i){ctx.fillText(lineText,38,238+i*42);});line(38,395,502,395,alpha('#f4f0e7',.3),2);ctx.fillStyle='#f4f0e7';ctx.font='950 66px Arial Narrow,Arial,sans-serif';ctx.fillText('WATCH',38,566);ctx.fillText('THE WORLD.',38,626);ctx.fillStyle=data.featuredTeam.colors.accent;ctx.font='900 14px monospace';ctx.fillText('CYBERLIGA-TEN.VERCEL.APP',40,680);ctx.fillStyle='#949c96';ctx.font='750 9px monospace';ctx.fillText('ONE PLANET / SIX LEAGUES / ALWAYS ON',40,715);ctx.restore();}
     function drawGrain(seed){var r=rng(seed);ctx.save();for(var i=0;i<360;i++){ctx.fillStyle=r()>.5?'rgba(255,255,255,'+(.015+r()*.025)+')':'rgba(0,0,0,'+(.02+r()*.04)+')';var s=1+r()*2;ctx.fillRect(r()*W,r()*H,s,s);}ctx.restore();}
     function draw(){
@@ -249,7 +257,7 @@
     function format(ms){var seconds=Math.floor(ms/1000),millis=Math.floor(ms%1000);return'00:'+String(seconds).padStart(2,'0')+'.'+String(millis).padStart(3,'0');}
     function updateUI(){var phase=phaseAt(time);document.getElementById('scrub').value=Math.round(time);document.getElementById('phase').textContent=phase.replace(/-/g,' ').toUpperCase();document.getElementById('duration').textContent=format(time)+' / 00:12.000';document.getElementById('timecode').textContent=format(time);document.getElementById('play').textContent=playing?'PAUSE':'PLAY';document.querySelectorAll('.beatline i').forEach(function(node,index){node.classList.toggle('active',index===['intro','arena','signature-play','score-reveal','final-cta'].indexOf(phase));});}
     function refresh(replace){
-      var url=canonicalURL(moment);document.documentElement.style.setProperty('--club',moment.featuredTeam.colors.primary);document.getElementById('edition').textContent=moment.sport.name.toUpperCase()+' / '+signatures[moment.sport.id];document.getElementById('athlete').textContent='#'+moment.athlete.number+' '+moment.athlete.name+' · '+moment.athlete.role;document.getElementById('score').textContent=moment.home.code+' '+moment.score[0]+'–'+moment.score[1]+' '+moment.away.code;document.getElementById('canonical').textContent=url;document.getElementById('sport').value=moment.sport.id;document.getElementById('moment-link').href=momentURL(moment);document.title=moment.athlete.name+' — Cyberliga Clip';if(replace)history.replaceState(null,'',localURL(moment));draw();updateUI();
+      var url=canonicalURL(moment);document.documentElement.style.setProperty('--club',moment.featuredTeam.colors.primary);document.getElementById('edition').textContent=moment.sport.name.toUpperCase()+' / '+signatures[moment.sport.id];document.getElementById('athlete').textContent='#'+moment.athlete.number+' '+moment.athlete.name+' · '+moment.athlete.role;document.getElementById('score').textContent=moment.home.code+' '+moment.score[0]+'–'+moment.score[1]+' '+moment.away.code;document.getElementById('score-label').textContent=viewer?'CONCEPT SIGNAL':'FINAL SIGNAL';document.getElementById('canonical').textContent=url;document.getElementById('sport').value=moment.sport.id;document.getElementById('moment-link').href=momentURL(moment);document.title=moment.athlete.name+' — Cyberliga '+(viewer?'Signal':'Clip');if(replace)history.replaceState(null,'',localURL(moment));draw();updateUI();
     }
     function setStatus(message,persistent){var node=document.getElementById('status');clearTimeout(statusTimer);node.textContent=message;if(!persistent)statusTimer=setTimeout(function(){node.textContent='';},2500);}
     function copyText(value){if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(value).catch(fallback);fallback();return Promise.resolve();function fallback(){var field=document.createElement('textarea');field.value=value;field.style.cssText='position:fixed;left:-9999px';document.body.appendChild(field);field.select();document.execCommand('copy');field.remove();}}
@@ -269,7 +277,7 @@
     function finishExport(success,snapshot){var active=snapshot||exportState;if(!active)return;exportState=null;time=active.previousTime;playing=active.previousPlaying;lastFrame=performance.now();setControlsDisabled(false);document.getElementById('export').textContent='EXPORT WEBM';setStatus(success?'WEBM EXPORTED — 12 SECONDS, SILENT, VERTICAL.':'WEBM EXPORT FAILED. COPY THE PERMANENT CLIP LINK INSTEAD.',!success);draw();updateUI();}
     function tick(now){
       if(exportState){time=clamp(now-exportState.start,0,DURATION);draw();updateUI();document.getElementById('export').textContent='RECORDING '+Math.floor(time/DURATION*100)+'%';if(time>=DURATION&&!exportState.finished){exportState.finished=true;draw();setTimeout(function(){if(exportState&&exportState.recorder.state!=='inactive')exportState.recorder.stop();},100);}}
-      else if(playing){var delta=Math.min(now-lastFrame,80);time+=delta;if(time>=DURATION){time=DURATION;playing=false;}draw();updateUI();}
+      else if(playing){var delta=Math.min(now-lastFrame,80);time+=delta;if(time>=DURATION){time=DURATION;playing=false;if(viewer&&!viewerLoopTimer)viewerLoopTimer=setTimeout(function(){viewerLoopTimer=0;time=0;playing=true;lastFrame=performance.now();},1200);}draw();updateUI();}
       lastFrame=now;requestAnimationFrame(tick);
     }
 
@@ -283,11 +291,11 @@
     document.getElementById('export').addEventListener('click',exportWebM);
     function fullscreen(){var stage=document.getElementById('stage');if(!document.fullscreenElement){if(stage.requestFullscreen)stage.requestFullscreen();else if(canvas.requestFullscreen)canvas.requestFullscreen();}else if(document.exitFullscreen)document.exitFullscreen();}
     document.getElementById('fullscreen').addEventListener('click',fullscreen);
-    addEventListener('keydown',function(event){if(event.key.toLowerCase()==='f'&&!event.metaKey&&!event.ctrlKey){event.preventDefault();fullscreen();}if(event.key==='Escape'&&document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();if(event.key===' '&&event.target.tagName!=='BUTTON'&&event.target.tagName!=='SELECT'&&event.target.tagName!=='INPUT'){event.preventDefault();document.getElementById('play').click();}});
+    addEventListener('keydown',function(event){if(viewer)return;if(event.key.toLowerCase()==='f'&&!event.metaKey&&!event.ctrlKey){event.preventDefault();fullscreen();}if(event.key==='Escape'&&document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();if(event.key===' '&&event.target.tagName!=='BUTTON'&&event.target.tagName!=='SELECT'&&event.target.tagName!=='INPUT'){event.preventDefault();document.getElementById('play').click();}});
 
     moment=buildMoment(params);refresh(true);requestAnimationFrame(tick);
     window.advanceTime=function(ms){if(exportState)return;playing=false;time=clamp(time+(Number(ms)||0),0,DURATION);draw();updateUI();};
-    window.render_game_to_text=function(){var scene=sceneFor(moment,time);return JSON.stringify({screen:'animated-clip-director',coordinateSystem:'canvas 540x960; origin top-left; x right, y down',timeline:{timeMs:Math.round(time),durationMs:DURATION,phase:phaseAt(time),phaseProgress:Number(phaseProgress(time).toFixed(3)),playing:playing,exporting:!!exportState},sport:{id:moment.sport.id,name:moment.sport.name,league:moment.sport.league,signaturePlay:signatures[moment.sport.id]},match:{home:{id:moment.home.id,code:moment.home.code,score:moment.score[0]},away:{id:moment.away.id,code:moment.away.code,score:moment.score[1]},round:moment.round,seed:moment.matchSeed},featured:{athleteId:moment.athlete.id,name:moment.athlete.name,number:moment.athlete.number,role:moment.athlete.role,team:moment.featuredTeam.name,headline:moment.headline,storySeed:moment.storySeed},entities:{athlete:{x:Number(scene.athlete.x.toFixed(1)),y:Number(scene.athlete.y.toFixed(1)),pose:scene.athlete.pose},ball:{visible:scene.ball.visible,x:Number(scene.ball.x.toFixed(1)),y:Number(scene.ball.y.toFixed(1))},impact:Number(scene.impact.toFixed(3))},reveal:{scoreVisible:phaseAt(time)==='score-reveal'||phaseAt(time)==='final-cta',ctaVisible:phaseAt(time)==='final-cta'},clip:{width:W,height:H,canonicalUrl:canonicalURL(moment),mimePreference:supportedMime()||'unavailable'},controls:['play/pause','restart','scrub 0–12000ms','choose sport','randomize deterministic clip','copy link','export WebM','Space play/pause','F fullscreen']});};
+    window.render_game_to_text=function(){var scene=sceneFor(moment,time);return JSON.stringify({screen:viewer?'animated-clip-viewer':'animated-clip-director',autonomous:viewer,interaction:viewer?'view-only':'creative-tool',coordinateSystem:'canvas 540x960; origin top-left; x right, y down',timeline:{timeMs:Math.round(time),durationMs:DURATION,phase:phaseAt(time),phaseProgress:Number(phaseProgress(time).toFixed(3)),playing:playing,exporting:!!exportState},sport:{id:moment.sport.id,name:moment.sport.name,league:moment.sport.league,signaturePlay:signatures[moment.sport.id]},match:{home:{id:moment.home.id,code:moment.home.code,score:moment.score[0]},away:{id:moment.away.id,code:moment.away.code,score:moment.score[1]},round:moment.round,seed:moment.matchSeed,authoritative:false,syntheticConcept:true},featured:{athleteId:moment.athlete.id,name:moment.athlete.name,number:moment.athlete.number,role:moment.athlete.role,team:moment.featuredTeam.name,headline:moment.headline,storySeed:moment.storySeed},entities:{athlete:{x:Number(scene.athlete.x.toFixed(1)),y:Number(scene.athlete.y.toFixed(1)),pose:scene.athlete.pose},ball:{visible:scene.ball.visible,x:Number(scene.ball.x.toFixed(1)),y:Number(scene.ball.y.toFixed(1))},impact:Number(scene.impact.toFixed(3))},reveal:{scoreVisible:phaseAt(time)==='score-reveal'||phaseAt(time)==='final-cta',ctaVisible:phaseAt(time)==='final-cta'},clip:{width:W,height:H,canonicalUrl:canonicalURL(moment),mode:viewer?'viewer':'director',mimePreference:supportedMime()||'unavailable'},controls:viewer?[]:['play/pause','restart','scrub 0–12000ms','choose sport','randomize deterministic clip','copy link','export WebM','Space play/pause','F fullscreen']});};
   })();
   </script>
 </body>

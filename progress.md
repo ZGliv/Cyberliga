@@ -621,3 +621,28 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   Baseball still needs steals/pickoffs/bunts, combat needs deeper role-to-style motion libraries, and any
   real-money product still requires server authority, signed ledgers, independent randomness/security audits,
   risk/settlement controls, licensing, KYC/AML and responsible-gaming systems.
+
+## Living World One-Shot Reconciliation — 2026-07-15
+- Release-manager handoff: semantically integrate feature commit `fdfba0c` from
+  `codex/ai-sports-world-one-shot` onto canonical spectator commit `8235a57`, rerun the complete release
+  gate, restart only the canonical 4173 preview and deploy production only from the unified clean snapshot.
+- The three-way audit confirms a blind cherry-pick is unsafe: both lineages changed all six arena surfaces,
+  `scripts/verify.mjs` and `progress.md`, while canonical independently added the living-world venue/gameplay/
+  uniform/RNG pass. Current canonical remains the source base; only compatible Mythos, My Signal, passive
+  clip, attribution and pointer-inert Arena Signal semantics are being transplanted.
+- Added verifier contracts for Founding 12 immutability, 15-minute Mythos continuity, free unresolved fan
+  calls, no-money/no-prize disclosures, stable share/clip seeds, passive control-free viewer mode, Home +
+  Leagues-only navigation and pointer-inert Arena Signal load order. These checks intentionally fail until
+  each owned reconciliation track lands, preventing a partial feature from being released.
+- Reconciliation preserves the canonical six current arena implementations and accepted right-side 24-game
+  globe. The final integrated world adds 416 deterministic athlete profiles, 24 fixture stories, the frozen
+  Founding 12, device-local My Signal follows/calls/locker, four-card League narratives, stable share seeds and
+  pointer-inert arena stakes/star/live-beat ribbons without replacing gameplay, venues, cameras or uniforms.
+- Personally reviewed the complete desktop/mobile artifact set: 12/12 arena captures and 10/10 World/League/
+  Athlete/Character Lab/viewer captures return HTTP 200 with finite state, zero overflow and zero console/page/
+  request errors. All six arenas remain autonomous/view-only; mobile ribbons are 31px; the passive story viewer
+  exposes zero controls and only Home/Leagues navigation with an explicit fictional/non-authoritative label.
+- Final exact-source gate passes 13/13 canonical API tests, 10/10 Mythos tests, 28/28 football brain/rules tests
+  (51/51 combined), 1,225/1,225 repository checks, standalone and inline-script syntax, and `git diff --check`.
+  Fan calls remain deliberately free, local and unresolved; the browser fallback is not an authoritative event
+  or settlement stream and no cash, prize, wager, payout or client-result settlement surface was added.

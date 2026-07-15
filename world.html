@@ -20,6 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="fanworld.css" />
 <style>
   :root { --ink:#020304; --paper:#f2f4ef; --muted:rgba(242,244,239,.57); --line:rgba(242,244,239,.16); --live:#ff3b30; --club:#00e5ff; }
   * { box-sizing:border-box; margin:0; padding:0; }
@@ -132,7 +133,7 @@
     .brand span,.brand i { display:none; }
     .nav { gap:3px; }
     .nav a { min-height:34px; padding:0 8px; font-size:9px; }
-    .nav .secondary,.nav .live { display:none; }
+    .nav .live { display:none; }
     .intro { top:76px; left:12px; width:calc(100vw - 24px); transform:none; }
     .intro h1 { margin-top:7px; width:auto; font-size:30px; line-height:.88; letter-spacing:-.055em; }
     .intro h1 span { display:none; }
@@ -352,9 +353,12 @@
 </section>
 
 <script src="worlddata.js"></script>
+<script src="characterdata.js"></script>
+<script src="mythos.js"></script>
 <script src="universe.js"></script>
 <script src="presence.js"></script>
 <script src="livebridge.js"></script>
+<script src="fanworld.js" defer></script>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
 <script type="module">
 import * as THREE from 'three';
@@ -425,7 +429,7 @@ function startGlobeSnap(card,place,source='explicit'){
 function makeFixtureCard(card){
   const link=document.createElement('a');link.className='fixture-card';link.href=card.href;link.dataset.sport=card.league.id;link.dataset.index=String(card.index);link.style.setProperty('--c',card.league.color);
   link.setAttribute('aria-label',`${card.league.sport}: ${card.home.name} versus ${card.away.name}`);
-  link.innerHTML=`<span class="fixture-meta"><b>${card.league.code}</b><span>GAME ${String(card.index+1).padStart(2,'0')}</span></span><span class="fixture-teams"><span class="fixture-team"><strong>${card.home.code}</strong><span data-mobile-name="${card.home.name}">${card.home.city} · ${card.home.name}</span></span><span class="fixture-team"><strong>${card.away.code}</strong><span data-mobile-name="${card.away.name}">${card.away.city} · ${card.away.name}</span></span></span><span class="fixture-enter">${card.league.live?`LIVE ${U.clock(card.liveMatch.elapsedMs)}`:'PLAYABLE'}<b>ENTER ↗</b></span>`;
+  link.innerHTML=`<span class="fixture-meta"><b>${card.league.code}</b><span>GAME ${String(card.index+1).padStart(2,'0')}</span></span><span class="fixture-teams"><span class="fixture-team"><strong>${card.home.code}</strong><span data-mobile-name="${card.home.name}">${card.home.city} · ${card.home.name}</span></span><span class="fixture-team"><strong>${card.away.code}</strong><span data-mobile-name="${card.away.name}">${card.away.city} · ${card.away.name}</span></span></span><span class="fixture-enter">${card.league.live?`LIVE ${U.clock(card.liveMatch.elapsedMs)}`:'ON AIR'}<b>ENTER ↗</b></span>`;
   [...link.querySelectorAll('.fixture-team')].forEach((row,index)=>row.addEventListener('pointermove',event=>{
     const team=index===0?card.home:card.away;
     if((!event.pointerType||event.pointerType==='mouse')&&activeFixtureHoverTeam!==team.id){activeFixtureHoverTeam=team.id;startGlobeSnap(card,placeFor(team),'selector');}
@@ -555,7 +559,7 @@ function fillGamePreview(card){
   if(!card)return;
   gamePreview.style.setProperty('--preview-c',card.league.color);
   document.getElementById('preview-league').textContent=`${card.league.code} / ${card.league.sport}`;
-  document.getElementById('preview-status').textContent=`GAME ${String(card.index+1).padStart(2,'0')} · ${card.league.live?`LIVE ${U.clock(card.liveMatch.elapsedMs)}`:'PLAYABLE NOW'}`;
+  document.getElementById('preview-status').textContent=`GAME ${String(card.index+1).padStart(2,'0')} · ${card.league.live?`LIVE ${U.clock(card.liveMatch.elapsedMs)}`:'ON AIR NOW'}`;
   document.getElementById('preview-home-code').textContent=card.home.code;
   document.getElementById('preview-home-name').textContent=card.home.name;
   document.getElementById('preview-home-city').textContent=card.home.city.toUpperCase();
