@@ -972,7 +972,8 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   pre-reset receipt. Every mutation now stages a fresh revalidated model and swaps it live only after `setItem`
   returns. Quota/private-write failure preserves the prior durable model and returns failure; a successful atomic
   `setItem` still commits if only its follow-up verification read is unavailable.
-- Explicit key deletion and `localStorage.clear()` (`StorageEvent.key === null`) now become a new empty reset epoch;
+- Once observed by an open Chronicle store, explicit key deletion and `localStorage.clear()`
+  (`StorageEvent.key === null`) become a new empty reset epoch;
   same-tab deletion is detected on the next Chronicle read or action even though browsers emit no same-tab event.
   Old capture/keep/remove/read replay intents are discarded, and an actually current pre-clear or pre-reset
   snapshot is overwritten by the empty epoch rather than adopted. Missing storage is distinct from a failed read,
@@ -981,7 +982,8 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   honest contract `crossTab:"open-tab-optimistic-convergence"` and `atomic:false`: exact-base preflight and
   post-write checks retry ordinary conflicts, while a bounded commit lineage plus in-memory replay journal lets
   open tabs repair the remaining legal preflight-to-write fork after its storage event. This is not durable
-  cross-tab serialization, and no receipt is official, authoritative, wagerable, settling, money, prize, XP,
+  cross-tab serialization; a stale writer can still win before any open tab observes a raw clear. No receipt is
+  official, authoritative, wagerable, settling, money, prize, XP,
   fan-call, standings or career-stat state.
 - Independent exact-byte follow-up hardened both ordering bounds. Reset now derives its epoch from the later of
   the revalidated durable epoch and the live model epoch, so a same-tab `clear()` followed immediately by reset
