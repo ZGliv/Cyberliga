@@ -118,14 +118,48 @@
     return 'epoch-z-' + String(at).padStart(13, '0') + '-' + cleanCommitId(commitId).slice('commit-'.length);
   }
 
+  function laterEpoch(first, second) {
+    var left = cleanEpoch(first);
+    var right = cleanEpoch(second);
+    return left > right ? left : right;
+  }
+
+  function cleanRevision(value) {
+    return typeof value === 'number' && Number.isFinite(value) && Math.trunc(value) === value &&
+      value >= 0 && value <= MAX_REVISION ? value : 0;
+  }
+
+  function revisionDistance(from, to) {
+    var start = cleanRevision(from);
+    var end = cleanRevision(to);
+    if (start === end) return 0;
+    if (start === 0) return end;
+    if (end === 0) return MAX_REVISION;
+    return end > start ? end - start : MAX_REVISION - start + end;
+  }
+
+  function revisionIsNewer(candidate, current) {
+    var next = cleanRevision(candidate);
+    var prior = cleanRevision(current);
+    if (next === prior || next === 0) return false;
+    if (prior === 0) return true;
+    // Revisions form a bounded ring. Distances at or beyond half the ring are
+    // stale or ambiguous and fail closed instead of rolling the model back.
+    return revisionDistance(prior, next) < MAX_REVISION / 2;
+  }
+
+  function laterRevision(first, second) {
+    var left = cleanRevision(first);
+    var right = cleanRevision(second);
+    return revisionIsNewer(right, left) ? right : left;
+  }
+
   function adapterState(raw) {
     var adapter = raw && raw.adapter;
     if (!adapter || adapter.schemaVersion !== ADAPTER_SCHEMA_VERSION) {
       return { revision: 0, epoch: INITIAL_EPOCH, commits: [], reset: false };
     }
-    var revision = adapter.revision;
-    if (typeof revision !== 'number' || !Number.isFinite(revision) || Math.trunc(revision) !== revision ||
-        revision < 0 || revision > MAX_REVISION) revision = 0;
+    var revision = cleanRevision(adapter.revision);
     var commits = [];
     if (Array.isArray(adapter.commits)) {
       adapter.commits.slice(-MAX_COMMIT_IDS).forEach(function retainCommit(value) {
@@ -160,7 +194,8 @@
   }
 
   function nextRevision(revision) {
-    return revision >= MAX_REVISION ? 1 : revision + 1;
+    var current = cleanRevision(revision);
+    return current >= MAX_REVISION ? 1 : current + 1;
   }
 
   function snapshotFromRead(read) {
@@ -318,11 +353,12 @@
         return { status: 'unchanged', result: result };
       }
 
-      var revisionBase = typeof settings.baseRevision === 'number' && Number.isFinite(settings.baseRevision) ?
-        Math.max(base.revision, Math.trunc(settings.baseRevision)) : base.revision;
+      var revisionBase = Object.prototype.hasOwnProperty.call(settings, 'baseRevision') ?
+        laterRevision(base.revision, settings.baseRevision) : base.revision;
       var revision = nextRevision(revisionBase);
       var epoch = settings.fixedEpoch ? cleanEpoch(settings.fixedEpoch) :
-        settings.resetSnapshot === true ? resetEpochAfter(settings.epochBase || base.epoch, commitId) : base.epoch;
+        settings.resetSnapshot === true ?
+          resetEpochAfter(laterEpoch(base.epoch, settings.epochBase), commitId) : base.epoch;
       var commitBase = Array.isArray(settings.baseCommits) ? settings.baseCommits : base.commits;
       var commits = settings.resetSnapshot === true ? [commitId] : appendCommit(commitBase, commitId);
       var metadata = {
@@ -423,7 +459,8 @@
     return transact('reset', function prepareEmptySnapshot() { return true; }, {
       replaceWithEmpty: true,
       force: true,
-      resetSnapshot: true
+      resetSnapshot: true,
+      epochBase: modelEpoch
     }).status === 'committed';
   }
 
@@ -451,7 +488,8 @@
     localCommits = localCommits.filter(function retainRecoverableCommit(commit) {
       if (commit.epoch !== modelEpoch) return false;
       if (modelCommits.indexOf(commit.id) >= 0) return true;
-      return modelRevision < commit.revision || modelRevision - commit.revision < MAX_COMMIT_IDS;
+      if (revisionIsNewer(commit.revision, modelRevision)) return true;
+      return revisionDistance(commit.revision, modelRevision) < MAX_COMMIT_IDS;
     });
     var pending = localCommits.slice();
     for (var index = 0; index < pending.length; index += 1) {
@@ -526,7 +564,8 @@
       return;
     }
 
-    if (modelEpoch === next.epoch && next.revision < modelRevision) {
+    if (modelEpoch === next.epoch && next.revision !== modelRevision &&
+        !revisionIsNewer(next.revision, modelRevision)) {
       reassertCurrentEpoch();
       return;
     }

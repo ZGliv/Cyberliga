@@ -983,8 +983,14 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   open tabs repair the remaining legal preflight-to-write fork after its storage event. This is not durable
   cross-tab serialization, and no receipt is official, authoritative, wagerable, settling, money, prize, XP,
   fan-call, standings or career-stat state.
+- Independent exact-byte follow-up hardened both ordering bounds. Reset now derives its epoch from the later of
+  the revalidated durable epoch and the live model epoch, so a same-tab `clear()` followed immediately by reset
+  still advances even under a frozen clock. Revisions retain their bounded wrap but are ordered by modular
+  distance: revision 1 succeeds MAX, delayed pre-wrap bytes fail closed, replay bases advance on the same ring,
+  and an unacknowledged pre-wrap journal expires once it falls outside the 64-commit lineage window.
 - Permanent regressions now cover quota rejection across capture/keep/remove/read/reset, successful-set/read-error
   semantics, explicit deletion, clear, stale reset/clear resurrection, both sides of `setItem` conflict detection,
-  deep freezing, and the exact two-tab A-preflight → B-commit → A-commit fork converging to both receipts.
-  Current bytes pass 20/20 Chronicle/store tests, the complete `npm run verify` gate with 1,517/1,517 repository
+  frozen-clock clear/reset epoch monotonicity, bounded revision wrap and journal expiry, deep freezing, and the
+  exact two-tab A-preflight → B-commit → A-commit fork converging to both receipts. Current bytes pass 22/22
+  Chronicle/store tests, the complete `npm run verify` gate with 1,517/1,517 repository
   checks, football brain/rules 28/28, standalone syntax and `git diff --check`.

@@ -363,6 +363,28 @@ test('detects same-tab key removal without a storage event and retires old repla
   );
 });
 
+test('same-tab clear followed by reset advances beyond the live reset epoch', () => {
+  const originalNow = Date.now;
+  Date.now = () => 1700000000000;
+  try {
+    assert.equal(Store.reset(), true);
+    const priorEpoch = JSON.parse(storageValues.get(Store.storageKey)).adapter.epoch;
+    const priorTime = Number(/^epoch-z-([0-9]{13})-/.exec(priorEpoch)?.[1]);
+    assert.ok(Number.isFinite(priorTime));
+
+    // No same-tab storage event is delivered between clear() and reset(). The
+    // reset must still derive its epoch from the live pre-clear model epoch.
+    storageValues.clear();
+    assert.equal(Store.reset(), true);
+    const next = JSON.parse(storageValues.get(Store.storageKey));
+    const nextTime = Number(/^epoch-z-([0-9]{13})-/.exec(next.adapter.epoch)?.[1]);
+    assert.ok(nextTime > priorTime);
+    assert.equal(next.entries.length, 0);
+  } finally {
+    Date.now = originalNow;
+  }
+});
+
 test('retries exact-base and post-write conflicts against the latest durable snapshot', () => {
   const first = certifiedMoment('store-interleave-a');
   const second = certifiedMoment('store-interleave-b');
@@ -392,6 +414,99 @@ test('retries exact-base and post-write conflicts against the latest durable sna
     JSON.parse(storageValues.get(Store.storageKey)).entries.map((entry) => entry.eventKey).sort(),
     ['store-interleave-a','store-interleave-c']
   );
+});
+
+test('orders wrapped revisions and expires pre-wrap journals after the lineage window', () => {
+  const source = readFileSync(new URL('./witness-store.js', import.meta.url), 'utf8');
+  const MAX_REVISION = 2147483646;
+  const first = certifiedMoment('store-revision-wrap');
+  const remote = certifiedMoment('store-revision-remote');
+
+  function snapshot(serialized, revision, commitId) {
+    const raw = JSON.parse(serialized);
+    raw.adapter = {
+      schemaVersion:1,
+      revision,
+      epoch:'epoch-a-initial',
+      commits:[commitId],
+      reset:false
+    };
+    return JSON.stringify(raw);
+  }
+
+  function isolatedTab(backing, seed) {
+    const storageListeners = [];
+    const localStorage = {
+      getItem(key) { return backing.has(key) ? backing.get(key) : null; },
+      setItem(key, value) { backing.set(key, String(value)); },
+      removeItem(key) { backing.delete(key); }
+    };
+    const root = {
+      CyberligaWitnessChronicle:Chronicle,
+      localStorage,
+      crypto:{
+        getRandomValues(words) {
+          for (let index = 0; index < words.length; index += 1) words[index] = seed + index;
+          return words;
+        }
+      },
+      addEventListener(type, handler) { if (type === 'storage') storageListeners.push(handler); },
+      dispatchEvent() { return true; }
+    };
+    root.globalThis = root;
+    vm.createContext(root);
+    vm.runInContext(source, root, { filename:'witness-store.js' });
+    return {
+      store:root.CyberligaWitnessStore,
+      storage:localStorage,
+      dispatchStorage(event) { storageListeners.slice().forEach((handler) => handler(event)); }
+    };
+  }
+
+  const maxSeed = snapshot(JSON.stringify(Chronicle.create(null).serialize()), MAX_REVISION, 'commit-seed-max');
+  const wrappedBacking = new Map([[Store.storageKey, maxSeed]]);
+  const wrappedTab = isolatedTab(wrappedBacking, 300);
+  assert.equal(wrappedTab.store.capturePresented(first.moment, first.context)?.changed, true);
+  const wrapped = wrappedBacking.get(Store.storageKey);
+  assert.equal(JSON.parse(wrapped).adapter.revision, 1);
+
+  // A delayed pre-wrap snapshot is older than revision 1 on the bounded ring.
+  // Reassertion must retain the wrapped commit and advance to revision 2.
+  wrappedBacking.set(Store.storageKey, maxSeed);
+  wrappedTab.dispatchStorage({
+    key:Store.storageKey, storageArea:wrappedTab.storage, oldValue:wrapped, newValue:maxSeed
+  });
+  const recovered = JSON.parse(wrappedBacking.get(Store.storageKey));
+  assert.equal(recovered.adapter.revision, 2);
+  assert.deepEqual(recovered.entries.map((entry) => entry.eventKey), ['store-revision-wrap']);
+
+  const preWrapSeed = snapshot(
+    JSON.stringify(Chronicle.create(null).serialize()),
+    MAX_REVISION - 1,
+    'commit-seed-pre-wrap'
+  );
+  const pruningBacking = new Map([[Store.storageKey, preWrapSeed]]);
+  const pruningTab = isolatedTab(pruningBacking, 400);
+  assert.equal(pruningTab.store.capturePresented(first.moment, first.context)?.changed, true);
+  const localAtMax = pruningBacking.get(Store.storageKey);
+  assert.equal(JSON.parse(localAtMax).adapter.revision, MAX_REVISION);
+
+  // Revision 65 is 65 commits beyond MAX on the ring. The 64-entry lineage
+  // can no longer prove the pre-wrap local intent, so its journal must expire.
+  const remoteAt65 = snapshot(serializedReceipt(remote, 6500), 65, 'commit-remote-65');
+  pruningBacking.set(Store.storageKey, remoteAt65);
+  pruningTab.dispatchStorage({
+    key:Store.storageKey, storageArea:pruningTab.storage, oldValue:localAtMax, newValue:remoteAt65
+  });
+  assert.deepEqual(
+    JSON.parse(pruningBacking.get(Store.storageKey)).entries.map((entry) => entry.eventKey),
+    ['store-revision-remote']
+  );
+  assert.deepEqual(
+    pruningTab.store.getState().entries.map((entry) => entry.eventKey),
+    ['store-revision-remote']
+  );
+  assert.equal(pruningTab.store.contract.atomic, false);
 });
 
 test('open tabs converge a fork that lands after preflight through commit-lineage recovery', () => {
