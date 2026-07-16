@@ -4,6 +4,7 @@
   var C = root.CYBERLIGA_CONTENT;
   var M = root.CyberligaMythos;
   var MomentEngine = root.CyberligaAthleteMoments;
+  var WitnessStore = root.CyberligaWitnessStore;
   if (!C || !M || typeof document === 'undefined') return;
 
   var STORAGE_KEY = 'cyberliga_fan_signal_v1';
@@ -26,6 +27,8 @@
   var lastDossierId = '';
   var pulseFixtureSignature = '';
   var drawerReturnFocus = null;
+  var witnessUnreadAtOpen = 0;
+  var witnessReadBoundaryAtOpen = 0;
   var liveModel = null;
   try { if (MomentEngine && typeof MomentEngine.create === 'function') liveModel = MomentEngine.create(C); }
   catch (_error) { liveModel = null; }
@@ -64,6 +67,80 @@
   }
   function cleanString(value, limit) {
     return typeof value === 'string' ? value.trim().slice(0, limit || 240) : '';
+  }
+  function emptyWitnessState() {
+    return {
+      count: 0,
+      keptCount: 0,
+      unreadCount: 0,
+      lastReadAt: 0,
+      entries: [],
+      contract: {
+        source: 'local-witness',
+        deviceLocal: true,
+        official: false,
+        authoritative: false,
+        wagerable: false,
+        settles: false,
+        money: false,
+        prizes: false
+      }
+    };
+  }
+  function witnessState(options) {
+    if (!WitnessStore || typeof WitnessStore.getState !== 'function') return emptyWitnessState();
+    try {
+      var state = WitnessStore.getState(options);
+      if (!state || typeof state !== 'object') return emptyWitnessState();
+      var entries = Array.isArray(state.entries) ? state.entries.slice() : [];
+      if (options && options.athleteId) entries = entries.filter(function (entry) {
+        return witnessEntityId(entry,'athlete') === options.athleteId;
+      });
+      return {
+        count: Math.max(0,Number(state.count == null ? entries.length : state.count) || 0),
+        keptCount: Math.max(0,Number(state.keptCount) || 0),
+        unreadCount: Math.max(0,Number(state.unreadCount) || 0),
+        lastReadAt: Math.max(0,Number(state.lastReadAt) || 0),
+        entries: entries,
+        contract: state.contract && typeof state.contract === 'object' ? state.contract : emptyWitnessState().contract
+      };
+    } catch (_error) { return emptyWitnessState(); }
+  }
+  function witnessEntityId(entry, key) {
+    var entity = entry && entry[key];
+    return cleanString(entry && entry[key + 'Id'],160) || cleanString(entity && entity.id,160) || '';
+  }
+  function witnessEntityName(entry, key, fallback) {
+    var entity = entry && entry[key];
+    if (typeof entity === 'string') return cleanString(entity,180) || fallback;
+    return cleanString(entity && (entity.name || entity.label),180) || fallback;
+  }
+  function witnessEntityCode(entry, key, fallback) {
+    var entity = entry && entry[key];
+    return cleanString(entity && (entity.code || entity.shortCode),40) || fallback;
+  }
+  function witnessColor(entry) {
+    var team = entry && entry.team;
+    var color = cleanString(entry && entry.color,40) || cleanString(team && team.color,40) || cleanString(team && team.colors && team.colors.primary,40);
+    return /^#[0-9a-f]{3,8}$/i.test(color) ? color : '#00e5ff';
+  }
+  function witnessEntryId(entry) {
+    return cleanString(entry && (entry.witnessId || entry.id || entry.momentId),240);
+  }
+  function witnessHref(value, fallback, route) {
+    var href = cleanString(value,900);
+    if (!href || !route || (href !== route && href.indexOf(route + '?') !== 0) || /[\s<>"'#]/.test(href)) return fallback;
+    return href;
+  }
+  function witnessTime(value) {
+    var at = Number(value);
+    if (!Number.isFinite(at) || at <= 0) return 'THIS VISIT';
+    try {
+      return new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(at)).toUpperCase();
+    } catch (_error) { return 'THIS VISIT'; }
+  }
+  function witnessContractCopy() {
+    return 'DEVICE-LOCAL WATCH RECEIPTS · NOT AN OFFICIAL RESULT OR CAREER STAT · NO WAGER OR SETTLEMENT · NO MONEY · NO PRIZE.';
   }
   function normalizeCall(key, call) {
     var fixtureId = cleanString(key, 240);
@@ -290,6 +367,58 @@
   function liveSectionShell() {
     return '<section id="fw-live-moments" class="fw-drawer-section" aria-labelledby="fw-live-moments-title"><header class="fw-section-title"><p id="fw-live-moments-title">LIVE WORLD DISCOVERY</p><button class="fw-section-action" type="button" data-fw-action="refresh-live">REFRESH SIGNAL</button></header><div class="fw-live-source" data-state="loading" aria-live="polite"><i aria-hidden="true"></i><b>LISTENING</b><span>CONNECTING TO THE WORLD</span></div><p class="fw-live-boundary"></p><div id="fw-moment-stack" class="fw-moment-stack" role="feed" aria-busy="true"></div></section>';
   }
+  function witnessCard(entry, context) {
+    var id = witnessEntryId(entry);
+    var sport = witnessEntityName(entry,'sport',cleanString(entry && entry.sportId,80).toUpperCase() || 'CYBERLIGA');
+    var team = witnessEntityName(entry,'team','YOUR SIDE');
+    var teamCode = witnessEntityCode(entry,'team',team.slice(0,3).toUpperCase());
+    var athlete = witnessEntityName(entry,'athlete','CYBERLIGA ATHLETE');
+    var opponent = witnessEntityName(entry,'opponent','THE OPPOSITION');
+    var eventTitle = cleanString(entry && (entry.eventTitle || entry.kindLabel),180) || cleanString(entry && entry.kind,100).replace(/[-_]/g,' ').toUpperCase() || 'NAMED MATCH MOMENT';
+    var title = cleanString(entry && (entry.title || entry.headline),240) || athlete + ' · ' + eventTitle;
+    var playerHref = witnessHref(entry && entry.playerHref,'player.html','player.html');
+    var clipHref = witnessHref(entry && entry.clipHref,'clip.html','clip.html');
+    var witnessedAt = Number(entry && entry.witnessedAt) || 0;
+    var unread = Boolean(entry && entry.unread) || Boolean(witnessUnreadAtOpen && witnessedAt > witnessReadBoundaryAtOpen);
+    var kept = Boolean(entry && entry.kept);
+    var cardContext = context === 'player' ? ' fw-witness-card-player' : '';
+    return '<article class="fw-witness-card' + cardContext + (unread ? ' is-unread' : '') + '" data-fw-witness-card="' + esc(id) + '" style="--witness-color:' + esc(witnessColor(entry)) + '"><div class="fw-witness-main"><div class="fw-witness-top"><span>DEVICE WITNESS · ' + esc(sport.toUpperCase()) + '</span><em>' + (kept ? 'KEPT' : unread ? 'NEW' : 'SEEN') + '</em></div><h4>' + esc(title) + '</h4><div class="fw-witness-identity"><strong>' + esc(athlete) + '</strong><span>' + esc(teamCode) + ' · ' + esc(eventTitle) + '</span></div><p>' + esc(team) + ' against ' + esc(opponent) + '</p><small>WITNESSED ' + esc(witnessTime(witnessedAt)) + ' · DEVICE-LOCAL</small></div><nav class="fw-witness-actions" aria-label="Witness receipt actions"><button type="button" data-fw-action="keep-witness" data-fw-witness-id="' + esc(id) + '" aria-pressed="' + String(kept) + '">' + (kept ? 'KEPT ✓' : 'KEEP') + '</button><a href="' + esc(playerHref) + '">ATHLETE FILE</a><a href="' + esc(clipHref) + '" title="Open a non-official animated concept linked to this witnessed moment">12S CONCEPT</a><button type="button" data-fw-action="remove-witness" data-fw-witness-id="' + esc(id) + '">REMOVE</button></nav></article>';
+  }
+  function witnessSectionShell() {
+    var state = witnessState();
+    var entries = state.entries.slice(0,8);
+    var countLabel = witnessUnreadAtOpen ? witnessUnreadAtOpen + ' NEW THIS OPEN' : state.count + ' RECEIPTS';
+    var stack = entries.length ? entries.map(function (entry) { return witnessCard(entry,'drawer'); }).join('') : '<div class="fw-witness-empty"><b>YOUR NIGHT STARTS IN AN ARENA</b>When a certified named moment is actually shown while you watch, this device can remember it here.</div>';
+    return '<section id="fw-my-night" class="fw-drawer-section fw-my-night" aria-labelledby="fw-my-night-title"><header class="fw-section-title"><p id="fw-my-night-title">MY NIGHT</p><span>' + esc(countLabel) + '</span></header><div class="fw-witness-boundary"><b>DEVICE-LOCAL · NOT OFFICIAL</b><span>' + esc(witnessContractCopy()) + '</span></div><div class="fw-witness-stack" role="feed" aria-label="Device-local witness receipts">' + stack + '</div></section>';
+  }
+  function witnessChapter(athleteId) {
+    if (!WitnessStore || typeof WitnessStore.chapter !== 'function') return null;
+    try {
+      var chapter = WitnessStore.chapter(athleteId);
+      return chapter && typeof chapter === 'object' ? chapter : null;
+    } catch (_error) { return null; }
+  }
+  function renderPlayerChronicle() {
+    if (pageKind !== 'player' || !currentPlayerProfile) return;
+    var teammates = document.querySelector('.teammates');
+    if (!teammates) return;
+    var section = document.getElementById('fw-player-chronicle');
+    if (!section) {
+      section = document.createElement('section');
+      section.id = 'fw-player-chronicle';
+      section.className = 'fw-player-chronicle';
+      section.setAttribute('aria-labelledby','fw-player-chronicle-title');
+      teammates.before(section);
+    }
+    var state = witnessState({athleteId:currentPlayerProfile.id});
+    var entries = state.entries.filter(function (entry) { return witnessEntityId(entry,'athlete') === currentPlayerProfile.id; });
+    var chapter = witnessChapter(currentPlayerProfile.id);
+    var chapterCopy = cleanString(chapter && (chapter.summary || chapter.copy || chapter.line || chapter.headline),420);
+    var chronology = entries.length ? entries.map(function (entry) { return witnessCard(entry,'player'); }).join('') : '<div class="fw-player-chronicle-empty"><b>YOU HAVE NOT WITNESSED THIS ATHLETE YET.</b><span>Open their autonomous arena. A certified named moment only enters this chronology after its broadcast card is visibly presented on this device.</span></div>';
+    section.innerHTML = '<header class="fw-player-chronicle-head"><div><p class="section-number">06 / YOUR WITNESS CHRONICLE</p><h2 id="fw-player-chronicle-title">The moments you were there for.</h2></div><strong>' + entries.length + ' DEVICE RECEIPT' + (entries.length === 1 ? '' : 'S') + '</strong></header><div class="fw-player-chronicle-boundary"><b>LOCAL WITNESS LAYER</b><span>' + esc(witnessContractCopy()) + '</span></div>' + (entries.length && chapterCopy ? '<p class="fw-player-chapter"><b>YOUR LOCAL CHAPTER</b>' + esc(chapterCopy) + '</p>' : '') + '<div class="fw-player-chronicle-list" role="feed" aria-label="Witnessed moments for ' + esc(currentPlayerProfile.name) + '">' + chronology + '</div>';
+    var teammateNumber = teammates.querySelector('.section-number');
+    if (teammateNumber) teammateNumber.textContent = '07 / SAME COLORS';
+  }
   function momentSourceLabel(moment) {
     var provenance = moment && moment.provenance || {};
     if (moment && moment.canonical === true) return liveMomentState.stale ? 'LAST SERVER SNAPSHOT' : 'SERVER-PUBLISHED';
@@ -490,6 +619,7 @@
   }
   function publicState() {
     var rank = tier();
+    var witnesses = witnessState();
     return {
       version: VERSION,
       signalId: fan.signalId,
@@ -499,6 +629,38 @@
       openCalls: Object.keys(fan.calls).length,
       savedDrops: fan.savedDrops.length,
       supporterContract: M.supporterContract,
+      witnessChronicle: {
+        source: 'local-witness',
+        count: witnesses.count,
+        keptCount: witnesses.keptCount,
+        unreadCount: witnesses.unreadCount,
+        items: witnesses.entries.slice(0,12).map(function (entry) {
+          return {
+            id: witnessEntryId(entry),
+            momentId: cleanString(entry && entry.momentId,240),
+            sportId: witnessEntityId(entry,'sport') || cleanString(entry && entry.sportId,80),
+            teamId: witnessEntityId(entry,'team'),
+            athleteId: witnessEntityId(entry,'athlete'),
+            kind: cleanString(entry && entry.kind,100),
+            witnessedAt: Math.max(0,Number(entry && entry.witnessedAt) || 0),
+            kept: Boolean(entry && entry.kept),
+            official: false,
+            authoritative: false
+          };
+        }),
+        contract: {
+          deviceLocal: true,
+          watchReceiptOnly: true,
+          official: false,
+          authoritative: false,
+          changesCareerStats: false,
+          scoresCalls: false,
+          wagerable: false,
+          settles: false,
+          money: false,
+          prizes: false
+        }
+      },
       liveMoments: {
         phase: liveMomentState.phase,
         source: liveMomentState.source,
@@ -607,8 +769,8 @@
     root.render_game_to_text = wrapped;
   }
   function triggerLabel() {
-    var rank = tier();
-    return 'MY <b>SIGNAL</b> · ' + fan.xp;
+    var unread = witnessState().unreadCount;
+    return 'MY <b>SIGNAL</b> · ' + fan.xp + (unread ? '<span class="fw-trigger-new">' + esc(unread) + ' NEW</span>' : '');
   }
   function ensureShell() {
     if (drawer) return;
@@ -619,7 +781,7 @@
     trigger.dataset.fwAction = 'open';
     trigger.setAttribute('aria-controls','fw-drawer');
     trigger.setAttribute('aria-expanded','false');
-    trigger.setAttribute('aria-label','Open My Signal supporter passport');
+    trigger.setAttribute('aria-label','Open My Signal supporter passport and witness chronicle');
     trigger.innerHTML = triggerLabel();
     document.body.appendChild(trigger);
 
@@ -640,22 +802,35 @@
     drawer.setAttribute('aria-labelledby','fw-drawer-title');
     drawer.setAttribute('aria-hidden','true');
     drawer.inert = true;
-    drawer.innerHTML = '<header class="fw-drawer-head"><div><p id="fw-passport-id">SUPPORTER PASSPORT / ' + esc(fan.signalId) + '</p><h2 id="fw-drawer-title">MY SIGNAL</h2></div><button class="fw-close" type="button" data-fw-action="close">CLOSE ×</button></header><section class="fw-rank" id="fw-rank"></section><div class="fw-drawer-scroll" id="fw-drawer-scroll" tabindex="0"></div><footer class="fw-drawer-foot">FAN CALL · FOR FUN · NO MONEY · NO PRIZE · NOT SETTLED AGAINST CLIENT SIMULATION. FOLLOWS AND LOCKER ITEMS STAY ON THIS DEVICE.</footer>';
+    drawer.innerHTML = '<header class="fw-drawer-head"><div><p id="fw-passport-id">SUPPORTER PASSPORT / ' + esc(fan.signalId) + '</p><h2 id="fw-drawer-title">MY SIGNAL</h2></div><button class="fw-close" type="button" data-fw-action="close">CLOSE ×</button></header><section class="fw-rank" id="fw-rank"></section><div class="fw-drawer-scroll" id="fw-drawer-scroll" tabindex="0"></div><footer class="fw-drawer-foot">WITNESS RECEIPTS, FOLLOWS, CALLS, AND LOCKER ITEMS STAY ON THIS DEVICE. NOT OFFICIAL · NO MONEY · NO PRIZE · NEVER USED TO SETTLE A WAGER.</footer>';
     document.body.appendChild(drawer);
     renderDrawer();
   }
   function openDrawer(opener) {
+    var firstOpen = !document.documentElement.classList.contains('fw-open');
+    if (firstOpen) {
+      var beforeRead = witnessState();
+      witnessUnreadAtOpen = beforeRead.unreadCount;
+      witnessReadBoundaryAtOpen = beforeRead.lastReadAt;
+    }
     ensureShell();
-    if (!document.documentElement.classList.contains('fw-open')) drawerReturnFocus = opener && opener.focus ? opener : document.activeElement;
+    if (firstOpen) drawerReturnFocus = opener && opener.focus ? opener : document.activeElement;
     document.documentElement.classList.add('fw-open');
     drawer.inert = false;
     drawer.setAttribute('aria-hidden','false');
     document.getElementById('fw-trigger').setAttribute('aria-expanded','true');
+    if (firstOpen) renderDrawer();
     setTimeout(function () { var close = drawer.querySelector('.fw-close'); if (close) close.focus(); }, 20);
     var age = liveMomentState.receivedAt ? Date.now() - liveMomentState.receivedAt : Number.POSITIVE_INFINITY;
     if (age > LIVE_STALE_MS && liveMomentState.raw.length) liveMomentState.stale = true;
     if (liveMomentState.phase === 'idle' || liveMomentState.phase === 'error' || age > LIVE_POLL_MS) refreshLiveMoments(true);
     else scheduleLiveMomentRefresh(Math.max(250,LIVE_POLL_MS-age));
+    if (firstOpen && witnessUnreadAtOpen && WitnessStore && typeof WitnessStore.markRead === 'function') {
+      setTimeout(function () {
+        try { WitnessStore.markRead(); }
+        catch (_error) {}
+      },0);
+    }
   }
   function closeDrawer(options) {
     if (!drawer) return;
@@ -666,6 +841,9 @@
     drawer.setAttribute('aria-hidden','true');
     var trigger = document.getElementById('fw-trigger');
     if (trigger) trigger.setAttribute('aria-expanded','false');
+    witnessUnreadAtOpen = 0;
+    witnessReadBoundaryAtOpen = 0;
+    renderDrawer();
     var returnTarget = drawerReturnFocus && drawerReturnFocus.isConnected && drawerReturnFocus.focus ? drawerReturnFocus : trigger;
     drawerReturnFocus = null;
     if (restoreFocus && returnTarget) requestAnimationFrame(function () { returnTarget.focus({preventScroll:true}); });
@@ -723,6 +901,7 @@
       return '<section class="fw-drawer-section"><header class="fw-section-title"><p>' + label + '</p><span>' + count + '</span></header>' + (rows.length ? '<div class="fw-list">' + rows.join('') + '</div>' : '<div class="fw-empty">' + empty + '</div>') + '</section>';
     }
     document.getElementById('fw-drawer-scroll').innerHTML =
+      witnessSectionShell() +
       liveSectionShell() +
       section('FOLLOWED WORLD', followRows.length + ' SAVED', followRows, 'Follow a club or athlete and their live moments will collect above.') +
       section('MY FAN CALLS', calls.length + ' OPEN', callRows, 'Call a side from a fixture story. Calls are local, free, and deliberately unresolved until Cyberliga has one authoritative event stream.') +
@@ -730,7 +909,11 @@
       section('WHY THIS EXISTS', 'ONE WORLD', ['<div class="fw-empty">Watch → recognize someone → understand the pressure → call your side → save the memory → come back because the story changed.</div>'], '');
     renderLiveSection();
     var trigger = document.getElementById('fw-trigger');
-    if (trigger) trigger.innerHTML = triggerLabel();
+    if (trigger) {
+      var unread = witnessState().unreadCount;
+      trigger.innerHTML = triggerLabel();
+      trigger.setAttribute('aria-label','Open My Signal supporter passport' + (unread ? ' with ' + unread + ' new witness receipt' + (unread === 1 ? '' : 's') : ' and witness chronicle'));
+    }
   }
   function refreshInteractiveStates() {
     document.querySelectorAll('[data-fw-action="follow-team"]').forEach(function (button) {
@@ -769,6 +952,29 @@
     var action = target.dataset.fwAction;
     if (action === 'open') { event.preventDefault(); openDrawer(target); return; }
     if (action === 'close') { event.preventDefault(); closeDrawer(); return; }
+    if (action === 'keep-witness') {
+      event.preventDefault();
+      if (!WitnessStore || typeof WitnessStore.keep !== 'function') return;
+      var keep = target.getAttribute('aria-pressed') !== 'true';
+      var kept = false;
+      try { kept = WitnessStore.keep(target.dataset.fwWitnessId,keep) !== false; }
+      catch (_error) { kept = false; }
+      toast(kept ? (keep ? 'WITNESS RECEIPT KEPT ON THIS DEVICE' : 'WITNESS RECEIPT UNPINNED') : 'WITNESS RECEIPT COULD NOT BE UPDATED');
+      renderDrawer();
+      renderPlayerChronicle();
+      return;
+    }
+    if (action === 'remove-witness') {
+      event.preventDefault();
+      if (!WitnessStore || typeof WitnessStore.remove !== 'function') return;
+      var removed = false;
+      try { removed = WitnessStore.remove(target.dataset.fwWitnessId) !== false; }
+      catch (_error) { removed = false; }
+      toast(removed ? 'WITNESS RECEIPT REMOVED FROM THIS DEVICE' : 'WITNESS RECEIPT COULD NOT BE REMOVED');
+      renderDrawer();
+      renderPlayerChronicle();
+      return;
+    }
     if (action === 'refresh-live') { event.preventDefault(); refreshLiveMoments(true); return; }
     if (action === 'pulse-next') { event.preventDefault(); pulseIndex = (pulseIndex + 1) % Math.max(1,pulseStories.length); renderWorldPulse(); return; }
     if (action === 'share-story') {
@@ -995,11 +1201,14 @@
     currentPlayerProfile = M.athleteProfile(state.sport.id,state.team.id,state.athlete.id,{now:Date.now()});
     if (!currentPlayerProfile) return false;
     var actions = document.querySelector('.hero-actions');
-    if (!actions || document.querySelector('.fw-player-tools')) return true;
-    var tools = document.createElement('div');
-    tools.className = 'fw-player-tools';
-    tools.innerHTML = '<button type="button" data-fw-action="follow-athlete" data-athlete-id="' + esc(currentPlayerProfile.id) + '" data-label="' + esc(currentPlayerProfile.name) + '" aria-pressed="' + String(hasFollow('athletes',currentPlayerProfile.id)) + '">' + (hasFollow('athletes',currentPlayerProfile.id) ? 'FOLLOWING ✓' : 'FOLLOW ATHLETE') + '</button><button type="button" data-fw-action="follow-team" data-team-id="' + esc(currentPlayerProfile.teamId) + '" data-label="' + esc(currentPlayerProfile.team) + '" aria-pressed="' + String(hasFollow('teams',currentPlayerProfile.teamId)) + '">' + (hasFollow('teams',currentPlayerProfile.teamId) ? 'FOLLOWING CLUB ✓' : 'FOLLOW CLUB') + '</button><button type="button" data-fw-action="save-drop" data-sport-id="' + esc(currentPlayerProfile.sportId) + '" data-team-id="' + esc(currentPlayerProfile.teamId) + '" data-athlete-id="' + esc(currentPlayerProfile.id) + '">SAVE CONCEPT DROP</button>';
-    actions.after(tools);
+    if (!actions) return false;
+    if (!document.querySelector('.fw-player-tools')) {
+      var tools = document.createElement('div');
+      tools.className = 'fw-player-tools';
+      tools.innerHTML = '<button type="button" data-fw-action="follow-athlete" data-athlete-id="' + esc(currentPlayerProfile.id) + '" data-label="' + esc(currentPlayerProfile.name) + '" aria-pressed="' + String(hasFollow('athletes',currentPlayerProfile.id)) + '">' + (hasFollow('athletes',currentPlayerProfile.id) ? 'FOLLOWING ✓' : 'FOLLOW ATHLETE') + '</button><button type="button" data-fw-action="follow-team" data-team-id="' + esc(currentPlayerProfile.teamId) + '" data-label="' + esc(currentPlayerProfile.team) + '" aria-pressed="' + String(hasFollow('teams',currentPlayerProfile.teamId)) + '">' + (hasFollow('teams',currentPlayerProfile.teamId) ? 'FOLLOWING CLUB ✓' : 'FOLLOW CLUB') + '</button><button type="button" data-fw-action="save-drop" data-sport-id="' + esc(currentPlayerProfile.sportId) + '" data-team-id="' + esc(currentPlayerProfile.teamId) + '" data-athlete-id="' + esc(currentPlayerProfile.id) + '">SAVE CONCEPT DROP</button>';
+      actions.after(tools);
+    }
+    renderPlayerChronicle();
     refreshInteractiveStates();
     return true;
   }
@@ -1021,6 +1230,18 @@
   }
 
   document.addEventListener('click',handleAction);
+  var witnessRenderQueued = false;
+  function scheduleWitnessRender() {
+    if (witnessRenderQueued) return;
+    witnessRenderQueued = true;
+    requestAnimationFrame(function () {
+      witnessRenderQueued = false;
+      renderDrawer();
+      renderPlayerChronicle();
+    });
+  }
+  document.addEventListener('cyberliga:witness-change',scheduleWitnessRender);
+  root.addEventListener('cyberliga:witness-change',scheduleWitnessRender);
   document.addEventListener('keydown',function (event) {
     if (!document.documentElement.classList.contains('fw-open')) return;
     if (trapDrawerFocus(event)) return;

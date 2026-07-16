@@ -894,3 +894,49 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - A final organic 900,000ms Football soak reached the 0–2 final with 16 accepted memories, zero duplicates/rejects,
   twelve retained candidates and a ranked safety/contested-catch/contested-catch top three; the finale opened on
   card 1/3 with two cards queued, exact safe provenance and no console, page or request failures.
+
+## Witness Chronicle / My Night — 2026-07-15
+- Three independent product/platform audits converged on the same highest-leverage fandom gap: Cyberliga can now
+  name a decisive athlete in the live broadcast, but forgets that relationship as soon as the card clears. The
+  scoped response is a device-local witness history—not authoritative career data, results, XP or wagering.
+- Added pure, frozen `CyberligaWitnessChronicle`. It accepts only the exact private-certified
+  `CyberligaNamedMoments` object plus exact fixture references and a `moment`/`final` presentation mode. The core
+  owns no DOM, storage, clock, URL state, scheduler, network or randomness; it deterministically deduplicates and
+  bounds 96 receipts / 48 kept receipts, derives athlete/team/opponent/event identity from canon, and builds an
+  Athlete File chapter only from witnessed kinds and opponents.
+- Persistence keeps only schema/moment/fixture/event/sport/team/athlete/kind/time/keep facts. Scores, clocks,
+  replay claims, results, headlines, arbitrary copy and routes are never stored. Every load revalidates canonical
+  membership and recomputes the length-framed Match Memory ID before rebuilding display copy and local routes.
+  Every view states `local-witness`, `official:false`, `authoritative:false`, `wagerable:false`, `settles:false`,
+  `money:false` and `prizes:false`.
+- Added the versioned local adapter with same-tab change events, correct localStorage-area filtering, pre-mutation
+  rebasing, delayed-event rollback rejection and an explicit durable empty reset snapshot. Multi-window storage
+  regressions preserve the current two-receipt snapshot across a delayed older event. Capture/keep/remove/read
+  never touch supporter XP, calls, match outcomes, standings or career stats.
+- The broadcast spine retains the exact certified object privately but commits it only after a real presentation
+  opportunity. Production uses a cancelable double-`requestAnimationFrame` proof; the same item must still be
+  active, visible, aria-visible and in a visible document. Hide, preemption, finale replacement and destroy cancel
+  the pending proof. A release audit caught and repaired the prior same-task edge where Combat could replace a
+  decision card before the browser painted it; the permanent regression proves that excluded card records zero
+  while each finale card records only after its scheduled paint proof.
+- My Signal now opens with `MY NIGHT`: unread count, retained NEW state during the current open, explicit
+  DEVICE-LOCAL / NOT OFFICIAL boundary, canonical athlete/team/opponent identity, 44px KEEP / ATHLETE FILE /
+  12S CONCEPT / REMOVE actions and no score claim. Athlete Files insert `06 / YOUR WITNESS CHRONICLE` between
+  Recent Signal and `07 / SAME COLORS`, with a local chapter and the same safe receipt controls. Actionable links
+  accept only local `player.html` and `clip.html` routes.
+- Official web-game QA advanced a live Soccer broadcast to certified `moment-0rmn8v9`; render state showed the
+  card visible as `mode:"moment"`, spine `1.2.0`, `witnessed:true`, exact athlete/team identity and the complete
+  no-authority/no-money/no-prize boundary. Three official-client state/screenshot iterations were finite and
+  error-free, and the latest cyan/pink live-play capture was visually inspected.
+- A six-arena browser smoke at 960x540 passed Soccer, Football, Basketball, Hockey, Baseball and Combat: Chronicle
+  and Store ready, spine 1.2.0, finite state, `autonomous:true`, `interaction:"view-only"`, zero horizontal
+  overflow and no console/page errors. Desktop and 390x844 My Night/Athlete chronology flows passed 1 NEW → open
+  while visibly NEW → stored unread 0 → KEEP → cross-page KEPT. All actions measured 44px; phone drawer/section
+  widths were exactly 390px with 390px scroll width. The four feature screenshots were visually inspected.
+- Current-byte gates pass 13/13 API, 11/11 live-moment, 15/15 named-memory, 10/10 broadcast-spine, 14/14 Chronicle/
+  store, 5/5 football replay-memory, 16/16 shared visual/live-cue and 28/28 football brain/rules tests, plus
+  1,514/1,514 repository checks. Standalone syntax and `git diff --check` pass. This is an isolated, undeployed
+  feature slice for Release Manager audit and integration.
+- Next product track after this fandom loop: the audited Basketball Signature Matchup Engine, so persistent
+  character memory is followed by more athlete-specific live decision-making. Official cross-device/season
+  chronology remains intentionally deferred until Cyberliga has provisioned authoritative backend credentials.

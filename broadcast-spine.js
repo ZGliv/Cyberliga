@@ -5,7 +5,7 @@
   var Characters = root && root.CyberligaCharacters;
   var Brand = root && root.CyberligaBrand;
   var Named = root && root.CyberligaNamedMoments;
-  var VERSION = '1.0.0';
+  var VERSION = '1.2.0';
   var MAX_QUEUE = 6;
   var DEFAULT_MOMENT_MS = 4800;
   var DEFAULT_SPOTLIGHT_MS = 5200;
@@ -43,6 +43,37 @@
     var node = document.createElement(tag);
     if (className) node.className = className;
     return node;
+  }
+
+  function scheduleAfterPaint(callback) {
+    var cancelled = false;
+    var firstFrame = null;
+    var secondFrame = null;
+    var timeout = null;
+    if (root && typeof root.requestAnimationFrame === 'function') {
+      firstFrame = root.requestAnimationFrame(function waitThroughFirstPaint() {
+        secondFrame = root.requestAnimationFrame(function provePaintOpportunity() {
+          if (!cancelled) callback();
+        });
+      });
+      return function cancelPaintProof() {
+        cancelled = true;
+        if (typeof root.cancelAnimationFrame === 'function') {
+          if (firstFrame != null) root.cancelAnimationFrame(firstFrame);
+          if (secondFrame != null) root.cancelAnimationFrame(secondFrame);
+        }
+      };
+    }
+    if (root && typeof root.setTimeout === 'function') {
+      timeout = root.setTimeout(function proveFallbackPaintOpportunity() {
+        if (!cancelled) callback();
+      }, 34);
+      return function cancelFallbackPaintProof() {
+        cancelled = true;
+        if (typeof root.clearTimeout === 'function') root.clearTimeout(timeout);
+      };
+    }
+    return function cancelUnavailablePaintProof() { cancelled = true; };
   }
 
   function createMarkup(mount) {
@@ -86,6 +117,14 @@
     var durationMs = 0;
     var queue = [];
     var destroyed = false;
+    var injectedWitness = typeof options.captureWitness === 'function' ? options.captureWitness :
+      (typeof options.witness === 'function' ? options.witness : null);
+    var scheduleWitnessPaint = typeof options.scheduleWitnessPaint === 'function' ?
+      options.scheduleWitnessPaint : scheduleAfterPaint;
+    var witnessedMoments = typeof WeakSet === 'function' ? new WeakSet() : null;
+    var pendingWitnessCancel = null;
+    var pendingWitnessItem = null;
+    var witnessGeneration = 0;
 
     function sameFixtureTeam(team) {
       return team === home || team === away;
@@ -151,6 +190,7 @@
         delayMs:clamp(finiteNumber(itemOptions.delayMs, 0), 0, 15000),
         durationMs:clamp(finiteNumber(itemOptions.durationMs, itemOptions.mode === 'final' ? DEFAULT_FINAL_MS : DEFAULT_MOMENT_MS), 1400, 9000),
         team:identity.team, athlete:identity.athlete, id:momentId,
+        moment:moment, witnessAttempted:false, witnessed:false,
         recordedFootage:recordedFootage,
         kicker:itemOptions.kicker || (itemOptions.mode === 'final' ? 'MATCH MEMORY' :
           (recordedFootage ? 'REPLAY MOMENT · ' : 'LIVE MOMENT · ') + kind),
@@ -162,7 +202,78 @@
       };
     }
 
+    function witnessCallback() {
+      if (injectedWitness) return injectedWitness;
+      var store = root && root.CyberligaWitnessStore;
+      if (!store || typeof store.capturePresented !== 'function') return null;
+      return function captureWithStore(moment, context) {
+        return store.capturePresented(moment, context);
+      };
+    }
+
+    function capturePaintedMoment(item) {
+      if (!item || item.witnessAttempted || item.mode === 'spotlight' || !item.moment ||
+          (typeof document !== 'undefined' && document.hidden === true)) return;
+      var callback = witnessCallback();
+      if (!callback) return;
+      if (witnessedMoments && witnessedMoments.has(item.moment)) {
+        item.witnessAttempted = true;
+        item.witnessed = true;
+        return;
+      }
+      item.witnessAttempted = true;
+      try {
+        var captured = callback(item.moment, {
+          sportId:sport.id,
+          fixtureId:fixtureId,
+          homeTeam:home,
+          awayTeam:away,
+          mode:item.mode
+        });
+        item.witnessed = captured !== false && captured != null;
+        if (item.witnessed && witnessedMoments) witnessedMoments.add(item.moment);
+      } catch (error) {
+        // Witness persistence is an optional spectator layer and must never stall a live arena.
+        item.witnessed = false;
+      }
+    }
+
+    function cancelWitnessProof() {
+      witnessGeneration += 1;
+      if (typeof pendingWitnessCancel === 'function') {
+        try { pendingWitnessCancel(); } catch (error) {}
+      }
+      pendingWitnessCancel = null;
+      pendingWitnessItem = null;
+    }
+
+    function armWitnessProof(item) {
+      if (!item || item.mode === 'spotlight' || !item.moment || item.witnessAttempted ||
+          pendingWitnessItem === item) return;
+      cancelWitnessProof();
+      var generation = witnessGeneration;
+      var completed = false;
+      pendingWitnessItem = item;
+      var cancel = null;
+      try {
+        cancel = scheduleWitnessPaint(function commitAfterPaint() {
+          completed = true;
+          if (generation !== witnessGeneration || destroyed || active !== item) return;
+          pendingWitnessCancel = null;
+          pendingWitnessItem = null;
+          if ((typeof document !== 'undefined' && document.hidden === true) ||
+              nodes.shell.getAttribute('aria-hidden') !== 'false' ||
+              !nodes.shell.classList.contains('is-visible')) return;
+          capturePaintedMoment(item);
+        });
+      } catch (error) {
+        completed = true;
+      }
+      if (!completed) pendingWitnessCancel = typeof cancel === 'function' ? cancel : null;
+    }
+
     function paint(item) {
+      cancelWitnessProof();
       active = item;
       durationMs = item.durationMs;
       remainingMs = item.durationMs;
@@ -180,9 +291,11 @@
       nodes.shell.classList.remove('is-leaving');
       nodes.shell.classList.add('is-visible');
       nodes.shell.setAttribute('aria-hidden', 'false');
+      armWitnessProof(item);
     }
 
     function hide() {
+      cancelWitnessProof();
       nodes.shell.classList.remove('is-visible', 'is-leaving');
       nodes.shell.setAttribute('aria-hidden', 'true');
       nodes.shell.dataset.mode = 'idle';
@@ -232,6 +345,7 @@
         advanceQueue();
         return;
       }
+      armWitnessProof(active);
       remainingMs = Math.max(0, remainingMs - delta);
       var ratio = durationMs > 0 ? remainingMs / durationMs : 0;
       nodes.shell.style.setProperty('--cl-spine-progress', (ratio * 100).toFixed(2) + '%');
@@ -267,6 +381,7 @@
         eventId:active ? active.id : null, athleteId:active ? active.athlete.id : null,
         teamId:active ? active.team.id : null, remainingMs:Math.round(remainingMs),
         queueLength:queue.length, recordedFootage:active ? active.recordedFootage : false,
+        witnessed:active ? Boolean(active.witnessed) : false,
         boundary:active ? active.boundary : null, pointerInteractive:false
       });
     }
@@ -274,6 +389,7 @@
     function destroy() {
       if (destroyed) return;
       destroyed = true;
+      cancelWitnessProof();
       queue = [];
       active = null;
       nodes.shell.remove();

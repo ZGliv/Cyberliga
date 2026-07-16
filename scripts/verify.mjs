@@ -67,9 +67,10 @@ if (packageManifest) {
   check(packageManifest.scripts?.['test:moments'] === 'node --test athlete-moments.test.mjs', 'npm run test:moments must cover athlete event normalization');
   check(packageManifest.scripts?.['test:named-moments'] === 'node --test named-moments.test.mjs', 'npm run test:named-moments must cover deterministic match memory');
   check(packageManifest.scripts?.['test:broadcast'] === 'node --test broadcast-spine.test.mjs', 'npm run test:broadcast must cover the shared Match Memory presentation state machine');
+  check(packageManifest.scripts?.['test:chronicle'] === 'node --test witness-chronicle.test.mjs witness-store.test.mjs', 'npm run test:chronicle must cover the pure witness ledger and device-local adapter');
   check(packageManifest.scripts?.['test:football-replay-memory'] === 'node --test football-replay-memory.test.mjs', 'npm run test:football-replay-memory must cover football replay adjudication and truthful footage provenance');
   check(packageManifest.scripts?.['test:visuals'] === 'node --test foundingvisual.test.mjs foundinglive.test.mjs', 'npm run test:visuals must cover shared Founding portrait and live-cue renderers');
-  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:football-replay-memory && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, named match memory, broadcast presentation, football replay memory, and Founding visuals before static/data invariants');
+  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:chronicle && npm run test:football-replay-memory && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, named match memory, broadcast presentation, witness chronology, football replay memory, and Founding visuals before static/data invariants');
   check(packageManifest.scripts?.['release:check'] === 'npm run verify && node scripts/release-check.mjs', 'npm run release:check must verify the repository before checking the canonical release source');
   check(Object.keys(packageManifest.dependencies || {}).length === 0, 'Runtime dependencies must remain empty');
   check(Object.keys(packageManifest.devDependencies || {}).length === 0, 'Development dependencies must remain empty');
@@ -543,6 +544,39 @@ if (broadcastSpinePresent) {
   check(/@media \(max-width: 700px\)/.test(broadcastSpineStyles) && /orientation: landscape/.test(broadcastSpineStyles), 'Broadcast spine must define phone and landscape broadcast layouts');
   check(/font:\s*750 9px\/1\.3/.test(broadcastSpineStyles) && /font-size:\s*10px/.test(broadcastSpineStyles), 'Broadcast spine safety provenance must remain readable on desktop and phones');
 }
+
+const witnessChroniclePresent = await exists('witness-chronicle.js');
+const witnessStorePresent = await exists('witness-store.js');
+check(witnessChroniclePresent, 'Missing pure certified Witness Chronicle ledger', 'witness-chronicle.js');
+check(witnessStorePresent, 'Missing device-local Witness Chronicle adapter', 'witness-store.js');
+if (witnessChroniclePresent) {
+  const witnessChronicleSource = await text('witness-chronicle.js');
+  const witnessContext = vm.createContext({
+    console,
+    CYBERLIGA_CONTENT: content,
+    CyberligaCharacters: characterCanon,
+    encodeURIComponent
+  });
+  vm.runInContext(await text('named-moments.js'), witnessContext, { filename:'named-moments.js', timeout:2000 });
+  vm.runInContext(witnessChronicleSource, witnessContext, { filename:'witness-chronicle.js', timeout:2000 });
+  const witnessChronicle = witnessContext.CyberligaWitnessChronicle;
+  check(Boolean(witnessChronicle), 'witness-chronicle.js did not expose CyberligaWitnessChronicle');
+  check(!/\bMath\.random\b/.test(witnessChronicleSource), 'Witness Chronicle must not consume simulation or presentation randomness');
+  check(!/\b(?:document|location|localStorage|sessionStorage|fetch|XMLHttpRequest|requestAnimationFrame|setTimeout|setInterval|performance|Date)\b/.test(witnessChronicleSource), 'Witness Chronicle core must remain independent of DOM, URL, storage, network, scheduling, and clocks');
+  if (witnessChronicle) {
+    check(Object.isFrozen(witnessChronicle) && witnessChronicle.ready === true, 'Witness Chronicle API must be frozen and bound to canonical identity authorities');
+    check(witnessChronicle.limits?.total === 96 && witnessChronicle.limits?.kept === 48, 'Witness Chronicle must cap total and kept device-local receipts');
+    check(witnessChronicle.safety?.source === 'local-witness' && witnessChronicle.safety?.official === false && witnessChronicle.safety?.authoritative === false && witnessChronicle.safety?.wagerable === false && witnessChronicle.safety?.settles === false && witnessChronicle.safety?.money === false && witnessChronicle.safety?.prizes === false, 'Witness Chronicle must reject official, authoritative, wager, settlement, money, and prize claims');
+    check(typeof witnessChronicle.create === 'function', 'Witness Chronicle API is missing create()');
+  }
+}
+if (witnessStorePresent) {
+  const witnessStoreSource = await text('witness-store.js');
+  check(/cyberliga_witness_chronicle_v1/.test(witnessStoreSource), 'Witness Store must use an explicit versioned device-local key');
+  check(/capturePresented[\s\S]{0,800}Date\.now\(\)/.test(witnessStoreSource), 'Only the storage adapter may timestamp a painted witness');
+  check(/cyberliga:witness-change/.test(witnessStoreSource) && /addEventListener\(['"]storage['"]/.test(witnessStoreSource), 'Witness Store must publish same-tab and cross-tab chronology updates');
+  check(/source:\s*['"]local-witness['"][\s\S]{0,220}official:\s*false[\s\S]{0,80}authoritative:\s*false[\s\S]{0,80}wagerable:\s*false[\s\S]{0,80}settles:\s*false[\s\S]{0,80}money:\s*false[\s\S]{0,80}prizes:\s*false/.test(witnessStoreSource), 'Witness Store must preserve the explicit non-official no-money/no-prize boundary');
+}
 for (const arena of arenas) {
   const htmlSource = await text(arena.file);
   const source = arena.file === 'football.html' ? `${htmlSource}\n${await text('football.js')}` : htmlSource;
@@ -550,6 +584,8 @@ for (const arena of arenas) {
   check(/named-moments\.js/.test(htmlSource) && /broadcast-spine\.js/.test(htmlSource), `${arena.file} must load the shared Match Memory runtime`);
   check(htmlSource.indexOf('named-moments.js') < htmlSource.indexOf('broadcast-spine.js'), `${arena.file} must bind deterministic memory before presentation`);
   check(/matchMemory\s*:/.test(source) && /broadcastSpine\s*:/.test(source), `${arena.file} render state must expose Match Memory and broadcast-spine state`);
+  check(/witness-chronicle\.js/.test(htmlSource) && /witness-store\.js/.test(htmlSource), arena.file + ' must load the certified Witness Chronicle runtime');
+  check(htmlSource.indexOf('named-moments.js') < htmlSource.indexOf('witness-chronicle.js') && htmlSource.indexOf('witness-chronicle.js') < htmlSource.indexOf('witness-store.js') && htmlSource.indexOf('witness-store.js') < htmlSource.indexOf('broadcast-spine.js'), arena.file + ' must bind identity, chronology, storage, then broadcast presentation in order');
   if (arena.file === 'hoops.html' || arena.file === 'hockey.html') {
     const hold = Number(source.match(/const MATCH_MEMORY_FINAL_HOLD\s*=\s*([0-9.]+)/)?.[1]);
     check(Number.isFinite(hold) && hold >= 8.5, `${arena.file} final hold must preserve all three Match Memory cards`);
@@ -631,6 +667,10 @@ for (const [surface, source] of [['Home',worldSource],['League HQ',atlasSource],
   check(source.includes('athlete-moments.js'), `${surface} must load the shared live athlete moments model`);
   check(source.includes('fanworld.js') && source.includes('fanworld.css'), `${surface} must load My Signal supporter UI`);
 }
+for (const [surface, source] of [['Home',worldSource],['League HQ',atlasSource],['Athlete Files',playerSource]]) {
+  check(source.includes('named-moments.js') && source.includes('witness-chronicle.js') && source.includes('witness-store.js'), surface + ' must load the certified device-local Witness Chronicle');
+  check(source.indexOf('named-moments.js') < source.indexOf('witness-chronicle.js') && source.indexOf('witness-chronicle.js') < source.indexOf('witness-store.js') && source.indexOf('witness-store.js') < source.indexOf('fanworld.js'), surface + ' must bind identity, chronology, storage, then supporter UI in order');
+}
 const fanworldSource = await text('fanworld.js');
 const fanworldStyles = await text('fanworld.css');
 const athleteMomentSource = await text('athlete-moments.js');
@@ -652,6 +692,16 @@ check(/navigator\.share/.test(fanworldSource) && /navigator\.clipboard/.test(fan
 check(/\.fw-call-note\s*\{[^}]*rgba\(255,255,255,\.68\)[^}]*8px/.test(fanworldStyles), 'Free-call disclosure must remain legible at the point of action');
 check(/\.fw-drawer-foot\s*\{[^}]*rgba\(255,255,255,\.68\)[^}]*8px/.test(fanworldStyles), 'Supporter passport disclosure must remain legible');
 check(/@media \(max-width: 760px\)[\s\S]*\.fw-moment-actions a\s*\{[^}]*min-height:\s*44px/.test(fanworldStyles), 'Moment actions must retain 44px mobile touch targets');
+
+check(/MY NIGHT/.test(fanworldSource) && /DEVICE-LOCAL · NOT OFFICIAL/.test(fanworldSource), 'My Signal must expose My Night with an explicit non-official device-local boundary');
+check(/data-fw-action="keep-witness"/.test(fanworldSource) && /data-fw-action="remove-witness"/.test(fanworldSource) && /12S CONCEPT/.test(fanworldSource), 'Witness receipts must expose keep, remove, Athlete File, and non-official concept routes');
+check(/WitnessStore\.markRead\(\)/.test(fanworldSource) && /witnessUnreadAtOpen/.test(fanworldSource), 'Opening My Signal must clear unread state without erasing the current-open NEW labels');
+check(/YOUR WITNESS CHRONICLE/.test(fanworldSource) && /fw-player-chronicle/.test(fanworldSource) && /teammates\.before\(section\)/.test(fanworldSource), 'Athlete Files must insert the device-local Witness Chronicle before teammates');
+check(/changesCareerStats:\s*false[\s\S]{0,80}scoresCalls:\s*false[\s\S]{0,80}wagerable:\s*false[\s\S]{0,80}settles:\s*false[\s\S]{0,80}money:\s*false[\s\S]{0,80}prizes:\s*false/.test(fanworldSource), 'Witness render state must reject career-stat, fan-call, wager, settlement, money, and prize effects');
+const witnessActionSource = fanworldSource.match(/if \(action === 'keep-witness'\)[\s\S]*?if \(action === 'refresh-live'\)/)?.[0] || '';
+check(Boolean(witnessActionSource) && !/(?:fan\.xp|award|points\s*[+]=)/i.test(witnessActionSource), 'Keeping or removing a witness receipt must never award XP or points');
+check(/\.fw-witness-actions\s*>\s*\*\s*\{[^}]*min-height:\s*44px/.test(fanworldStyles), 'Witness receipt actions must retain 44px touch targets');
+check(/@media \(max-width: 760px\)[\s\S]*\.fw-player-chronicle-list\s*\{\s*grid-template-columns:\s*1fr/.test(fanworldStyles), 'Athlete witness chronology must collapse to one contained phone column');
 
 const universeWindow = {};
 evaluateBrowserScript(await text('worlddata.js'), 'worlddata.js', universeWindow);

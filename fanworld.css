@@ -6,7 +6,7 @@
   top: 19px;
   right: 188px;
   min-width: 102px;
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 13px;
   border: 1px solid color-mix(in srgb, var(--fw-accent) 52%, rgba(255,255,255,.18));
   color: #fff;
@@ -20,6 +20,7 @@
 .fw-trigger::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 8px; border-radius: 50%; background: var(--fw-accent); box-shadow: 0 0 10px var(--fw-accent); }
 .fw-trigger:hover, .fw-trigger:focus-visible { border-color: #fff; background: color-mix(in srgb, var(--fw-accent) 16%, rgba(3,5,7,.92)); }
 .fw-trigger b { color: var(--fw-accent); }
+.fw-trigger-new { display: inline-flex; min-height: 22px; align-items: center; margin-left: 8px; padding: 0 6px; color: #050607; background: var(--fw-accent); font-size: 7px; letter-spacing: .11em; }
 [data-fw-page='player'] .fw-trigger { top: 86px; right: 18px; color: #f3f1e9; background: rgba(20,22,21,.88); }
 
 .fw-backdrop {
@@ -62,7 +63,7 @@ html.fw-open .fw-drawer { transform: none; }
 .fw-drawer-head { min-height: 72px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 18px; padding: 15px 18px; border-bottom: 1px solid rgba(255,255,255,.14); }
 .fw-drawer-head p { color: var(--fw-drawer-accent); font: 800 8px/1 'Barlow Condensed',sans-serif; letter-spacing: .19em; }
 .fw-drawer-head h2 { margin-top: 7px; font: 900 23px/.9 'Archivo',sans-serif; letter-spacing: -.055em; }
-.fw-close { min-width: 72px; min-height: 38px; border: 1px solid rgba(255,255,255,.16) !important; background: rgba(255,255,255,.04); cursor: pointer; font: 800 8px/1 'Barlow Condensed',sans-serif !important; letter-spacing: .14em; }
+.fw-close { min-width: 72px; min-height: 44px; border: 1px solid rgba(255,255,255,.16) !important; background: rgba(255,255,255,.04); cursor: pointer; font: 800 8px/1 'Barlow Condensed',sans-serif !important; letter-spacing: .14em; }
 .fw-close:hover { border-color: #fff !important; }
 .fw-rank { display: grid; grid-template-columns: 86px 1fr; gap: 18px; align-items: center; padding: 22px 18px; border-bottom: 1px solid rgba(255,255,255,.14); }
 .fw-rank-mark { width: 78px; height: 78px; display: grid; place-items: center; border-radius: 50%; border: 1px solid color-mix(in srgb,var(--fw-drawer-accent) 54%,rgba(255,255,255,.17)); background: radial-gradient(circle,color-mix(in srgb,var(--fw-drawer-accent) 24%,transparent),transparent 68%); }
@@ -115,13 +116,38 @@ html.fw-open .fw-drawer { transform: none; }
 .fw-moment-score em { overflow: hidden; color: var(--moment-color); font: 800 8px/1 'Barlow Condensed',sans-serif; font-style: normal; letter-spacing: .085em; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .fw-moment-proof { display: block; margin-top: 9px; overflow: hidden; color: rgba(255,255,255,.43); font: 700 7px/1 'Barlow Condensed',sans-serif; letter-spacing: .075em; text-overflow: ellipsis; white-space: nowrap; }
 .fw-moment-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); border-top: 1px solid rgba(255,255,255,.11); }
-.fw-moment-actions a { min-width: 0; min-height: 38px; display: grid; place-items: center; padding: 0 6px; color: rgba(255,255,255,.68); text-decoration: none; font: 800 8px/1.15 'Barlow Condensed',sans-serif; letter-spacing: .075em; text-align: center; }
+.fw-moment-actions a { min-width: 0; min-height: 44px; display: grid; place-items: center; padding: 0 6px; color: rgba(255,255,255,.68); text-decoration: none; font: 800 8px/1.15 'Barlow Condensed',sans-serif; letter-spacing: .075em; text-align: center; }
 .fw-moment-actions a + a { border-left: 1px solid rgba(255,255,255,.11); }
 .fw-moment-actions a:hover, .fw-moment-actions a:focus-visible { color: #fff; background: color-mix(in srgb,var(--moment-color) 9%,transparent); }
 .fw-moment-empty { padding: 17px; border: 1px dashed rgba(255,255,255,.18); color: rgba(255,255,255,.57); font: 700 10px/1.5 'Barlow Condensed',sans-serif; letter-spacing: .06em; }
 .fw-moment-empty b { display: block; margin-bottom: 7px; color: #f4f4ef; font-size: 8px; letter-spacing: .13em; }
-.fw-section-action { min-height: 26px; padding: 0 8px; border: 1px solid rgba(255,255,255,.15) !important; color: rgba(255,255,255,.66) !important; background: transparent; cursor: pointer; font: 800 6px/1 'Barlow Condensed',sans-serif !important; letter-spacing: .1em; }
+.fw-section-action { min-height: 44px; padding: 0 10px; border: 1px solid rgba(255,255,255,.15) !important; color: rgba(255,255,255,.66) !important; background: transparent; cursor: pointer; font: 800 7px/1 'Barlow Condensed',sans-serif !important; letter-spacing: .1em; }
 .fw-section-action:hover, .fw-section-action:focus-visible { border-color: var(--fw-drawer-accent) !important; color: #fff !important; }
+.fw-my-night { background: linear-gradient(135deg,color-mix(in srgb,var(--fw-drawer-accent) 7%,transparent),transparent 58%); }
+.fw-witness-boundary { display: grid; gap: 6px; margin-bottom: 13px; padding: 11px 12px; border: 1px solid color-mix(in srgb,var(--fw-drawer-accent) 30%,rgba(255,255,255,.12)); background: color-mix(in srgb,var(--fw-drawer-accent) 5%,rgba(255,255,255,.018)); }
+.fw-witness-boundary b { color: #fff; font: 900 9px/1 'Barlow Condensed',sans-serif; letter-spacing: .14em; }
+.fw-witness-boundary span { color: rgba(255,255,255,.62); font: 700 8px/1.45 'Barlow Condensed',sans-serif; letter-spacing: .075em; overflow-wrap: anywhere; }
+.fw-witness-stack { min-width: 0; display: grid; gap: 10px; }
+.fw-witness-card { --witness-color: var(--fw-drawer-accent); position: relative; min-width: 0; overflow: hidden; border: 1px solid rgba(255,255,255,.15); background: radial-gradient(circle at 100% 0,color-mix(in srgb,var(--witness-color) 14%,transparent),transparent 40%),rgba(255,255,255,.025); }
+.fw-witness-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--witness-color); opacity: .72; }
+.fw-witness-card.is-unread { border-color: color-mix(in srgb,var(--witness-color) 62%,rgba(255,255,255,.18)); box-shadow: inset 0 0 28px color-mix(in srgb,var(--witness-color) 7%,transparent); }
+.fw-witness-main { min-width: 0; padding: 14px 14px 13px 16px; }
+.fw-witness-top { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--witness-color); font: 850 8px/1 'Barlow Condensed',sans-serif; letter-spacing: .12em; }
+.fw-witness-top span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fw-witness-top em { flex: 0 0 auto; padding: 4px 6px; color: #050607; background: var(--witness-color); font: 900 7px/1 'Barlow Condensed',sans-serif; font-style: normal; letter-spacing: .1em; }
+.fw-witness-card h4 { margin: 11px 0 0; color: #fff; font: 900 20px/.94 'Archivo',sans-serif; letter-spacing: -.045em; overflow-wrap: anywhere; text-transform: uppercase; }
+.fw-witness-identity { min-width: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 8px; margin-top: 9px; }
+.fw-witness-identity strong { color: #f4f4ef; font: 900 11px/1.1 'Barlow Condensed',sans-serif; letter-spacing: .035em; }
+.fw-witness-identity span { color: rgba(255,255,255,.55); font: 750 8px/1.2 'Barlow Condensed',sans-serif; letter-spacing: .085em; overflow-wrap: anywhere; }
+.fw-witness-main > p { margin: 10px 0 0; padding-top: 10px; color: rgba(255,255,255,.66); border-top: 1px solid rgba(255,255,255,.1); font: 750 9px/1.35 'Barlow Condensed',sans-serif; letter-spacing: .06em; }
+.fw-witness-main > small { display: block; margin-top: 8px; color: rgba(255,255,255,.44); font: 700 7px/1.3 'Barlow Condensed',sans-serif; letter-spacing: .09em; overflow-wrap: anywhere; }
+.fw-witness-actions { min-width: 0; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); border-top: 1px solid rgba(255,255,255,.11); }
+.fw-witness-actions > * { min-width: 0; min-height: 44px; display: flex; align-items: center; justify-content: center; padding: 5px 7px; border: 0; color: rgba(255,255,255,.7); background: transparent; cursor: pointer; font: 800 7px/1.2 'Barlow Condensed',sans-serif !important; letter-spacing: .075em; text-align: center; text-decoration: none; overflow-wrap: anywhere; }
+.fw-witness-actions > * + * { border-left: 1px solid rgba(255,255,255,.11); }
+.fw-witness-actions > *:hover, .fw-witness-actions > *:focus-visible, .fw-witness-actions button[aria-pressed='true'] { color: #fff; background: color-mix(in srgb,var(--witness-color) 12%,transparent); }
+.fw-witness-actions button[aria-pressed='true'] { color: var(--witness-color); }
+.fw-witness-empty { padding: 18px; color: rgba(255,255,255,.58); border: 1px dashed rgba(255,255,255,.18); font: 700 10px/1.5 'Barlow Condensed',sans-serif; letter-spacing: .055em; }
+.fw-witness-empty b { display: block; margin-bottom: 7px; color: #f4f4ef; font-size: 8px; letter-spacing: .13em; }
 .fw-drawer-foot { padding: 14px 18px calc(14px + env(safe-area-inset-bottom)); color: rgba(255,255,255,.68); border-top: 1px solid rgba(255,255,255,.13); background: rgba(0,0,0,.24); font: 700 8px/1.5 'Barlow Condensed',sans-serif; letter-spacing: .1em; }
 
 .fw-world-pulse {
@@ -210,6 +236,21 @@ html.fw-open .fw-drawer { transform: none; }
 .fw-player-tools button { border: 1px solid currentColor; padding: 15px 18px; color: inherit; background: transparent; cursor: pointer; text-transform: uppercase; font-size: 10px; font-weight: 900; letter-spacing: .12em; }
 .fw-player-tools button[aria-pressed='true'] { color: #fff; border-color: var(--team,var(--fw-accent)); background: var(--team,var(--fw-accent)); }
 
+.fw-player-chronicle { min-width: 0; padding: clamp(56px,8vw,120px) clamp(24px,5vw,76px); color: #f3f1e9; border-bottom: 1px solid rgba(255,255,255,.18); background: radial-gradient(circle at 100% 0,color-mix(in srgb,var(--team,var(--fw-accent)) 14%,transparent),transparent 38%),#111313; }
+.fw-player-chronicle-head { display: flex; align-items: end; justify-content: space-between; gap: 32px; }
+.fw-player-chronicle .section-number { color: color-mix(in srgb,var(--team,var(--fw-accent)) 78%,#fff); }
+.fw-player-chronicle h2 { max-width: 900px; margin: 0; color: #f3f1e9; font: 900 clamp(42px,6vw,92px)/.88 var(--display,'Archivo',sans-serif); letter-spacing: -.065em; text-transform: uppercase; }
+.fw-player-chronicle-head > strong { flex: 0 0 auto; padding-bottom: 8px; color: rgba(255,255,255,.58); font: 850 9px/1.3 'Barlow Condensed',sans-serif; letter-spacing: .13em; }
+.fw-player-chronicle-boundary { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: 18px; margin-top: 34px; padding: 17px 0; border-top: 1px solid rgba(255,255,255,.18); border-bottom: 1px solid rgba(255,255,255,.18); }
+.fw-player-chronicle-boundary b { color: var(--team,var(--fw-accent)); font: 900 9px/1.35 'Barlow Condensed',sans-serif; letter-spacing: .14em; }
+.fw-player-chronicle-boundary span { color: rgba(255,255,255,.63); font: 700 10px/1.5 'Barlow Condensed',sans-serif; letter-spacing: .075em; overflow-wrap: anywhere; }
+.fw-player-chapter { max-width: 900px; margin: 30px 0 0; color: rgba(255,255,255,.72); font: 650 clamp(16px,1.8vw,24px)/1.45 var(--body,'Archivo',sans-serif); }
+.fw-player-chapter b { display: block; margin-bottom: 9px; color: var(--team,var(--fw-accent)); font: 900 8px/1 'Barlow Condensed',sans-serif; letter-spacing: .15em; }
+.fw-player-chronicle-list { min-width: 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 34px; }
+.fw-player-chronicle-empty { grid-column: 1/-1; min-height: 190px; display: grid; place-content: center; gap: 12px; padding: 34px; border: 1px dashed rgba(255,255,255,.22); text-align: center; }
+.fw-player-chronicle-empty b { color: #fff; font: 900 clamp(20px,3vw,36px)/.95 'Archivo',sans-serif; letter-spacing: -.035em; }
+.fw-player-chronicle-empty span { max-width: 70ch; color: rgba(255,255,255,.58); font: 700 10px/1.55 'Barlow Condensed',sans-serif; letter-spacing: .065em; }
+
 .fw-toast { position: fixed; z-index: 2147483000; left: 50%; bottom: max(24px,env(safe-area-inset-bottom)); max-width: calc(100vw - 32px); padding: 12px 15px; color: #050607; background: #f3f1e9; box-shadow: 0 16px 40px rgba(0,0,0,.4); transform: translate(-50%,18px); opacity: 0; pointer-events: none; transition: opacity .18s,transform .18s; font: 800 8px/1.3 'Barlow Condensed',sans-serif; letter-spacing: .12em; text-align: center; }
 .fw-toast.show { opacity: 1; transform: translate(-50%,0); }
 
@@ -217,7 +258,7 @@ html.fw-open .fw-drawer { transform: none; }
   .fw-world-pulse { left: 12px; bottom: 82px; width: min(500px,calc(100vw - 24px)); }
 }
 @media (max-width: 760px) {
-  .fw-trigger { top: 14px; right: 126px; min-width: 66px; min-height: 34px; padding: 0 8px; font-size: 7px; letter-spacing: .1em; }
+  .fw-trigger { top: 11px; right: 126px; min-width: 66px; min-height: 44px; padding: 0 8px; font-size: 7px; letter-spacing: .1em; }
   .fw-trigger::before { width: 5px; height: 5px; margin-right: 5px; }
   .fw-world-pulse { top: 140px; right: 10px; bottom: auto; left: 10px; width: auto; min-height: 61px; grid-template-columns: 48px minmax(0,1fr) 48px; }
   .fw-pulse-mark strong { font-size: 14px; }
@@ -234,13 +275,20 @@ html.fw-open .fw-drawer { transform: none; }
   .fw-story-card h3 { font-size: 31px; }
   .fw-drawer { width: 100vw; border-left: 0; }
   .fw-moment-actions a { min-height: 44px; }
+  .fw-player-chronicle-list { grid-template-columns: 1fr; }
+  .fw-player-chronicle-head { display: grid; align-items: start; }
+  .fw-player-chronicle-boundary { grid-template-columns: 1fr; gap: 8px; }
   [data-fw-page='player'] .fw-trigger { top: 74px; right: 10px; }
 }
 @media (max-width: 420px) {
   .fw-trigger { right: 126px; min-width: 72px; }
+  .fw-trigger-new { margin-left: 5px; padding: 0 4px; font-size: 6px; }
   .fw-world-pulse { top: 134px; }
   .fw-star-duel { grid-template-columns: 1fr; }
   .fw-star:last-child { text-align: left; }
+  .fw-witness-actions { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .fw-witness-actions > *:nth-child(3) { border-left: 0; border-top: 1px solid rgba(255,255,255,.11); }
+  .fw-witness-actions > *:nth-child(4) { border-top: 1px solid rgba(255,255,255,.11); }
 }
 @media (prefers-reduced-motion: reduce) {
   .fw-backdrop, .fw-drawer, .fw-world-pulse, .fw-toast { transition-duration: .01ms !important; }
