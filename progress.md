@@ -996,3 +996,48 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   exact two-tab A-preflight → B-commit → A-commit fork converging to both receipts. Current bytes pass 22/22
   Chronicle/store tests, the complete `npm run verify` gate with 1,517/1,517 repository
   checks, football brain/rules 28/28, standalone syntax and `git diff --check`.
+## Basketball Signature Matchup Engine — 2026-07-16
+- Replaced Basketball's rotating call list and flat play bonuses with a pure deterministic `BasketballBrain`.
+  All eight canonical High Room clubs have distinct motion-derived offense and defense rankings; every active
+  athlete resolves through an exact canonical team/athlete reference and bounded role, archetype, signature and
+  temperament evidence. Sixth Sparks remain bench-only and no audience, fan-heat, merch, odds or wager input can
+  alter the sport.
+- Offense and defense now choose independently from the same pre-possession situation and completed history; neither
+  coordinator receives the other side's current call. Immutable team-scoped memory learns only after a certified
+  make, turnover, defensive stop, completed free-throw trip or period end, and possession IDs make every terminal
+  idempotent. Offensive rebounds and individual free throws keep the original possession open; technical resets
+  teach nothing.
+- Live possessions turn physical geometry into decisions: ballhandlers rank only legal finish, floater, roller and
+  help-side kick windows; real screen contact can create advantage; SWITCH changes persistent assignments only after
+  contact; and shot quality is bounded from kind, distance, space, contest, created advantage, rim protection and
+  court role instead of a scripted play-result bonus.
+- Stoopy and Toque keep their exact paired gifts and flaws without accuracy inflation. Stoopy's Moving Architecture
+  changes only a connected screen or a physical rim-side boxout, while a second effort within 0.46 seconds exposes
+  the authored late-jump counter. Toque's Whiteout Release shortens only a catch-to-release window created by a real
+  screen; two or more traffic bodies reverse it into `SCREEN_TRAFFIC_LOST`. Exact browser scenarios prove the screen,
+  boxout, counter, clean release and traffic counter with their causal evidence and visible cyan/pink athletes.
+- Reworked FLOPPY spacing, physical staggered screens, screen-pocket diagnostics, rebound participation and tactical
+  chalk so one bright route communicates the current action. The causal identity strip is multiline instead of
+  clipped, remains 10px on 390×844 and 11px at 844×390, and stays above the vignette/ticker. Eight portrait/landscape
+  Founder scenarios have zero overflow, HUD collision, console, page, request or HTTP errors.
+- Closed the full possession lifecycle: blocked attempts count as attempts and open a fresh rebound race, the final
+  missed free throw stays live, offensive boards retain the token, defensive boards certify it, and every final
+  period closes once. A release soak found and repaired the exact offensive-board → block stale-rebound edge rather
+  than tolerating a watchdog void.
+- Senior adversarial review then closed three P1s before handoff. Brain-created profiles are now team-bound at every
+  live-read and shot boundary; legal pass targets, outcome teams and actors require exact canonical references; and
+  certified scoring is bounded to the simulation's legal five-point maximum. The horn now kills an unreleased drive,
+  windup, rebound and simultaneous shot-clock expiry without opening another token, while a shot already in flight
+  may finish once. On phones, BUCKET/SLAM feedback immediately replaces the tactical card, remains fully contained,
+  then yields the space back after its hold.
+- The frozen exact-source four-fixture soak covers all eight clubs and exercises all nine calls plus all five
+  coverages. Melbourne–Dakar finishes with 40 calls/40 memories, New York–Toronto 41/41, Belgrade–Manila 48/48 and
+  Istanbul–Medellín 43/43; all have zero void resets, finite state and plausible FG/FT totals. A fresh independent
+  New York–Toronto repeat matches the complete deterministic sport state byte-for-byte, and the long Istanbul final
+  heading remains unobstructed because the live Game Plan yields to the final card.
+- The official web-game client produces a finite live-join frame with completed adaptive history and no error
+  artifact. The permanent suite adds twelve Basketball brain contracts plus clean-block, horn and scoring-priority
+  invariants; the complete gate passes 13 API, 11 athlete-moment, 15 named-memory, 5 broadcast-spine, 5 football
+  replay-memory, 12
+  Basketball brain and 16 shared visual/live tests plus 1,463/1,463 static/data checks and 28/28 football rules/brain
+  tests. This remains an isolated, undeployed feature slice for Release Manager audit.

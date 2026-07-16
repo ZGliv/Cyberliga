@@ -74,7 +74,7 @@
   #scanlines { position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, transparent 1px 3px); mix-blend-mode:overlay; }
   #watermark { position:absolute; bottom:46px; right:18px; font-family:'Orbitron'; font-weight:900; font-size:13px; letter-spacing:4px; color:rgba(255,170,100,.45); }
   #gameplan {
-    position:absolute; top:118px; left:20px; width:248px; overflow:hidden;
+    position:absolute; top:118px; left:20px; width:272px; overflow:hidden; z-index:12;
     border:1px solid rgba(255,138,61,.24); border-radius:12px;
     background:linear-gradient(145deg,rgba(5,9,22,.9),rgba(8,12,28,.72));
     box-shadow:0 18px 45px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.06);
@@ -93,7 +93,8 @@
   #qualitylabel { color:#d9e6f8; }
   #qualitybar { height:4px; margin-top:6px; overflow:hidden; border-radius:9px; background:rgba(255,255,255,.08); }
   #qualityfill { height:100%; width:0; border-radius:inherit; background:#8b9bb2; box-shadow:0 0 10px currentColor; transition:width .18s,color .18s,background .18s; }
-  #actionread { padding:8px 11px 10px; border-top:1px solid rgba(255,255,255,.06); font:700 10px/1.15 'Rajdhani',sans-serif; letter-spacing:1.25px; color:#8fa1bb; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #actionread { padding:8px 11px 7px; border-top:1px solid rgba(255,255,255,.06); font:700 10px/1.2 'Rajdhani',sans-serif; letter-spacing:1.1px; color:#8fa1bb; white-space:normal; overflow-wrap:anywhere; }
+  #identityread { padding:0 11px 10px; font:800 11px/1.18 'Rajdhani',sans-serif; letter-spacing:1.1px; color:#9fffe0; white-space:normal; overflow-wrap:anywhere; }
 
   #badge {
     position:absolute;
@@ -114,6 +115,8 @@
 
   #bigcard { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(2,3,10,.45); backdrop-filter:blur(3px); }
   #bigcard.show { display:flex; }
+  body:has(#bigcard.show) #gameplan,
+  body:has(#flash.show) #gameplan { opacity:0; visibility:hidden; }
   #bigcard .panel { background:linear-gradient(180deg, rgba(8,12,28,.97), rgba(3,5,14,.97)); border:1px solid rgba(255,138,61,.35); border-radius:14px; padding:30px 48px; text-align:center; box-shadow:0 0 60px rgba(255,138,61,.18); min-width:420px; }
   #bigcard h1 { font-family:'Orbitron'; font-size:30px; letter-spacing:8px; color:#ffb87a; margin-bottom:10px; text-shadow:0 0 18px rgba(255,138,61,.5); }
   #bigcard h2 { font-family:'Orbitron'; font-size:24px; color:#fff; margin-bottom:14px; letter-spacing:2px; }
@@ -167,6 +170,7 @@
       box-shadow:0 12px 28px rgba(0,0,0,.38);
     }
     #flashtext { flex:0 0 auto; max-width:42vw; font-size:20px; letter-spacing:2px; line-height:1; text-align:left; overflow-wrap:anywhere; }
+    #flash.show #flashtext { animation:none; }
     #flashsub { min-width:0; max-width:none; margin:0; padding:0; font-size:10px; letter-spacing:1.25px; line-height:1.12; text-align:left; }
     #bigcard { z-index:80; padding:12px; }
     #bigcard .panel {
@@ -184,8 +188,9 @@
     #watermark { display:none; }
     #gameplan {
       top:calc(env(safe-area-inset-top, 0px) + 147px); left:50%; transform:translateX(-50%);
-      width:auto; min-width:230px; max-width:calc(100vw - 20px); border-radius:999px;
-      display:flex; align-items:center; padding:0 5px; background:rgba(5,9,22,.8);
+      width:calc(100vw - 20px); min-width:0; max-width:430px; border-radius:14px; z-index:58;
+      display:flex; flex-wrap:wrap; align-items:center; justify-content:center; padding:0 5px;
+      background:rgba(5,9,22,.94); box-shadow:0 8px 24px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.06);
     }
     .gphead { padding:6px 7px; border:0; }
     .gphead #possessions { display:none; }
@@ -193,6 +198,12 @@
     .gpkey { display:none; }
     .gpvalue { font-size:10px; letter-spacing:.75px; max-width:100px; }
     #qualityrow,#actionread { display:none; }
+    #identityread {
+      display:block; flex:1 0 100%; min-width:0; padding:5px 8px 7px;
+      border-top:1px solid rgba(255,255,255,.08); text-align:center;
+      font-size:10px; line-height:1.12; letter-spacing:.75px; color:#a9ffe5;
+      white-space:normal; overflow-wrap:anywhere;
+    }
   }
   @media (max-width:380px) {
     #badge { left:calc(env(safe-area-inset-left, 0px) + 8px); }
@@ -226,6 +237,7 @@
     <div class="gprow"><span class="gpkey">COVER</span><span class="gpvalue" id="coverage">MAN</span></div>
     <div id="qualityrow"><div id="qualitymeta"><span>SHOT READ</span><span id="qualitylabel">BUILDING</span></div><div id="qualitybar"><div id="qualityfill"></div></div></div>
     <div id="actionread">FIVE OUT · FLOWING TO THE SCREEN</div>
+    <div id="identityread">IDENTITY READ · WAITING FOR THE FIRST CALL</div>
   </div>
   <div id="vignette"></div><div id="scanlines"></div>
   <div id="watermark">CYBERLIGA HOOPS</div>
@@ -254,6 +266,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { buildBlobRig, CLASSIC_PLAYER_COLORS, classicPlayerColor } from './blobrig.js';
+import { createBasketballBrain } from './basketballbrain.js';
 
 const classicSideVisual = side => classicPlayerColor(Number(side) % CLASSIC_PLAYER_COLORS.length);
 
@@ -282,12 +295,13 @@ const ROLE_NAMES=['POINT','WING','SHOOTER','FORWARD','CENTER'];
 
 const HOOPS_CONTENT=window.CYBERLIGA_CONTENT;
 const HOOPS_BRAND=window.CyberligaBrand;
+const HOOPS_BRAIN=createBasketballBrain({content:HOOPS_CONTENT,characters:window.CyberligaCharacters});
 const HOOPS_TEAMS=HOOPS_CONTENT.getTeams('basketball');
 const TEAMS=HOOPS_TEAMS.map(team=>{const hex=Number.parseInt(team.colors.primary.slice(1),16);return {
   id:team.id,name:team.name,code:team.code,css:team.colors.primary,col:hex,glow:hex,
   secondary:team.colors.secondary,secondaryCol:Number.parseInt(team.colors.secondary.slice(1),16),
   accent:team.colors.accent,accentCol:Number.parseInt(team.colors.accent.slice(1),16),
-  motif:team.motif,texture:team.texture,motion:team.motion,roster:team.athletes,source:team,
+  motif:team.motif,texture:team.texture,motion:team.motion,roster:team.athletes,source:team,dna:HOOPS_BRAIN.deriveTeamDNA(team),
   brand:HOOPS_BRAND?.getTeam(team.id)||{venue:'HOME COURT',venueLine:team.city,ritual:'The home end carries the signal.',statement:team.motion,mark:'pulse',scene:'megacity',kitPattern:'pulse'}
 };});
 const FIXTURES=HOOPS_CONTENT.createSeason('basketball','arena').rounds.flatMap(round=>round.matches.map(match=>[HOOPS_TEAMS.findIndex(t=>t.id===match.homeId),HOOPS_TEAMS.findIndex(t=>t.id===match.awayId)]));
@@ -309,15 +323,15 @@ const tuneInMeta={
 };
 
 const PLAYBOOKS=[
-  {id:'EARLY_DRAG',label:'EARLY DRAG',short:'TRANSITION',desc:'Point pushes, center drags a screen into two filled lanes.',bonus:.045,actions:[['screen',4,'DRAG SCREEN'],['drive',0,'TURN THE CORNER']]},
-  {id:'HIGH_PNR',label:'HIGH PICK & ROLL',short:'HIGH PNR',desc:'High ball screen with a live roll, pull-up, and weak-side kick read.',bonus:.07,actions:[['screen',4,'HIGH SCREEN'],['drive',0,'ROLL / PULL-UP READ']]},
-  {id:'HORNS',label:'HORNS TWIST',short:'HORNS',desc:'Twin elbows, an entry pass, and an interchange behind the action.',bonus:.055,actions:[['hold',4,'HORNS ELBOWS'],['pass',3,'ELBOW ENTRY'],['cut',0,'TWIST CUT'],['drive',3,'ELBOW ATTACK']]},
-  {id:'FLOPPY',label:'FLOPPY',short:'FLOPPY',desc:'Shooter chooses a side and flies off two staggered screens.',bonus:.09,actions:[['hold',3,'DOUBLE STAGGER'],['cut',2,'SHOOTER CURL'],['pass',2,'HIT THE CURL'],['shoot',2,'CATCH AND FIRE']]},
-  {id:'SPAIN',label:'SPAIN PICK & ROLL',short:'SPAIN PNR',desc:'Center screens the ball while the shooter back-screens the roller.',bonus:.085,actions:[['screen',4,'BALL SCREEN'],['screen',2,'BACK-SCREEN THE ROLLER'],['drive',0,'LOB / KICK READ']]},
-  {id:'GHOST',label:'GHOST ACTION',short:'GHOST',desc:'Shooter fakes the screen, slips to space, and forces a switch decision.',bonus:.075,actions:[['screen',2,'GHOST THE SCREEN'],['cut',2,'POP TO DAYLIGHT'],['pass',2,'PITCH BACK'],['shoot',2,'QUICK RELEASE']]},
-  {id:'POST_SPLIT',label:'POST SPLIT',short:'POST SPLIT',desc:'Center catches on the block while point and shooter split above.',bonus:.06,actions:[['pass',4,'FEED THE POST'],['cut',0,'SPLIT CUT'],['hold',2,'RE-SCREEN'],['drive',4,'POWER MIDDLE']]},
-  {id:'CHICAGO',label:'CHICAGO ACTION',short:'PIN + HANDOFF',desc:'A pindown flows directly into a handoff, curl, and short-roll read.',bonus:.07,actions:[['screen',3,'PIN DOWN THE WING'],['cut',2,'CURL TO THE HANDOFF'],['pass',2,'HANDOFF WINDOW'],['drive',2,'TURN THE CORNER']]},
-  {id:'FIVE_OUT',label:'FIVE-OUT DELAY',short:'5-OUT',desc:'The center facilitates above the arc while all four lanes stay occupied.',bonus:.065,actions:[['pass',4,'DELAY ENTRY'],['cut',1,'45 CUT'],['hold',0,'CLEAR THE STRONG SIDE'],['drive',4,'KEEP OR BACKDOOR']]}
+  {id:'EARLY_DRAG',label:'EARLY DRAG',short:'TRANSITION',desc:'Point pushes, center drags a screen into two filled lanes.',crash:3,actions:[['screen',4,'DRAG SCREEN'],['drive',0,'TURN THE CORNER']]},
+  {id:'HIGH_PNR',label:'HIGH PICK & ROLL',short:'HIGH PNR',desc:'High ball screen with a live roll, pull-up, and weak-side kick read.',crash:2,actions:[['screen',4,'HIGH SCREEN'],['drive',0,'ROLL / PULL-UP READ']]},
+  {id:'HORNS',label:'HORNS TWIST',short:'HORNS',desc:'Twin elbows, an entry pass, and an interchange behind the action.',crash:3,actions:[['hold',4,'HORNS ELBOWS'],['pass',3,'ELBOW ENTRY'],['cut',0,'TWIST CUT'],['drive',3,'ELBOW ATTACK']]},
+  {id:'FLOPPY',label:'FLOPPY',short:'FLOPPY',desc:'Shooter chooses a side and flies off two staggered screens.',crash:1,actions:[['screen',3,'DOUBLE STAGGER'],['cut',2,'SHOOTER CURL'],['pass',2,'HIT THE CURL'],['shoot',2,'CATCH AND FIRE']]},
+  {id:'SPAIN',label:'SPAIN PICK & ROLL',short:'SPAIN PNR',desc:'Center screens the ball while the shooter back-screens the roller.',crash:2,actions:[['screen',4,'BALL SCREEN'],['screen',2,'BACK-SCREEN THE ROLLER'],['drive',0,'LOB / KICK READ']]},
+  {id:'GHOST',label:'GHOST ACTION',short:'GHOST',desc:'Shooter fakes the screen, slips to space, and forces a switch decision.',crash:1,actions:[['screen',2,'GHOST THE SCREEN'],['cut',2,'POP TO DAYLIGHT'],['pass',2,'PITCH BACK'],['shoot',2,'QUICK RELEASE']]},
+  {id:'POST_SPLIT',label:'POST SPLIT',short:'POST SPLIT',desc:'Center catches on the block while point and shooter split above.',crash:3,actions:[['pass',4,'FEED THE POST'],['cut',0,'SPLIT CUT'],['hold',2,'RE-SCREEN'],['drive',4,'POWER MIDDLE']]},
+  {id:'CHICAGO',label:'CHICAGO ACTION',short:'PIN + HANDOFF',desc:'A pindown flows directly into a handoff, curl, and short-roll read.',crash:2,actions:[['screen',3,'PIN DOWN THE WING'],['cut',2,'CURL TO THE HANDOFF'],['pass',2,'HANDOFF WINDOW'],['drive',2,'TURN THE CORNER']]},
+  {id:'FIVE_OUT',label:'FIVE-OUT DELAY',short:'5-OUT',desc:'The center facilitates above the arc while all four lanes stay occupied.',crash:1,actions:[['pass',4,'DELAY ENTRY'],['cut',1,'45 CUT'],['hold',0,'CLEAR THE STRONG SIDE'],['drive',4,'KEEP OR BACKDOOR']]}
 ];
 const COVERAGES=[
   {id:'MAN',label:'MAN TO MAN',desc:'Stay attached and keep the ball out of the middle.',rim:.02,steal:.035,rebound:.08},
@@ -336,6 +350,10 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 document.body.appendChild(renderer.domElement);
+// The official deterministic QA client falls back to an element screenshot when
+// a WebGL canvas cannot safely read back its default framebuffer. Headless
+// Chromium can otherwise stall inside toDataURL for this post-processed arena.
+if(query.get('manual')==='1')renderer.domElement.toDataURL=()=>'';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x02030a);
@@ -617,9 +635,13 @@ for(let i=0;i<5;i++){
 const $=id=>document.getElementById(id);
 const elScore=$('score'), elSA=$('sA'), elSB=$('sB'), elClock=$('clock'), elQtr=$('qtr'), elSclock=$('sclock'), elStatus=$('playstatus');
 const elFlash=$('flash'), elFT=$('flashtext'), elFS=$('flashsub'), elTicker=$('tickertext'), elCard=$('bigcard'), elPanel=$('cardpanel');
-const elScheme=$('scheme'), elCoverage=$('coverage'), elPossessions=$('possessions'), elQuality=$('qualitylabel'), elQualityFill=$('qualityfill'), elAction=$('actionread');
+const elScheme=$('scheme'), elCoverage=$('coverage'), elPossessions=$('possessions'), elQuality=$('qualitylabel'), elQualityFill=$('qualityfill'), elAction=$('actionread'), elIdentity=$('identityread');
 let flashTimer=0;
 function flashMsg(big, sub, color, duration=.8){
+  // Scoring feedback must be visible on its first frame; the text's slam
+  // animation supplies motion without a fade that can remain occluded on phones.
+  elFlash.style.transition='none';
+  elFlash.style.removeProperty('opacity');
   elFT.textContent=big; elFS.textContent=sub; elFlash.style.setProperty('--fc', color);
   elFlash.classList.add('show'); flashTimer=duration;
 }
@@ -647,6 +669,7 @@ function updateGamePlan(){
   const scheme=PLAYBOOK_BY_ID[play.schemeId]||PLAYBOOKS[0], cover=COVERAGE_BY_ID[play.coverageId]||COVERAGES[0];
   elScheme.textContent=scheme.label; elCoverage.textContent=cover.label;
   elPossessions.textContent=`POSS ${play.possessionNo}`; elAction.textContent=[play.actionLabel||scheme.desc,play.decision].filter(Boolean).join(' · ');
+  elIdentity.textContent=play.identityRead?.copy||play.offensePlan?.identityCue||'IDENTITY READ · BUILDING';
   const q=play.shotQuality||0, label=qualityLabel(q), color=q>=.68?'#6dffc0':q>=.54?'#b9ff6d':q>=.41?'#ffd36d':q>0?'#ff6d70':'#73849f';
   elQuality.textContent=label; elQuality.style.color=color; elQualityFill.style.width=`${Math.round(q*100)}%`; elQualityFill.style.background=color; elQualityFill.style.color=color;
 }
@@ -708,16 +731,19 @@ function makeTeam(def, dir, side){
     const signature=addHoopsSilhouette(rig,r,playerColor);
     scene.add(rig.group);
     const renderScale=identityScale(athlete,shape),identity=hash32(athlete.id);
+    const profile=HOOPS_BRAIN.derivePlayerProfile({team:def.source,athlete,courtRole:shape.label});
+    if(!profile)throw new Error(`Canonical basketball profile rejected: ${athlete.id}/${shape.label}`);
     signature.group.rotation.y=((identity%7)-3)*.08;
     signature.group.scale.set(.9+((identity>>>5)%5)*.05,.9+((identity>>>8)%4)*.06,.9+((identity>>>11)%5)*.04);
-    players.push({ rig,signature,athlete,side,teamPlayerIndex,role:r,roleName:shape.label,name:athlete.name,td:def,
+    players.push({ rig,signature,athlete,profile,side,teamPlayerIndex,role:r,roleName:shape.label,name:athlete.name,td:def,
       pos:V3(-dir*(2.2+r*1.7),0,(r-2)*2.7),vel:V3(),heading:dir>0?Math.PI/2:-Math.PI/2,
-      jumpY:0,jumpV:0,air:false,squash:0,pts:0,ast:0,reb:0,fouls:0,fgm:0,fga:0,threes:0,
+      jumpY:0,jumpV:0,air:false,squash:0,pts:0,ast:0,reb:0,boxOuts:0,fouls:0,fgm:0,fga:0,threes:0,fta:0,ftm:0,
       contest:false,screened:0,ph:rand()*6.28,target:V3(),sprint:shape.speed,shape,renderScale,
+      lastLandingAt:-99,catchAt:-99,signatureState:null,
       // Collision spacing is intentionally wider than the rendered body.
       bodyRadius:.66+(r>=3?.06:0) });
   }
-  return {def,dir,score:0,steals:0,blocks:0,turnovers:0,rebounds:0,assists:0,fouls:0,fgm:0,fga:0,players,bench:def.roster[5]};
+  return {def,dir,score:0,steals:0,blocks:0,turnovers:0,rebounds:0,assists:0,fouls:0,fgm:0,fga:0,fta:0,ftm:0,players,bench:def.roster[5]};
 }
 function disposeTeams(){
   for (const t of teams) for (const p of t.players){ scene.remove(p.rig.group); p.signature.material.forEach(m=>m.dispose()); p.rig.dispose(); }
@@ -733,6 +759,9 @@ const play={state:'BRINGUP',t:0,offense:0,passes:0,wait:.55,windKind:'jumper',wi
   createdAdvantage:0,paintTouches:0,decision:'ORGANIZE',helpPlayer:null,helpTarget:null,kickTarget:null,
   catchAndShoot:null,catchKind:'jumper',screenContact:false,driveStart:null,readMade:false,
   shootingFoulPending:false,foulDefender:null,lastOutcome:'TIP',outcomeRecorded:false,
+  pointsThisPossession:0,possessionToken:'',shotAttempt:null,shotEvaluation:null,pendingFreeThrowTrip:null,offensePlan:null,defensePlan:null,identityRead:null,
+  screenEvidence:[],defensiveAssignments:[0,1,2,3,4],
+  voidResets:0,lastVoidReset:null,
   teamFouls:[0,0],schemeResults:{},coverageResults:{},seenSchemes:new Set(),seenCoverages:new Set(),
   inbound:null,inboundsCompleted:0,lastInbound:null};
 function setState(s){ play.state=s; play.t=0; }
@@ -741,6 +770,8 @@ const atkRim=t=>V3(t.dir*RIM_X, RIM_Y, 0);
 const carrier=()=>ball.holder;
 let quarterPending=false;
 let completedGames=0, lastFinal=null;
+const HORN_CONTINUATION_STATES=Object.freeze(['SHOT','FREE_THROW','MADE']);
+let hoopsBrainMemories=[],hoopsBrainFixtureId='';
 let establishingHold=false,establishingTimer=0;
 function holdForEstablishing(){clearTimeout(establishingTimer);establishingHold=true;establishingTimer=setTimeout(()=>{establishingHold=false;},3050);}
 function releaseEstablishingHold(removeOverlay=false){clearTimeout(establishingTimer);establishingTimer=0;establishingHold=false;if(removeOverlay)window.CyberligaEstablishing?.remove();}
@@ -828,21 +859,32 @@ function updateCenterCube(){
 }
 function fmtGameClock(value){const m=Math.floor(value/60),s=String(Math.floor(value%60)).padStart(2,'0');return `${m}:${s}`;}
 
-function callPossession(reason='INBOUND'){
+function callPossession(reason='INBOUND',constraints={}){
   play.inbound=null;
   play.possessionNo++;
-  let scheme=PLAYBOOKS[(play.possessionNo-1)%PLAYBOOKS.length];
-  let coverage=COVERAGES[(play.possessionNo-1)%COVERAGES.length];
-  const defending=teams[1-play.offense], attacking=teams[play.offense];
-  const margin=attacking.score-defending.score;
+  const defending=teams[1-play.offense], attacking=teams[play.offense],margin=attacking.score-defending.score;
   const liveBall=reason==='STEAL'||reason==='DEFENSIVE REBOUND'||reason==='BLOCK';
-  if(liveBall) scheme=PLAYBOOK_BY_ID.EARLY_DRAG;
-  else if(q>=4&&qClock<24) scheme=margin<-3?PLAYBOOK_BY_ID.GHOST:margin>3?PLAYBOOK_BY_ID.POST_SPLIT:PLAYBOOK_BY_ID.HIGH_PNR;
-  else if(defending.blocks>=2&&play.possessionNo%3===0) scheme=PLAYBOOK_BY_ID.FIVE_OUT;
-  else if(defending.steals>=2&&play.possessionNo%4===0) scheme=PLAYBOOK_BY_ID.POST_SPLIT;
-  if((scheme.id==='FLOPPY'||scheme.id==='GHOST'||scheme.id==='CHICAGO')&&play.possessionNo%2===0) coverage=COVERAGE_BY_ID.SWITCH;
-  else if((scheme.id==='HIGH_PNR'||scheme.id==='SPAIN')&&play.possessionNo%3===0) coverage=COVERAGE_BY_ID.DROP;
-  if(q>=4&&qClock<22&&defending.score<attacking.score) coverage=COVERAGE_BY_ID.PRESS;
+  const possessionToken=`${hoopsBrainFixtureId}:${play.offense}:${play.possessionNo}`;
+  const situation={
+    possessionId:possessionToken,quarter:q,gameClock:Math.max(0,qClock),shotClock:24,
+    offenseScore:attacking.score,defenseScore:defending.score,possessionReason:reason,transition:liveBall,
+    offenseTeamFouls:play.teamFouls[play.offense]||0,defenseTeamFouls:play.teamFouls[1-play.offense]||0
+  };
+  // Both coordinators see the same pre-possession snapshot and completed history.
+  // Neither receives the opponent's call for this possession.
+  const offensePlan=HOOPS_BRAIN.chooseOffense({
+    team:attacking.def.source,opponent:defending.def.source,lineup:attacking.players.map(p=>p.profile),
+    availableCalls:PLAYBOOK_BY_ID[constraints.schemeId]?[PLAYBOOK_BY_ID[constraints.schemeId]]:PLAYBOOKS,
+    situation,memory:hoopsBrainMemories[play.offense],rng:rand
+  });
+  const defensePlan=HOOPS_BRAIN.chooseDefense({
+    team:defending.def.source,opponent:attacking.def.source,lineup:defending.players.map(p=>p.profile),
+    availableCoverages:COVERAGE_BY_ID[constraints.coverageId]?[COVERAGE_BY_ID[constraints.coverageId]]:COVERAGES,
+    situation,memory:hoopsBrainMemories[1-play.offense],rng:rand
+  });
+  if(!offensePlan||!defensePlan)throw new Error('Basketball brain rejected a canonical possession');
+  const scheme=PLAYBOOK_BY_ID[offensePlan.callId],coverage=COVERAGE_BY_ID[defensePlan.coverageId];
+  const actor=attacking.players.find(p=>p.athlete.id===offensePlan.primaryAthleteId)||attacking.players[0];
   play.schemeId=scheme.id; play.coverageId=coverage.id; play.step=0; play.passes=0; play.wait=.48+rand()*.3;
   play.actionLabel=reason==='STEAL'?'NUMBERS ADVANTAGE · FIND THE OPEN LANE':scheme.actions[0][2];
   play.shotQuality=0; play.shotContext=''; play.lastPasser=null; play.lastPassAt=-99; play.possessionReason=reason;
@@ -852,9 +894,16 @@ function callPossession(reason='INBOUND'){
   play.decision=liveBall?'RIM RUN · BOTH WINGS WIDE':q>=4&&qClock<24?(margin<0?'CREATE A QUICK ADVANTAGE':'VALUE THE CLOCK'):'ORGANIZE';
   play.helpPlayer=null;play.helpTarget=null;play.kickTarget=null;play.catchAndShoot=null;play.catchKind='jumper';
   play.screenContact=false;play.driveStart=null;play.readMade=false;play.shootingFoulPending=false;play.foulDefender=null;
-  play.lastOutcome='LIVE';play.outcomeRecorded=false;
+  play.lastOutcome='LIVE';play.outcomeRecorded=false;play.pointsThisPossession=0;play.possessionToken=possessionToken;play.shotAttempt=null;play.shotEvaluation=null;play.pendingFreeThrowTrip=null;
+  play.reboundClaimed=false;play.saidReb=false;
+  play.offensePlan=offensePlan;play.defensePlan=defensePlan;play.screenEvidence=[];play.defensiveAssignments=[0,1,2,3,4];
+  play.identityRead={
+    actorId:actor.athlete.id,actor:actor.name,teamId:attacking.def.id,teamMotion:attacking.def.motion,
+    intent:scheme.id,evidence:offensePlan.reasons.slice(),counter:coverage.id,outcome:'PLANNED',
+    copy:`${offensePlan.identityCue} · ${offensePlan.reasonLabel}`
+  };
   play.seenSchemes.add(scheme.id); play.seenCoverages.add(coverage.id);
-  say(`${attacking.def.name} CALL ${scheme.label} — ${defending.def.name} ANSWER WITH ${coverage.label}`);
+  say(`${attacking.def.name} CALL ${scheme.label} FROM ${attacking.def.motion} — ${defending.def.name} INDEPENDENTLY ANSWER WITH ${coverage.label}`);
   updateGamePlan();
 }
 
@@ -864,6 +913,11 @@ function newMatch(){
   seedSim(hash32(`${sessionKey}:basketball:${currentMatch}`));
   const fx=FIXTURES[currentMatch]; matchNo++;
   teams=[ makeTeam(TEAMS[fx[0]], 1, 0), makeTeam(TEAMS[fx[1]], -1, 1) ];
+  hoopsBrainFixtureId=`hps-${currentMatch}-${teams[0].def.id}-${teams[1].def.id}`;
+  hoopsBrainMemories=[
+    HOOPS_BRAIN.createMemory({fixtureId:hoopsBrainFixtureId,team:teams[0].def.source,opponent:teams[1].def.source}),
+    HOOPS_BRAIN.createMemory({fixtureId:hoopsBrainFixtureId,team:teams[1].def.source,opponent:teams[0].def.source})
+  ];
   floorMat.map?.dispose();
   floorMat.map=makeCourtTex(teams[0].def.css, teams[1].def.css, teams[0].def.brand); floorMat.needsUpdate=true;
   neonA.material.color.setHex(teams[0].def.glow); neonB.material.color.setHex(teams[1].def.glow);
@@ -876,6 +930,8 @@ function newMatch(){
     createdAdvantage:0,paintTouches:0,decision:'ORGANIZE',helpPlayer:null,helpTarget:null,kickTarget:null,
     catchAndShoot:null,catchKind:'jumper',screenContact:false,driveStart:null,readMade:false,
     shootingFoulPending:false,foulChecked:false,foulDefender:null,lastOutcome:'TIP',outcomeRecorded:false,
+    pointsThisPossession:0,possessionToken:'',shotAttempt:null,shotEvaluation:null,pendingFreeThrowTrip:null,offensePlan:null,defensePlan:null,identityRead:null,
+    screenEvidence:[],defensiveAssignments:[0,1,2,3,4],voidResets:0,lastVoidReset:null,
     teamFouls:[0,0],schemeResults:{},coverageResults:{},inbound:null,inboundsCompleted:0,lastInbound:null});
   play.seenSchemes.clear();play.seenCoverages.clear();
   Object.assign(ball,{state:'HELD',holder:null,passTo:null,pending:null,t:0,T:0,vy:0,shot:null,lastTeam:0,inbound:false,passer:null,passStealChecked:false});
@@ -907,6 +963,7 @@ function gainPossession(p, next, transitionReason='CHANGE'){
   if (p.side!==play.offense){ play.offense=p.side; shotClock=24; callPossession(transitionReason);
     for (const o of allPlayers()) o.contest=false; } // possession flip voids pending contests
   play.wait=.42+rand()*.34; play.decided=false; play.stealChecked=false;
+  p.catchAt=tGlobal;
   setState(next);
   if(play.catchAndShoot===p){
     const kind=play.catchKind||'jumper';play.catchAndShoot=null;play.catchKind='jumper'; play.decision=kind==='layup'?'ADVANTAGE PASS · FINISH':'ONE-MORE PASS · FEET SET';
@@ -964,7 +1021,7 @@ function releaseBaselineInbound(){
 }
 function forceTurnover(defender, victim){
   const oldSide=victim.side;
-  recordPossession('TURNOVER',0);
+  finishPossession('turnover',{actor:defender});
   teams[defender.side].steals++;
   teams[oldSide].turnovers++;
   ball.pos.set(defender.pos.x,1.05,defender.pos.z);
@@ -977,13 +1034,27 @@ function forceTurnover(defender, victim){
   play.actionLabel='LIVE-BALL RUNOUT · TWO LANES FILLED';
   gainPossession(defender,'BRINGUP');
 }
-function recordPossession(outcome,points=0){
-  if(play.outcomeRecorded)return;
-  play.outcomeRecorded=true;play.lastOutcome=outcome;
+function finishPossession(terminal,{actor=null,periodFinal=false,points=play.pointsThisPossession,reason=''}={}){
+  if(play.outcomeRecorded||!play.possessionToken)return false;
+  play.outcomeRecorded=true;play.lastOutcome=String(terminal||'void').replaceAll('_',' ').toUpperCase();
+  const certifiedPoints=Math.max(0,Math.trunc(Number(points)||0));
+  if(terminal==='void'){
+    play.voidResets++;play.lastVoidReset={token:play.possessionToken,state:play.state,reason:String(reason||'TECHNICAL RESET'),time:+tGlobal.toFixed(3)};
+    return true;
+  }
+  const attacking=teams[play.offense],defending=teams[1-play.offense];
+  const outcome={
+    possessionId:play.possessionToken,offenseTeam:attacking.def.source,defenseTeam:defending.def.source,
+    callId:play.schemeId,coverageId:play.coverageId,terminal,points:certifiedPoints,
+    shotQuality:play.shotQuality||0,actor:actor?.athlete||null,periodFinal:!!periodFinal
+  };
+  hoopsBrainMemories=hoopsBrainMemories.map(memory=>HOOPS_BRAIN.recordOutcome(memory,outcome));
   const sr=play.schemeResults[play.schemeId]||(play.schemeResults[play.schemeId]={possessions:0,points:0,turnovers:0,quality:0});
   const cr=play.coverageResults[play.coverageId]||(play.coverageResults[play.coverageId]={possessions:0,pointsAllowed:0,stops:0});
-  sr.possessions++;sr.points+=points;sr.quality+=play.shotQuality||0;if(outcome==='TURNOVER')sr.turnovers++;
-  cr.possessions++;cr.pointsAllowed+=points;if(points===0)cr.stops++;
+  sr.possessions++;sr.points+=certifiedPoints;sr.quality+=play.shotQuality||0;if(terminal==='turnover')sr.turnovers++;
+  cr.possessions++;cr.pointsAllowed+=certifiedPoints;if(certifiedPoints===0)cr.stops++;
+  if(play.identityRead)play.identityRead={...play.identityRead,outcome:terminal.toUpperCase(),copy:`${play.identityRead.copy} · ${terminal.replaceAll('_',' ').toUpperCase()}`};
+  return true;
 }
 function nearestDefenderTo(p){
   let best=null,dist=99;
@@ -999,42 +1070,25 @@ function bestKickTarget(driver){
   return teams[driver.side].players.filter(p=>p!==driver).map(p=>({p,open:opennessOf(p),rim:dxz(p.pos.x,p.pos.z,atkRim(teams[p.side]).x,0)}))
     .sort((a,b)=>(b.open+(b.rim>THREE_R?.3:0))-(a.open+(a.rim>THREE_R?.3:0)))[0];
 }
-function coverageMatchupBonus(kind){
-  const s=play.schemeId,c=play.coverageId;
-  let v=0;
-  if(s==='HIGH_PNR'&&c==='DROP')v+=kind==='jumper'?.075:-.03;
-  if(s==='SPAIN'&&c==='DROP')v+=kind==='layup'?.07:.025;
-  if(s==='GHOST'&&c==='SWITCH')v+=.065;
-  if(s==='POST_SPLIT'&&c==='SWITCH')v+=kind==='layup'?.06:.015;
-  if(s==='FLOPPY'&&c==='ZONE')v-=.045;
-  if(s==='EARLY_DRAG'&&play.transition)v+=.055;
-  return v;
-}
 function calculateShotQuality(sh,kind,dist,contest){
-  let quality=kind==='layup'?.72:kind==='floater'?.49:dist>THREE_R?.37:dist<4.2?.53:.46;
-  if(sh.role===2&&dist>THREE_R) quality+=.075;
-  if(sh.role===4&&kind==='layup') quality+=.07;
-  if(sh.role===0&&dist>3.5&&dist<6.2) quality+=.035;
-  quality+=(PLAYBOOK_BY_ID[play.schemeId]?.bonus||0);
-  quality+=coverageMatchupBonus(kind)+play.createdAdvantage*.42;
-  quality-=(COVERAGE_BY_ID[play.coverageId]?.rim||0)*(kind==='layup'?.72:kind==='floater'?.42:.12);
   const space=nearestDefenderTo(sh).dist;
-  quality+=clamp((space-1.45)*.055,-.045,.085);
-  if(play.actionLabel.includes('CATCH')||play.actionLabel.includes('QUICK')) quality+=.035;
-  quality-=contest*.26;
-  if(shotClock<4) quality-=.07;
-  if(q>=4&&qClock<12){
-    const margin=teams[sh.side].score-teams[1-sh.side].score;
-    if(margin<0&&Math.abs(margin)<=3&&dist>THREE_R)quality+=.025;
-    if(margin>0&&shotClock>8)quality-=.035;
-  }
-  return clamp(quality,.16,.84);
+  const evaluation=HOOPS_BRAIN.evaluateShot({
+    team:teams[sh.side].def.source,opponent:teams[1-sh.side].def.source,shooter:sh.profile,
+    situation:{quarter:q,gameClock:qClock,shotClock,offenseScore:teams[sh.side].score,defenseScore:teams[1-sh.side].score},
+    shot:{kind,distance:dist,space,contest,advantage:play.createdAdvantage,rimProtection:COVERAGE_BY_ID[play.coverageId]?.rim||0},
+    signature:sh.signatureState
+  });
+  if(!evaluation)throw new Error(`Basketball brain rejected shot by ${sh.athlete.id}`);
+  play.shotEvaluation=evaluation;
+  return evaluation.probability;
 }
 function commitCleanBlock(blocker,sh,tm){
   teams[blocker.side].blocks++;
   ball.holder=null; ball.state='LOOSE'; ball.shot=null; ball.lastTeam=sh.side;
   ball.vel.set(-tm.dir*(4+rand()*3),3.2+rand()*2,(rand()-.5)*6);
-  play.saidReb=true; setState('REBOUND');
+  // A block can follow an offensive board inside the same certified possession.
+  // Never inherit the prior rebound's claimed flag into this new live-ball race.
+  play.reboundClaimed=false;play.saidReb=true; setState('REBOUND');
   blocker.rig.poseHeader(0.8); shake=0.55; crowdHype=1; cut();
   flashMsg('DENIED!', `${blocker.name} • CLEAN BLOCK`, blocker.td.css);
   say(`${blocker.name} ERASES ${sh.name} AT THE SUMMIT`);
@@ -1048,15 +1102,16 @@ function releaseShot(sh, kind){
   let contest=0, blocker=null;
   for (const d of teams[1-sh.side].players){ const dd=dxz(d.pos.x,d.pos.z,sh.pos.x,sh.pos.z);
     if (dd<2.0){ const pressure=(2.0-dd)/2.0*(d.air?1.25:0.7); if (pressure>contest){ contest=pressure; blocker=d; } } }
-  const blockBoost=play.coverageId==='DROP'?.08:play.coverageId==='ZONE'?.035:0;
-  if (blocker && contest>0.55 && chance(.08+contest*.15+blockBoost+(blocker.role===4?.06:0))){
-    commitCleanBlock(blocker,sh,tm);
-    return;
-  }
   const quality=calculateShotQuality(sh,kind,dist,contest), intendedMake=chance(quality);
   play.shotQuality=quality; play.shotContext=`${qualityLabel(quality)} · ${Math.round(quality*100)}% READ`;
   play.actionLabel=`${play.shotContext} · ${sh.name}`; updateGamePlan();
-  sh.fga++; tm.fga++;
+  sh.fga++; tm.fga++;play.shotAttempt={shooterId:sh.athlete.id,kind,distance:+dist.toFixed(3),quality,blocked:false};
+  const blockBoost=play.coverageId==='DROP'?.08:play.coverageId==='ZONE'?.035:0;
+  if (blocker && contest>0.55 && chance(.08+contest*.15+blockBoost+(blocker.role===4?.06:0))){
+    play.shotAttempt.blocked=true;
+    commitCleanBlock(blocker,sh,tm);
+    return;
+  }
   let err=intendedMake ? .055+contest*.055 : .5+rand()*.32;
   const bank = kind==='layup' ? chance(.42) : kind==='floater'?chance(.22):(dist<5.5 && chance(.14));
   const aim = bank
@@ -1075,6 +1130,7 @@ function releaseShot(sh, kind){
 function scoreBasket(sideSign, pts, scorer, kind){
   const tm = teams[0].dir===sideSign ? teams[0] : teams[1];
   tm.score+=pts;
+  play.pointsThisPossession+=pts;
   if (scorer){
     scorer.pts+=pts; scorer.fgm++; tm.fgm++;
     if(pts===3) scorer.threes++;
@@ -1092,13 +1148,13 @@ function scoreBasket(sideSign, pts, scorer, kind){
     say(scorer?pick([`${scorer.name} KNOCKS IT DOWN — ${pts===3?'TRIPLE':'TWO'}`,`${scorer.name} BURIES IT FOR ${pts}`,`COUNT IT — ${scorer.name} FOR ${pts}`]):'IT DROPS'); }
   const h=hoopAt(sideSign); h.glow=1;
   crowdHype=1;
-  recordPossession('SCORE',pts);
+  finishPossession('made',{actor:scorer,points:play.pointsThisPossession});
   ball.shot=null; ball.state='DROP'; ball.vel.x*=0.25; ball.vel.z*=0.25;
   play.scorer=scorer||null;
   setState('MADE');
 }
 function violation(){
-  recordPossession('SHOT CLOCK',0);
+  finishPossession('turnover',{actor:carrier(),points:play.pointsThisPossession});
   say(pick(['SHOT CLOCK VIOLATION — THE BUZZER FEASTS','24 EXPIRES — TURNOVER','THE CLOCK CLAIMS ANOTHER VICTIM']));
   flashMsg('24', 'SHOT CLOCK VIOLATION', '#ffe14d');
   outlet(1-play.offense);
@@ -1117,7 +1173,10 @@ function schemeSpots(off){
   const stage=play.step, flip=(play.possessionNo%2?1:-1);
   switch(play.schemeId){
     case 'HORNS': return [spot(off,8.2,0),spot(off,3.0,-6.0),spot(off,3.0,6.0),spot(off,4.4,-2.0),spot(off,4.4,2.0)];
-    case 'FLOPPY': return [spot(off,8.0,0),spot(off,5.7,-5.5),spot(off,stage<2?1.8:5.4,stage<2?-flip*5.6:flip*5.4),spot(off,2.0,-flip*2.2),spot(off,2.0,flip*2.2)];
+    case 'FLOPPY': return [
+      spot(off,8.4,0),spot(off,2.4,-flip*5.9),spot(off,stage<1?1.7:5.5,stage<1?0:flip*5.65),
+      spot(off,3.0,flip*2.15),spot(off,4.45,flip*4.05)
+    ];
     case 'SPAIN': return [spot(off,7.8,0),spot(off,4.8,-5.8),spot(off,stage<2?5.5:6.2,stage<2?0:5.2),spot(off,3.8,5.8),spot(off,stage<2?6.8:1.8,0)];
     case 'GHOST': return [spot(off,7.8,0),spot(off,4.7,-5.8),spot(off,stage<2?7.0:5.2,stage<2?.8:5.2),spot(off,2.2,-3.5),spot(off,2.0,3.1)];
     case 'POST_SPLIT': return [spot(off,5.6,stage<2?-1.2:3.7),spot(off,3.4,-6.1),spot(off,5.0,stage<2?4.8:-.9),spot(off,6.6,-4.2),spot(off,1.6,2.0)];
@@ -1173,12 +1232,9 @@ function setTargets(dt){
     else if(play.state==='INBOUND_PASS')inbounder.rig.poseThrowIn(.55+clamp(play.t/.55,0,1)*.35);
     return;
   }
-  const routeTarget=action[1]!=null?off.players[action[1]]?.target:null;
-  if(car&&routeTarget&&['SET','BRINGUP','DRIVE'].includes(play.state)){
-    const bend=V3(lerp(car.pos.x,routeTarget.x,.52),.06,lerp(car.pos.z,routeTarget.z,.52)+(play.possessionNo%2?1:-1)*.55);
-    actionRoute.geometry.setFromPoints([V3(car.pos.x,.06,car.pos.z),bend,V3(routeTarget.x,.06,routeTarget.z)]);
-    actionRoute.computeLineDistances();actionRoute.material.color.setHex(classicSideVisual(play.offense));actionRoute.visible=true;
-  }else actionRoute.visible=false;
+  // The second tactical route is reserved for baseline inbounds. Settled play uses
+  // routeLine below so the broadcast never paints two competing bright paths.
+  actionRoute.visible=false;
   if(play.state==='FREE_THROW'&&play.freeThrow){
     const sh=play.freeThrow.shooter;
     for(const p of allPlayers()){
@@ -1221,10 +1277,22 @@ function setTargets(dt){
       }else p.target.set(s.x,0,s.z+Math.sin(tGlobal*.65+p.ph)*.22);
     }
   }
-  if(action[0]==='screen'&&off.players[action[1]]!==car&&play.state==='SET'){
-    const s=off.players[action[1]],handler=car||off.players[0];
-    s.target.set(handler.pos.x+off.dir*.9,0,handler.pos.z+(play.driveLane||1)*.65); s.sprint=4.7;
-    if(dxz(s.pos.x,s.pos.z,s.target.x,s.target.z)<.55) s.rig.poseJockey(tGlobal,play.driveLane||1);
+  if(action[0]==='screen'&&play.state==='SET'){
+    const handler=car||off.players[0],flip=(play.possessionNo%2?1:-1);
+    const screeners=play.schemeId==='FLOPPY'?[off.players[3],off.players[4]]:[off.players[action[1]]].filter(Boolean);
+    for(const s of screeners){
+      if(play.schemeId==='FLOPPY'){
+        const lane=s.role===3?spot(off,3.0,flip*2.15):spot(off,4.45,flip*4.05);s.target.copy(lane);
+      }else if(play.schemeId==='SPAIN'&&s.role===2){
+        const roller=off.players[4];s.target.set(roller.pos.x-off.dir*.78,0,roller.pos.z+(flip*.34));
+      }else if(play.schemeId==='CHICAGO'&&s.role===3){
+        const shooter=off.players[2];s.target.set(shooter.pos.x+off.dir*.72,0,shooter.pos.z-flip*.62);
+      }else{
+        s.target.set(handler.pos.x+off.dir*.92,0,handler.pos.z+(play.driveLane||flip)*.68);
+      }
+      s.sprint=4.65;
+      if(dxz(s.pos.x,s.pos.z,s.target.x,s.target.z)<.55)s.rig.poseJockey(tGlobal,play.driveLane||flip);
+    }
   }
   if(action[0]==='cut'&&off.players[action[1]]!==car&&play.state==='SET'){
     const c=off.players[action[1]], curl=play.schemeId==='FLOPPY'||play.schemeId==='GHOST';
@@ -1232,10 +1300,8 @@ function setTargets(dt){
   }
 
   // Defense: five distinct coverages with screen exchanges and paint help.
-  let assignments=off.players.slice();
-  if(play.coverageId==='SWITCH'){
-    const pool=off.players.slice(); assignments=def.players.map(d=>{ let best=pool[0],bi=0,bd=1e9; pool.forEach((o,i)=>{const dd=dxz(d.pos.x,d.pos.z,o.pos.x,o.pos.z);if(dd<bd){bd=dd;best=o;bi=i;}}); pool.splice(bi,1); return best; });
-  }
+  const assignmentIndexes=Array.isArray(play.defensiveAssignments)&&play.defensiveAssignments.length===5?play.defensiveAssignments:[0,1,2,3,4];
+  const assignments=assignmentIndexes.map(index=>off.players[index]||off.players[0]);
   const zone=[spot(off,5.5,-2.6),spot(off,5.5,2.6),spot(off,1.7,-4.2),spot(off,2.0,4.2),spot(off,1.25,0)];
   for (const d of def.players){
     const mark=assignments[d.role]||off.players[d.role], onBall=mark===car;
@@ -1277,14 +1343,41 @@ function setTargets(dt){
       if(xout&&abandoned){xout.target.set(lerp(xout.target.x,abandoned.pos.x,.48),0,lerp(xout.target.z,abandoned.pos.z,.48));}
     }
   }else{play.helpPlayer=null;play.helpTarget=null;}
-  if(action[0]==='screen'&&play.coverageId!=='SWITCH'&&play.state==='SET'){
-    const screener=off.players[action[1]],onBallDef=car?nearestDefenderTo(car).player:null;
-    if(screener&&onBallDef&&dxz(screener.pos.x,screener.pos.z,onBallDef.pos.x,onBallDef.pos.z)<1.05){
-      onBallDef.screened=Math.max(onBallDef.screened,play.coverageId==='DROP'?.82:.62);
-      if(!play.screenContact){play.screenContact=true;play.createdAdvantage+=play.coverageId==='DROP'?.11:.07;play.decision='SCREEN CONNECTED · DEFENSE IN ROTATION';}
+  if(action[0]==='screen'&&play.state==='SET'&&play.schemeId!=='GHOST'){
+    const subjectRole=play.schemeId==='FLOPPY'||play.schemeId==='CHICAGO'?2:play.schemeId==='SPAIN'&&action[1]===2?4:(car?.role??0);
+    const subject=off.players[subjectRole];
+    const subjectDefIndex=assignmentIndexes.indexOf(subjectRole);
+    const subjectDef=subjectDefIndex>=0?def.players[subjectDefIndex]:nearestDefenderTo(subject).player;
+    const screeners=play.schemeId==='FLOPPY'?[off.players[3],off.players[4]]:[off.players[action[1]]].filter(Boolean);
+    for(const screener of screeners){
+      if(!subjectDef||!screener||dxz(screener.pos.x,screener.pos.z,subjectDef.pos.x,subjectDef.pos.z)>=1.06)continue;
+      const evidenceKey=`${play.step}:${screener.role}:${subjectRole}`;
+      if(play.screenEvidence.some(item=>item.key===evidenceKey))continue;
+      const founder=HOOPS_BRAIN.evaluateSignature({profile:screener.profile,action:'screen',context:{schemeId:play.schemeId,physicalContact:true}});
+      play.screenEvidence.push({key:evidenceKey,screenerId:screener.athlete.id,subjectId:subject.athlete.id,defenderId:subjectDef.athlete.id,time:+tGlobal.toFixed(3),coverageId:play.coverageId});
+      play.screenContact=true;
+      if(play.coverageId==='SWITCH'){
+        const screenerDefIndex=assignmentIndexes.indexOf(screener.role);
+        if(subjectDefIndex>=0&&screenerDefIndex>=0&&subjectDefIndex!==screenerDefIndex){
+          [assignmentIndexes[subjectDefIndex],assignmentIndexes[screenerDefIndex]]=[assignmentIndexes[screenerDefIndex],assignmentIndexes[subjectDefIndex]];
+        }
+        play.decision='PHYSICAL CONTACT · SWITCH EXCHANGES ASSIGNMENTS';
+        play.identityRead={actorId:subject.athlete.id,actor:subject.name,teamId:subject.td.id,teamMotion:subject.td.motion,
+          intent:'USE SCREEN',evidence:['PHYSICAL_SCREEN_CONTACT','PERSISTENT_SWITCH'],counter:'SWITCH',outcome:'COUNTER HELD',
+          copy:`${subject.name.toUpperCase()} · SCREEN MET · SWITCH HOLDS`};
+      }else{
+        subjectDef.screened=Math.max(subjectDef.screened,(play.coverageId==='DROP'?.82:.62)*(founder.screenDurationMultiplier||1));
+        play.createdAdvantage+=play.coverageId==='DROP'?.10:.065;play.decision='PHYSICAL SCREEN CONNECTED · DEFENSE IN ROTATION';
+        if(founder.giftActive){
+          play.identityRead={actorId:screener.athlete.id,actor:screener.name,teamId:screener.td.id,teamMotion:screener.td.motion,
+            intent:'STOOP SCREEN',evidence:founder.evidence.slice(),counter:play.coverageId,outcome:'GIFT ACTIVE',
+            copy:`${screener.name.toUpperCase()} · MOVING ARCHITECTURE · SCREEN CONNECTED`};
+        }
+      }
+      updateGamePlan();
     }
-  }else if(action[0]==='screen'&&play.coverageId==='SWITCH'&&play.state==='SET'&&!play.screenContact){
-    play.screenContact=true;play.createdAdvantage+=play.schemeId==='GHOST'?.13:.035;play.decision=play.schemeId==='GHOST'?'GHOST FORCES THE LATE SWITCH':'SWITCH ABSORBS THE SCREEN';
+  }else if(action[0]==='screen'&&play.state==='SET'&&play.schemeId==='GHOST'){
+    play.decision='GHOST DECLINES CONTACT · DEFENSE MUST CHOOSE';
   }
   // rebound scramble overrides
   if (play.state==='REBOUND'){
@@ -1320,7 +1413,7 @@ function setTargets(dt){
 
   // Broadcast chalk: the current action and the defensive help are readable above the floor.
   const actionTarget=action[0]==='cut'||action[0]==='screen' ? off.players[action[1]] : car;
-  const end=actionTarget?.target||rim,start=car?.pos||spots[0];
+  const end=actionTarget?.target||rim,start=(action[0]==='cut'||action[0]==='screen'?actionTarget?.pos:car?.pos)||spots[0];
   routeLine.geometry.setFromPoints([V3(start.x,.06,start.z),V3(lerp(start.x,end.x,.52),.06,lerp(start.z,end.z,.52)),V3(end.x,.06,end.z)]);
   routeLine.computeLineDistances();routeLine.material.color.setHex(classicSideVisual(play.offense));routeLine.visible=phase==='PLAY'&&['SET','DRIVE','BRINGUP'].includes(play.state);
   const screener=action[0]==='screen'?off.players[action[1]]:null;
@@ -1354,7 +1447,7 @@ function updatePlayers(dt){
     p.pos.x=clamp(p.pos.x+p.vel.x*dt, -xLimit, xLimit);
     p.pos.z=clamp(p.pos.z+p.vel.z*dt, -HW+0.25, HW-0.25);
     if (p.air){ p.jumpV-=PG*dt; p.jumpY+=p.jumpV*dt;
-      if (p.jumpY<=0){ p.jumpY=0; p.air=false; p.squash=0.2; } }
+      if (p.jumpY<=0){ p.jumpY=0; p.air=false; p.squash=0.2;p.lastLandingAt=tGlobal; } }
     p.squash*=Math.exp(-6*dt);
     const sp=Math.hypot(p.vel.x,p.vel.z);
     let face = sp>0.6 ? Math.atan2(p.vel.x,p.vel.z) : Math.atan2(ball.pos.x-p.pos.x, ball.pos.z-p.pos.z);
@@ -1475,7 +1568,8 @@ function updateBall(dt){
   }
   // sanity watchdog
   if (!isFinite(ball.pos.x) || !isFinite(ball.pos.y) || ball.pos.y>40){
-    ball.pos.set(0,1.2,0); ball.vel.set(0,0,0); ball.shot=null; outlet(1-play.offense);
+    finishPossession('void',{reason:'NON_FINITE BALL WATCHDOG'});
+    ball.pos.set(0,1.2,0); ball.vel.set(0,0,0); ball.shot=null; outlet(1-play.offense,'TECHNICAL RESET');
   }
   ballMesh.position.copy(ball.pos);
   ballMesh.rotation.x-=Math.hypot(ball.vel.x,ball.vel.z)*dt*3 + (ball.state==='HELD'?6*dt:0);
@@ -1570,19 +1664,26 @@ function freeThrowStep(){
     ft.attempted=true; ft.shooter.fta=(ft.shooter.fta||0)+1; teams[ft.shooter.side].fta=(teams[ft.shooter.side].fta||0)+1;
     ft.made=chance(.70+(ft.shooter.role===2?.10:ft.shooter.role===0?.06:0));
     ball.holder=null; ball.state='DROP'; ball.pos.set(atkRim(teams[ft.shooter.side]).x,RIM_Y+.08,0); ball.vel.set(0,-4,0);
-    if(ft.made){ const tm=teams[ft.shooter.side]; tm.score++; ft.madeCount++; ft.shooter.pts++; ft.shooter.ftm=(ft.shooter.ftm||0)+1; tm.ftm=(tm.ftm||0)+1; elSA.textContent=teams[0].score;elSB.textContent=teams[1].score;popScore();flashMsg('GOOD',`${ft.shooter.name} · FREE THROW`,tm.def.css);crowdHype=.55; }
+    if(ft.made){ const tm=teams[ft.shooter.side]; tm.score++; play.pointsThisPossession++; ft.madeCount++; ft.shooter.pts++; ft.shooter.ftm++; tm.ftm++; elSA.textContent=teams[0].score;elSB.textContent=teams[1].score;popScore();flashMsg('GOOD',`${ft.shooter.name} · FREE THROW`,tm.def.css);crowdHype=.55; }
     else { flashMsg('MISS',`${ft.shooter.name} · OFF THE IRON`,'#ffe1c7'); say(`${ft.shooter.name} LEAVES ONE AT THE LINE`); }
   }
   if(play.t>1.45){
     ft.remaining--;
     if(ft.remaining>0){ ft.attempted=false;ft.made=false;ball.holder=ft.shooter;ball.state='HELD';play.t=0;play.actionLabel=`FREE THROW ${ft.total-ft.remaining+1} OF ${ft.total}`;updateGamePlan(); }
     else {
-      const made=ft.made,shooter=ft.shooter,next=1-shooter.side;play.freeThrow=null;
+      const made=ft.made,shooter=ft.shooter;play.freeThrow=null;
       if(made){
+        finishPossession('free_throw_trip',{actor:shooter,points:play.pointsThisPossession});
         play.offense=shooter.side;play.scorer=shooter;
         play.actionLabel='FREE THROW GOOD · BASELINE INBOUND NEXT';play.decision='DEAD BALL · CLOCK STOPPED';
         setState('MADE');updateGamePlan();
-      }else outlet(next,'MISSED FREE THROW');
+      }else{
+        play.pendingFreeThrowTrip={shooter,points:play.pointsThisPossession};
+        play.reboundClaimed=false;play.saidReb=true;ball.holder=null;ball.state='LOOSE';ball.shot=null;ball.lastTeam=shooter.side;
+        const rim=atkRim(teams[shooter.side]);ball.pos.set(rim.x,RIM_Y-.15,(rand()-.5)*.35);ball.vel.set(-teams[shooter.side].dir*(1.2+rand()),1.1,(rand()-.5)*2.4);
+        play.actionLabel='FINAL FREE THROW MISSES · LIVE REBOUND';play.decision='LANE PLAYERS RELEASE ON THE RIM';
+        setState('REBOUND');updateGamePlan();say('FINAL FREE THROW MISSES — THE POSSESSION STAYS LIVE ON THE GLASS');
+      }
     }
   }
 }
@@ -1597,18 +1698,47 @@ function resolveRebound(){
     const boxPosition=defense&&rimDist<oppRimDist?.52:0;
     const coverageEdge=defense?(coverage?.rebound||0):0;
     const momentum=clamp((Math.hypot(p.vel.x,p.vel.z)-2)/8,0,.22);
-    return {p,w:crashEligible?Math.max(.05,(.35+roleBoost+boxPosition+coverageEdge+momentum)/Math.max(.62,dist)):.035};
+    const boxoutSignature=HOOPS_BRAIN.evaluateSignature({profile:p.profile,action:'boxout',context:{
+      physicalContact:!!matchup&&dxz(p.pos.x,p.pos.z,matchup.pos.x,matchup.pos.z)<1.28,
+      defensive:defense,rimSideLeverage:rimDist<oppRimDist
+    }});
+    const signature=HOOPS_BRAIN.evaluateSignature({profile:p.profile,action:'rebound',context:{secondEffort:true,secondsSinceLanding:Math.max(0,tGlobal-p.lastLandingAt)}});
+    const preference=1+(p.profile?.tendencies.crash||0);
+    const base=crashEligible?Math.max(.05,(.35+roleBoost+boxPosition+coverageEdge+momentum)/Math.max(.62,dist)):.035;
+    return {p,signature,boxoutSignature,w:base*preference*(signature.reboundMultiplier||1)*(boxoutSignature.boxoutMultiplier||1)};
   });
+  const lateStoopy=candidates.find(candidate=>candidate.signature.counterId==='SECOND_JUMP_LATE');
+  let lateStoopyRead=null;
+  if(lateStoopy){
+    const p=lateStoopy.p;lateStoopyRead={actorId:p.athlete.id,actor:p.name,teamId:p.td.id,teamMotion:p.td.motion,
+      intent:'SECOND EFFORT',evidence:lateStoopy.signature.evidence.slice(),counter:'SECOND_JUMP_LATE',outcome:'COUNTER ACTIVE',
+      copy:`${p.name.toUpperCase()} · SECOND JUMP LATE · GLASS WINDOW OPEN`};play.identityRead=lateStoopyRead;updateGamePlan();
+  }
   let roll=rand()*candidates.reduce((n,c)=>n+c.w,0), winner=candidates[0].p;
   for(const c of candidates){roll-=c.w;if(roll<=0){winner=c.p;break;}}
   play.reboundClaimed=true; winner.reb++; teams[winner.side].rebounds++;
   ball.pos.set(winner.pos.x,1.15,winner.pos.z); ball.vel.set(0,0,0);
   const offensive=winner.side===play.offense;
-  if(!offensive)winner.boxOuts++;
+  if(!offensive){
+    winner.boxOuts++;
+    finishPossession(play.pendingFreeThrowTrip?'free_throw_trip':'defensive_rebound',{actor:winner,points:play.pointsThisPossession});
+    play.pendingFreeThrowTrip=null;
+  }
   say(offensive?`${winner.name} MUSCLES OUT AN EXTRA POSSESSION`:`${winner.name} BOXES OUT AND OWNS THE GLASS`);
   if(offensive&&dxz(winner.pos.x,winner.pos.z,atkRim(teams[winner.side]).x,0)<3.7&&chance(.52)){
     gainPossession(winner,'SET','OFFENSIVE REBOUND');shotClock=14;startWindup(winner,'layup');
   }else{ gainPossession(winner,offensive?'SET':'BRINGUP',offensive?'OFFENSIVE REBOUND':'DEFENSIVE REBOUND');if(offensive)shotClock=14; }
+  if(lateStoopyRead){
+    const claimed=winner===lateStoopy.p?'RECOVERY SURVIVES':`${winner.name.toUpperCase()} CLAIMS THE WINDOW`;
+    play.identityRead={...lateStoopyRead,outcome:winner===lateStoopy.p?'COUNTER SURVIVED':'COUNTER WON',copy:`${lateStoopyRead.copy} · ${claimed}`};updateGamePlan();
+  }else{
+    const boxoutWinner=candidates.find(candidate=>candidate.p===winner&&candidate.boxoutSignature.giftActive);
+    if(boxoutWinner){
+      play.identityRead={actorId:winner.athlete.id,actor:winner.name,teamId:winner.td.id,teamMotion:winner.td.motion,
+        intent:'PHYSICAL BOXOUT',evidence:boxoutWinner.boxoutSignature.evidence.slice(),counter:coverage?.id||null,outcome:'GIFT ACTIVE',
+        copy:`${winner.name.toUpperCase()} · MOVING ARCHITECTURE · BOXOUT WON`};updateGamePlan();
+    }
+  }
 }
 
 function resolveDriveRead(car,rim){
@@ -1619,21 +1749,53 @@ function resolveDriveRead(car,rim){
   const helper=play.helpPlayer,helpDist=helper?dxz(helper.pos.x,helper.pos.z,car.pos.x,car.pos.z):99;
   const kick=bestKickTarget(car);
   const roller=offT().players[4],rollerOpen=roller!==car?opennessOf(roller):0;
-  if((play.schemeId==='HIGH_PNR'||play.schemeId==='SPAIN')&&roller!==car&&rollerOpen>2.0&&helpDist<2.5){
-    play.createdAdvantage+=.14;play.kickTarget=roller;play.catchAndShoot=roller;play.catchKind='layup';
+  const options=[{
+    id:'finish',type:'finish',target:null,distance:rimDist,openness:clamp((helpDist-1.1)/3.6,0,1),laneRisk:0,
+    expectedQuality:clamp(.78-rimDist*.09-(helper&&helpDist<2.4?.22:0),.18,.88)
+  }];
+  if(roller!==car&&(play.schemeId==='HIGH_PNR'||play.schemeId==='SPAIN'))options.push({
+    id:'roller',type:'roll',target:roller.athlete,distance:dxz(roller.pos.x,roller.pos.z,rim.x,0),
+    openness:clamp(rollerOpen/3.4,0,1),laneRisk:clamp((2.1-rollerOpen)*.18,0,.5),expectedQuality:clamp(.42+rollerOpen*.13,0,1)
+  });
+  if(kick?.p)options.push({
+    id:`kick-${kick.p.athlete.id}`,type:'kick',target:kick.p.athlete,distance:kick.rim,
+    openness:clamp(kick.open/3.5,0,1),laneRisk:clamp((2-kick.open)*.16,0,.55),expectedQuality:clamp(.35+kick.open*.14,0,1)
+  });
+  if(rimDist>2.25&&car.role<=1)options.push({
+    id:'floater',type:'floater',target:null,distance:rimDist,openness:clamp(helpDist/4,0,1),laneRisk:0,
+    expectedQuality:play.coverageId==='DROP'?.58:.43
+  });
+  const read=HOOPS_BRAIN.chooseLiveRead({
+    team:offT().def.source,opponent:defT().def.source,handler:car.profile,
+    teammates:offT().players.map(p=>p.profile),defenders:defT().players.map(p=>p.profile),legalOptions:options,
+    situation:{possessionId:play.possessionToken,quarter:q,gameClock:qClock,shotClock,
+      offenseScore:offT().score,defenseScore:defT().score,possessionReason:play.possessionReason,transition:play.transitionT>0},
+    offensePlan:play.offensePlan,observedCoverage:play.coverageId,
+    context:{kind:'drive',rimDistance:rimDist,helpCommitted:!!helper&&helpDist<2.5},rng:rand
+  });
+  if(!read)return false;
+  const target=read.targetAthleteId?offT().players.find(p=>p.athlete.id===read.targetAthleteId):null;
+  play.identityRead={
+    actorId:car.athlete.id,actor:car.name,teamId:car.td.id,teamMotion:car.td.motion,
+    intent:read.type.toUpperCase(),evidence:read.reasons.slice(),counter:play.coverageId,outcome:'READ CHOSEN',
+    copy:`${car.name.toUpperCase()} · ${read.reasonLabel}${target?` · ${target.name.toUpperCase()}`:''}`
+  };
+  if(read.type==='roll'&&target){
+    play.createdAdvantage+=.14;play.kickTarget=target;play.catchAndShoot=target;play.catchKind='layup';
     play.actionLabel=play.schemeId==='SPAIN'?'BACK-SCREEN OPENS THE LOB':'POCKET PASS · ROLLER FREE';play.decision=play.actionLabel;updateGamePlan();
-    startPass(roller,'SET');return true;
+    startPass(target,'SET');return true;
   }
-  if(helper&&helpDist<2.35&&kick&&kick.open>1.75&&chance(.72)){
-    play.createdAdvantage+=clamp((kick.open-1.5)*.09,.08,.2);play.kickTarget=kick.p;play.catchAndShoot=kick.p;play.catchKind='jumper';
-    play.actionLabel=`HELP COMMITS · KICK TO ${kick.p.roleName}`;play.decision=`${helper.name} TAGS · ${kick.p.name} LIFTS`;updateGamePlan();
-    startPass(kick.p,'SET');return true;
+  if((read.type==='kick'||read.type==='pass')&&target){
+    const targetOpen=opennessOf(target);play.createdAdvantage+=clamp((targetOpen-1.35)*.09,.06,.18);
+    play.kickTarget=target;play.catchAndShoot=target;play.catchKind='jumper';
+    play.actionLabel=`HELP COMMITS · KICK TO ${target.roleName}`;play.decision=`${helper?.name||'HELP'} TAGS · ${target.name} LIFTS`;updateGamePlan();
+    startPass(target,'SET');return true;
   }
-  if(play.coverageId==='DROP'&&car.role<=1&&rimDist>2.45&&chance(.55)){
-    play.createdAdvantage+=.035;play.actionLabel='DROP CONCEDES THE FLOATER';play.decision='TWO FEET IN THE PAINT · SOFT TOUCH';updateGamePlan();
+  if(read.type==='floater'){
+    play.createdAdvantage+=.035;play.actionLabel='DROP WINDOW · FLOATER';play.decision='TWO FEET IN THE PAINT · SOFT TOUCH';updateGamePlan();
     startWindup(car,'floater');return true;
   }
-  play.createdAdvantage+=helper?.025:.075;play.decision=helper?'ABSORB THE HELP · FINISH THROUGH TRAFFIC':'NAIL IS EMPTY · GET TO THE CUP';
+  play.createdAdvantage+=helper?.025:.075;play.decision=helper?'ABSORB THE HELP · FINISH THROUGH TRAFFIC':'NAIL IS EMPTY · GET TO THE CUP';updateGamePlan();
   return false;
 }
 
@@ -1641,22 +1803,23 @@ function resolveDriveRead(car,rim){
 function flow(dt){
   play.t+=dt;
   play.transitionT=Math.max(0,play.transitionT-dt);
+  if(play.transitionT===0&&play.state!=='BRINGUP')play.transition=false;
   const off=offT(), def=defT(), car=carrier(), rim=atkRim(off);
   // clocks
   const deadBall=['FREE_THROW','MADE','INBOUND_RETRIEVE','INBOUND_BASELINE','INBOUND_READY','INBOUND_PASS'].includes(play.state);
   if(!deadBall) qClock-=dt;
-  if (['BRINGUP','SET','PASSING','DRIVE','WINDUP'].includes(play.state)){
-    shotClock-=dt;
-    if (shotClock<=0){ violation(); return; }
-  }
+  const shotClockActive=['BRINGUP','SET','PASSING','DRIVE','WINDUP'].includes(play.state);
+  if(shotClockActive)shotClock-=dt;
   if (qClock<=0) quarterPending=true;
-  if (quarterPending && ['BRINGUP','SET'].includes(play.state)){ enterBreak(); return; }
+  const hornContinuation=HORN_CONTINUATION_STATES.includes(play.state)||(play.state==='WINDUP'&&play.shootingFoulPending);
+  if(quarterPending&&!hornContinuation){enterBreak();return;}
+  if(shotClockActive&&shotClock<=0&&!(play.state==='WINDUP'&&play.shootingFoulPending)){violation();return;}
 
   switch(play.state){
     case 'BRINGUP':
       if (!car) { if (play.t>2.5) outlet(play.offense); break; }
-      if (dxz(car.pos.x,car.pos.z,rim.x-off.dir*8.5,clamp(car.pos.z*0.4,-3,3))<1.5){
-        play.transitionT=0;
+      if (dxz(car.pos.x,car.pos.z,rim.x-off.dir*8.5,clamp(car.pos.z*0.4,-3,3))<1.5||play.t>5.4){
+        play.transitionT=0;play.transition=false;
         play.wait=.35+rand()*.3; setState('SET');
         if (chance(.3)) say(`${car.name} WALKS IT UP AND SIGNALS ${PLAYBOOK_BY_ID[play.schemeId].label}`);
       }
@@ -1731,6 +1894,8 @@ function flow(dt){
       // out of bounds
       if (Math.abs(ball.pos.x)>HL+1.8 || Math.abs(ball.pos.z)>HW+1.6){
         say('BALL SAILS INTO THE CROWD — FRESH POSSESSION');
+        finishPossession(play.pendingFreeThrowTrip?'free_throw_trip':'miss',{points:play.pointsThisPossession});
+        play.pendingFreeThrowTrip=null;
         outlet(1-ball.lastTeam);
       }
       if (play.t>4&&!play.reboundClaimed) resolveRebound();
@@ -1769,10 +1934,27 @@ function flow(dt){
       break;
   }
   // global stuck watchdog
-  if (play.t>14){ ball.shot=null; outlet(play.state.startsWith('INBOUND_')?play.offense:1-play.offense,'DEAD BALL RESET'); }
+  if (play.t>14){ finishPossession('void',{reason:`${play.state} EXCEEDED 14S`});ball.shot=null; outlet(play.state.startsWith('INBOUND_')?play.offense:1-play.offense,'DEAD BALL RESET'); }
 }
 function startWindup(sh, kind){
-  play.shooter=sh; play.windKind=kind; play.windDur=kind==='layup'?.2:kind==='floater'?.24:.3; play.released=false;
+  const baseWind=kind==='layup'?.2:kind==='floater'?.24:.3;
+  const defendersNear=teams[1-sh.side].players.filter(p=>dxz(p.pos.x,p.pos.z,sh.pos.x,sh.pos.z)<1.65).length;
+  const teammatesNear=Math.max(0,teams[sh.side].players.filter(p=>p!==sh&&dxz(p.pos.x,p.pos.z,sh.pos.x,sh.pos.z)<1.12).length-1);
+  const signature=HOOPS_BRAIN.evaluateSignature({
+    profile:sh.profile,action:'catch_release',context:{schemeId:play.schemeId,screenContact:play.screenContact,
+      screenTraffic:defendersNear+teammatesNear,catchAge:Math.max(0,tGlobal-sh.catchAt)}
+  });
+  sh.signatureState=signature;
+  if(signature.signatureAttempted){
+    const counter=signature.counterSucceeded?'SCREEN TRAFFIC LOST':'EARLY WINDOW WON';
+    play.identityRead={
+      actorId:sh.athlete.id,actor:sh.name,teamId:sh.td.id,teamMotion:sh.td.motion,
+      intent:signature.motionName,evidence:signature.evidence.slice(),counter:signature.counterId,
+      outcome:signature.giftActive?'GIFT ACTIVE':'COUNTER SUCCEEDED',
+      copy:`${sh.name.toUpperCase()} · ${signature.motionName.toUpperCase()} · ${counter}`
+    };
+  }
+  play.shooter=sh; play.windKind=kind; play.windDur=baseWind*(signature.windupMultiplier||1); play.released=false;
   sh.air=true; sh.jumpV=kind==='layup'?6.8:kind==='floater'?5.4:6.0;
   // contest: nearest defender challenges
   let best=null,bd=1e9;
@@ -1785,6 +1967,12 @@ function startWindup(sh, kind){
 
 // ---------- quarter / match flow ----------
 function enterBreak(){
+  if(phase==='PLAY'&&!play.outcomeRecorded){
+    finishPossession(play.pendingFreeThrowTrip?'free_throw_trip':'period_end',{
+      periodFinal:q>=4&&teams[0].score!==teams[1].score,points:play.pointsThisPossession
+    });
+    play.pendingFreeThrowTrip=null;
+  }
   quarterPending=false;
   const isOT=q>4, last = (q>=4 && teams[0].score!==teams[1].score);
   phase = last ? 'FINAL' : 'BREAK'; breakT=0; cut();
@@ -1997,8 +2185,29 @@ function startDriver(){
     },50);
   } else { last=performance.now(); rafLoop(last); }
 }
-document.addEventListener('visibilitychange', startDriver);
-startDriver();
+function stopDriver(){
+  if(rafId){cancelAnimationFrame(rafId);rafId=0;}
+  if(hiddenTimer){clearInterval(hiddenTimer);hiddenTimer=0;}
+}
+if(query.get('manual')!=='1'){
+  document.addEventListener('visibilitychange', startDriver);
+  startDriver();
+}
+
+function spacingDiagnostics(){
+  const players=allPlayers();let same=99,cross=99,maxWithin125=0;
+  for(let i=0;i<players.length;i++){
+    let within=1;
+    for(let j=i+1;j<players.length;j++){
+      const distance=dxz(players[i].pos.x,players[i].pos.z,players[j].pos.x,players[j].pos.z);
+      if(players[i].side===players[j].side)same=Math.min(same,distance);else cross=Math.min(cross,distance);
+    }
+    for(let j=0;j<players.length;j++)if(i!==j&&dxz(players[i].pos.x,players[i].pos.z,players[j].pos.x,players[j].pos.z)<1.25)within++;
+    maxWithin125=Math.max(maxWithin125,within);
+  }
+  return {minimumSameTeam:+same.toFixed(3),minimumCrossTeam:+cross.toFixed(3),maximumBodiesWithin1_25m:maxWithin125,
+    declaredScreenPocket:play.screenEvidence.length>0,state:play.state};
+}
 
 window.render_game_to_text=()=>JSON.stringify({
   coordinateSystem:'court meters; origin center court; +x right basket, +z far sideline, +y up',
@@ -2013,6 +2222,13 @@ window.render_game_to_text=()=>JSON.stringify({
   play:play.state,
   playCall:PLAYBOOK_BY_ID[play.schemeId]?.label||null,
   coverage:COVERAGE_BY_ID[play.coverageId]?.label||null,
+  basketballBrain:{
+    version:HOOPS_BRAIN.version,
+    offensePlan:play.offensePlan?{callId:play.offensePlan.callId,primaryAthleteId:play.offensePlan.primaryAthleteId,reasons:play.offensePlan.reasons,identityCue:play.offensePlan.identityCue}:null,
+    defensePlan:play.defensePlan?{coverageId:play.defensePlan.coverageId,primaryAthleteId:play.defensePlan.primaryAthleteId,reasons:play.defensePlan.reasons,identityCue:play.defensePlan.identityCue}:null,
+    identityRead:play.identityRead,
+    memories:hoopsBrainMemories.map(memory=>HOOPS_BRAIN.memorySummary(memory))
+  },
   action:play.actionLabel,
   decision:play.decision,
   transition:{active:play.transitionT>0,seconds:+play.transitionT.toFixed(2),reason:play.possessionReason},
@@ -2032,7 +2248,7 @@ window.render_game_to_text=()=>JSON.stringify({
   schemesSeen:[...play.seenSchemes],
   coveragesSeen:[...play.seenCoverages],
   offense:teams[play.offense]?.def.name||null,
-  inTransition:play.transition,
+  inTransition:play.transitionT>0,
   advantage:+play.createdAdvantage.toFixed(3),
   paintTouches:play.paintTouches,
   helpDefender:play.helpPlayer?.name||null,
@@ -2040,24 +2256,114 @@ window.render_game_to_text=()=>JSON.stringify({
   lastOutcome:play.lastOutcome,
   schemeResults:play.schemeResults,
   coverageResults:play.coverageResults,
-  teams:teams.map(t=>({name:t.def.name,score:t.score,fg:`${t.fgm}/${t.fga}`,rebounds:t.rebounds,assists:t.assists,steals:t.steals,blocks:t.blocks,turnovers:t.turnovers,fouls:t.fouls})),
+  possessionCertification:{token:play.possessionToken,recorded:play.outcomeRecorded,points:play.pointsThisPossession,pendingFreeThrowTrip:!!play.pendingFreeThrowTrip,voidResets:play.voidResets,lastVoidReset:play.lastVoidReset},
+  screenEvidence:play.screenEvidence.slice(-6),
+  defensiveAssignments:play.defensiveAssignments.map((offenseRole,defenderRole)=>({
+    defenderId:defT()?.players[defenderRole]?.athlete.id||null,offenseId:offT()?.players[offenseRole]?.athlete.id||null
+  })),
+  spatial:spacingDiagnostics(),
+  shotAttempt:play.shotAttempt,
+  shotEvaluation:play.shotEvaluation||null,
+  teams:teams.map(t=>({name:t.def.name,teamId:t.def.id,motion:t.def.motion,score:t.score,fg:`${t.fgm}/${t.fga}`,ft:`${t.ftm}/${t.fta}`,rebounds:t.rebounds,assists:t.assists,steals:t.steals,blocks:t.blocks,turnovers:t.turnovers,fouls:t.fouls})),
   arena:{name:teams[0]?.def.brand.venue||'HOME COURT',description:teams[0]?.def.brand.venueLine||'',ritual:teams[0]?.def.brand.ritual||'',statement:teams[0]?.def.brand.statement||'',scene:teams[0]?.def.brand.scene||'',kitPattern:teams[0]?.def.brand.kitPattern||'',spectators:(crowdBodies?.count||0)+heroFans.length,centerHungScoreboard:true,upperLightTruss:true},
   ball:{state:ball.state,x:+ball.pos.x.toFixed(2),y:+ball.pos.y.toFixed(2),z:+ball.pos.z.toFixed(2),holder:ball.holder?.name||null},
   foundingCues:allPlayers().map((p,entityIndex)=>p.rig.group.userData.foundingCue?{
     ...p.rig.group.userData.foundingCue,side:p.side,entityIndex,teamPlayerIndex:p.teamPlayerIndex,arenaRole:p.roleName
   }:null).filter(Boolean).sort((a,b)=>a.entityIndex-b.entityIndex),
-  players:allPlayers().map(p=>({name:p.name,team:p.td.name,role:p.roleName,x:+p.pos.x.toFixed(2),z:+p.pos.z.toFixed(2),bodyScale:{x:+p.renderScale[0].toFixed(2),y:+p.renderScale[1].toFixed(2),z:+p.renderScale[2].toFixed(2)},points:p.pts,rebounds:p.reb,assists:p.ast,fouls:p.fouls,fg:`${p.fgm}/${p.fga}`,hasBall:ball.holder===p}))
+  players:allPlayers().map(p=>({athleteId:p.athlete.id,name:p.name,team:p.td.name,role:p.roleName,temperament:p.profile.temperament,
+    tendencies:p.profile.tendencies,character:p.profile.character,x:+p.pos.x.toFixed(2),z:+p.pos.z.toFixed(2),
+    bodyScale:{x:+p.renderScale[0].toFixed(2),y:+p.renderScale[1].toFixed(2),z:+p.renderScale[2].toFixed(2)},points:p.pts,rebounds:p.reb,boxOuts:p.boxOuts,assists:p.ast,fouls:p.fouls,fg:`${p.fgm}/${p.fga}`,hasBall:ball.holder===p}))
 });
 window.advanceTime=(ms)=>{
   const steps=Math.max(1,Math.round(ms/(1000/60)));
   for(let i=0;i<steps;i++) tick(1/60,i<steps-1);
 };
+function forceMatchupScenario(config={}){
+  stopDriver();releaseEstablishingHold(true);phase='PLAY';hideCard();elFlash.classList.remove('show');elFlash.style.transition='none';elFlash.style.opacity='0';flashTimer=0;
+  const side=clamp(Number(config.offenseSide)||0,0,1)|0;
+  const schemeId=PLAYBOOK_BY_ID[config.schemeId]?config.schemeId:'HIGH_PNR';
+  const coverageId=COVERAGE_BY_ID[config.coverageId]?config.coverageId:'MAN';
+  const stage=['entry','contact','read','counter','boxout'].includes(config.stage)?config.stage:'entry';
+  const attack=teams[side],defense=teams[1-side];
+  play.outcomeRecorded=true;play.offense=side;q=Math.max(1,Number(config.quarter)||2);qClock=60;shotClock=18;quarterPending=false;
+  callPossession('QA SCENARIO',{schemeId,coverageId});
+  play.voidResets=0;play.lastVoidReset=null;play.transition=false;play.transitionT=0;play.inbound=null;play.freeThrow=null;play.pendingFreeThrowTrip=null;
+  play.wait=99;play.step=0;play.actionLabel=PLAYBOOK_BY_ID[schemeId].actions[0][2];play.decision='ATOMIC MATCHUP SCENARIO';
+  const spots=schemeSpots(attack),rim=atkRim(attack);
+  attack.players.forEach((p,index)=>{p.pos.copy(spots[index]);p.vel.set(0,0,0);p.target.copy(p.pos);p.air=false;p.jumpY=0;p.contest=false;p.screened=0;});
+  defense.players.forEach((p,index)=>{
+    const mark=attack.players[index],vx=rim.x-mark.pos.x,vz=-mark.pos.z,length=Math.hypot(vx,vz)||1;
+    p.pos.set(mark.pos.x+vx/length*1.18,0,clamp(mark.pos.z+vz/length*1.18+(index%2?.16:-.16),-HW+.45,HW-.45));
+    p.vel.set(0,0,0);p.target.copy(p.pos);p.air=false;p.jumpY=0;p.contest=false;p.screened=0;
+  });
+  const handler=attack.players[0];ball.holder=handler;ball.state='HELD';ball.passTo=null;ball.pending=null;ball.shot=null;ball.vel.set(0,0,0);ball.pos.set(handler.pos.x,1.05,handler.pos.z);
+  setState('SET');
+  if(stage==='contact'||stage==='read'){
+    const subjectRole=schemeId==='FLOPPY'||schemeId==='CHICAGO'?2:schemeId==='SPAIN'?4:0;
+    const subject=attack.players[subjectRole],subjectDef=defense.players[subjectRole];
+    const screener=schemeId==='FLOPPY'?attack.players[3]:attack.players[PLAYBOOK_BY_ID[schemeId].actions[0][1]];
+    if(screener){
+      subjectDef.pos.set(subject.pos.x+attack.dir*.82,0,subject.pos.z+.12);
+      screener.pos.set(subjectDef.pos.x-attack.dir*.06,0,subjectDef.pos.z+.68);screener.target.copy(screener.pos);
+      setTargets(0);
+    }
+  }
+  const featuredId=String(config.featuredAthleteId||'');
+  const featured=allPlayers().find(p=>p.athlete.id===featuredId)||null;
+  if(stage==='read'&&featured?.side===side&&featured.athlete.id==='toronto-lake-effect-a4'){
+    featured.pos.set(rim.x-attack.dir*5.7,0,(play.possessionNo%2?1:-1)*5.35);featured.target.copy(featured.pos);featured.catchAt=tGlobal;
+    attack.players.filter(p=>p!==featured).forEach((p,index)=>{if(dxz(p.pos.x,p.pos.z,featured.pos.x,featured.pos.z)<1.35)p.pos.z=clamp(featured.pos.z-(index+1)*1.55,-HW+.45,HW-.45);});
+    defense.players.forEach((p,index)=>p.pos.set(featured.pos.x-attack.dir*(2.8+index*.28),0,clamp(-5.6+index*2.7,-HW+.45,HW-.45)));
+    const traffic=clamp(Number(config.traffic)||0,0,2)|0;
+    for(let index=0;index<traffic;index++)defense.players[index].pos.set(featured.pos.x-attack.dir*(.48+index*.18),0,featured.pos.z+(index?-.72:.72));
+    ball.holder=featured;ball.state='HELD';ball.pos.set(featured.pos.x,1.12,featured.pos.z);play.actionLabel='DRIFTING SCREEN CATCH';play.decision='CATCH-TO-RELEASE WINDOW';
+    setState('SET');startWindup(featured,'jumper');
+  }else if(stage==='counter'&&featured?.side===side&&featured.athlete.id==='new-york-brownstones-a1'){
+    featured.pos.set(rim.x-attack.dir*1.25,0,.25);featured.lastLandingAt=tGlobal-.12;
+    defense.players[4].pos.set(rim.x-attack.dir*1.45,0,-.45);ball.holder=null;ball.state='LOOSE';ball.shot=null;ball.pos.set(rim.x-attack.dir*.65,1.4,0);ball.vel.set(0,-1,0);
+    play.reboundClaimed=false;play.saidReb=true;setState('REBOUND');resolveRebound();
+  }else if(stage==='boxout'&&featured?.side!==side&&featured?.athlete.id==='new-york-brownstones-a1'){
+    const matchup=attack.players[4];
+    attack.players.forEach((p,index)=>{p.pos.set(rim.x-attack.dir*(index===4?1.65:6.2+index*.72),0,index===4?.12:(index%2?5.4:-5.4));p.target.copy(p.pos);});
+    defense.players.forEach((p,index)=>{p.pos.set(rim.x-attack.dir*(index===4?.95:8.2+index*.68),0,index===4?.08:(index%2?-4.2:4.2));p.target.copy(p.pos);});
+    matchup.pos.z=.12;featured.pos.z=.08;featured.lastLandingAt=tGlobal-2;
+    ball.holder=null;ball.state='LOOSE';ball.shot=null;ball.pos.set(featured.pos.x,1.25,featured.pos.z);ball.vel.set(0,-1,0);ball.lastTeam=side;
+    play.reboundClaimed=false;play.saidReb=true;setState('REBOUND');resolveRebound();
+  }else if(stage==='read'){
+    handler.pos.set(rim.x-attack.dir*3.15,0,.2);handler.target.copy(handler.pos);ball.holder=handler;ball.state='HELD';ball.pos.set(handler.pos.x,1.05,handler.pos.z);
+    defense.players[3].pos.set(handler.pos.x+attack.dir*.35,0,handler.pos.z+.9);play.helpPlayer=defense.players[3];play.helpTarget=handler;
+    attack.players[4].pos.set(rim.x-attack.dir*1.6,0,-1.25);setState('DRIVE');resolveDriveRead(handler,rim);
+  }
+  setTargets(0);updatePlayers(0);updateBall(0);cut();updateCamera(0);fxStep(0);updateGamePlan();composer.render();
+  return JSON.parse(window.render_game_to_text());
+}
 window.__CYBERLIGA_HOOPS_TEST__={
   restart(){matchNo=Math.max(0,matchNo-1);newMatch();return JSON.parse(window.render_game_to_text());},
   fixture(index=0){matchNo=((Number(index)||0)%FIXTURES.length+FIXTURES.length)%FIXTURES.length;newMatch();return JSON.parse(window.render_game_to_text());},
   simulateToFinal(maxSeconds=700){releaseEstablishingHold(true);const maxSteps=Math.max(1,Math.round(maxSeconds*60));for(let i=0;i<maxSteps&&phase!=='FINAL';i++)tick(1/60,true);tick(1/60,false);return JSON.parse(window.render_game_to_text());},
-  forceScheme(id){ if(!PLAYBOOK_BY_ID[id])throw new Error(`Unknown play ${id}`);play.schemeId=id;play.step=0;play.actionLabel=PLAYBOOK_BY_ID[id].actions[0][2];play.seenSchemes.add(id);setState('SET');updateGamePlan(); },
-  forceCoverage(id){ if(!COVERAGE_BY_ID[id])throw new Error(`Unknown coverage ${id}`);play.coverageId=id;play.seenCoverages.add(id);updateGamePlan(); },
+  stopDriver(){stopDriver();return JSON.parse(window.render_game_to_text());},
+  startDriver(){startDriver();return JSON.parse(window.render_game_to_text());},
+  forceMatchupScenario,
+  forceHornScenario(state='DRIVE'){
+    stopDriver();releaseEstablishingHold(true);phase='PLAY';hideCard();elFlash.classList.remove('show');elFlash.style.transition='none';elFlash.style.opacity='0';flashTimer=0;
+    q=4;qClock=.006;quarterPending=false;play.offense=0;play.inbound=null;play.freeThrow=null;play.pendingFreeThrowTrip=null;
+    callPossession('QA HORN',{schemeId:'HIGH_PNR',coverageId:'MAN'});
+    const requested=['DRIVE','WINDUP','REBOUND','SHOT','SHOT_CLOCK'].includes(state)?state:'DRIVE',shooter=teams[0].players[0],rim=atkRim(teams[0]);
+    ball.holder=shooter;ball.state='HELD';ball.shot=null;ball.vel.set(0,0,0);ball.pos.set(rim.x-teams[0].dir*3.2,1.05,0);shooter.pos.set(ball.pos.x,0,0);
+    if(requested==='WINDUP'){
+      setState('WINDUP');play.shooter=shooter;play.windKind='jumper';play.windDur=.8;play.released=false;play.shootingFoulPending=false;
+    }else if(requested==='REBOUND'){
+      ball.holder=null;ball.state='LOOSE';ball.pos.set(rim.x-teams[0].dir*.8,1.2,0);ball.vel.set(0,-1,0);play.reboundClaimed=false;play.shotQuality=.42;setState('REBOUND');
+    }else if(requested==='SHOT'){
+      shooter.fga++;teams[0].fga++;ball.holder=null;ball.state='SHOT';ball.pos.set(rim.x,RIM_Y+.04,0);ball.vel.set(0,-6,0);ball.lastTeam=0;
+      ball.shot={pts:2,shooter,team:teams[0],bank:false,banked:false,quality:.74,intendedMake:true,contest:0};play.shotQuality=.74;setState('SHOT');
+    }else if(requested==='SHOT_CLOCK'){shotClock=.006;setState('SET');}
+    else setState('DRIVE');
+    tick(1/60,false,true);
+    return JSON.parse(window.render_game_to_text());
+  },
+  forceScheme(id){if(!PLAYBOOK_BY_ID[id])throw new Error(`Unknown play ${id}`);return forceMatchupScenario({offenseSide:play.offense,schemeId:id,coverageId:play.coverageId,stage:'entry'});},
+  forceCoverage(id){if(!COVERAGE_BY_ID[id])throw new Error(`Unknown coverage ${id}`);return forceMatchupScenario({offenseSide:play.offense,schemeId:play.schemeId,coverageId:id,stage:'entry'});},
   forceTransition(side=play.offense){
     releaseEstablishingHold(true);
     const idx=clamp(side|0,0,1),attack=teams[idx],defense=teams[1-idx],runner=attack.players[0],lanes=[0,-6.1,6.1,-3.35,3.35];
