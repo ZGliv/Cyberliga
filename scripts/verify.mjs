@@ -68,8 +68,9 @@ if (packageManifest) {
   check(packageManifest.scripts?.['test:named-moments'] === 'node --test named-moments.test.mjs', 'npm run test:named-moments must cover deterministic match memory');
   check(packageManifest.scripts?.['test:broadcast'] === 'node --test broadcast-spine.test.mjs', 'npm run test:broadcast must cover the shared Match Memory presentation state machine');
   check(packageManifest.scripts?.['test:football-replay-memory'] === 'node --test football-replay-memory.test.mjs', 'npm run test:football-replay-memory must cover football replay adjudication and truthful footage provenance');
+  check(packageManifest.scripts?.['test:basketball-brain'] === 'node --test basketballbrain.test.mjs', 'npm run test:basketball-brain must cover canonical identity, no-peek coordination, live reads, and certified possession memory');
   check(packageManifest.scripts?.['test:visuals'] === 'node --test foundingvisual.test.mjs foundinglive.test.mjs', 'npm run test:visuals must cover shared Founding portrait and live-cue renderers');
-  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:football-replay-memory && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, named match memory, broadcast presentation, football replay memory, and Founding visuals before static/data invariants');
+  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:football-replay-memory && npm run test:basketball-brain && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, named match memory, broadcast presentation, football replay memory, Basketball identity AI, and Founding visuals before static/data invariants');
   check(packageManifest.scripts?.['release:check'] === 'npm run verify && node scripts/release-check.mjs', 'npm run release:check must verify the repository before checking the canonical release source');
   check(Object.keys(packageManifest.dependencies || {}).length === 0, 'Runtime dependencies must remain empty');
   check(Object.keys(packageManifest.devDependencies || {}).length === 0, 'Development dependencies must remain empty');
@@ -138,6 +139,7 @@ const atlasSource = `${await text('league.html')}\n${await text('league-page.js'
 const leagueMarkupSource = await text('league.html');
 const soccerSource = await text('index.html');
 const hoopsSource = await text('hoops.html');
+const basketballBrainSource = await text('basketballbrain.js');
 const blobRigSource = await text('blobrig.js');
 const socialSource = await text('social.html');
 const momentSource = await text('moment.html');
@@ -287,6 +289,15 @@ check(/createCrowd\([^;]+rng:\s*presentationRandom/.test(soccerSource) && /creat
 check(/export function createCrowd\([\s\S]{0,500}\brng\b/.test(crowdSource) && !/\bMath\.random\s*\(/.test(crowdSource), 'Crowd implementation must use its injected presentation RNG');
 check(/export function createPresentation\([^)]*opts[\s\S]{0,220}\brng\b/.test(presentationSource), 'Presentation copy must use its injected presentation RNG');
 check(/RETRIEVE[\s\S]*BASELINE[\s\S]*READY[\s\S]*PASS/.test(hoopsSource) && /inboundsCompleted/.test(hoopsSource), 'Basketball must show a real baseline inbound sequence after baskets');
+check(/createBasketballBrain/.test(hoopsSource) && /chooseOffense\(\{[\s\S]{0,500}chooseDefense\(\{/.test(hoopsSource), 'Basketball must use independent brain coordinators from one pre-possession snapshot');
+check(/finishPossession\(['"](?:made|turnover|defensive_rebound|free_throw_trip|period_end)/.test(hoopsSource), 'Basketball must certify official possession terminals before adaptation');
+check(/forceMatchupScenario/.test(hoopsSource) && /identityRead/.test(hoopsSource) && /screenEvidence/.test(hoopsSource), 'Basketball must expose deterministic causal matchup evidence');
+check(/function commitCleanBlock[\s\S]{0,420}reboundClaimed\s*=\s*false[\s\S]{0,120}setState\(['"]REBOUND['"]\)/.test(hoopsSource), 'Basketball clean blocks must open a fresh rebound race after any prior offensive board');
+check(/HORN_CONTINUATION_STATES[^\n]+SHOT[^\n]+FREE_THROW[^\n]+MADE/.test(hoopsSource) && /quarterPending\s*&&\s*!hornContinuation/.test(hoopsSource) && /forceHornScenario/.test(hoopsSource), 'Basketball horn adjudication must allow only released shots, free throws, and made-ball holds to continue');
+check(/body:has\(#flash\.show\) #gameplan/.test(hoopsSource), 'Basketball scoring feedback must take presentation priority over the tactical card');
+check(/#identityread[\s\S]{0,220}font-size:\s*10px/.test(hoopsSource), 'Basketball identity reasons must remain visible at a legible mobile size');
+check(!/\b(?:Date|document|window|location|navigator|localStorage|sessionStorage|indexedDB|fetch|XMLHttpRequest|WebSocket|requestAnimationFrame|setTimeout|setInterval|performance)\b/.test(basketballBrainSource) && !/Math\.random/.test(basketballBrainSource), 'Basketball brain must remain independent of UI, time, storage, network, schedulers, and global randomness');
+check(/CANONICAL_TEAM_REFERENCE/.test(basketballBrainSource) && /SECOND_JUMP_LATE/.test(basketballBrainSource) && /SCREEN_TRAFFIC_LOST/.test(basketballBrainSource), 'Basketball brain must retain exact-reference identity gates and paired Founder counters');
 check(/deterministicSeed/.test(hockeySource) && /const aimZ = \(rnd\(\)/.test(hockeySource) && /S\.forceCheck \|\| rnd\(\)/.test(hockeySource), 'Hockey sporting decisions must use the seeded simulation RNG');
 check(/pitchTargetMarker/.test(baseballSource) && /pitchGuideStep/.test(baseballSource) && /pitchIntent/.test(baseballSource), 'Baseball must expose pitch tunnel, target, and intent causality');
 check(!/say\s*\(\s*spick\(/.test(baseballSource), 'Baseball commentary must not consume seeded sporting RNG');
