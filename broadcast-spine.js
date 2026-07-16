@@ -211,9 +211,38 @@
       };
     }
 
+    function witnessShellIsRenderable() {
+      if ((typeof document !== 'undefined' && document.hidden === true) ||
+          nodes.shell.isConnected === false ||
+          nodes.shell.getAttribute('aria-hidden') !== 'false' ||
+          !nodes.shell.classList.contains('is-visible') ||
+          nodes.shell.classList.contains('is-leaving')) return false;
+      if (typeof nodes.shell.getClientRects === 'function') {
+        var rects = null;
+        try { rects = nodes.shell.getClientRects(); } catch (error) { return false; }
+        if (!rects || !rects.length) return false;
+        var rect = rects[0];
+        if ((Number.isFinite(rect.width) && rect.width <= 0) ||
+            (Number.isFinite(rect.height) && rect.height <= 0)) return false;
+        var viewportWidth = finiteNumber(root && root.innerWidth, 0);
+        var viewportHeight = finiteNumber(root && root.innerHeight, 0);
+        if (viewportWidth > 0 && viewportHeight > 0 &&
+            (rect.right <= 0 || rect.bottom <= 0 || rect.left >= viewportWidth || rect.top >= viewportHeight)) return false;
+      }
+      if (root && typeof root.getComputedStyle === 'function') {
+        var style = null;
+        try { style = root.getComputedStyle(nodes.shell); } catch (error) { return false; }
+        if (!style || style.display === 'none' || style.visibility === 'hidden' ||
+            style.visibility === 'collapse' || style.contentVisibility === 'hidden') return false;
+        var opacity = parseFloat(style.opacity);
+        if (Number.isFinite(opacity) && opacity <= 0) return false;
+      }
+      return true;
+    }
+
     function capturePaintedMoment(item) {
       if (!item || item.witnessAttempted || item.mode === 'spotlight' || !item.moment ||
-          (typeof document !== 'undefined' && document.hidden === true)) return;
+          !witnessShellIsRenderable()) return;
       var callback = witnessCallback();
       if (!callback) return;
       if (witnessedMoments && witnessedMoments.has(item.moment)) {
@@ -249,7 +278,7 @@
 
     function armWitnessProof(item) {
       if (!item || item.mode === 'spotlight' || !item.moment || item.witnessAttempted ||
-          pendingWitnessItem === item) return;
+          pendingWitnessItem === item || nodes.shell.classList.contains('is-leaving')) return;
       cancelWitnessProof();
       var generation = witnessGeneration;
       var completed = false;
@@ -261,9 +290,7 @@
           if (generation !== witnessGeneration || destroyed || active !== item) return;
           pendingWitnessCancel = null;
           pendingWitnessItem = null;
-          if ((typeof document !== 'undefined' && document.hidden === true) ||
-              nodes.shell.getAttribute('aria-hidden') !== 'false' ||
-              !nodes.shell.classList.contains('is-visible')) return;
+          if (!witnessShellIsRenderable()) return;
           capturePaintedMoment(item);
         });
       } catch (error) {
@@ -349,7 +376,9 @@
       remainingMs = Math.max(0, remainingMs - delta);
       var ratio = durationMs > 0 ? remainingMs / durationMs : 0;
       nodes.shell.style.setProperty('--cl-spine-progress', (ratio * 100).toFixed(2) + '%');
-      nodes.shell.classList.toggle('is-leaving', remainingMs > 0 && remainingMs <= 320);
+      var leaving = remainingMs > 0 && remainingMs <= 320;
+      nodes.shell.classList.toggle('is-leaving', leaving);
+      if (leaving && pendingWitnessItem === active) cancelWitnessProof();
       if (remainingMs <= 0) advanceQueue();
     }
 
@@ -357,6 +386,7 @@
     function present(moment, itemOptions) { return enqueue(itemForMoment(moment, itemOptions)); }
 
     function finale(moments) {
+      if (destroyed) return false;
       var list = Array.isArray(moments) ? moments.slice(0, 3) : [];
       if (!list.length) return false;
       var items = list.map(function prepare(moment, index) {
@@ -392,6 +422,8 @@
       cancelWitnessProof();
       queue = [];
       active = null;
+      remainingMs = 0;
+      durationMs = 0;
       nodes.shell.remove();
     }
 

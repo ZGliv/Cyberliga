@@ -919,6 +919,11 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   the pending proof. A release audit caught and repaired the prior same-task edge where Combat could replace a
   decision card before the browser painted it; the permanent regression proves that excluded card records zero
   while each finale card records only after its scheduled paint proof.
+- Release-manager trust audit found and repaired a second paint edge: hidden-tab drivers could age a card into the
+  fully transparent `is-leaving` window, then let its suspended proof certify it when the tab resumed. Paint commit
+  now fails closed for leaving, detached, zero-box, off-viewport, CSS-hidden or zero-opacity shells; entering the
+  leaving window cancels the pending generation. Exact hidden-resume, preemption, clear and destroy regressions
+  prove zero stale capture, and destroyed controllers now reset timing and refuse a finale.
 - My Signal now opens with `MY NIGHT`: unread count, retained NEW state during the current open, explicit
   DEVICE-LOCAL / NOT OFFICIAL boundary, canonical athlete/team/opponent identity, 44px KEEP / ATHLETE FILE /
   12S CONCEPT / REMOVE actions and no score claim. Athlete Files insert `06 / YOUR WITNESS CHRONICLE` between
@@ -933,7 +938,7 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   overflow and no console/page errors. Desktop and 390x844 My Night/Athlete chronology flows passed 1 NEW → open
   while visibly NEW → stored unread 0 → KEEP → cross-page KEPT. All actions measured 44px; phone drawer/section
   widths were exactly 390px with 390px scroll width. The four feature screenshots were visually inspected.
-- Current-byte gates pass 13/13 API, 11/11 live-moment, 15/15 named-memory, 10/10 broadcast-spine, 14/14 Chronicle/
+- Current-byte gates pass 13/13 API, 11/11 live-moment, 15/15 named-memory, 12/12 broadcast-spine, 14/14 Chronicle/
   store, 5/5 football replay-memory, 16/16 shared visual/live-cue and 28/28 football brain/rules tests, plus
   1,514/1,514 repository checks. Standalone syntax and `git diff --check` pass. This is an isolated, undeployed
   feature slice for Release Manager audit and integration.

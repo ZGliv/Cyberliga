@@ -397,3 +397,70 @@ test('commits only after a paint opportunity and cancels a synchronously replace
   assert.deepEqual(captures.map((capture) => capture.moment), finale);
   spine.destroy();
 });
+
+test('a hidden card that ages into its fully faded leaving window is never witnessed on resume', () => {
+  const scheduler = deferredPaintScheduler();
+  const captures = [];
+  const { director, spine } = createPair('hidden-fade', {
+    scheduleWitnessPaint: scheduler.schedule,
+    captureWitness(moment) { captures.push(moment); return true; }
+  });
+  const moment = director.record({
+    eventKey:'hidden-fade-goal', kind:'goal', side:'home', team:home, athlete:home.athletes[2]
+  });
+
+  document.hidden = true;
+  try {
+    assert.equal(spine.present(moment), true);
+    tickFor(spine, 4500);
+    const shell = findByClass(body, 'cl-broadcast-spine');
+    assert.equal(spine.state().remainingMs, 300);
+    assert.equal(shell.classList.contains('is-visible'), true);
+    assert.equal(shell.classList.contains('is-leaving'), true);
+    assert.equal(scheduler.pending(), 0);
+
+    document.hidden = false;
+    scheduler.flush();
+    spine.tick(0);
+    scheduler.flush();
+    assert.equal(captures.length, 0);
+    assert.equal(spine.state().witnessed, false);
+  } finally {
+    document.hidden = false;
+    spine.destroy();
+  }
+});
+
+test('pending proofs are generation-safe across preemption, clear, and destroy', () => {
+  const scheduler = deferredPaintScheduler();
+  const captures = [];
+  const { director, spine } = createPair('proof-lifecycle', {
+    scheduleWitnessPaint: scheduler.schedule,
+    captureWitness(moment) { captures.push(moment); return true; }
+  });
+  const first = director.record({
+    eventKey:'proof-lifecycle-save', kind:'save', side:'home', team:home, athlete:home.athletes[3]
+  });
+  const preemptor = director.record({
+    eventKey:'proof-lifecycle-goal', kind:'goal', side:'away', team:away, athlete:away.athletes[3]
+  });
+
+  assert.equal(spine.present(first, { mode:'final' }), true);
+  assert.equal(spine.present(preemptor), true);
+  scheduler.flush();
+  assert.deepEqual(captures, [preemptor]);
+
+  spine.clear();
+  assert.equal(spine.present(first), true);
+  spine.clear();
+  scheduler.flush();
+  assert.deepEqual(captures, [preemptor]);
+
+  assert.equal(spine.present(first), true);
+  spine.destroy();
+  scheduler.flush();
+  assert.deepEqual(captures, [preemptor]);
+  assert.equal(spine.state().visible, false);
+  assert.equal(spine.state().remainingMs, 0);
+  assert.equal(spine.finale([first]), false);
+});
