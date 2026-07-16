@@ -124,6 +124,7 @@ html.fw-open .fw-drawer { transform: none; }
 .fw-section-action { min-height: 44px; padding: 0 10px; border: 1px solid rgba(255,255,255,.15) !important; color: rgba(255,255,255,.66) !important; background: transparent; cursor: pointer; font: 800 7px/1 'Barlow Condensed',sans-serif !important; letter-spacing: .1em; }
 .fw-section-action:hover, .fw-section-action:focus-visible { border-color: var(--fw-drawer-accent) !important; color: #fff !important; }
 .fw-my-night { background: linear-gradient(135deg,color-mix(in srgb,var(--fw-drawer-accent) 7%,transparent),transparent 58%); }
+.fw-my-night:focus-visible, .fw-player-chronicle:focus-visible { outline: 2px solid var(--fw-drawer-accent,var(--team,var(--fw-accent))); outline-offset: -3px; }
 .fw-witness-boundary { display: grid; gap: 6px; margin-bottom: 13px; padding: 11px 12px; border: 1px solid color-mix(in srgb,var(--fw-drawer-accent) 30%,rgba(255,255,255,.12)); background: color-mix(in srgb,var(--fw-drawer-accent) 5%,rgba(255,255,255,.018)); }
 .fw-witness-boundary b { color: #fff; font: 900 9px/1 'Barlow Condensed',sans-serif; letter-spacing: .14em; }
 .fw-witness-boundary span { color: rgba(255,255,255,.62); font: 700 8px/1.45 'Barlow Condensed',sans-serif; letter-spacing: .075em; overflow-wrap: anywhere; }

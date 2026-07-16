@@ -945,3 +945,23 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - Next product track after this fandom loop: the audited Basketball Signature Matchup Engine, so persistent
   character memory is followed by more athlete-specific live decision-making. Official cross-device/season
   chronology remains intentionally deferred until Cyberliga has provisioned authoritative backend credentials.
+
+## Witness Chronicle keyboard-focus release audit — 2026-07-15
+- Release-manager UI audit reproduced a modal focus escape: KEEP and REMOVE synchronously rebuilt the receipt
+  feed, detached the activated control and left `document.activeElement` on BODY outside the open dialog.
+- My Night and Athlete File actions now use one coalesced witness-change render. KEEP restores the exact
+  replacement control; successful REMOVE chooses the same action on the next then previous receipt; a final
+  removal focuses the labeled My Night/Chronicle section. Failed removal retains the original action target.
+  Change-event objects cannot overwrite a pending action-focus request, and the fallback sections expose a
+  visible keyboard outline without entering the ordinary Tab order.
+- The permanent verifier now rejects direct duplicate action renders, missing deterministic restoration and the
+  event-object race. A 390x844 keyboard regression measured one feed render per action and proved the full
+  same → next → previous → labeled-section sequence inside the modal; the Athlete File sequence also passed.
+- Mobile Home, League HQ and Athlete File retained zero trigger/nav overlap and zero horizontal overflow. A
+  poisoned persisted receipt rebuilt canonical text and same-origin `player.html` / `clip.html` routes, created
+  no injected nodes or script effects, and both destinations opened with the expected local chronology and
+  unverified animated-concept boundary.
+- Official-client drawer capture `/private/tmp/cyberliga-witness-focus-official/shot-0.png` and focused mobile
+  capture `/private/tmp/cyberliga-witness-focus-restored-mobile.png` were visually inspected with no browser error
+  artifact. Combined current-byte gates pass `npm run verify` (including 17/17 Chronicle/store and 1,517/1,517
+  verifier checks), football brain/rules 28/28, standalone syntax and `git diff --check`.

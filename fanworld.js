@@ -389,7 +389,49 @@
     var entries = state.entries.slice(0,8);
     var countLabel = witnessUnreadAtOpen ? witnessUnreadAtOpen + ' NEW THIS OPEN' : state.count + ' RECEIPTS';
     var stack = entries.length ? entries.map(function (entry) { return witnessCard(entry,'drawer'); }).join('') : '<div class="fw-witness-empty"><b>YOUR NIGHT STARTS IN AN ARENA</b>When a certified named moment is actually shown while you watch, this device can remember it here.</div>';
-    return '<section id="fw-my-night" class="fw-drawer-section fw-my-night" aria-labelledby="fw-my-night-title"><header class="fw-section-title"><p id="fw-my-night-title">MY NIGHT</p><span>' + esc(countLabel) + '</span></header><div class="fw-witness-boundary"><b>DEVICE-LOCAL · NOT OFFICIAL</b><span>' + esc(witnessContractCopy()) + '</span></div><div class="fw-witness-stack" role="feed" aria-label="Device-local witness receipts">' + stack + '</div></section>';
+    return '<section id="fw-my-night" class="fw-drawer-section fw-my-night" tabindex="-1" aria-labelledby="fw-my-night-title"><header class="fw-section-title"><p id="fw-my-night-title">MY NIGHT</p><span>' + esc(countLabel) + '</span></header><div class="fw-witness-boundary"><b>DEVICE-LOCAL · NOT OFFICIAL</b><span>' + esc(witnessContractCopy()) + '</span></div><div class="fw-witness-stack" role="feed" aria-label="Device-local witness receipts">' + stack + '</div></section>';
+  }
+  function witnessFocusRequest(target, removed) {
+    if (!target || typeof target.closest !== 'function') return null;
+    var card = target.closest('[data-fw-witness-card]');
+    var scopeName = drawer && drawer.contains(target) ? 'drawer' : 'player';
+    var scope = scopeName === 'drawer' ? drawer : document.getElementById('fw-player-chronicle');
+    if (!card || !scope || !scope.contains(target)) return null;
+    var cards = Array.prototype.slice.call(scope.querySelectorAll('[data-fw-witness-card]'));
+    var index = cards.indexOf(card);
+    if (index < 0) return null;
+    return {
+      scope: scopeName,
+      action: cleanString(target.dataset && target.dataset.fwAction,40),
+      witnessId: cleanString(card.dataset && card.dataset.fwWitnessCard,240),
+      nextId: cleanString(cards[index + 1] && cards[index + 1].dataset.fwWitnessCard,240),
+      previousId: cleanString(cards[index - 1] && cards[index - 1].dataset.fwWitnessCard,240),
+      removed: removed === true
+    };
+  }
+  function witnessActionInCard(scope, witnessId, action) {
+    if (!scope || !witnessId || !action) return null;
+    var cards = Array.prototype.slice.call(scope.querySelectorAll('[data-fw-witness-card]'));
+    var card = cards.filter(function (candidate) { return candidate.dataset.fwWitnessCard === witnessId; })[0];
+    if (!card) return null;
+    return Array.prototype.slice.call(card.querySelectorAll('[data-fw-action]')).filter(function (candidate) {
+      return candidate.dataset.fwAction === action;
+    })[0] || null;
+  }
+  function restoreWitnessFocus(request) {
+    if (!request) return;
+    var scope = request.scope === 'drawer' ? drawer : document.getElementById('fw-player-chronicle');
+    if (!scope || (request.scope === 'drawer' && !document.documentElement.classList.contains('fw-open'))) return;
+    var target = request.removed ?
+      witnessActionInCard(scope,request.nextId,request.action) || witnessActionInCard(scope,request.previousId,request.action) :
+      witnessActionInCard(scope,request.witnessId,request.action);
+    if (!target) {
+      target = request.scope === 'drawer' ? scope.querySelector('#fw-my-night') : scope;
+      if (!target || typeof target.focus !== 'function') target = request.scope === 'drawer' ? scope.querySelector('.fw-close') : null;
+    }
+    if (!target || typeof target.focus !== 'function') return;
+    try { target.focus({preventScroll:true}); }
+    catch (_error) { target.focus(); }
   }
   function witnessChapter(athleteId) {
     if (!WitnessStore || typeof WitnessStore.chapter !== 'function') return null;
@@ -407,6 +449,7 @@
       section = document.createElement('section');
       section.id = 'fw-player-chronicle';
       section.className = 'fw-player-chronicle';
+      section.tabIndex = -1;
       section.setAttribute('aria-labelledby','fw-player-chronicle-title');
       teammates.before(section);
     }
@@ -957,22 +1000,23 @@
       if (!WitnessStore || typeof WitnessStore.keep !== 'function') return;
       var keep = target.getAttribute('aria-pressed') !== 'true';
       var kept = false;
+      var keepFocusRequest = witnessFocusRequest(target,false);
       try { kept = WitnessStore.keep(target.dataset.fwWitnessId,keep) !== false; }
       catch (_error) { kept = false; }
+      scheduleWitnessRender(keepFocusRequest);
       toast(kept ? (keep ? 'WITNESS RECEIPT KEPT ON THIS DEVICE' : 'WITNESS RECEIPT UNPINNED') : 'WITNESS RECEIPT COULD NOT BE UPDATED');
-      renderDrawer();
-      renderPlayerChronicle();
       return;
     }
     if (action === 'remove-witness') {
       event.preventDefault();
       if (!WitnessStore || typeof WitnessStore.remove !== 'function') return;
       var removed = false;
+      var removeFocusRequest = witnessFocusRequest(target,true);
       try { removed = WitnessStore.remove(target.dataset.fwWitnessId) !== false; }
       catch (_error) { removed = false; }
+      if (!removed && removeFocusRequest) removeFocusRequest.removed = false;
+      scheduleWitnessRender(removeFocusRequest);
       toast(removed ? 'WITNESS RECEIPT REMOVED FROM THIS DEVICE' : 'WITNESS RECEIPT COULD NOT BE REMOVED');
-      renderDrawer();
-      renderPlayerChronicle();
       return;
     }
     if (action === 'refresh-live') { event.preventDefault(); refreshLiveMoments(true); return; }
@@ -1231,17 +1275,21 @@
 
   document.addEventListener('click',handleAction);
   var witnessRenderQueued = false;
-  function scheduleWitnessRender() {
+  var pendingWitnessFocusRequest = null;
+  function scheduleWitnessRender(focusRequest) {
+    if (focusRequest && (focusRequest.scope === 'drawer' || focusRequest.scope === 'player')) pendingWitnessFocusRequest = focusRequest;
     if (witnessRenderQueued) return;
     witnessRenderQueued = true;
     requestAnimationFrame(function () {
       witnessRenderQueued = false;
+      var restoreFocus = pendingWitnessFocusRequest;
+      pendingWitnessFocusRequest = null;
       renderDrawer();
       renderPlayerChronicle();
+      restoreWitnessFocus(restoreFocus);
     });
   }
-  document.addEventListener('cyberliga:witness-change',scheduleWitnessRender);
-  root.addEventListener('cyberliga:witness-change',scheduleWitnessRender);
+  root.addEventListener('cyberliga:witness-change',function () { scheduleWitnessRender(); });
   document.addEventListener('keydown',function (event) {
     if (!document.documentElement.classList.contains('fw-open')) return;
     if (trapDrawerFocus(event)) return;
