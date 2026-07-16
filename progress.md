@@ -965,3 +965,26 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   capture `/private/tmp/cyberliga-witness-focus-restored-mobile.png` were visually inspected with no browser error
   artifact. Combined current-byte gates pass `npm run verify` (including 17/17 Chronicle/store and 1,517/1,517
   verifier checks), football brain/rules 28/28, standalone syntax and `git diff --check`.
+
+## Witness Store durability release audit — 2026-07-15
+- Release review found that the original adapter mutated its live Chronicle before confirming `setItem`, ignored
+  quota failures, treated an absent key as unavailable storage, and could therefore report success or resurrect a
+  pre-reset receipt. Every mutation now stages a fresh revalidated model and swaps it live only after `setItem`
+  returns. Quota/private-write failure preserves the prior durable model and returns failure; a successful atomic
+  `setItem` still commits if only its follow-up verification read is unavailable.
+- Explicit key deletion and `localStorage.clear()` (`StorageEvent.key === null`) now become a new empty reset epoch;
+  same-tab deletion is detected on the next Chronicle read or action even though browsers emit no same-tab event.
+  Old capture/keep/remove/read replay intents are discarded, and an actually current pre-clear or pre-reset
+  snapshot is overwritten by the empty epoch rather than adopted. Missing storage is distinct from a failed read,
+  so the next mutation starts from empty instead of rebuilding deleted receipts.
+- localStorage cannot provide a synchronous multi-tab compare-and-swap. The adapter therefore publishes the
+  honest contract `crossTab:"open-tab-optimistic-convergence"` and `atomic:false`: exact-base preflight and
+  post-write checks retry ordinary conflicts, while a bounded commit lineage plus in-memory replay journal lets
+  open tabs repair the remaining legal preflight-to-write fork after its storage event. This is not durable
+  cross-tab serialization, and no receipt is official, authoritative, wagerable, settling, money, prize, XP,
+  fan-call, standings or career-stat state.
+- Permanent regressions now cover quota rejection across capture/keep/remove/read/reset, successful-set/read-error
+  semantics, explicit deletion, clear, stale reset/clear resurrection, both sides of `setItem` conflict detection,
+  deep freezing, and the exact two-tab A-preflight → B-commit → A-commit fork converging to both receipts.
+  Current bytes pass 20/20 Chronicle/store tests, the complete `npm run verify` gate with 1,517/1,517 repository
+  checks, football brain/rules 28/28, standalone syntax and `git diff --check`.
