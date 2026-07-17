@@ -554,6 +554,10 @@ if (broadcastSpinePresent) {
   check(/pointer-events:\s*none\s*!important/.test(broadcastSpineStyles), 'Broadcast spine must remain pointer-inert');
   check(/@media \(max-width: 700px\)/.test(broadcastSpineStyles) && /orientation: landscape/.test(broadcastSpineStyles), 'Broadcast spine must define phone and landscape broadcast layouts');
   check(/font:\s*750 9px\/1\.3/.test(broadcastSpineStyles) && /font-size:\s*10px/.test(broadcastSpineStyles), 'Broadcast spine safety provenance must remain readable on desktop and phones');
+  check(/grid-template-columns:\s*48px minmax\(0, 1fr\) 128px/.test(broadcastSpineStyles), 'Landscape broadcast cards must reserve enough width to show their event provenance');
+  check(/@media \(max-height: 480px\) and \(orientation: landscape\)[\s\S]*?\.cl-spine-proof\s*\{[^}]*grid-column:\s*auto;[^}]*min-width:\s*0;/.test(broadcastSpineStyles), 'Landscape broadcast provenance must reset the wider desktop minimum inside its compact grid track');
+  check(/\.cl-spine-proof b,\s*\n\s*\.cl-spine-proof span\s*\{\s*max-width:\s*100%;\s*\}/.test(broadcastSpineStyles), 'Landscape broadcast provenance children must remain bounded by the compact grid column');
+  check(/\.cl-spine-proof b\s*\{[^}]*white-space:\s*normal;[^}]*overflow-wrap:\s*anywhere;/.test(broadcastSpineStyles), 'Landscape broadcast event IDs must wrap intact instead of clipping');
 }
 
 const witnessChroniclePresent = await exists('witness-chronicle.js');

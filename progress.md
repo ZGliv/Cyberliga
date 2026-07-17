@@ -1041,3 +1041,37 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   replay-memory, 12
   Basketball brain and 16 shared visual/live tests plus 1,463/1,463 static/data checks and 28/28 football rules/brain
   tests. This remains an isolated, undeployed feature slice for Release Manager audit.
+
+## Basketball / Witness integration release pass — 2026-07-17
+- Transplanted the audited Basketball Signature Matchup Engine onto canonical Witness Chronicle HEAD
+  `7da47e3a6c8c46d0922d7377a86e84b070bfcb37`, preserving both the autonomous possession brain and the complete
+  Match Memory → Broadcast Spine → device-local Witness Chronicle chain. The combined slice remains isolated and
+  undeployed for Release Manager integration.
+- A forced canonical New York Brownstones–Toronto Lake Effect Stoopy dunk retained one exact `moment-120v9gn` identity
+  through Match Memory, the live spine card and Chronicle receipt. The receipt remained explicitly local,
+  unofficial, non-authoritative, non-wagerable and unrelated to money or prizes. Desktop and 390×844 Home/My Night
+  flows showed `MY SIGNAL · 01 NEW`, exactly one receipt, persistent NEW-this-open treatment, stored unread 0 after
+  opening and four 44px actions with no drawer or page overflow.
+- Current-byte finale QA advanced three distinct remembered plays in order before clearing. The direct sequence was
+  `moment-0847tce` → `moment-1cbp80s` → `moment-0bkf1ew`; independent soak evidence reproduced the 1 → 2 → 3
+  witness count and then idle. A moment already witnessed live remained one receipt when selected for the finale,
+  proving live/final dedupe.
+- A frozen exact-source four-fixture soak exercised all eight clubs, all nine offensive calls and all five
+  coverages: Melbourne 25–20 Dakar (39 calls/memories), New York 13–18 Toronto (45/45), Belgrade 12–23 Manila
+  (41/41) and Istanbul 14–19 Medellín (44/44). Every game reached one finite FINAL with zero void resets. A fresh
+  fixture-one repeat matched 28,931 serialized bytes exactly at SHA-256
+  `2fabef5cf54d5cc6e969b2785f35e9174db80e865e4ad4adb880b9295789246b`.
+- Forced DRIVE, WINDUP, REBOUND and simultaneous shot-clock horn states each certified exactly one scoreless period
+  end with no phantom continuation. A shot released before the horn resolved once as a made basket and the game
+  finalized once at the unchanged score.
+- Independent 844×390 audit found the shared Chronicle provenance column clipping its exact event ID. The landscape
+  spine now reserves a 128px proof track, resets its grid minimum, bounds both proof children and wraps the complete
+  ID. The repaired shell and proof column each report equal client/scroll widths (515/515 and 127/127), with the
+  event ID and safety boundary fully visible. The same exact probe passes Soccer, Football, Basketball, Hockey,
+  Baseball and Combat with zero document overflow or browser errors.
+- Official game-client runs and focused desktop, 390×844 and 844×390 browser QA show finite autonomous view-only
+  state, the classic cyan/hot-pink athletes, legible Game Plan and score presentation, contained live/finale cards,
+  and no console, page, request or HTTP error artifacts. Current-byte gates pass 13/13 API, 11/11 athlete moments,
+  15/15 named memory, 12/12 broadcast spine, 22/22 Chronicle/store, 5/5 football replay memory, 12/12 Basketball
+  brain and 16/16 shared visual/live tests, plus 1,531/1,531 verifier checks and 28/28 football brain/rules tests.
+  Standalone syntax and `git diff --check` pass.

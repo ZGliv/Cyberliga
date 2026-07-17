@@ -199,7 +199,7 @@ body:has(.cl-broadcast-spine.is-visible) #moment.show {
     bottom: calc(34px + env(safe-area-inset-bottom));
     width: min(520px, calc(100vw - 130px));
     min-height: 68px;
-    grid-template-columns: 48px minmax(0, 1fr) 104px;
+    grid-template-columns: 48px minmax(0, 1fr) 128px;
     transform: translateY(14px) scale(.985);
   }
   .cl-broadcast-spine.is-visible { transform: translateY(0) scale(1); }
@@ -208,7 +208,10 @@ body:has(.cl-broadcast-spine.is-visible) #moment.show {
   .cl-spine-copy { padding-block: 7px; }
   .cl-spine-title { font-size: 18px; }
   .cl-spine-detail { display: none; }
-  .cl-spine-proof { grid-column: auto; min-height: 0; flex-direction: column; border-top: 0; border-left: 1px solid rgba(255,255,255,.09); }
+  .cl-spine-proof { grid-column: auto; min-width: 0; min-height: 0; flex-direction: column; padding: 7px 6px 8px; border-top: 0; border-left: 1px solid rgba(255,255,255,.09); }
+  .cl-spine-proof b,
+  .cl-spine-proof span { max-width: 100%; }
+  .cl-spine-proof b { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
 }
 
 @media (prefers-reduced-motion: reduce) {
