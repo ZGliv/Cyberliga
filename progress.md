@@ -1075,3 +1075,33 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   15/15 named memory, 12/12 broadcast spine, 22/22 Chronicle/store, 5/5 football replay memory, 12/12 Basketball
   brain and 16/16 shared visual/live tests, plus 1,531/1,531 verifier checks and 28/28 football brain/rules tests.
   Standalone syntax and `git diff --check` pass.
+
+## Basketball visual-reset lab — 2026-07-22
+- Built an isolated, off-product Basketball art-direction lab around one authored 15-second Stoopy-versus-Toque
+  possession. Public Home, League HQ and `hoops.html` are unchanged, contain no link to the lab and remain the only
+  release product; this branch is not deployed and is not approved for public integration.
+- Replaced the generic neon presentation inside the lab with a restrained handmade-future-sport thesis: molded
+  maquette athletes with complete articulated silhouettes, a warm wood-and-foam High Room, hard photographed light,
+  honest shadows, three graphic crowd-depth bands and cyan/hot-pink accents used as identity rather than atmosphere.
+  The same frozen scene also exposes paper and restrained-resin material studies without external assets, network
+  requests, bloom or generative-image provenance.
+- The pure deterministic timeline runs exactly 15,000 ms across ten canonical athletes. It permanently proves a
+  physical planted screen, two opening dribbles, pass, two-hand catch, right-hand transfer, takeoff, rim contact,
+  score certification, full landing, a 460 ms Stoopy recovery cost, one consequence cut, payoff lower third and
+  broadcast reset. Nine focused tests pass with stable state digest
+  `a17191c87ef2b51a16bccd2c34a0b8c716874817b0e6df1162f2b9bf80d52433`.
+- Browser QA at 1280x720, 390x844 and native 1080x1920 keeps the screen, catch, rim and landing readable, state finite,
+  the mobile page free of horizontal overflow and the Globe/score/payoff graphics in separate safe zones. The final
+  desktop master keeps the complete rim, ball, ballhandler and screen pair inside x64–1216/y92–608 with 103.707 px
+  of rim-edge clearance; its empty foreground wedge was removed while all populated crowd bands remain. The final
+  390x844 catch leaves 31.791 px to the rim's right edge, satisfying the literal eight-percent clearance rule, and
+  the payoff card measures exactly x32–462/y570.375–696. The lab remains autonomous and view-only; deterministic
+  `?time=` capture and text-state hooks exist only for QA.
+- This prototype does **not** pass the public-expansion gate. It has no causal audio implementation or uninterrupted
+  sound captures, no graphics-off comparison or completed three-format proof package, no measured p95 frame time,
+  no ten-person blinded A/B result and no autonomous miss, block, switch-denial, turnover or rebound variations.
+  Those requirements must be completed before replacing even one public Basketball possession, and all six public
+  sports retain their classic cyan/hot-pink capsule athletes until a separately audited rollout clears every gate.
+- Current frozen bytes pass all 9 visual-reset tests, the complete `npm run verify` gate with 1,564/1,564 repository
+  checks, football brain/rules 28/28, standalone syntax, `git diff --check`, public-route containment and exact-time
+  browser captures with zero console, page, request or HTTP errors.

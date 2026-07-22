@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#d9caa8">
+  <title>Cyberliga Basketball — Visual Reset Lab</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f3eddf;
+      --ink: #201f1b;
+      --muted: #6d685d;
+      --line: rgba(32, 31, 27, .28);
+      --cyan: #24afa9;
+      --pink: #dd527c;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #d9caa8;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+    }
+
+    #visual-reset-canvas {
+      position: fixed;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
+    .lab-bar {
+      position: fixed;
+      z-index: 5;
+      top: max(14px, env(safe-area-inset-top));
+      left: max(14px, env(safe-area-inset-left));
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      pointer-events: none;
+    }
+
+    .lab-tag,
+    .globe-link {
+      min-height: 30px;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(32, 31, 27, .48);
+      background: rgba(243, 237, 223, .94);
+      color: var(--ink);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .lab-tag { padding: 0 10px; }
+
+    .globe-link {
+      padding: 0 11px;
+      text-decoration: none;
+      pointer-events: auto;
+    }
+
+    .globe-link:focus-visible {
+      outline: 3px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    .scorebug {
+      position: fixed;
+      z-index: 4;
+      top: max(14px, env(safe-area-inset-top));
+      left: 50%;
+      display: grid;
+      grid-template-columns: minmax(96px, auto) 68px minmax(96px, auto);
+      min-height: 54px;
+      transform: translateX(-50%);
+      border: 1px solid rgba(32, 31, 27, .52);
+      background: rgba(243, 237, 223, .96);
+      box-shadow: 0 7px 0 rgba(32, 31, 27, .12);
+      pointer-events: none;
+    }
+
+    .score-side,
+    .score-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .score-side {
+      gap: 9px;
+      padding: 7px 12px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .score-side::before {
+      width: 7px;
+      height: 27px;
+      content: "";
+      background: var(--cyan);
+    }
+
+    .score-side.away { flex-direction: row-reverse; }
+    .score-side.away::before { background: var(--pink); }
+    .score-abbr { display: none; }
+
+    .score-center {
+      flex-direction: column;
+      border-inline: 1px solid var(--line);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .score-line {
+      font-size: 21px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .clock-line {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .lower-third {
+      position: fixed;
+      z-index: 4;
+      left: max(32px, env(safe-area-inset-left));
+      bottom: max(24px, env(safe-area-inset-bottom));
+      width: min(430px, calc(100vw - 44px));
+      display: grid;
+      grid-template-columns: 9px 1fr;
+      overflow: hidden;
+      border: 1px solid rgba(32, 31, 27, .58);
+      background: rgba(243, 237, 223, .97);
+      box-shadow: 8px 8px 0 rgba(32, 31, 27, .15);
+      opacity: 0;
+      transform: translateY(20px);
+      pointer-events: none;
+    }
+
+    .lower-third.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .lower-accent { background: var(--cyan); }
+
+    .lower-copy { padding: 12px 15px 13px; }
+
+    .lower-kicker {
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .lower-title {
+      margin-top: 4px;
+      font-size: clamp(22px, 3vw, 34px);
+      font-weight: 900;
+      letter-spacing: -.025em;
+      line-height: .98;
+    }
+
+    .lower-detail {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .035em;
+      line-height: 1.3;
+    }
+
+    .loading-note {
+      position: fixed;
+      z-index: 3;
+      right: max(14px, env(safe-area-inset-right));
+      bottom: max(14px, env(safe-area-inset-bottom));
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      background: rgba(243, 237, 223, .86);
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-note.visible { opacity: 1; }
+
+    @media (max-width: 700px) {
+      .lab-bar { top: max(16px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); }
+      .lab-tag { display: none; }
+      .globe-link { min-height: 28px; padding-inline: 9px; font-size: 16px; letter-spacing: .04em; }
+
+      .scorebug {
+        top: max(48px, calc(env(safe-area-inset-top) + 48px));
+        grid-template-columns: minmax(64px, auto) 72px minmax(64px, auto);
+        min-height: 44px;
+        max-width: calc(100vw - 20px);
+      }
+
+      .score-side { gap: 6px; padding: 6px 8px; font-size: 16px; letter-spacing: -.015em; }
+      .score-side::before { width: 5px; height: 23px; }
+      .score-full { display: none; }
+      .score-abbr { display: inline; }
+      .score-line { font-size: 20px; }
+      .clock-line { font-size: 16px; letter-spacing: 0; }
+      .quarter-label { display: none; }
+
+      .lower-third {
+        left: 16px;
+        bottom: max(24px, env(safe-area-inset-bottom));
+        width: calc(100vw - 32px);
+        box-shadow: 5px 5px 0 rgba(32, 31, 27, .15);
+      }
+
+      .lower-copy { padding: 10px 12px 11px; }
+      .lower-title { font-size: clamp(22px, 7.2vw, 30px); }
+      .lower-kicker,
+      .lower-detail { font-size: 16px; letter-spacing: 0; }
+      .loading-note { display: none; }
+    }
+
+    @media (max-width: 380px) {
+      .score-side { padding-inline: 6px; font-size: 16px; }
+      .score-side::before { display: none; }
+    }
+
+    @media (orientation: portrait) and (min-width: 700px) and (min-height: 1200px) {
+      .lab-bar {
+        top: 220px;
+        left: 96px;
+      }
+
+      .lab-tag,
+      .globe-link {
+        min-height: 56px;
+        padding-inline: 20px;
+        font-size: 18px;
+      }
+
+      .scorebug {
+        top: 284px;
+        min-height: 68px;
+        grid-template-columns: minmax(210px, auto) 120px minmax(210px, auto);
+      }
+
+      .score-side { padding-inline: 22px; font-size: 20px; }
+      .score-side::before { width: 9px; height: 38px; }
+      .score-line { font-size: 30px; }
+      .clock-line { font-size: 16px; }
+
+      .lower-third {
+        top: 1330px;
+        bottom: auto;
+        left: 96px;
+        width: 888px;
+        max-height: 260px;
+      }
+
+      .lower-copy { padding: 22px 28px 24px; }
+      .lower-kicker,
+      .lower-detail { font-size: 19px; }
+      .lower-title { font-size: 54px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .lower-third { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="visual-reset-canvas" aria-label="Autonomous Cyberliga Basketball visual direction study"></canvas>
+
+  <div class="lab-bar" aria-label="Visual lab navigation">
+    <a class="globe-link" href="world.html" aria-label="Back to Globe">← Globe</a>
+    <div class="lab-tag">Visual Lab · Not Live</div>
+  </div>
+
+  <section class="scorebug" aria-label="Score">
+    <div class="score-side home" id="score-home-name"><span class="score-full">Brownstones</span><span class="score-abbr">NYB</span></div>
+    <div class="score-center">
+      <div class="score-line"><span id="score-home">72</span>–<span id="score-away">71</span></div>
+      <div class="clock-line"><span id="score-clock">0:15</span><span class="quarter-label"> · 4th</span></div>
+    </div>
+    <div class="score-side away" id="score-away-name"><span class="score-full">Lake Effect</span><span class="score-abbr">TLE</span></div>
+  </section>
+
+  <aside class="lower-third" id="lower-third" aria-live="polite">
+    <div class="lower-accent"></div>
+    <div class="lower-copy">
+      <div class="lower-kicker" id="lower-kicker">Signature play</div>
+      <div class="lower-title" id="lower-title">The Stoop Drop</div>
+      <div class="lower-detail" id="lower-detail">Stoopy · New York Brownstones</div>
+    </div>
+  </aside>
+
+  <div class="loading-note" id="loading-note">Timeline unavailable · showing rehearsal</div>
+
+  <script src="basketball-visual-reset.js"></script>
+  <script type="module" src="basketball-visual-reset-renderer.js"></script>
+</body>
+</html>

@@ -70,11 +70,75 @@ if (packageManifest) {
   check(packageManifest.scripts?.['test:chronicle'] === 'node --test witness-chronicle.test.mjs witness-store.test.mjs', 'npm run test:chronicle must cover the pure witness ledger and device-local adapter');
   check(packageManifest.scripts?.['test:football-replay-memory'] === 'node --test football-replay-memory.test.mjs', 'npm run test:football-replay-memory must cover football replay adjudication and truthful footage provenance');
   check(packageManifest.scripts?.['test:basketball-brain'] === 'node --test basketballbrain.test.mjs', 'npm run test:basketball-brain must cover canonical identity, no-peek coordination, live reads, and certified possession memory');
+  check(packageManifest.scripts?.['test:basketball-visual-reset'] === 'node --test basketball-visual-reset.test.mjs', 'npm run test:basketball-visual-reset must cover the deterministic Stoop Drop visual prototype');
   check(packageManifest.scripts?.['test:visuals'] === 'node --test foundingvisual.test.mjs foundinglive.test.mjs', 'npm run test:visuals must cover shared Founding portrait and live-cue renderers');
-  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:chronicle && npm run test:football-replay-memory && npm run test:basketball-brain && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, named match memory, broadcast presentation, witness chronology, football replay memory, Basketball identity AI, and Founding visuals before static/data invariants');
+  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:chronicle && npm run test:football-replay-memory && npm run test:basketball-brain && npm run test:basketball-visual-reset && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, named match memory, broadcast presentation, witness chronology, football replay memory, Basketball identity AI, the Stoop Drop visual prototype, and Founding visuals before static/data invariants');
   check(packageManifest.scripts?.['release:check'] === 'npm run verify && node scripts/release-check.mjs', 'npm run release:check must verify the repository before checking the canonical release source');
   check(Object.keys(packageManifest.dependencies || {}).length === 0, 'Runtime dependencies must remain empty');
   check(Object.keys(packageManifest.devDependencies || {}).length === 0, 'Development dependencies must remain empty');
+}
+
+const visualResetFiles = [
+  'BASKETBALL_VISUAL_RESET.md',
+  'basketball-visual-reset.html',
+  'basketball-visual-reset.js',
+  'basketball-visual-reset-renderer.js',
+  'basketball-visual-reset.test.mjs'
+];
+const visualResetPresent = [];
+for (const file of visualResetFiles) {
+  const present = await exists(file);
+  visualResetPresent.push(present);
+  check(present, 'Basketball visual-reset lab is missing a required proof file', file);
+}
+if (visualResetPresent.every(Boolean)) {
+  const labMarkup = await text('basketball-visual-reset.html');
+  const labTimelineSource = await text('basketball-visual-reset.js');
+  const labRendererSource = await text('basketball-visual-reset-renderer.js');
+  const labContract = await text('BASKETBALL_VISUAL_RESET.md');
+  const timelineAt = labMarkup.indexOf('basketball-visual-reset.js');
+  const rendererAt = labMarkup.indexOf('basketball-visual-reset-renderer.js');
+  check(timelineAt >= 0 && rendererAt > timelineAt, 'Visual-reset lab must load its pure timeline before the Three.js renderer');
+  check(/vendor\/three\/three\.module\.js/.test(labRendererSource), 'Visual-reset lab must use the repository-owned Three.js runtime');
+  check(['maquette', 'paper', 'resin'].every((style) => labRendererSource.includes(style)), 'Visual-reset lab must retain all three local material studies');
+  check(/desktopLandscapeCameraAt\(/.test(labRendererSource), 'Visual-reset lab must retain its independently composed desktop-safe tactical master');
+  check(/left:\s*max\(32px,\s*env\(safe-area-inset-left\)\)/.test(labMarkup) && /bottom:\s*max\(24px,\s*env\(safe-area-inset-bottom\)\)/.test(labMarkup), 'Visual-reset payoff must stay inside the declared desktop post-play safe zone');
+  check(/window\.render_game_to_text\s*=/.test(labRendererSource) && /window\.advanceTime\s*=/.test(labRendererSource), 'Visual-reset lab must expose deterministic browser QA hooks');
+  check(/autonomous\s*:\s*!captureMode/.test(labRendererSource) && /interactive\s*:\s*false/.test(labRendererSource), 'Visual-reset lab must declare its autonomous view-only state');
+  check(!/<(?:button|input|select|textarea)\b/i.test(labMarkup), 'Visual-reset lab must not expose gameplay controls');
+  check(!arenaInputHandler.test(labMarkup + '\n' + labRendererSource), 'Visual-reset lab must not bind gameplay input handlers');
+  const labAnchors = labMarkup.match(/<a\b[^>]*>/gi) || [];
+  check(labAnchors.length === 1 && /href=["']world\.html["']/.test(labAnchors[0]), 'Visual-reset lab must expose only one exit to Home');
+  check(!/Math\.random\s*\(/.test(labTimelineSource + '\n' + labRendererSource), 'Visual-reset timeline and renderer must not use unseeded randomness');
+  check(!/\b(?:fetch|XMLHttpRequest|WebSocket)\b/.test(labTimelineSource + '\n' + labRendererSource), 'Visual-reset lab must remain local and network-independent');
+  check(/off-product visual lab/i.test(labContract) && /classic cyan\/hot-pink capsule athletes remain the public product/i.test(labContract), 'Visual-reset contract must preserve the public athlete quarantine');
+  check(/No external prompt or external artwork was used/i.test(labContract), 'Visual-reset contract must record current asset provenance');
+
+  const visualContext = vm.createContext({ module: { exports: {} }, exports: {}, Math, Number, Object, Array });
+  vm.runInContext(labTimelineSource, visualContext, { filename: 'basketball-visual-reset.js', timeout: 2000 });
+  const visualTimeline = visualContext.module.exports;
+  check(Boolean(visualTimeline) && Object.isFrozen(visualTimeline), 'Visual-reset timeline must expose a frozen pure API');
+  if (visualTimeline?.sample) {
+    const opening = visualTimeline.sample(0);
+    const screen = visualTimeline.sample(3000);
+    const catchFrame = visualTimeline.sample(6100);
+    const rim = visualTimeline.sample(8350);
+    const certified = visualTimeline.sample(8500);
+    const landing = visualTimeline.sample(9100);
+    const lateRecovery = visualTimeline.sample(9600);
+    const lowerThirdClear = visualTimeline.sample(14400);
+    check(visualTimeline.durationMs === 15000 && opening.actors?.length === 10, 'Visual-reset timeline must remain one 900-frame possession with ten athletes');
+    check(screen.contacts?.screen?.surfaceContact === true && screen.contacts.screen.surfaceGap <= 0.01, 'Visual-reset screen must be surface contact without a visible gap');
+    check(catchFrame.ball?.hand === 'both' && catchFrame.ball?.contact?.type === 'two-hand', 'Visual-reset pocket catch must remain visibly two-handed');
+    check(rim.score?.certified === false && certified.score?.certified === true, 'Visual-reset score must certify only after rim crossing');
+    check(landing.contacts?.landing?.occurred === true && lateRecovery.consequence?.secondJumpReady === false, 'Visual-reset landing must retain Stoopy\'s authored recovery cost');
+    check(lowerThirdClear.presentation?.lowerThird?.opacity === 0, 'Visual-reset lower third must be visually clear by 14.40 seconds');
+  }
+
+  for (const publicFile of ['world.html', 'league.html', 'hoops.html']) {
+    const publicSource = await text(publicFile);
+    check(!publicSource.includes('basketball-visual-reset'), `${publicFile} must not expose the off-product visual-reset lab`);
+  }
 }
 
 for (const arena of arenas) {
