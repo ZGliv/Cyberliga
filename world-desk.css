@@ -1,0 +1,798 @@
+:root {
+  --night: #071017;
+  --board: #0e151a;
+  --board-raised: #151e24;
+  --paper: #f4f1e8;
+  --muted: #9aa2a5;
+  --line: rgba(244, 241, 232, 0.14);
+  --live: #e6493d;
+  --club: #f4f1e8;
+}
+
+html[data-home-edition="world-desk"] *,
+html[data-home-edition="world-desk"] *::before,
+html[data-home-edition="world-desk"] *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html[data-home-edition="world-desk"],
+html[data-home-edition="world-desk"] body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--night);
+  color: var(--paper);
+}
+
+html[data-home-edition="world-desk"] body {
+  font-family: "Archivo", system-ui, sans-serif;
+}
+
+html[data-home-edition="world-desk"] a,
+html[data-home-edition="world-desk"] button {
+  color: inherit;
+  font: inherit;
+}
+
+html[data-home-edition="world-desk"] a {
+  text-decoration: none;
+}
+
+html[data-home-edition="world-desk"] button {
+  border: 0;
+}
+
+html[data-home-edition="world-desk"] body::before,
+html[data-home-edition="world-desk"] body::after {
+  content: none;
+  display: none;
+}
+
+html[data-home-edition="world-desk"] .frame,
+html[data-home-edition="world-desk"] .intro,
+html[data-home-edition="world-desk"] .network-launcher,
+html[data-home-edition="world-desk"] .mobile-sport-toggle,
+html[data-home-edition="world-desk"] .mobile-match-head,
+html[data-home-edition="world-desk"] .network-close,
+html[data-home-edition="world-desk"] .game-preview,
+html[data-home-edition="world-desk"] .fw-trigger,
+html[data-home-edition="world-desk"] .fw-world-pulse {
+  display: none !important;
+}
+
+html[data-home-edition="world-desk"] button:focus-visible,
+html[data-home-edition="world-desk"] a:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
+}
+
+html[data-home-edition="world-desk"] #globe {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: var(--night);
+  touch-action: none;
+  cursor: grab;
+}
+
+html[data-home-edition="world-desk"] #globe.pin-hover:not(.dragging) {
+  cursor: pointer;
+}
+
+html[data-home-edition="world-desk"] #globe.dragging {
+  cursor: grabbing;
+}
+
+html[data-home-edition="world-desk"] .topbar {
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  background: rgba(7, 16, 23, 0.96);
+}
+
+html[data-home-edition="world-desk"] .brand {
+  min-height: 44px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  color: var(--paper);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+html[data-home-edition="world-desk"] .brand strong {
+  font-size: 15px;
+  letter-spacing: 0.01em;
+}
+
+html[data-home-edition="world-desk"] .brand i {
+  display: none;
+}
+
+html[data-home-edition="world-desk"] .brand span {
+  color: var(--muted);
+  font: 600 12px/1 "Archivo", system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+html[data-home-edition="world-desk"] .nav {
+  display: flex;
+  align-items: stretch;
+  align-self: stretch;
+  gap: 24px;
+  color: var(--muted);
+  font: 650 13px/1 "Archivo", system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+html[data-home-edition="world-desk"] .nav a {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font: 650 13px/1 "Archivo", system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+html[data-home-edition="world-desk"] .nav a:hover,
+html[data-home-edition="world-desk"] .nav a:focus-visible {
+  color: var(--paper);
+  border-color: var(--muted);
+  background: transparent;
+}
+
+html[data-home-edition="world-desk"] .nav .active {
+  color: var(--paper);
+  border-color: var(--paper);
+}
+
+html[data-home-edition="world-desk"] #labels {
+  position: fixed;
+  inset: 0;
+  z-index: 16;
+  pointer-events: none;
+}
+
+html[data-home-edition="world-desk"] .marker {
+  position: absolute;
+  min-height: 36px;
+  max-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  overflow: hidden;
+  transform: translate(-50%, -100%);
+  color: var(--paper);
+  border: 1px solid var(--line);
+  background: var(--board);
+  opacity: 0;
+  pointer-events: none;
+  font: 650 12px/1.15 "Archivo", system-ui, sans-serif;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity 140ms ease, background 140ms ease;
+}
+
+html[data-home-edition="world-desk"] .marker.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+html[data-home-edition="world-desk"] .marker::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: none;
+}
+
+html[data-home-edition="world-desk"] .marker:hover,
+html[data-home-edition="world-desk"] .marker.selected {
+  background: var(--board-raised);
+}
+
+html[data-home-edition="world-desk"] .liveboard {
+  position: fixed;
+  z-index: 30;
+  top: 64px;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  width: 410px;
+  max-width: 41vw;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 22px 20px 0;
+  overflow: hidden;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: var(--board);
+  box-shadow: none;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+}
+
+html[data-home-edition="world-desk"] .liveboard::before,
+html[data-home-edition="world-desk"] .liveboard::after {
+  content: none;
+  display: none;
+}
+
+html[data-home-edition="world-desk"] .panel-label {
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  padding: 0 0 14px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font: 600 12px/1.25 "Archivo", system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+html[data-home-edition="world-desk"] .desk-title {
+  min-width: 0;
+}
+
+html[data-home-edition="world-desk"] .desk-title strong {
+  display: block;
+  color: var(--paper);
+  font: 800 28px/1 "Archivo", system-ui, sans-serif;
+  letter-spacing: -0.04em;
+}
+
+html[data-home-edition="world-desk"] .desk-title span {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+html[data-home-edition="world-desk"] #round-label {
+  padding-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+html[data-home-edition="world-desk"] .presence-quiet {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+html[data-home-edition="world-desk"] .sport-stage {
+  display: block;
+  border-bottom: 1px solid var(--line);
+}
+
+html[data-home-edition="world-desk"] .sport-stage::before {
+  content: none;
+  display: none;
+}
+
+html[data-home-edition="world-desk"] .filter-tabs,
+html[data-home-edition="world-desk"] .filter-tabs.mobile-open {
+  position: static;
+  min-height: 54px;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  scrollbar-width: none;
+}
+
+html[data-home-edition="world-desk"] .filter-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+html[data-home-edition="world-desk"] .filter-tab,
+html[data-home-edition="world-desk"] .filter-tab[data-sport="all"] {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: auto;
+  min-height: 54px;
+  display: flex;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  align-items: center;
+  gap: 7px;
+  padding: 0 13px;
+  color: var(--muted);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  text-align: left;
+  text-transform: none;
+  scroll-snap-align: none;
+  transform: none;
+}
+
+html[data-home-edition="world-desk"] .filter-tab:first-child {
+  padding-left: 0;
+}
+
+html[data-home-edition="world-desk"] .filter-tab::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  bottom: 0;
+  left: 10px;
+  height: 3px;
+  background: transparent;
+}
+
+html[data-home-edition="world-desk"] .filter-tab:first-child::after {
+  left: 0;
+}
+
+html[data-home-edition="world-desk"] .filter-tab:hover,
+html[data-home-edition="world-desk"] .filter-tab:focus-visible {
+  color: var(--paper);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+html[data-home-edition="world-desk"] .filter-tab.active {
+  color: var(--paper);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-home-edition="world-desk"] .filter-tab.active::after {
+  background: var(--c, var(--paper));
+}
+
+html[data-home-edition="world-desk"] .sport-icon,
+html[data-home-edition="world-desk"] .filter-tab .sport-icon {
+  grid-row: auto;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+html[data-home-edition="world-desk"] .sport-icon svg,
+html[data-home-edition="world-desk"] .fixture-sport-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+html[data-home-edition="world-desk"] .sport-label,
+html[data-home-edition="world-desk"] .filter-tab .sport-label {
+  color: inherit;
+  font: 650 13px/1 "Archivo", system-ui, sans-serif;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+html[data-home-edition="world-desk"] .sport-count {
+  display: none;
+}
+
+html[data-home-edition="world-desk"] .game-drawer {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  margin: 0 -8px 0;
+  padding: 6px 8px 20px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  border: 0;
+  scroll-behavior: auto;
+  scroll-snap-type: none;
+  scrollbar-color: rgba(244, 241, 232, 0.24) transparent;
+}
+
+html[data-home-edition="world-desk"] .game-list {
+  width: auto;
+  min-width: 0;
+  display: grid;
+  gap: 0;
+  padding: 0;
+  background: transparent;
+}
+
+html[data-home-edition="world-desk"] .fixture-card {
+  --c: var(--paper);
+  min-width: 0;
+  min-height: 88px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px 8px;
+  color: var(--paper);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  box-shadow: none;
+  transition: background 140ms ease, box-shadow 140ms ease;
+  scroll-snap-align: none;
+}
+
+html[data-home-edition="world-desk"] .fixture-card:hover,
+html[data-home-edition="world-desk"] .fixture-card:focus-visible,
+html[data-home-edition="world-desk"] .fixture-card.is-current,
+html[data-home-edition="world-desk"] .fixture-card.is-selected {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--board-raised);
+  box-shadow: inset 3px 0 var(--c);
+}
+
+html[data-home-edition="world-desk"] .fixture-meta {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-items: initial;
+  gap: 7px;
+  color: var(--muted);
+  font: 600 12px/1 "Archivo", system-ui, sans-serif;
+  letter-spacing: 0;
+  text-align: left;
+}
+
+html[data-home-edition="world-desk"] .fixture-meta .fixture-sport-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+html[data-home-edition="world-desk"] .fixture-meta b {
+  color: var(--muted);
+  font: 650 12px/1 "Archivo", system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+html[data-home-edition="world-desk"] .fixture-status {
+  margin-left: auto;
+  color: var(--muted);
+  font: 600 12px/1 "Archivo", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+html[data-home-edition="world-desk"] .fixture-status.is-live {
+  color: var(--live);
+}
+
+html[data-home-edition="world-desk"] .fixture-teams {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+html[data-home-edition="world-desk"] .fixture-team {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+}
+
+html[data-home-edition="world-desk"] .fixture-team + .fixture-team {
+  margin-top: 0;
+}
+
+html[data-home-edition="world-desk"] .club-emblem {
+  width: 30px;
+  height: 30px;
+  display: block;
+  filter: none;
+}
+
+html[data-home-edition="world-desk"] .club-emblem .brand-crest {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+html[data-home-edition="world-desk"] .club-emblem-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--crest-ink, var(--paper));
+  border: 1px solid var(--crest, var(--line));
+  border-radius: 3px;
+  background: var(--board-raised);
+  font: 800 10px/1 "Archivo", system-ui, sans-serif;
+}
+
+html[data-home-edition="world-desk"] .fixture-team-copy {
+  min-width: 0;
+  display: block;
+}
+
+html[data-home-edition="world-desk"] .fixture-team-copy strong {
+  display: none;
+}
+
+html[data-home-edition="world-desk"] .fixture-team-name {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--paper);
+  font: 700 15px/1.1 "Archivo", system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-home-edition="world-desk"] .fixture-enter {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  min-width: 42px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font: 600 12px/1 "Archivo", system-ui, sans-serif;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+html[data-home-edition="world-desk"] .fixture-enter b {
+  display: block;
+  margin: 0;
+  padding: 0;
+  color: currentColor;
+  border: 0;
+  background: transparent;
+  font: 500 25px/1 "Archivo", system-ui, sans-serif;
+}
+
+html[data-home-edition="world-desk"] .fixture-card:hover .fixture-enter,
+html[data-home-edition="world-desk"] .fixture-card:focus-visible .fixture-enter,
+html[data-home-edition="world-desk"] .fixture-card.is-selected .fixture-enter {
+  color: var(--paper);
+}
+
+html[data-home-edition="world-desk"] .empty-games {
+  padding: 24px 8px;
+  color: var(--muted);
+  background: transparent;
+  font: 600 13px/1.45 "Archivo", system-ui, sans-serif;
+  letter-spacing: 0;
+  text-align: left;
+}
+
+html[data-home-edition="world-desk"] .loading {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: var(--night);
+  transition: opacity 300ms ease, visibility 300ms ease;
+}
+
+html[data-home-edition="world-desk"] .loading p {
+  color: var(--muted);
+  font: 600 14px/1.4 "Archivo", system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+html[data-home-edition="world-desk"] .loading.done {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@media (max-width: 1100px) {
+  html[data-home-edition="world-desk"] .liveboard {
+    width: 380px;
+    max-width: 43vw;
+  }
+}
+
+@media (max-width: 900px) {
+  html[data-home-edition="world-desk"] .topbar {
+    height: 56px;
+    padding: 0 14px;
+  }
+
+  html[data-home-edition="world-desk"] .brand span {
+    display: none;
+  }
+
+  html[data-home-edition="world-desk"] .nav {
+    gap: 18px;
+    font-size: 12px;
+  }
+
+  html[data-home-edition="world-desk"] .nav a {
+    font-size: 12px;
+  }
+
+  html[data-home-edition="world-desk"] .liveboard {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    height: 49dvh;
+    max-height: 430px;
+    min-height: 350px;
+    padding: 14px 14px max(8px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  html[data-home-edition="world-desk"] .panel-label {
+    min-height: 58px;
+    padding-bottom: 10px;
+  }
+
+  html[data-home-edition="world-desk"] .desk-title strong {
+    font-size: 23px;
+  }
+
+  html[data-home-edition="world-desk"] .desk-title span,
+  html[data-home-edition="world-desk"] #round-label {
+    font-size: 12px;
+  }
+
+  html[data-home-edition="world-desk"] .filter-tabs,
+  html[data-home-edition="world-desk"] .filter-tabs.mobile-open {
+    min-height: 48px;
+  }
+
+  html[data-home-edition="world-desk"] .filter-tab,
+  html[data-home-edition="world-desk"] .filter-tab[data-sport="all"] {
+    min-height: 48px;
+    padding: 0 12px;
+  }
+
+  html[data-home-edition="world-desk"] .filter-tab:first-child {
+    padding-left: 0;
+  }
+
+  html[data-home-edition="world-desk"] .sport-icon,
+  html[data-home-edition="world-desk"] .filter-tab .sport-icon {
+    width: 17px;
+    height: 17px;
+  }
+
+  html[data-home-edition="world-desk"] .sport-label,
+  html[data-home-edition="world-desk"] .filter-tab .sport-label {
+    font-size: 13px;
+  }
+
+  html[data-home-edition="world-desk"] .game-drawer {
+    margin-inline: -5px;
+    padding: 4px 5px 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    touch-action: pan-y;
+  }
+
+  html[data-home-edition="world-desk"] .game-list {
+    width: auto;
+    min-width: 0;
+    display: grid;
+    gap: 0;
+    padding: 0;
+  }
+
+  html[data-home-edition="world-desk"] .fixture-card {
+    width: 100%;
+    min-height: 88px;
+    padding: 9px 7px;
+  }
+
+  html[data-home-edition="world-desk"] .fixture-team-name {
+    font-size: 15px;
+  }
+
+  html[data-home-edition="world-desk"] .marker {
+    max-width: 160px;
+    padding: 7px 9px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  html[data-home-edition="world-desk"] .topbar {
+    padding-inline: 10px;
+  }
+
+  html[data-home-edition="world-desk"] .nav {
+    gap: 12px;
+  }
+
+  html[data-home-edition="world-desk"] .liveboard {
+    min-height: 340px;
+    padding-inline: 10px;
+  }
+
+  html[data-home-edition="world-desk"] .fixture-team-name {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 900px) and (max-height: 520px) {
+  html[data-home-edition="world-desk"] .liveboard {
+    top: 56px;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: min(390px, 48vw);
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
+
+  html[data-home-edition="world-desk"] .panel-label {
+    min-height: 52px;
+  }
+
+  html[data-home-edition="world-desk"] .desk-title strong {
+    font-size: 20px;
+  }
+
+  html[data-home-edition="world-desk"] .desk-title span {
+    display: none;
+  }
+
+  html[data-home-edition="world-desk"] .fixture-card {
+    min-height: 82px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-home-edition="world-desk"] * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

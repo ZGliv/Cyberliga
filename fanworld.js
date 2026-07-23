@@ -1257,9 +1257,10 @@
     return true;
   }
   function initialize() {
-    ensureShell();
+    var quietWorldDesk = pageKind === 'world' && document.documentElement.dataset.homeEdition === 'world-desk';
+    if (!quietWorldDesk) ensureShell();
     decorateRenderHook();
-    if (pageKind === 'world') initWorld();
+    if (pageKind === 'world' && !quietWorldDesk) initWorld();
     else if (pageKind === 'league') initLeague();
     else if (pageKind === 'player' && !initPlayer()) {
       var attempts = 0;

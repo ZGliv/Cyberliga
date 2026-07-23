@@ -996,3 +996,48 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   exact two-tab A-preflight → B-commit → A-commit fork converging to both receipts. Current bytes pass 22/22
   Chronicle/store tests, the complete `npm run verify` gate with 1,517/1,517 repository
   checks, football brain/rules 28/28, standalone syntax and `git diff --check`.
+
+## Home “World Desk” de-AI pass — 2026-07-23
+- Scope is the canonical `world.html` Home surface only, implemented in the isolated `codex/menu-de-ai`
+  worktree from canonical HEAD `7da47e3a6c8c46d0922d7377a86e84b070bfcb37`. This slice is not deployed and
+  must go through Release Manager integration.
+- Replaced the synthetic cyber-dashboard hierarchy with a calm sports-desk composition: one 64px masthead, the
+  existing globe, and one opaque `Tonight` schedule rail. Removed the visible manifesto/proof layer, frame,
+  launcher, nested mobile game carousel, separate preview modal, scanlines/glass/glow treatment, My Signal
+  trigger, World Pulse, “WHY THIS MATTERS,” fake heat/local-watcher language, league/game codes and repeated
+  `ENTER` actions from the resting Home screen.
+- The selector preserves all seven filters, 24 game links, 48 canonical club crests, six sport destinations,
+  filter/query history, Home/Leagues-only primary navigation, presence/livebridge hooks and supporter/Mythos
+  state decoration. Rows now lead with ordinary sport names, title-cased full club names, canonical crests and
+  truthful `Live · clock` / `On air` state. Filters are native pressed buttons in a labeled group rather than
+  claiming unsupported ARIA tab behavior.
+- Globe routes are quiet at rest and only the selected matchup is emphasized. Fixture focus/hover selects exactly
+  its two endpoints without moving the camera. Browser QA exposed a real canvas failure where hover immediately
+  moved a pin before mouse-down; hover now holds the pin still and caches its exact target, while deliberate click
+  selects the fixture, scrolls it into view and starts the globe move. The compatibility hook now truthfully
+  reports `preview.open:false` / `selected:true` while no modal is rendered.
+- Exact 1280×720 interaction QA passed all All/Soccer/American football/Basketball/Hockey/Baseball/Combat filters:
+  All returns 24 rows / 48 endpoints / 48 crests and each sport returns 4 / 8 / 8 with the correct query state.
+  The rail is 410px, five fixture rows are visible, document size is exactly 1280×720, navigation is exactly Home
+  and Leagues, every arena href is canonical, and console/page/request errors are empty.
+- Exact 390×844 QA passed with document size 390×844, the schedule beginning at 430.45px, a 372px-wide vertical
+  drawer with no horizontal overflow, 24 rows / 48 crests in All, 4 / 8 after Basketball filtering, working
+  vertical scroll, no visible text below 12px, and no My Signal or World Pulse nodes. The final mobile screenshot
+  is `/tmp/cyberliga-world-desk-mobile-release-v2.png`.
+- Independent audits caught two hidden parity failures and both are repaired. The visually clipped presence node
+  can no longer be overwritten with `1 WATCHING · LOCAL`; its accessibility-tree text is the static truthful
+  `Schedule updates automatically` with no ARIA live property. At 1024×768 on a touch device, the desktop side
+  rail now reports `compact:false`, computes `touch-action:pan-y`, scrolls through its 2,594px schedule and has
+  zero document overflow. The Cyberliga Home link also measures a 44px touch target.
+- The final canvas regression hovered New Orleans without camera motion, then clicked it to select exactly the
+  New Orleans Bayou Kings–Atlanta Peaches fixture, expose the canonical `football.html?fixture=0` state, scroll
+  the row, and begin the deliberate globe move; the old modal stayed hidden and browser errors were empty.
+- The required official web-game client ran against the exact accessibility/tablet/state-corrected bytes. Its
+  inspected screenshot and finite state are in `/tmp/cyberliga-world-desk-official-final`; no error artifact
+  was produced.
+- Current-byte gates pass `npm run verify` with 13 API, 11 athlete-moment, 15 named-moment, 12 broadcast-spine,
+  22 Chronicle/store, 5 football replay-memory, 16 shared-visual tests and 1,534/1,534 repository checks.
+  Football brain/rules pass 28/28; standalone syntax and `git diff --check` pass.
+- Remaining non-code gate: the proposed five-person, five-second comprehension test is an external audience test
+  and is not self-certified here. Release Manager still needs to audit/cherry-pick this feature and run the full
+  canonical six-arena production gate before any deployment.

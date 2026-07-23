@@ -91,11 +91,14 @@
     var label = labelFor(snapshot);
     var nodes = root.document ? root.document.querySelectorAll('[data-cyberliga-presence]') : [];
     nodes.forEach(function updatePresenceNode(node) {
-      node.textContent = label;
+      var quiet = node.dataset.presenceMode === 'quiet';
+      if (!quiet) node.textContent = label;
       node.dataset.presenceStatus = snapshot.status;
       node.dataset.presenceSource = snapshot.source;
       node.dataset.presenceRealtime = String(Boolean(snapshot.realtime));
-      node.title = snapshot.realtime
+      node.title = quiet
+        ? 'Schedule updates automatically'
+        : snapshot.realtime
         ? 'Real-time anonymous spectators on this signal'
         : 'Local spectator fallback; live presence is not configured';
     });

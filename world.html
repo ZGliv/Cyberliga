@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-home-edition="world-desk">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
@@ -320,38 +320,27 @@
   }
   @media (prefers-reduced-motion:reduce) { * { animation-duration:.01ms!important; animation-iteration-count:1!important; } }
 </style>
+<link rel="stylesheet" href="world-desk.css" />
 </head>
 <body>
-<div class="loading" id="loading"><p>ACQUIRING THE WORLD SIGNAL</p></div>
+<div class="loading" id="loading"><p>Loading tonight’s schedule…</p></div>
 <canvas id="globe" aria-label="Interactive globe showing six Cyberliga sports leagues"></canvas>
 <div id="labels"></div>
-<div class="frame" aria-hidden="true"></div>
 
 <header class="topbar">
-  <a class="brand" href="world.html"><strong>CYBERLIGA</strong><i></i><span>THE AUTONOMOUS SPORTS WORLD</span></a>
-  <nav class="nav" aria-label="Primary navigation"><a class="active" href="world.html" aria-current="page">HOME</a><a class="secondary" href="league.html?sport=soccer">LEAGUES</a></nav>
+  <a class="brand" href="world.html"><strong>CYBERLIGA</strong><i></i><span>World sports, always on</span></a>
+  <nav class="nav" aria-label="Primary navigation"><a class="active" href="world.html" aria-current="page">Home</a><a class="secondary" href="league.html?sport=soccer">Leagues</a></nav>
 </header>
 
-<section class="intro">
-  <p class="eyebrow">24 GAMES · 48 CLUBS · ONE WORLD</p>
-  <h1>CHOOSE A GAME. <span>ENTER THE ACTION.</span></h1>
-  <p class="lede">Filter the world by sport, then enter any of 24 games already staged across the six Cyberliga leagues.</p>
-  <div class="proof"><div><b>6</b><span>SPORTS LEAGUES</span></div><div><b>48</b><span>CLUBS</span></div><div><b>416</b><span>ATHLETES</span></div></div>
-</section>
-
-<button class="network-launcher" id="network-launcher" type="button" aria-controls="network" aria-expanded="false" aria-label="Browse all 24 games">
-  <span class="network-launcher-count"><b id="network-launcher-count">24</b><small>GAMES</small></span>
-  <span class="network-launcher-copy"><em>GAME NETWORK</em><strong id="network-launcher-label">ALL SPORTS · 24 GAMES</strong></span>
-  <span class="network-launcher-action">BROWSE <i aria-hidden="true">↑</i></span>
-</button>
-
-<aside class="liveboard" id="network" aria-label="Game network browser">
-  <div class="panel-label"><span><strong>LIVE GAME NETWORK</strong> · <span data-cyberliga-presence>1 WATCHING · LOCAL</span></span><span id="round-label">24 GAMES</span><button class="network-close" id="network-close" type="button" aria-label="Close game network">↓</button></div>
-  <div class="sport-stage">
-    <button class="mobile-sport-toggle" id="mobile-sport-toggle" type="button" aria-controls="filter-tabs" aria-expanded="false"><span class="mobile-step">1 · SPORT</span><strong id="mobile-sport-label">ALL SPORTS</strong><span class="mobile-change">CHANGE ↓</span></button>
-    <div class="filter-tabs" id="filter-tabs" role="tablist" aria-label="Filter games by sport"></div>
+<aside class="liveboard" id="network" aria-label="Tonight’s Cyberliga schedule">
+  <div class="panel-label">
+    <span class="desk-title"><strong>Tonight</strong><span id="tonight-date">Around the world</span></span>
+    <span id="round-label">24 games · 48 clubs</span>
+    <span class="presence-quiet" data-cyberliga-presence data-presence-mode="quiet">Schedule updates automatically</span>
   </div>
-  <div class="mobile-match-head"><span class="mobile-step">2 · PICK A GAME</span><strong id="mobile-match-position">GAME 1 / 24</strong><button class="mobile-match-nav" id="mobile-match-prev" type="button" aria-label="Previous game">←</button><button class="mobile-match-nav" id="mobile-match-next" type="button" aria-label="Next game">→</button></div>
+  <div class="sport-stage">
+    <div class="filter-tabs" id="filter-tabs" role="group" aria-label="Filter games by sport"></div>
+  </div>
   <div class="game-drawer" id="game-drawer"><div class="game-list" id="game-list"></div></div>
 </aside>
 
@@ -464,130 +453,63 @@ function startGlobeSnap(card,place,source='explicit'){
   flyTo(place);
 }
 
+const SPORT_NAMES=Object.freeze({
+  all:'All',
+  soccer:'Soccer',
+  'american-football':'American football',
+  basketball:'Basketball',
+  hockey:'Hockey',
+  baseball:'Baseball',
+  combat:'Combat'
+});
+function displaySport(sportId){return SPORT_NAMES[sportId]||sportId;}
+function displayClubName(name){
+  return String(name||'').toLocaleLowerCase().replace(/(^|[\s-])(\p{L})/gu,(_match,lead,letter)=>lead+letter.toLocaleUpperCase());
+}
+function fixtureStatus(card){
+  return card.league.live
+    ? `<span class="fixture-status is-live">Live · ${escapeHtml(U.clock(card.liveMatch.elapsedMs))}</span>`
+    : '<span class="fixture-status">On air</span>';
+}
+
 function makeFixtureCard(card){
   const link=document.createElement('a');link.className='fixture-card';link.href=card.href;link.dataset.sport=card.league.id;link.dataset.index=String(card.index);link.style.setProperty('--c',card.league.color);
   link.setAttribute('aria-label',`${card.league.sport}: ${card.home.name} versus ${card.away.name}`);
-  link.innerHTML=`<span class="fixture-meta"><span class="fixture-sport-icon">${sportIconMarkup(card.league.id)}</span><b>${escapeHtml(card.league.code)}</b><span>GAME ${String(card.index+1).padStart(2,'0')}</span></span><span class="fixture-teams"><span class="fixture-team">${clubEmblemMarkup(card.home,card.league)}<span class="fixture-team-copy"><strong>${escapeHtml(card.home.code)}</strong><span class="fixture-team-name" data-mobile-name="${escapeHtml(card.home.name)}">${escapeHtml(card.home.city)} · ${escapeHtml(card.home.name)}</span></span></span><span class="fixture-team">${clubEmblemMarkup(card.away,card.league)}<span class="fixture-team-copy"><strong>${escapeHtml(card.away.code)}</strong><span class="fixture-team-name" data-mobile-name="${escapeHtml(card.away.name)}">${escapeHtml(card.away.city)} · ${escapeHtml(card.away.name)}</span></span></span></span><span class="fixture-enter">${card.league.live?`LIVE ${U.clock(card.liveMatch.elapsedMs)}`:'ON AIR'}<b>ENTER ↗</b></span>`;
-  [...link.querySelectorAll('.fixture-team')].forEach((row,index)=>row.addEventListener('pointermove',event=>{
-    const team=index===0?card.home:card.away;
-    if((!event.pointerType||event.pointerType==='mouse')&&activeFixtureHoverTeam!==team.id){activeFixtureHoverTeam=team.id;startGlobeSnap(card,placeFor(team),'selector');}
-  }));
-  link.addEventListener('pointerleave',()=>{activeFixtureHoverTeam=null;});
-  link.addEventListener('focus',()=>startGlobeSnap(card,placeFor(card.home)));
+  link.innerHTML=`<span class="fixture-meta"><span class="fixture-sport-icon">${sportIconMarkup(card.league.id)}</span><b>${escapeHtml(displaySport(card.league.id))}</b>${fixtureStatus(card)}</span><span class="fixture-teams"><span class="fixture-team">${clubEmblemMarkup(card.home,card.league)}<span class="fixture-team-copy"><strong>${escapeHtml(card.home.code)}</strong><span class="fixture-team-name">${escapeHtml(displayClubName(card.home.name))}</span></span></span><span class="fixture-team">${clubEmblemMarkup(card.away,card.league)}<span class="fixture-team-copy"><strong>${escapeHtml(card.away.code)}</strong><span class="fixture-team-name">${escapeHtml(displayClubName(card.away.name))}</span></span></span></span><span class="fixture-enter" aria-hidden="true"><b>›</b></span>`;
+  link.addEventListener('pointerenter',()=>highlightFixture(card));
+  link.addEventListener('pointerleave',()=>highlightFixture(previewCard));
+  link.addEventListener('focus',()=>highlightFixture(card));
+  link.addEventListener('blur',()=>highlightFixture(previewCard));
   return link;
 }
 function visibleCards(){return activeFilter==='all'?fixtureCards:fixtureCards.filter(card=>card.league.id===activeFilter);}
-let activeFixtureHoverTeam=null,activeLabelHoverTeam=null;
-const mobileSelectorMedia=matchMedia('(max-width:1200px)');
+const mobileSelectorMedia=matchMedia('(max-width:900px)');
 const networkPanel=document.getElementById('network');
-const networkLauncher=document.getElementById('network-launcher');
-const networkClose=document.getElementById('network-close');
 const gameDrawer=document.getElementById('game-drawer');
 const gameList=document.getElementById('game-list');
-let compactNetworkOpen=false;
-function syncCompactNetwork({restoreFocus=false,focusClose=false}={}){
-  const compact=mobileSelectorMedia.matches;
-  networkPanel.classList.toggle('is-open',!compact||compactNetworkOpen);
-  networkPanel.inert=compact&&!compactNetworkOpen;
-  networkPanel.setAttribute('aria-hidden',String(compact&&!compactNetworkOpen));
-  networkLauncher.setAttribute('aria-expanded',String(compact&&compactNetworkOpen));
-  networkLauncher.setAttribute('aria-hidden',String(!compact||compactNetworkOpen));
-  networkLauncher.tabIndex=compact&&!compactNetworkOpen?0:-1;
-  if(compact&&compactNetworkOpen&&focusClose)requestAnimationFrame(()=>networkClose.focus({preventScroll:true}));
-  if(compact&&!compactNetworkOpen&&restoreFocus)requestAnimationFrame(()=>networkLauncher.focus({preventScroll:true}));
-}
-function setCompactNetwork(open,options={}){
-  if(!mobileSelectorMedia.matches)return;
-  compactNetworkOpen=Boolean(open);
-  if(compactNetworkOpen)closeGamePreview({restoreFocus:false});
-  syncCompactNetwork(options);
-  if(compactNetworkOpen)requestAnimationFrame(()=>updateMobileMatchCursor());
-}
-function mobileCardElements(){return [...gameList.querySelectorAll('.fixture-card')];}
-function currentMobileCardIndex(){
-  if(!mobileSelectorMedia.matches)return 0;
-  const cards=mobileCardElements();if(!cards.length)return 0;
-  const origin=cards[0].offsetLeft;
-  return cards.reduce((best,card,index)=>Math.abs((card.offsetLeft-origin)-gameDrawer.scrollLeft)<best.distance?{index,distance:Math.abs((card.offsetLeft-origin)-gameDrawer.scrollLeft)}:best,{index:0,distance:Infinity}).index;
-}
-function updateMobileMatchCursor({focus=false}={}){
-  if(!mobileSelectorMedia.matches)return;
-  const cards=mobileCardElements(),index=Math.min(currentMobileCardIndex(),Math.max(0,cards.length-1));
-  cards.forEach((card,cardIndex)=>card.classList.toggle('is-current',cardIndex===index));
-  document.getElementById('mobile-match-position').textContent=`GAME ${cards.length?index+1:0} / ${cards.length}`;
-  document.getElementById('mobile-match-prev').disabled=index<=0;
-  document.getElementById('mobile-match-next').disabled=index>=cards.length-1;
-  if(focus&&visibleCards()[index])focusFixture(visibleCards()[index]);
-}
-function moveToMobileCard(index,{behavior='smooth',focus=true}={}){
-  const cards=mobileCardElements();if(!mobileSelectorMedia.matches||!cards.length)return;
-  const next=Math.max(0,Math.min(cards.length-1,index));
-  gameDrawer.scrollTo({left:cards[next].offsetLeft-cards[0].offsetLeft,behavior});
-  cards.forEach((card,cardIndex)=>card.classList.toggle('is-current',cardIndex===next));
-  document.getElementById('mobile-match-position').textContent=`GAME ${next+1} / ${cards.length}`;
-  document.getElementById('mobile-match-prev').disabled=next<=0;
-  document.getElementById('mobile-match-next').disabled=next>=cards.length-1;
-  if(focus&&visibleCards()[next])focusFixture(visibleCards()[next]);
-}
-function renderGames({resetMobile=false}={}){
-  const preserved=resetMobile?0:currentMobileCardIndex();
+function renderGames(){
   gameList.replaceChildren(...visibleCards().map(makeFixtureCard));
-  if(mobileSelectorMedia.matches)requestAnimationFrame(()=>moveToMobileCard(preserved,{behavior:'auto',focus:false}));
 }
 function highlightFixture(card){
-  document.querySelectorAll('.marker').forEach(label=>label.classList.toggle('selected',label.dataset.team===card.home.id||label.dataset.team===card.away.id));
-}
-function focusFixture(card,source='explicit'){
-  startGlobeSnap(card,placeFor(card.home),source);
+  const selectedIds=card?[card.home.id,card.away.id]:[];
+  document.querySelectorAll('.marker').forEach(label=>label.classList.toggle('selected',selectedIds.includes(label.dataset.team)));
+  document.querySelectorAll('.fixture-card').forEach(link=>link.classList.toggle('is-selected',Boolean(card)&&link.dataset.sport===card.league.id&&Number(link.dataset.index)===card.index));
+  if(typeof routes!=='undefined')routes.forEach(route=>{route.mesh.material.opacity=route.card===card?0.48:0.065;});
 }
 function setFilter(next,{push=false}={}){
   const valid=FILTERS.some(filter=>filter.id===next)?next:'all';closeGamePreview({restoreFocus:false});activeFilter=valid;
   const definition=FILTERS.find(filter=>filter.id===valid);document.documentElement.style.setProperty('--club',definition.color);
-  document.querySelectorAll('.filter-tab').forEach(button=>{const on=button.dataset.sport===valid;button.classList.toggle('active',on);button.setAttribute('aria-selected',String(on));});
-  document.getElementById('round-label').textContent=`${visibleCards().length} GAMES · ${visibleCards().length*2} CITIES`;
-  document.getElementById('network-launcher-count').textContent=String(visibleCards().length);
-  document.getElementById('network-launcher-label').textContent=`${valid==='all'?'ALL SPORTS':definition.sport} · ${visibleCards().length} GAMES`;
-  networkLauncher.setAttribute('aria-label',`Browse ${visibleCards().length} ${valid==='all'?'games across all sports':`${definition.sport.toLowerCase()} games`}`);
-  renderGames({resetMobile:true});gameDrawer.scrollTop=0;gameDrawer.scrollLeft=0;
-  document.getElementById('mobile-sport-label').textContent=valid==='all'?'ALL SPORTS':definition.sport;
-  setMobileSportPicker(false);
+  document.querySelectorAll('.filter-tab').forEach(button=>{const on=button.dataset.sport===valid;button.classList.toggle('active',on);button.setAttribute('aria-pressed',String(on));});
+  document.getElementById('round-label').textContent=valid==='all'?'24 games · 48 clubs':`${visibleCards().length} games · ${visibleCards().length*2} clubs`;
+  renderGames();gameDrawer.scrollTop=0;
   if(mobileSelectorMedia.matches){const activeTab=tabs.querySelector('.filter-tab.active');if(activeTab)requestAnimationFrame(()=>tabs.scrollTo({left:Math.max(0,activeTab.offsetLeft-(tabs.clientWidth-activeTab.offsetWidth)/2),behavior:push?'smooth':'auto'}));}
   if(typeof markers!=='undefined')markers.forEach(marker=>{marker.filtered=valid!=='all'&&marker.league.id!==valid;marker.label.classList.remove('selected');});
-  if(typeof routes!=='undefined')routes.forEach(route=>route.mesh.visible=valid==='all'||route.league.id===valid);
+  if(typeof routes!=='undefined')routes.forEach(route=>{route.mesh.visible=valid==='all'||route.league.id===valid;route.mesh.material.opacity=.065;});
   if(push){const url=new URL(location.href);if(valid==='all')url.searchParams.delete('sport');else url.searchParams.set('sport',valid);history.pushState({sport:valid},'',url);}
 }
 const tabs=document.getElementById('filter-tabs');
-const mobileSportToggle=document.getElementById('mobile-sport-toggle');
-const MOBILE_FILTER_NAMES={all:'ALL SPORTS',soccer:'SOCCER','american-football':'FOOTBALL',basketball:'HOOPS',hockey:'HOCKEY',baseball:'BASEBALL',combat:'COMBAT'};
-function setMobileSportPicker(open){
-  if(mobileSelectorMedia.matches){
-    tabs.classList.remove('mobile-open');
-    tabs.setAttribute('aria-hidden','false');
-    mobileSportToggle.setAttribute('aria-expanded','false');
-    mobileSportToggle.querySelector('.mobile-change').textContent='CHANGE ↓';
-    return;
-  }
-  const visible=mobileSelectorMedia.matches&&open;
-  tabs.classList.toggle('mobile-open',visible);
-  mobileSportToggle.setAttribute('aria-expanded',String(visible));
-  tabs.setAttribute('aria-hidden',String(mobileSelectorMedia.matches&&!visible));
-  mobileSportToggle.querySelector('.mobile-change').textContent=visible?'CLOSE ↑':'CHANGE ↓';
-}
-tabs.replaceChildren(...FILTERS.map(filter=>{const button=document.createElement('button');button.type='button';button.className='filter-tab';button.dataset.sport=filter.id;button.dataset.mobileName=MOBILE_FILTER_NAMES[filter.id]||filter.short;button.dataset.mobileCount=`${filter.id==='all'?24:4} GAMES`;button.role='tab';button.style.setProperty('--c',filter.color);const label=filter.id==='all'?'ALL SPORTS':filter.sport;button.innerHTML=`<span class="sport-icon">${sportIconMarkup(filter.id)}</span><span class="sport-label">${escapeHtml(label)}</span><span class="sport-count">${filter.id==='all'?24:4} GAMES</span>`;button.title=label;button.setAttribute('aria-label',`Show ${label.toLowerCase()} games`);button.addEventListener('click',()=>setFilter(filter.id,{push:true}));return button;}));
-mobileSportToggle.addEventListener('click',()=>setMobileSportPicker(mobileSportToggle.getAttribute('aria-expanded')!=='true'));
-networkLauncher.addEventListener('click',()=>setCompactNetwork(true,{focusClose:true}));
-networkClose.addEventListener('click',()=>setCompactNetwork(false,{restoreFocus:true}));
-document.getElementById('mobile-match-prev').addEventListener('click',()=>moveToMobileCard(currentMobileCardIndex()-1));
-document.getElementById('mobile-match-next').addEventListener('click',()=>moveToMobileCard(currentMobileCardIndex()+1));
-let mobileScrollTimer=0,mobileScrollFrame=0;
-gameDrawer.addEventListener('scroll',()=>{
-  if(!mobileSelectorMedia.matches)return;
-  cancelAnimationFrame(mobileScrollFrame);mobileScrollFrame=requestAnimationFrame(()=>updateMobileMatchCursor());
-  clearTimeout(mobileScrollTimer);mobileScrollTimer=setTimeout(()=>updateMobileMatchCursor({focus:true}),120);
-},{passive:true});
-document.addEventListener('pointerdown',event=>{if(mobileSelectorMedia.matches&&!event.target.closest('.sport-stage'))setMobileSportPicker(false);});
-document.addEventListener('keydown',event=>{if(event.key==='Escape'){setMobileSportPicker(false);if(mobileSelectorMedia.matches&&compactNetworkOpen)setCompactNetwork(false,{restoreFocus:true});else closeGamePreview();}});
-mobileSelectorMedia.addEventListener('change',()=>{compactNetworkOpen=false;setMobileSportPicker(false);syncCompactNetwork();if(mobileSelectorMedia.matches)requestAnimationFrame(()=>moveToMobileCard(0,{behavior:'auto',focus:false}));});
+tabs.replaceChildren(...FILTERS.map(filter=>{const button=document.createElement('button');button.type='button';button.className='filter-tab';button.dataset.sport=filter.id;button.dataset.mobileName=displaySport(filter.id);button.dataset.mobileCount=`${filter.id==='all'?24:4} GAMES`;button.style.setProperty('--c',filter.color);const label=displaySport(filter.id);button.innerHTML=`<span class="sport-icon">${sportIconMarkup(filter.id)}</span><span class="sport-label">${escapeHtml(label)}</span><span class="sport-count">${filter.id==='all'?24:4} GAMES</span>`;button.title=label;button.setAttribute('aria-label',`Show ${label.toLowerCase()} games`);button.addEventListener('click',()=>setFilter(filter.id,{push:true}));return button;}));
+document.addEventListener('keydown',event=>{if(event.key==='Escape')closeGamePreview();});
 addEventListener('popstate',()=>setFilter(new URLSearchParams(location.search).get('sport')||'all'));
 
 const gamePreview=document.getElementById('game-preview');
@@ -608,14 +530,17 @@ function fillGamePreview(card){
   previewWatch.href=card.href;
 }
 function openGamePreview(card,host,_anchor,{returnFocus=null,focusWatch=false}={}){
-  if(mobileSelectorMedia.matches&&compactNetworkOpen)setCompactNetwork(false);
   previewCard=card;previewHost=host;previewReturnFocus=returnFocus;
-  startGlobeSnap(card,host,'pin-click');fillGamePreview(card);gamePreview.hidden=false;
-  if(focusWatch)requestAnimationFrame(()=>previewWatch.focus({preventScroll:true}));
+  startGlobeSnap(card,host,'pin-click');fillGamePreview(card);gamePreview.hidden=true;
+  const selected=gameList.querySelector(`.fixture-card[data-sport="${card.league.id}"][data-index="${card.index}"]`);
+  if(selected){
+    selected.scrollIntoView({block:'nearest'});
+    if(focusWatch)requestAnimationFrame(()=>selected.focus({preventScroll:true}));
+  }
 }
 function closeGamePreview({restoreFocus=true}={}){
-  if(gamePreview.hidden)return;
   gamePreview.hidden=true;previewCard=null;previewHost=null;
+  highlightFixture(null);
   const returnTarget=previewReturnFocus;previewReturnFocus=null;
   if(restoreFocus){const focusTarget=returnTarget?.isConnected&&returnTarget.classList.contains('visible')?returnTarget:document.querySelector('.brand');requestAnimationFrame(()=>focusTarget?.focus({preventScroll:true}));}
 }
@@ -627,9 +552,9 @@ function refreshRenderedSoccerCards(soccerCards){
     link.href=card.href;
     link.setAttribute('aria-label',`${card.league.sport}: ${card.home.name} versus ${card.away.name}`);
     const teams=link.querySelectorAll('.fixture-team-name');
-    [[teams[0],card.home],[teams[1],card.away]].forEach(([label,team])=>{if(!label)return;label.textContent=`${team.city} · ${team.name}`;label.dataset.mobileName=team.name;});
-    const enter=link.querySelector('.fixture-enter');
-    if(enter)enter.innerHTML=`LIVE ${U.clock(card.liveMatch.elapsedMs)}<b>ENTER ↗</b>`;
+    [[teams[0],card.home],[teams[1],card.away]].forEach(([label,team])=>{if(label)label.textContent=displayClubName(team.name);});
+    const status=link.querySelector('.fixture-status');
+    if(status)status.textContent=`Live · ${U.clock(card.liveMatch.elapsedMs)}`;
   });
 }
 function tickNetwork(){
@@ -689,17 +614,18 @@ const labelRoot = document.getElementById('labels');
 fixtureCards.forEach(card => [card.home,card.away].forEach((team,hostIndex) => {
   const league=card.league,host=placeFor(team);
   const group=new THREE.Group();const pos=point(host,.07);group.position.copy(pos);group.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),pos.clone().normalize());
-  const color=new THREE.Color(league.color);
-  const beaconMaterial=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.94,depthTest:true,depthWrite:false});
-  const stem=new THREE.Mesh(new THREE.CylinderGeometry(.012,.024,.16,8),beaconMaterial);stem.position.y=.075;stem.renderOrder=20;group.add(stem);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.05,16,12),beaconMaterial);head.position.y=.17;head.renderOrder=21;group.add(head);
-  const halo=new THREE.Mesh(new THREE.RingGeometry(.065,.098,32),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.68,depthTest:true,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.009;halo.renderOrder=19;group.add(halo);
-  const beacon=new THREE.Mesh(new THREE.RingGeometry(.108,.128,36),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.2,depthTest:true,depthWrite:false}));beacon.rotation.x=-Math.PI/2;beacon.position.y=.01;beacon.renderOrder=18;group.add(beacon);
+  const identity=canonicalTeam(team,league),markerColor=identity?.colors?.primary||league.color,color=new THREE.Color(markerColor);
+  const beaconMaterial=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.46,depthTest:true,depthWrite:false});
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(.008,.013,.065,8),beaconMaterial);stem.position.y=.03;stem.renderOrder=20;group.add(stem);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.034,14,10),beaconMaterial);head.position.y=.075;head.renderOrder=21;group.add(head);
+  const halo=new THREE.Mesh(new THREE.RingGeometry(.047,.064,28),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.2,depthTest:true,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.008;halo.renderOrder=19;group.add(halo);
+  const beacon=new THREE.Mesh(new THREE.RingGeometry(.071,.083,30),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.05,depthTest:true,depthWrite:false}));beacon.rotation.x=-Math.PI/2;beacon.position.y=.009;beacon.renderOrder=18;group.add(beacon);
   planet.add(group);
-  const label=document.createElement('button');label.type='button';label.className='marker';label.dataset.league=league.id;label.dataset.team=team.id;label.style.setProperty('--c',league.color);label.textContent=`${league.code} · ${team.code} · ${host.city.toUpperCase()}`;label.setAttribute('aria-label',`Preview ${league.sport}: ${card.home.name} versus ${card.away.name}`);label.setAttribute('aria-haspopup','dialog');label.setAttribute('aria-controls','game-preview');
-  label.addEventListener('pointermove',event=>{if((!event.pointerType||event.pointerType==='mouse')&&activeLabelHoverTeam!==team.id){activeLabelHoverTeam=team.id;startGlobeSnap(card,host,'hover');}});
-  label.addEventListener('pointerleave',()=>{if(activeLabelHoverTeam===team.id)activeLabelHoverTeam=null;});
-  label.addEventListener('focus',()=>startGlobeSnap(card,host));
+  const label=document.createElement('button');label.type='button';label.className='marker';label.dataset.league=league.id;label.dataset.team=team.id;label.style.setProperty('--c',markerColor);label.textContent=`${displayClubName(team.name)} · ${host.city}`;label.setAttribute('aria-label',`Focus ${team.name} in ${card.home.name} versus ${card.away.name}`);
+  label.addEventListener('pointerenter',()=>highlightFixture(card));
+  label.addEventListener('pointerleave',()=>highlightFixture(previewCard));
+  label.addEventListener('focus',()=>highlightFixture(card));
+  label.addEventListener('blur',()=>highlightFixture(previewCard));
   label.addEventListener('click',event=>{event.preventDefault();const rect=label.getBoundingClientRect();openGamePreview(card,host,{x:rect.left+rect.width/2,y:rect.bottom+8},{returnFocus:label,focusWatch:event.detail===0});});
   labelRoot.appendChild(label);
   markers.push({league,card,team,host,hostIndex,group,core:beaconMaterial,halo,beacon,label,filtered:false});
@@ -709,7 +635,7 @@ fixtureCards.forEach(card => {
   const league=card.league,a=point(placeFor(card.home),.035).normalize(),b=point(placeFor(card.away),.035).normalize();
   let mid=a.clone().add(b);if(mid.lengthSq()<.05)mid=new THREE.Vector3(0,1,0);mid.normalize().multiplyScalar(R*1.26);
   const curve=new THREE.QuadraticBezierCurve3(a.clone().multiplyScalar(R*1.02),mid,b.clone().multiplyScalar(R*1.02));
-  const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,64,.0065,6,false),new THREE.MeshBasicMaterial({color:league.color,transparent:true,opacity:league.live ? .42 : .2,depthWrite:false,blending:THREE.AdditiveBlending}));tube.renderOrder=1;tube.userData.interactive=false;tube.raycast=()=>{};planet.add(tube);routes.push({league,card,mesh:tube});
+  const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,64,.0035,5,false),new THREE.MeshBasicMaterial({color:league.color,transparent:true,opacity:.065,depthWrite:false}));tube.renderOrder=1;tube.userData.interactive=false;tube.raycast=()=>{};planet.add(tube);routes.push({league,card,mesh:tube});
 });
 
 let targetRotation = null;
@@ -718,7 +644,7 @@ let down=null,dragging=false,canvasHoverMarker=null;
 function setCanvasHoverMarker(marker){
   if(canvasHoverMarker===marker)return;
   canvasHoverMarker=marker;canvas.classList.toggle('pin-hover',Boolean(marker));
-  if(marker&&!dragging)startGlobeSnap(marker.card,marker.host,'hover');
+  if(!dragging)highlightFixture(marker?.card||previewCard);
 }
 function pinAtPointer(event){
   let nearest=null,nearestDistance=24*24;
@@ -729,7 +655,7 @@ function pinAtPointer(event){
   });
   return nearest;
 }
-canvas.addEventListener('pointerdown',event=>{if(mobileSelectorMedia.matches&&compactNetworkOpen)setCompactNetwork(false);const pin=event.isPrimary&&event.button===0?pinAtPointer(event):null;setCanvasHoverMarker(null);down={pointerId:event.pointerId,x:event.clientX,y:event.clientY,rx:planet.rotation.x,ry:planet.rotation.y,pin};dragging=false;targetRotation=null;canvas.setPointerCapture(event.pointerId);});
+canvas.addEventListener('pointerdown',event=>{const pin=event.isPrimary&&event.button===0?(canvasHoverMarker||pinAtPointer(event)):null;setCanvasHoverMarker(null);down={pointerId:event.pointerId,x:event.clientX,y:event.clientY,rx:planet.rotation.x,ry:planet.rotation.y,pin};dragging=false;targetRotation=null;canvas.setPointerCapture(event.pointerId);});
 canvas.addEventListener('pointermove',event=>{if(!down){if(!event.pointerType||event.pointerType==='mouse')setCanvasHoverMarker(pinAtPointer(event));return;}if(event.pointerId!==down.pointerId)return;const dx=event.clientX-down.x,dy=event.clientY-down.y;if(Math.hypot(dx,dy)>4)dragging=true;planet.rotation.y=down.ry+dx*.006;planet.rotation.x=THREE.MathUtils.clamp(down.rx+dy*.005,-1.15,1.15);canvas.classList.toggle('dragging',dragging);});
 canvas.addEventListener('pointerup',event=>{if(!down||event.pointerId!==down.pointerId)return;const clickedPin=!dragging?down.pin:null,wasDragging=dragging;down=null;dragging=false;canvas.classList.remove('dragging');if(clickedPin)openGamePreview(clickedPin.card,clickedPin.host,{x:event.clientX,y:event.clientY});else if(!wasDragging)closeGamePreview({restoreFocus:false});});
 canvas.addEventListener('pointercancel',()=>{down=null;dragging=false;canvas.classList.remove('dragging');});
@@ -739,8 +665,8 @@ canvas.addEventListener('wheel',event=>{event.preventDefault();camera.position.z
 
 function updateLabels(now) {
   const view = new THREE.Vector3().subVectors(camera.position,planet.position).normalize();
-  const compact=mobileSelectorMedia.matches;
-  const selectorTop=compact?(compactNetworkOpen?networkPanel:networkLauncher).getBoundingClientRect().top:innerHeight;
+  const compact=innerWidth<=900;
+  const selectorTop=compact?networkPanel.getBoundingClientRect().top:innerHeight;
   markers.forEach(marker => {
     if(marker.filtered){marker.group.visible=false;marker.label.classList.remove('visible');return;}
     marker.group.visible=true;
@@ -750,35 +676,36 @@ function updateLabels(now) {
     const projected = world.clone().project(camera);
     const sx=(projected.x*.5+.5)*innerWidth,sy=(-projected.y*.5+.5)*innerHeight;
     const labelProtectedUI=compact
-      ? sy<175 || sy>selectorTop-20
-      : sy<76 || sx>innerWidth-420 || sy>innerHeight-92 || (sx<540&&sy<485);
+      ? sy<68 || sy>selectorTop-14
+      : sy<72 || sx>innerWidth-430 || sy>innerHeight-24;
     const projectedOnScreen=Math.abs(projected.x)<1.08&&Math.abs(projected.y)<1.08;
     const labelMargin=compact?72:88;
-    const labelVisible = front && projectedOnScreen && !labelProtectedUI && sx>labelMargin && sx<innerWidth-labelMargin;
+    const active=marker.label.classList.contains('selected'),hovered=marker===canvasHoverMarker;
+    const labelVisible = active && front && projectedOnScreen && !labelProtectedUI && sx>labelMargin && sx<innerWidth-labelMargin;
     marker.frontFacing=front;marker.screenX=sx;marker.screenY=sy;
     marker.label.classList.toggle('visible',labelVisible);
     marker.label.tabIndex=labelVisible?0:-1;marker.label.setAttribute('aria-hidden',String(!labelVisible));
     if(labelVisible){marker.label.style.left=`${sx}px`;marker.label.style.top=`${sy}px`;}
-    const active=marker.label.classList.contains('selected'),hovered=marker===canvasHoverMarker,live=marker.league.live;
-    const baseScale=.82+faceStrength*.18;
-    marker.group.scale.setScalar(active||hovered ? 1 : .66+faceStrength*.34);
-    marker.core.opacity=active||hovered?1:.34+faceStrength*.6;
-    marker.halo.scale.setScalar(active?1.28+Math.sin(now*.004)*.18:hovered?1.3:baseScale*(live?1.08+Math.sin(now*.004)*.08:1));
-    marker.halo.material.opacity=active||hovered ? .95 : .2+faceStrength*(live ? .52 : .34);
-    marker.beacon.scale.setScalar(active?1.22+Math.sin(now*.0035)*.12:hovered?1.28:baseScale*(1+Math.sin(now*.0025+marker.hostIndex)*.07));
-    marker.beacon.material.opacity=active ? .52 : hovered ? .46 : .11+faceStrength*(live ? .19 : .11);
+    const baseScale=.72+faceStrength*.18;
+    marker.group.scale.setScalar(active?1.18:hovered?1.08:baseScale);
+    marker.core.opacity=active?1:hovered?.82:.18+faceStrength*.28;
+    marker.halo.scale.setScalar(active?1.22:hovered?1.12:baseScale);
+    marker.halo.material.opacity=active?.82:hovered?.55:.05+faceStrength*.1;
+    marker.beacon.scale.setScalar(active?1.16:hovered?1.08:baseScale);
+    marker.beacon.material.opacity=active?.3:hovered?.18:.025+faceStrength*.025;
   });
 }
 let last=performance.now();
 function render(now){requestAnimationFrame(render);const dt=Math.min((now-last)/1000,.05);last=now;if(targetRotation){planet.rotation.x=THREE.MathUtils.lerp(planet.rotation.x,targetRotation.x,1-Math.exp(-3.4*dt));let dy=((targetRotation.y-planet.rotation.y+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;planet.rotation.y+=dy*(1-Math.exp(-3.4*dt));if(Math.abs(dy)<.003)targetRotation=null;}clouds.rotation.y+=dt*.007;updateLabels(now);renderer.render(scene,camera);}
 function resize(){const nextMobile=innerWidth<700;if(nextMobile!==mobileGlobeView){mobileGlobeView=nextMobile;camera.position.z=mobileGlobeView?9.25:8.1;}camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,mobileGlobeView?1.35:1.75));renderer.setSize(innerWidth,innerHeight,false);} addEventListener('resize',resize);resize();
-syncCompactNetwork();tickNetwork();setFilter(new URLSearchParams(location.search).get('sport')||'all');requestAnimationFrame(render);setTimeout(()=>document.getElementById('loading').classList.add('done'),260);
+document.getElementById('tonight-date').textContent=new Intl.DateTimeFormat(undefined,{weekday:'long',month:'long',day:'numeric'}).format(new Date());
+tickNetwork();setFilter(new URLSearchParams(location.search).get('sport')||'all');requestAnimationFrame(render);setTimeout(()=>document.getElementById('loading').classList.add('done'),260);
 setInterval(tickNetwork,1000);
 window.render_game_to_text=()=>JSON.stringify({
-  screen:'world',activeFilter,fixtureCount:visibleCards().length,cityEndpointCount:visibleCards().length*2,totalFixtureCount:fixtureCards.length,totalCityEndpointCount:markers.length,selector:{compact:mobileSelectorMedia.matches,open:!mobileSelectorMedia.matches||compactNetworkOpen,sportControls:tabs.querySelectorAll('.filter-tab').length,renderedClubCrests:gameList.querySelectorAll('.club-emblem').length},
-  coordinateSystem:'globe latitude/longitude; fixture drawer top to bottom',
+  screen:'world',edition:'world-desk',activeFilter,fixtureCount:visibleCards().length,cityEndpointCount:visibleCards().length*2,totalFixtureCount:fixtureCards.length,totalCityEndpointCount:markers.length,selector:{compact:mobileSelectorMedia.matches,open:true,sportControls:tabs.querySelectorAll('.filter-tab').length,renderedClubCrests:gameList.querySelectorAll('.club-emblem').length},
+  coordinateSystem:'globe latitude/longitude; schedule top to bottom',
   globe:{rotationX:Number(planet.rotation.x.toFixed(4)),rotationY:Number(planet.rotation.y.toFixed(4)),flyToActive:Boolean(targetRotation),hoverSnapPending:false,hoverSnapLocked:false,hoverSnapCount,lastSnapSource,lastSnapCity,hoveredPin:canvasHoverMarker?.team.id||null,visiblePins:markers.filter(marker=>marker.group.visible&&marker.frontFacing).length,frontPins:markers.filter(marker=>marker.group.visible&&marker.frontFacing).length,activePinGroups:markers.filter(marker=>marker.group.visible).length,visibleLabels:markers.filter(marker=>marker.label.classList.contains('visible')).length,selectedPins:markers.filter(marker=>marker.label.classList.contains('selected')).length,interactiveRoutes:routes.filter(route=>route.mesh.userData.interactive!==false).length,pinTargets:markers.filter(marker=>marker.group.visible&&marker.frontFacing).slice(0,12).map(marker=>({team:marker.team.id,city:marker.host.city,x:Math.round(marker.screenX),y:Math.round(marker.screenY),front:true}))},
-  preview:previewCard?{open:true,sport:previewCard.league.id,index:previewCard.index,home:previewCard.home.name,away:previewCard.away.name,selectedCity:previewHost?.city||null,href:previewCard.href}:{open:false},
+  preview:previewCard?{open:false,selected:true,sport:previewCard.league.id,index:previewCard.index,home:previewCard.home.name,away:previewCard.away.name,selectedCity:previewHost?.city||null,href:previewCard.href}:{open:false,selected:false},
   fixtures:visibleCards().map(card=>({sport:card.league.id,index:card.index,home:card.home.name,away:card.away.name,cities:[card.home.city,card.away.city],href:card.href})),
   filters:FILTERS.map(filter=>filter.id),canonicalSoccer:{round:matches[0].round,signals:matches.map(match=>({id:match.id,home:match.home.name,away:match.away.name,elapsed:U.clock(match.elapsedMs)}))}
 });
