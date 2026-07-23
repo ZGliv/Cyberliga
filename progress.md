@@ -1053,3 +1053,45 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   Escape on an ordinary filter or fixture no longer clears state or moves keyboard focus back to Home.
 - Added permanent verifier contracts for all-visible desktop filters, rollover rebinding and guarded Escape
   behavior. Targeted rollover, focus and responsive browser proofs are part of the Release Manager gate.
+
+## World Desk organic match-night follow-up — 2026-07-23
+- Release review found that the first restrained pass still read like a clean fixture database: its filter strip
+  clipped sports, every row repeated the same telemetry, and the globe did not explain why a matchup mattered.
+  All seven filters now remain visible in a fixed two-row grid at every supported size, with 46px desktop and
+  44px phone/short-landscape targets and no hidden horizontal carousel.
+- The schedule is now grouped by the six canonical league names, with one shared live/on-air state in each
+  league header. Compact rows contain only the two real crests, full club names and an entry chevron. The default
+  lead is the real New York Brownstones–Toronto Lake Effect reciprocal rivalry: the shared Founding renderer
+  draws #53 Stoopy, the copy names #3 Toque, both club cities and The Block, and the whole row remains the exact
+  `hoops.html?match=1` broadcast link. Every sport deterministically receives one nonblank Founding-character lead.
+- The globe and schedule now tell the same story at rest. Close rivalries frame both selected cities, labels and
+  route; transoceanic fixtures keep the globe useful by focusing the featured character's city instead of
+  shrinking the Earth or hiding both endpoints. Other routes disappear and other pins remain quiet. Pointer
+  hover changes emphasis without moving the camera; pin click selects the exact fixture; Escape returns to the
+  editorial lead; filter query back/forward state remains intact.
+- Removed the entire 299-line legacy inline dashboard stylesheet and detached glass preview markup/logic rather
+  than merely overriding them. The external sheet now owns the intentional matte rules, visible scrollbar,
+  accessible clipped presence text and filter behavior. Consumer metadata no longer leads with “autonomous”
+  technology language. The stale five-league glass-dashboard social image was replaced by an honest 1200×630
+  capture of the current six-sport World Desk and Stoopy–Toque lead.
+- Final visual QA passed at 1280×720, 1024×768, 390×844 and 900×520. The phone board occupies y=396.69–844,
+  has zero document overflow, shows all seven 44px filters, one 123px lead and two additional 68px fixtures.
+  Short landscape uses a full-height side rail from y=56–520 with two selected labels and no 84px dead zone.
+  Instrumented browser runs reported no page, console, request or HTTP errors.
+- The clean desktop/phone seven-filter matrix passed: All is 24 fixtures / 48 endpoints / 48 crests and every
+  sport is 4 / 8 / 8, with one lead, two selected pins, nonblank procedural portrait pixels and canonical arena
+  hrefs. Soccer rollover rebinds marker closures/routes by stable club identity, and guarded Escape never steals
+  focus without a real selection.
+- The required official client passed on exact final bytes in
+  `/tmp/cyberliga-world-desk-organic-final-official`: finite 24/48/7 state, Stoopy and Toque as the lead,
+  `focusMode:"match"`, two labels/two pins, zero interactive routes and no error artifact.
+- Current-byte gates pass `npm run verify`: 13 API, 11 athlete-moment, 15 named-moment, 12 broadcast-spine,
+  22 Chronicle/store, 5 football replay-memory, 16 shared-visual tests and 1,545/1,545 repository checks.
+  Football brain/rules pass 28/28; standalone module syntax and `git diff --check` pass.
+- Release integration removed a one-second refresh that overwrote the featured `vs #…` / `Rivalry` / `Featured`
+  kicker with a duplicate live clock. The named-league header remains the single shared status surface, and a
+  verifier regression now protects the editorial lead copy.
+- The proposed social card hardcoded its capture date even though its metadata promised “Tonight.” Release
+  integration recaptured the exact 1200×630 Match Night surface with the evergreen “Around the world” line,
+  added descriptive OG/Twitter alt text, visually inspected the result, and pinned its audited bytes in the
+  verifier so a stale dated replacement cannot silently return.
