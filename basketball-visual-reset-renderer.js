@@ -1,7 +1,10 @@
 import * as THREE from "./vendor/three/three.module.js";
 
-const TIMELINE = window.CyberligaBasketballVisualReset;
 const params = new URLSearchParams(window.location.search);
+const BASE_TIMELINE = window.CyberligaBasketballVisualReset;
+const BROADCAST_TIMELINE = window.CyberligaBasketballBroadcastDirector;
+const legacyMode = params.get("legacy") === "1";
+const TIMELINE = !legacyMode && BROADCAST_TIMELINE?.sample ? BROADCAST_TIMELINE : BASE_TIMELINE;
 const requestedStyle = params.get("style");
 const styleName = ["maquette", "paper", "resin"].includes(requestedStyle) ? requestedStyle : "maquette";
 const requestedTime = Number(params.get("time"));
@@ -122,18 +125,56 @@ world.add(ballRig.root);
 const scoreHome = document.getElementById("score-home");
 const scoreAway = document.getElementById("score-away");
 const scoreClock = document.getElementById("score-clock");
+const shotClock = document.getElementById("shot-clock");
+const periodLabel = document.getElementById("period-label");
+const possessionLine = document.getElementById("possession-line");
+const modeBug = document.getElementById("mode-bug");
+const modeLabel = document.getElementById("mode-label");
+const soundControl = document.getElementById("sound-control");
+const soundIcon = document.getElementById("sound-icon");
+const soundLabel = document.getElementById("sound-label");
+const storyCard = document.getElementById("story-card");
+const storyKicker = document.getElementById("story-kicker");
+const storyTitle = document.getElementById("story-title");
+const homePrincipal = document.getElementById("home-principal");
+const homeTrait = document.getElementById("home-trait");
+const awayPrincipal = document.getElementById("away-principal");
+const awayTrait = document.getElementById("away-trait");
 const lowerThird = document.getElementById("lower-third");
 const lowerKicker = document.getElementById("lower-kicker");
 const lowerTitle = document.getElementById("lower-title");
 const lowerDetail = document.getElementById("lower-detail");
+const readCard = document.getElementById("read-card");
+const readKicker = document.getElementById("read-kicker");
+const readCopy = document.getElementById("read-copy");
+const commentaryLine = document.getElementById("commentary-line");
+const replayOverlay = document.getElementById("replay-overlay");
+const stakeRibbon = document.getElementById("stake-ribbon");
+const broadcastFade = document.getElementById("broadcast-fade");
 const loadingNote = document.getElementById("loading-note");
+const AUDIO_API = window.CyberligaBasketballBroadcastAudio;
+const broadcastAudio = AUDIO_API?.createBroadcastAudio
+  ? AUDIO_API.createBroadcastAudio({
+      volume: 0.72,
+      muted: false,
+      cueCatalogue: BROADCAST_TIMELINE?.audioCues || [],
+    })
+  : null;
 
-let timelineMs = captureMode ? wrapTime(requestedTime) : 0;
+let timelineMs = captureMode ? requestedTime : 0;
 let lastFrameAt = performance.now();
 let manualHoldUntil = 0;
 let lastSample = null;
 let finiteState = true;
 let lowerThirdProgress = 0;
+let frameIntervalMs = 0;
+let droppedFrameEstimate = 0;
+let lastAudioLoopId = null;
+let lastDrawWasContinuous = false;
+let wallClockStartedAt = performance.now();
+let timelineStartedAt = timelineMs;
+let performanceWarmupUntil = performance.now() + 2000;
+const renderDurations = [];
 let renderedCamera = {
   shot: "wide",
   position: { x: 18, y: -46, z: 19 },
@@ -141,16 +182,20 @@ let renderedCamera = {
 };
 
 if (!TIMELINE?.sample) loadingNote?.classList.add("visible");
+if (!BROADCAST_TIMELINE?.sample && !legacyMode) loadingNote?.classList.add("visible");
 
 resize();
 window.addEventListener("resize", resize, { passive: true });
+soundControl?.addEventListener("click", handleSoundControl);
 
 window.advanceTime = (ms) => {
   const delta = Number(ms);
   if (!Number.isFinite(delta)) return renderGameToText();
-  timelineMs = wrapTime(timelineMs + Math.max(0, delta));
+  timelineMs += Math.max(0, delta);
   manualHoldUntil = performance.now() + 900;
-  drawFrame(timelineMs);
+  wallClockStartedAt = performance.now();
+  timelineStartedAt = timelineMs;
+  drawFrame(timelineMs, false);
   return renderGameToText();
 };
 
@@ -158,32 +203,45 @@ window.render_game_to_text = renderGameToText;
 window.__CYBERLIGA_VISUAL_RESET__ = Object.freeze({
   version: "1.0.0",
   style: styleName,
+  broadcastDirector: TIMELINE === BROADCAST_TIMELINE,
   captureMode,
   durationMs: DURATION_MS,
 });
 
-drawFrame(timelineMs);
+drawFrame(timelineMs, false);
 requestAnimationFrame(frame);
 
 function frame(now) {
-  const elapsed = Math.min(50, Math.max(0, now - lastFrameAt));
+  const elapsed = Math.max(0, now - lastFrameAt);
   lastFrameAt = now;
-  if (!captureMode && now >= manualHoldUntil) timelineMs = wrapTime(timelineMs + elapsed);
-  drawFrame(timelineMs);
+  frameIntervalMs = elapsed;
+  if (now >= performanceWarmupUntil && elapsed > 20 && elapsed < 1000) {
+    droppedFrameEstimate += Math.max(0, Math.round(elapsed / (1000 / 60)) - 1);
+  }
+  if (!captureMode && now >= manualHoldUntil) timelineMs += elapsed;
+  drawFrame(timelineMs, !captureMode && now >= manualHoldUntil);
   requestAnimationFrame(frame);
 }
 
-function drawFrame(ms) {
+function drawFrame(ms, continuous = false) {
+  const renderStartedAt = performance.now();
   const sample = sampleTimeline(ms);
   lastSample = sample;
+  lastDrawWasContinuous = continuous;
   syncActors(sample);
   syncBall(sample);
   syncHoop(sample);
   syncCamera(sample);
   syncCrowd(sample);
   syncBroadcast(sample);
+  syncAudio(sample, continuous);
   finiteState = inspectFinite(sample) && inspectSceneFinite();
   renderer.render(scene, camera);
+  const renderDuration = performance.now() - renderStartedAt;
+  if (performance.now() >= performanceWarmupUntil && Number.isFinite(renderDuration) && renderDuration < 1000) {
+    renderDurations.push(renderDuration);
+    if (renderDurations.length > 240) renderDurations.shift();
+  }
 }
 
 function sampleTimeline(ms) {
@@ -196,6 +254,71 @@ function sampleTimeline(ms) {
     }
   }
   return rehearsalSample(ms);
+}
+
+async function handleSoundControl() {
+  if (!broadcastAudio) return;
+  const current = broadcastAudio.status();
+  try {
+    if (current.locked) {
+      await broadcastAudio.unlock();
+      if (lastSample) broadcastAudio.seek(lastSample, broadcastLoopId(lastSample));
+    } else {
+      broadcastAudio.setMuted(!current.muted);
+    }
+  } catch (error) {
+    loadingNote.textContent = "Arena sound unavailable on this device";
+    loadingNote.classList.add("visible");
+  }
+  updateSoundControl();
+}
+
+function broadcastLoopId(sample) {
+  return String(sample?.broadcast?.loopId ?? sample?.loop ?? Math.floor(Math.max(0, timelineMs) / Math.max(1, DURATION_MS)));
+}
+
+function syncAudio(sample, continuous) {
+  if (!broadcastAudio) {
+    updateSoundControl();
+    return;
+  }
+  const loopId = broadcastLoopId(sample);
+  if (loopId !== lastAudioLoopId) {
+    broadcastAudio.reset(loopId, sample);
+    lastAudioLoopId = loopId;
+  } else if (continuous) {
+    broadcastAudio.consume(sample, { continuous: true });
+  } else {
+    broadcastAudio.seek(sample, loopId);
+  }
+  updateSoundControl();
+}
+
+function updateSoundControl() {
+  if (!soundControl) return;
+  const status = broadcastAudio?.status?.() || { state: "unavailable", locked: true, muted: false };
+  const state = status.state || "locked";
+  soundControl.dataset.state = state;
+  soundControl.setAttribute("aria-pressed", String(state === "running"));
+  if (!broadcastAudio) {
+    soundIcon.textContent = "×";
+    soundLabel.textContent = "Sound unavailable";
+    soundControl.disabled = true;
+    return;
+  }
+  if (status.locked) {
+    soundIcon.textContent = "◌";
+    soundLabel.textContent = "Turn sound on";
+    soundControl.setAttribute("aria-label", "Turn on arena sound");
+  } else if (status.muted) {
+    soundIcon.textContent = "×";
+    soundLabel.textContent = "Sound off";
+    soundControl.setAttribute("aria-label", "Turn arena sound on");
+  } else {
+    soundIcon.textContent = "◉";
+    soundLabel.textContent = "Sound on";
+    soundControl.setAttribute("aria-label", "Mute arena sound");
+  }
 }
 
 function rehearsalSample(ms) {
@@ -386,9 +509,12 @@ function updateActorRig(rig, actorState, ballState) {
   configureCore(parts, profile, hip, chest, headY, crouch, torsoLean);
 
   const stride = poseId.includes("drive") || poseId.includes("roll") || poseId.includes("chase") || poseId.includes("follow")
+    || poseId.includes("sprint") || poseId.includes("transition") || poseId.includes("recover")
     ? Math.sin(cadence * Math.PI * 2) * 0.75
     : 0;
-  const wide = poseId.includes("screen") ? 0.46 : poseId.includes("land") ? 0.34 : 0.16;
+  const wide = poseId.includes("screen") || poseId.includes("boxout")
+    ? 0.46
+    : poseId.includes("land") || poseId.includes("rebound") ? 0.34 : 0.16;
   const footL = actorState.anchors?.leftFoot
     ? root.worldToLocal(mapPoint(actorState.anchors.leftFoot))
     : new THREE.Vector3(stride, jump + 0.16, -profile.hipWidth * (0.5 + wide));
@@ -502,7 +628,17 @@ function chooseHands(actorState, poseId, shoulderL, shoulderR, profile, cadence,
   } else if (poseId.includes("catch") || poseId.includes("load")) {
     hands.left.set(0.95, shoulderL.y - 0.25, -0.25);
     hands.right.set(0.95, shoulderR.y - 0.25, 0.25);
-  } else if (poseId.includes("drive") || poseId.includes("roll") || poseId.includes("chase") || poseId.includes("follow")) {
+  } else if (poseId.includes("shoot") || poseId.includes("release")) {
+    hands.left.set(0.58, shoulderL.y + profile.arm * 0.76, -0.18);
+    hands.right.set(0.82, shoulderR.y + profile.arm * 1.02, 0.14);
+  } else if (poseId.includes("rebound") || poseId.includes("putback")) {
+    hands.left.set(0.64, shoulderL.y + profile.arm * 0.92, -0.5);
+    hands.right.set(0.72, shoulderR.y + profile.arm * 0.98, 0.5);
+  } else if (poseId.includes("steal") || poseId.includes("denial") || poseId.includes("deflect")) {
+    hands.left.set(0.92, shoulderL.y + 0.12, -0.5);
+    hands.right.set(1.12, shoulderR.y + 0.3, 0.36);
+  } else if (poseId.includes("drive") || poseId.includes("roll") || poseId.includes("chase") || poseId.includes("follow")
+    || poseId.includes("sprint") || poseId.includes("transition") || poseId.includes("recover")) {
     const swing = Math.sin(cadence * Math.PI * 2) * 0.65;
     hands.left.x += swing;
     hands.right.x -= swing;
@@ -577,7 +713,9 @@ function profileFor(actorState) {
 function isAwayActor(actorState) {
   const teamId = String(actorState?.teamId || "").toLowerCase();
   const side = String(actorState?.side || "").toLowerCase();
-  return side === "away" || side === "defense" || teamId.includes("toronto") || teamId.includes("lake-effect");
+  if (teamId.includes("toronto") || teamId.includes("lake-effect")) return true;
+  if (teamId.includes("new-york") || teamId.includes("brownstones")) return false;
+  return side === "away";
 }
 
 function syncBall(sample) {
@@ -597,21 +735,40 @@ function syncBall(sample) {
 
 function syncHoop(sample) {
   const timeMs = finite(sample?.timeMs, timelineMs);
-  const elapsed = timeMs - finite(MILESTONES.rimCrossingMs, 8350);
-  const active = elapsed >= 0 && elapsed <= 1250;
-  const response = active ? Math.exp(-elapsed / 430) * Math.sin((elapsed / 1000) * Math.PI * 7) : 0;
-  const netPull = elapsed >= 0 && elapsed <= 900
-    ? Math.sin(clamp01(elapsed / 900) * Math.PI) * Math.exp(-Math.max(0, elapsed - 340) / 800)
-    : 0;
+  const attackingX = finite(sample?.broadcast?.attackingRim?.x ?? sample?.contacts?.rim?.point?.x, 42);
+  const activeHoop = attackingX < 0 ? environment.hoops.awayAttack : environment.hoops.homeAttack;
+  const timelineElapsed = timeMs - finite(MILESTONES.rimCrossingMs, 8350);
+  const explicitRim = typeof sample?.presentation?.rimResponse === "number"
+    ? clamp01(sample.presentation.rimResponse)
+    : null;
+  const explicitNet = typeof sample?.presentation?.netResponse === "number"
+    ? clamp01(sample.presentation.netResponse)
+    : null;
+  const active = timelineElapsed >= 0 && timelineElapsed <= 1250;
+  const response = explicitRim == null
+    ? active ? Math.exp(-timelineElapsed / 430) * Math.sin((timelineElapsed / 1000) * Math.PI * 7) : 0
+    : explicitRim * Math.sin(timeMs * 0.052) * 0.9;
+  const netPull = explicitNet == null
+    ? timelineElapsed >= 0 && timelineElapsed <= 900
+      ? Math.sin(clamp01(timelineElapsed / 900) * Math.PI) * Math.exp(-Math.max(0, timelineElapsed - 340) / 800)
+      : 0
+    : explicitNet;
 
-  environment.rim.rotation.set(Math.PI / 2, response * 0.025, response * 0.035);
-  environment.rim.position.y = 10 + Math.abs(response) * 0.055;
-  environment.rimNeck.rotation.z = response * 0.018;
-  environment.rimNeck.position.y = 10 + response * 0.03;
+  syncSingleHoop(environment.hoops.homeAttack, activeHoop === environment.hoops.homeAttack ? response : 0,
+    activeHoop === environment.hoops.homeAttack ? netPull : 0, timeMs);
+  syncSingleHoop(environment.hoops.awayAttack, activeHoop === environment.hoops.awayAttack ? response : 0,
+    activeHoop === environment.hoops.awayAttack ? netPull : 0, timeMs);
+}
 
-  environment.netRopes.forEach((rope, index) => {
+function syncSingleHoop(hoop, response, netPull, timeMs) {
+  hoop.rim.rotation.set(Math.PI / 2, response * 0.025, response * 0.035);
+  hoop.rim.position.y = 10 + Math.abs(response) * 0.055;
+  hoop.rimNeck.rotation.z = response * 0.018;
+  hoop.rimNeck.position.y = 10 + response * 0.03;
+
+  hoop.netRopes.forEach((rope, index) => {
     const { top, bottom, angle } = rope.userData;
-    const phase = Math.sin(index * 1.7 + elapsed * 0.016) * netPull;
+    const phase = Math.sin(index * 1.7 + timeMs * 0.016) * netPull;
     const deformedBottom = bottom.clone();
     deformedBottom.y -= netPull * (0.5 + (index % 3) * 0.08);
     deformedBottom.x += Math.cos(angle) * phase * 0.42;
@@ -621,14 +778,22 @@ function syncHoop(sample) {
 }
 
 function syncCamera(sample) {
-  const data = sample?.camera || {};
+  const cameraPlan = sample?.camera || {};
+  const aspect = Math.max(0.3, window.innerWidth / Math.max(1, window.innerHeight));
+  const authoredVariant = aspect < 0.8
+    ? window.innerWidth <= 700
+      ? cameraPlan.compactPortrait || cameraPlan.portrait || null
+      : cameraPlan.socialPortrait || cameraPlan.portrait || null
+    : cameraPlan.desktop || cameraPlan.landscape || null;
+  const data = authoredVariant ? { ...cameraPlan, ...authoredVariant } : cameraPlan;
   const rawPosition = readPosition(data.position, { x: 22, y: -48, z: 24 });
   const rawTarget = readPosition(data.lookAt || data.target, { x: 31, y: 0, z: 4 });
   const target = mapPoint(rawTarget);
   const desired = mapPoint(rawPosition);
-  const aspect = Math.max(0.3, window.innerWidth / Math.max(1, window.innerHeight));
 
-  if (aspect < 0.8) {
+  if (authoredVariant) {
+    camera.fov = clamp(finite(data.fov, 42), 26, 64);
+  } else if (aspect < 0.8) {
     const portrait = window.innerWidth <= 700
       ? compactPortraitCameraAt(finite(sample?.timeMs, timelineMs))
       : portraitCameraAt(finite(sample?.timeMs, timelineMs));
@@ -648,6 +813,15 @@ function syncCamera(sample) {
       camera.fov = clamp(finite(data.fov, data.shot === "aftermath" || data.shot === "close" ? 34 : 37), 28, 52);
     }
   }
+  const attackingX = finite(sample?.broadcast?.attackingRim?.x, 42);
+  const ballX = finite(sample?.ball?.position?.x, 0);
+  const leftRimSafety = attackingX < 0 && ballX < -34;
+  if (leftRimSafety && aspect >= 0.8) {
+    const safeCamera = { position: { x: -40, y: -32, z: 17 }, lookAt: { x: -34, y: 0, z: 6 }, fov: 36 };
+    desired.copy(mapPoint(safeCamera.position));
+    target.copy(mapPoint(safeCamera.lookAt));
+    camera.fov = safeCamera.fov;
+  }
   camera.updateProjectionMatrix();
   camera.position.copy(desired);
   camera.lookAt(target);
@@ -656,9 +830,11 @@ function syncCamera(sample) {
   renderedCamera = {
     id: data.id || null,
     shot: data.shot || "wide",
-    composition: aspect < 0.8
-      ? window.innerWidth <= 700 ? "compact-sideline-oblique" : "native-social-portrait"
-      : "timeline-landscape",
+    composition: leftRimSafety && aspect >= 0.8
+      ? "left-rim-desktop-safety"
+      : aspect < 0.8
+        ? window.innerWidth <= 700 ? "compact-portrait-authored" : "social-portrait-authored"
+        : authoredVariant ? "desktop-authored" : "timeline-landscape",
     position: actualPosition,
     lookAt: actualLookAt,
     sourcePosition: roundPosition(rawPosition),
@@ -745,12 +921,31 @@ function mixPosition(from, to, amount) {
 }
 
 function syncCrowd(sample) {
-  const elapsed = finite(sample?.timeMs, timelineMs) - finite(MILESTONES.rimCrossingMs, 8350);
+  const presentation = sample?.presentation || {};
+  const explicitReaction = typeof presentation.crowdReaction === "number"
+    ? clamp01(presentation.crowdReaction)
+    : null;
+  const rawReactionOrigin = finite(presentation.reactionOriginX ?? sample?.broadcast?.attackingRim?.x, 42);
+  const reactionOriginX = rawReactionOrigin >= 0 && rawReactionOrigin <= 1
+    ? rawReactionOrigin * 100 - 50
+    : rawReactionOrigin;
+  const outcomeContactAt = finite(sample?.broadcast?.outcome?.contactAtMs, NaN);
+  const reactionStartedAt = finite(
+    presentation.reactionStartedAtMs,
+    Number.isFinite(outcomeContactAt) && outcomeContactAt > 0
+      ? outcomeContactAt + 150
+      : finite(MILESTONES.rimCrossingMs, 8350),
+  );
+  const elapsed = finite(sample?.timeMs, timelineMs) - reactionStartedAt;
   environment.crowdSections.forEach((section, index) => {
-    const delay = section.userData.reactionDelay ?? (150 + index * 46);
-    const rise = smoothstep(delay, delay + 260, elapsed);
-    const settle = 1 - smoothstep(2700, 4200, elapsed);
-    const wave = rise * settle;
+    const worldX = finite(section.userData.worldX, 0);
+    const travelDelay = 120 + clamp(Math.abs(reactionOriginX - worldX) / 94, 0, 1) * 620;
+    const delay = explicitReaction == null ? (section.userData.reactionDelay ?? travelDelay) : travelDelay;
+    const rise = smoothstep(delay, delay + 240, elapsed);
+    const settle = 1 - smoothstep(2200, 3900, elapsed);
+    const authoredWave = explicitReaction == null ? rise * settle : explicitReaction * rise;
+    const individuality = 0.78 + (index % 5) * 0.065;
+    const wave = authoredWave * individuality;
     section.position.y = section.userData.baseY + wave * (section.userData.reactionLift ?? (0.38 + (index % 3) * 0.1));
     section.rotation.z = section.userData.baseRotation + wave * (section.userData.reactionTilt ?? (index % 2 ? -0.008 : 0.008));
   });
@@ -758,33 +953,219 @@ function syncCrowd(sample) {
 
 function syncBroadcast(sample) {
   const score = sample?.score || {};
+  const broadcast = sample?.broadcast || {};
+  const presentation = sample?.presentation || {};
+  const clock = broadcast.clock || sample?.clock || {};
+  const timeMs = finite(sample?.timeMs, timelineMs);
   const homePoints = typeof score.home === "object" ? score.home?.points : score.home;
   const awayPoints = typeof score.away === "object" ? score.away?.points : score.away;
   scoreHome.textContent = String(Number.isFinite(homePoints) ? homePoints : 18);
   scoreAway.textContent = String(Number.isFinite(awayPoints) ? awayPoints : 17);
-  const seconds = Math.max(0, Math.ceil((DURATION_MS - finite(sample?.timeMs, timelineMs)) / 1000));
-  scoreClock.textContent = `0:${String(seconds).padStart(2, "0")}`;
+  const gameClockSeconds = firstFinite(
+    clock.gameClockSeconds,
+    clock.remainingSeconds,
+    broadcast.gameClockSeconds,
+    sample?.gameClockSeconds,
+    (DURATION_MS - finite(sample?.timeMs, timelineMs)) / 1000,
+  );
+  const shotClockSeconds = firstFinite(
+    clock.shotClockSeconds,
+    clock.shotSeconds,
+    broadcast.shotClockSeconds,
+    sample?.shotClockSeconds,
+    19,
+  );
+  scoreClock.textContent = formatClock(gameClockSeconds);
+  shotClock.textContent = String(Math.max(0, Math.ceil(shotClockSeconds)));
+  const period = clock.periodLabel || clock.period || broadcast.periodLabel || broadcast.period || "4Q";
+  periodLabel.textContent = formatPeriod(period);
 
-  const lower = sample?.presentation?.lowerThird;
-  const requestedVisible = typeof lower === "object" ? lower.visible !== false : Boolean(lower);
-  const timeMs = finite(sample?.timeMs, timelineMs);
-  const lowerStart = finite(MILESTONES.lowerThirdMs, 12600);
-  const lowerEnd = finite(MILESTONES.resetCutMs, 14500) - 100;
-  const enter = smoothstep(lowerStart, lowerStart + 220, timeMs);
-  const exit = 1 - smoothstep(lowerEnd - 220, lowerEnd, timeMs);
+  const possession = broadcast.possession || sample?.possession || {};
+  const possessionText = String(
+    possession.label ||
+    broadcast.possessionLabel ||
+    (possession.offenseTeamId || possession.teamId || possession.side || broadcast.possessionTeamId || "home"),
+  ).toLowerCase();
+  const awayPossession = /toronto|lake|tle|away/.test(possessionText);
+  const noPossession = possession.status === "none" || possession.id == null && broadcast.segment?.kind !== "live";
+  possessionLine.textContent = possession.label || broadcast.possessionLabel || (noPossession ? "MATCHUP" : awayPossession ? "TO BALL" : "NY BALL");
+  possessionLine.classList.toggle("away", awayPossession);
+  possessionLine.classList.toggle("home", !awayPossession);
+
+  const rawMode = String(broadcast.mode || broadcast.state || broadcast.segment?.kind || "live").toLowerCase();
+  const replayTruth = Boolean(
+    (rawMode.includes("replay") || broadcast.replay?.active === true) &&
+    broadcast.replay?.recordedFootage === true
+  );
+  const mode = replayTruth
+    ? "replay"
+    : rawMode.includes("final") || rawMode.includes("fulltime")
+      ? "final"
+      : rawMode.includes("dead") || rawMode.includes("break") || rawMode.includes("timeout") || rawMode.includes("context") || rawMode.includes("reset")
+        ? "dead-ball"
+        : "live";
+  modeBug.dataset.mode = mode;
+  modeLabel.textContent = mode === "replay" ? "Replay" : mode === "dead-ball" ? "Dead ball" : mode === "final" ? "Final" : "Live";
+  replayOverlay.classList.toggle("visible", replayTruth);
+
+  const segment = broadcast.segment || {};
+  const segmentLocalMs = timeMsInSegment(sample, segment);
+  const coldOpenStory = segment.kind === "context"
+    ? {
+        visible: segmentLocalMs < 5500,
+        kicker: "One possession apart · 4th quarter",
+        title: "Stoopy vs Toque",
+        home: {
+          name: "Stoopy · Moving Architecture",
+          trait: "His screens reshape the floor. His heavy base makes the second jump cost him.",
+        },
+        away: {
+          name: "Toque · Whiteout Release",
+          trait: "His length erases the first look. Traffic can pull him away from the second.",
+        },
+      }
+    : null;
+  const story = presentation.storyCard || presentation.coldOpen || broadcast.storyCard || coldOpenStory;
+  const storyVisible = Boolean(story && (typeof story === "object" ? story.visible !== false : story));
+  storyCard.classList.toggle("visible", storyVisible);
+  if (story && typeof story === "object") {
+    storyKicker.textContent = story.kicker || story.eyebrow || "One possession apart · 4th quarter";
+    storyTitle.innerHTML = safeTitleHtml(story.title || "Stoopy vs Toque");
+    const home = story.home || story.stoopy || {};
+    const away = story.away || story.toque || {};
+    homePrincipal.textContent = home.name || home.title || "Stoopy · Moving Architecture";
+    homeTrait.textContent = home.trait || home.detail || "His screens reshape the floor. His heavy base makes the second jump cost him.";
+    awayPrincipal.textContent = away.name || away.title || "Toque · Whiteout Release";
+    awayTrait.textContent = away.trait || away.detail || "His length erases the first look. Traffic can pull him away from the second.";
+  }
+
+  const lower = presentation.lowerThird;
+  const lowerStart = directorLowerStart(broadcast);
+  const withinEditorialCap = lowerStart == null || timeMs < lowerStart + 3200;
+  const requestedVisible = segment.kind !== "replay" && Boolean(lower && (typeof lower === "object" ? lower.visible !== false : lower)) && withinEditorialCap;
   const timelineOpacity = typeof lower?.opacity === "number" ? clamp01(lower.opacity) : null;
-  const progress = requestedVisible ? (timelineOpacity ?? Math.min(enter, exit)) : 0;
+  let progress = requestedVisible ? (timelineOpacity ?? 1) : 0;
+  if (TIMELINE === BASE_TIMELINE && requestedVisible && timelineOpacity == null) {
+    const lowerStart = finite(MILESTONES.lowerThirdMs, 12600);
+    const lowerEnd = finite(MILESTONES.resetCutMs, 14500) - 100;
+    progress = Math.min(smoothstep(lowerStart, lowerStart + 220, timeMs), 1 - smoothstep(lowerEnd - 220, lowerEnd, timeMs));
+  }
   lowerThirdProgress = progress;
   lowerThird.classList.toggle("visible", progress > 0);
   lowerThird.style.opacity = String(progress);
   lowerThird.style.transform = `translateY(${round((1 - progress) * 20)}px)`;
   if (typeof lower === "object" && lower) {
-    lowerKicker.textContent = "Signature play · Visual lab";
-    lowerTitle.textContent = `Stoopy · ${lower.title || "The Stoop Drop"}`;
-    const eventId = lower.eventId || lower.momentId || score.eventId || "visual-reset-stoop-drop-001";
-    const playPoints = Number.isFinite(score.playPoints) ? `+${score.playPoints}` : "+2";
-    lowerDetail.textContent = `New York Brownstones · ${playPoints} · ${eventId}`;
+    const graphic = outcomeGraphic(broadcast.outcome, broadcast.headline, lower);
+    lowerThird.dataset.team = graphic.team;
+    lowerKicker.textContent = graphic.kicker;
+    lowerTitle.textContent = graphic.title;
+    lowerDetail.textContent = graphic.detail;
   }
+
+  const directorRead = segment.kind !== "context" && segmentLocalMs >= 250 && segmentLocalMs < 2550
+    ? {
+        visible: true,
+        kicker: broadcast.headline?.kicker || "The read",
+        copy: `${broadcast.headline?.deck || "Every answer changes the next possession."} ${broadcast.stakes?.detail || ""}`.trim(),
+      }
+    : null;
+  const read = presentation.readCard || presentation.tacticalRead || broadcast.tacticalRead || directorRead;
+  const readVisible = Boolean(read && (typeof read === "object" ? read.visible !== false : read));
+  readCard.classList.toggle("visible", readVisible);
+  if (read && typeof read === "object") {
+    readKicker.textContent = read.kicker || read.eyebrow || "The read";
+    readCopy.textContent = read.copy || read.detail || read.text || "Every answer creates the next opening.";
+  }
+
+  const commentary = presentation.commentaryLine || presentation.commentary || broadcast.commentary;
+  const commentaryText = typeof commentary === "string" ? commentary : commentary?.text || commentary?.copy || "";
+  const commentaryVisible = Boolean(commentaryText && (typeof commentary !== "object" || commentary.visible !== false));
+  commentaryLine.textContent = commentaryText;
+  commentaryLine.classList.toggle("visible", commentaryVisible);
+
+  const stake = presentation.stake || broadcast.stake || broadcast.stakes;
+  if (typeof stake === "string") stakeRibbon.textContent = stake;
+  else if (stake?.label || stake?.text) {
+    stakeRibbon.textContent = [stake.label || stake.text, stake.detail].filter(Boolean).join(" · ");
+  }
+  broadcastFade.style.opacity = String(clamp01(presentation.blackout || 0));
+}
+
+function timeMsInSegment(sample, segment) {
+  return Math.max(0, finite(sample?.timeMs, timelineMs) - finite(segment?.startMs, 0));
+}
+
+function directorLowerStart(broadcast) {
+  const segment = broadcast?.segment || {};
+  const outcome = broadcast?.outcome || {};
+  if (segment.kind === "replay") return finite(segment.startMs, 0);
+  if (segment.id === "segment-06-stoopy-putback") return 77500;
+  if (Number.isFinite(Number(outcome.certifiedAtMs)) && Number(outcome.certifiedAtMs) > 0) {
+    return Number(outcome.certifiedAtMs) + 1600;
+  }
+  return null;
+}
+
+function outcomeGraphic(outcome = {}, headline = {}, authored = {}) {
+  const team = String(outcome.teamId || "").includes("toronto") ? "away" : "home";
+  const points = Number(outcome.points) || 0;
+  const fallback = {
+    team,
+    kicker: authored.kicker || "Certified outcome",
+    title: authored.title || headline.title || "Possession complete",
+    detail: authored.description || authored.detail || headline.deck || "The result is certified after contact.",
+  };
+  if (outcome.status !== "certified" && outcome.status !== "replayed") return fallback;
+  if (outcome.type === "made-dunk") return {
+    team: "home", kicker: "Stoopy · Certified +2", title: "The Stoop Drop",
+    detail: "Legal screen. Two-hand catch. Rim crossing. New York builds the lead.",
+  };
+  if (outcome.type === "made-three") return {
+    team: "away", kicker: "Toque · Certified +3", title: "Whiteout Answer",
+    detail: "Clean catch. Early release. Toronto erases the lead at the left rim.",
+  };
+  if (outcome.type === "live-ball-turnover") return {
+    team: "away", kicker: "Toque · Certified takeaway", title: "The Switch Worked",
+    detail: "Toronto remembers the screen and closes the passing window.",
+  };
+  if (outcome.type === "blocked-miss") return {
+    team: "away", kicker: "Toque · Certified block", title: "Whiteout at the Rim",
+    detail: "Ball first. The block is clean—and the carom is still live.",
+  };
+  if (outcome.type === "offensive-rebound-putback") return {
+    team: "home", kicker: `Stoopy · Certified +${points || 2}`, title: "Second Effort",
+    detail: "Offensive board. Two-foot load. Putback. The heavy landing still costs him.",
+  };
+  return fallback;
+}
+
+function firstFinite(...values) {
+  for (const value of values) {
+    const number = Number(value);
+    if (Number.isFinite(number)) return number;
+  }
+  return 0;
+}
+
+function formatClock(value) {
+  const seconds = Math.max(0, Number(value) || 0);
+  const whole = Math.floor(seconds);
+  const minutes = Math.floor(whole / 60);
+  const remainder = whole % 60;
+  if (seconds < 10 && seconds % 1 !== 0) return `${minutes}:${String(remainder).padStart(2, "0")}.${Math.floor((seconds % 1) * 10)}`;
+  return `${minutes}:${String(remainder).padStart(2, "0")}`;
+}
+
+function formatPeriod(value) {
+  const text = String(value || "4Q").trim().toUpperCase();
+  if (/^Q\d$/.test(text)) return `${text.slice(1)}Q`;
+  if (/^\d$/.test(text)) return `${text}Q`;
+  return text.slice(0, 3);
+}
+
+function safeTitleHtml(value) {
+  const title = String(value || "Stoopy vs Toque").replace(/[<>]/g, "");
+  return title.replace(/\s+vs\.?\s+/i, ' <span class="versus">vs</span> ');
 }
 
 function buildBall() {
@@ -832,14 +1213,17 @@ function buildHighRoom() {
     root.add(plank);
   }
 
-  const paint = mesh(new THREE.PlaneGeometry(19, 16), materials.paint);
-  paint.rotation.x = -Math.PI / 2;
-  paint.position.set(37.5, 0.022, 0);
-  paint.receiveShadow = true;
-  root.add(paint);
+  for (const x of [-37.5, 37.5]) {
+    const paint = mesh(new THREE.PlaneGeometry(19, 16), materials.paint);
+    paint.rotation.x = -Math.PI / 2;
+    paint.position.set(x, 0.022, 0);
+    paint.receiveShadow = true;
+    root.add(paint);
+  }
 
   addCourtMarkings(root);
-  const hoop = addHoop(root);
+  const homeAttack = addHoop(root, 1);
+  const awayAttack = addHoop(root, -1);
   addArchitecture(root);
   addCrowd(root, crowdSections);
 
@@ -865,7 +1249,14 @@ function buildHighRoom() {
   fill.target.position.set(34, 2, 0);
   root.add(fill, fill.target);
 
-  return { root, crowdSections, ...hoop };
+  return {
+    root,
+    crowdSections,
+    hoops: { homeAttack, awayAttack },
+    rim: homeAttack.rim,
+    rimNeck: homeAttack.rimNeck,
+    netRopes: homeAttack.netRopes,
+  };
 }
 
 function addCourtMarkings(root) {
@@ -877,11 +1268,16 @@ function addCourtMarkings(root) {
   root.add(lineLoop([
     courtPoint(28, -8, y), courtPoint(47, -8, y), courtPoint(47, 8, y), courtPoint(28, 8, y),
   ], line));
+  root.add(lineLoop([
+    courtPoint(-47, -8, y), courtPoint(-28, -8, y), courtPoint(-28, 8, y), courtPoint(-47, 8, y),
+  ], line));
 
   const freeCircle = circleLine(28, 0, 6, 64, y, line);
   root.add(freeCircle);
+  root.add(circleLine(-28, 0, 6, 64, y, line));
   const restricted = arcLine(42, 0, 4.1, Math.PI * 0.08, Math.PI * 0.92, 32, y, line);
   root.add(restricted);
+  root.add(arcLine(-42, 0, 4.1, Math.PI * 1.08, Math.PI * 1.92, 32, y, line));
 
   const threePoints = [];
   for (let i = 0; i <= 48; i += 1) {
@@ -891,54 +1287,62 @@ function addCourtMarkings(root) {
   root.add(polyLine(threePoints, line));
   root.add(polyLine([courtPoint(47, -22, y), courtPoint(35.6, -22, y)], line));
   root.add(polyLine([courtPoint(47, 22, y), courtPoint(35.6, 22, y)], line));
+  const leftThreePoints = [];
+  for (let i = 0; i <= 48; i += 1) {
+    const a = lerp(-1.16, 1.16, i / 48);
+    leftThreePoints.push(courtPoint(-42 + Math.cos(a) * 23.2, Math.sin(a) * 23.2, y));
+  }
+  root.add(polyLine(leftThreePoints, line));
+  root.add(polyLine([courtPoint(-47, -22, y), courtPoint(-35.6, -22, y)], line));
+  root.add(polyLine([courtPoint(-47, 22, y), courtPoint(-35.6, 22, y)], line));
 
   const center = circleLine(0, 0, 6, 64, y, line);
   root.add(center);
   root.add(polyLine([courtPoint(0, -25, y), courtPoint(0, 25, y)], line));
 }
 
-function addHoop(root) {
+function addHoop(root, side = 1) {
   const assembly = new THREE.Group();
-  assembly.name = "Basket assembly";
+  assembly.name = side > 0 ? "Home attacking basket" : "Away attacking basket";
   const support = mesh(new THREE.BoxGeometry(1.05, 10.4, 1.05), materials.ink);
-  support.position.set(46.2, 5.2, 0);
+  support.position.set(46.2 * side, 5.2, 0);
   support.castShadow = true;
   support.receiveShadow = true;
   assembly.add(support);
 
   const arm = mesh(new THREE.BoxGeometry(4.8, 0.55, 0.62), materials.ink);
-  arm.position.set(44.2, 9.2, 0);
+  arm.position.set(44.2 * side, 9.2, 0);
   arm.castShadow = true;
   assembly.add(arm);
 
   const board = mesh(new THREE.BoxGeometry(0.34, 6.2, 11), materials.backboard);
-  board.position.set(44.5, 11.2, 0);
+  board.position.set(44.5 * side, 11.2, 0);
   board.castShadow = true;
   board.receiveShadow = true;
   assembly.add(board);
 
   const square = lineLoop([
-    new THREE.Vector3(44.29, 9.2, -3), new THREE.Vector3(44.29, 12.4, -3),
-    new THREE.Vector3(44.29, 12.4, 3), new THREE.Vector3(44.29, 9.2, 3),
+    new THREE.Vector3(44.29 * side, 9.2, -3), new THREE.Vector3(44.29 * side, 12.4, -3),
+    new THREE.Vector3(44.29 * side, 12.4, 3), new THREE.Vector3(44.29 * side, 9.2, 3),
   ], materials.boardLine);
   assembly.add(square);
 
   const rim = mesh(new THREE.TorusGeometry(2.05, 0.15, 10, 48), materials.rim);
-  rim.position.set(42, 10, 0);
+  rim.position.set(42 * side, 10, 0);
   rim.rotation.x = Math.PI / 2;
   rim.castShadow = true;
   assembly.add(rim);
 
   const neck = mesh(new THREE.BoxGeometry(2.4, 0.2, 0.28), materials.rim);
-  neck.position.set(43.25, 10, 0);
+  neck.position.set(43.25 * side, 10, 0);
   neck.castShadow = true;
   assembly.add(neck);
 
   const netRopes = [];
   for (let i = 0; i < 10; i += 1) {
     const angle = (i / 10) * Math.PI * 2;
-    const top = new THREE.Vector3(42 + Math.cos(angle) * 2, 9.9, Math.sin(angle) * 2);
-    const bottom = new THREE.Vector3(42 + Math.cos(angle) * 1.18, 7.45, Math.sin(angle) * 1.18);
+    const top = new THREE.Vector3(42 * side + Math.cos(angle) * 2, 9.9, Math.sin(angle) * 2);
+    const bottom = new THREE.Vector3(42 * side + Math.cos(angle) * 1.18, 7.45, Math.sin(angle) * 1.18);
     const rope = mesh(new THREE.CylinderGeometry(0.025, 0.025, 1, 5), materials.net);
     setWorldSegment(rope, top, bottom);
     rope.castShadow = true;
@@ -950,7 +1354,7 @@ function addHoop(root) {
   }
 
   root.add(assembly);
-  return { rim, rimNeck: neck, netRopes };
+  return { side, rim, rimNeck: neck, netRopes };
 }
 
 function addArchitecture(root) {
@@ -959,10 +1363,21 @@ function addArchitecture(root) {
   backWall.receiveShadow = true;
   root.add(backWall);
 
-  const endWall = mesh(new THREE.BoxGeometry(2.2, 39, 72), materials.wallDark);
-  endWall.position.set(55.2, 18.8, 0);
-  endWall.receiveShadow = true;
-  root.add(endWall);
+  for (const side of [-1, 1]) {
+    const endWall = mesh(new THREE.BoxGeometry(2.2, 39, 72), materials.wallDark);
+    endWall.position.set(55.2 * side, 18.8, 0);
+    endWall.receiveShadow = true;
+    root.add(endWall);
+
+    const clubPanel = mesh(
+      new THREE.BoxGeometry(0.24, 7.5, 22),
+      side > 0 ? materials.home : materials.away,
+    );
+    clubPanel.position.set(53.98 * side, 27.5, 0);
+    clubPanel.receiveShadow = true;
+    root.add(clubPanel);
+
+  }
 
   const bayWidths = [11, 13, 10, 14, 11, 12, 10];
   let x = -49;
@@ -1115,6 +1530,7 @@ function courtsideShape(width, height, index) {
 function setCrowdResponse(section, worldX, lift, tilt) {
   section.userData.baseY = section.position.y;
   section.userData.baseRotation = section.rotation.z;
+  section.userData.worldX = worldX;
   section.userData.reactionDelay = 150 + clamp(Math.abs(42 - worldX) / 89, 0, 1) * 560;
   section.userData.reactionLift = lift;
   section.userData.reactionTilt = tilt;
@@ -1290,13 +1706,17 @@ function renderGameToText() {
     visible: entry.state?.visible !== false,
     screenBounds: projectedBounds(actorRigs.get(entry.id)?.root),
   }));
+  const attackingX = finite(sample?.broadcast?.attackingRim?.x ?? sample?.contacts?.rim?.point?.x, 42);
+  const attackingHoop = attackingX < 0 ? environment.hoops.awayAttack : environment.hoops.homeAttack;
+  const audioStatus = broadcastAudio?.status?.() || { state: "unavailable", locked: true, muted: false };
   return JSON.stringify({
-    mode: "visual-lab",
+    mode: "basketball-broadcast",
     version: window.__CYBERLIGA_VISUAL_RESET__.version,
     autonomous: !captureMode,
     interactive: false,
     captureMode,
     style: styleName,
+    broadcastDirector: TIMELINE === BROADCAST_TIMELINE,
     materialThesis: materialTheses[styleName],
     timeMs: Math.round(finite(sample?.timeMs, timelineMs)),
     durationMs: DURATION_MS,
@@ -1308,7 +1728,7 @@ function renderGameToText() {
     coordinateSystem: TIMELINE?.coordinateSystem || "court origin center; timeline +x toward Toronto basket, +y broadcast-left, +z up",
     camera: renderedCamera,
     possession: {
-      side: ball.ownerId ? (sample?.actors || []).find((entry) => entry.id === ball.ownerId)?.side || null : null,
+      side: sample?.broadcast?.possession?.side || sample?.broadcast?.possession?.teamId || (ball.ownerId ? (sample?.actors || []).find((entry) => entry.id === ball.ownerId)?.side || null : null),
       actorId: ball.ownerId || null,
     },
     ball: {
@@ -1321,19 +1741,35 @@ function renderGameToText() {
     },
     landmarks: {
       attackingRim: {
-        position: { x: 42, y: 0, z: 10 },
-        screenBounds: projectedBounds(environment.rim),
+        position: { x: attackingX < 0 ? -42 : 42, y: 0, z: 10 },
+        screenBounds: projectedBounds(attackingHoop.rim),
       },
     },
     actors: actorPositions,
     contacts: sample?.contacts || {},
     score: sample?.score || {},
+    broadcast: {
+      segmentId: sample?.broadcast?.segment?.id || sample?.broadcast?.segmentId || sample?.phase?.id || null,
+      possessionId: sample?.broadcast?.possessionId || null,
+      outcome: sample?.broadcast?.outcome || null,
+      mode: modeBug?.dataset.mode || "live",
+      replay: sample?.broadcast?.replay || null,
+      clock: sample?.broadcast?.clock || sample?.clock || null,
+      loopId: broadcastLoopId(sample),
+    },
     presentation: {
       crowdReaction: sample?.presentation?.crowdReaction || 0,
+      storyCard: storyCard?.classList.contains("visible") || false,
       lowerThird: lowerThirdProgress > 0,
       lowerThirdProgress: round(lowerThirdProgress),
+      readCard: readCard?.classList.contains("visible") || false,
+      commentary: commentaryLine?.classList.contains("visible") || false,
+      replayFrame: replayOverlay?.classList.contains("visible") || false,
+      modeLabel: modeLabel?.textContent || null,
     },
+    audio: audioStatus,
     finiteState,
+    performance: performanceSummary(),
     viewport: {
       width: window.innerWidth,
       height: window.innerHeight,
@@ -1342,6 +1778,26 @@ function renderGameToText() {
       orientation: window.innerWidth >= window.innerHeight ? "landscape" : "portrait",
     },
   });
+}
+
+function performanceSummary() {
+  const ordered = renderDurations.slice().sort((a, b) => a - b);
+  const percentile = (fraction) => {
+    if (!ordered.length) return 0;
+    return ordered[Math.min(ordered.length - 1, Math.max(0, Math.ceil(ordered.length * fraction) - 1))];
+  };
+  return {
+    samples: ordered.length,
+    latestFrameIntervalMs: round(frameIntervalMs),
+    renderP50Ms: round(percentile(0.5)),
+    renderP95Ms: round(percentile(0.95)),
+    renderMaxMs: round(ordered.length ? ordered[ordered.length - 1] : 0),
+    droppedFrameEstimate,
+    wallClockDriftMs: captureMode || !lastDrawWasContinuous
+      ? null
+      : round((timelineMs - timelineStartedAt) - (performance.now() - wallClockStartedAt)),
+    warmupComplete: performance.now() >= performanceWarmupUntil,
+  };
 }
 
 function projectedBounds(object) {

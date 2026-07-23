@@ -1105,3 +1105,51 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - Current frozen bytes pass all 9 visual-reset tests, the complete `npm run verify` gate with 1,564/1,564 repository
   checks, football brain/rules 28/28, standalone syntax, `git diff --check`, public-route containment and exact-time
   browser captures with zero console, page, request or HTTP errors.
+
+## Basketball watchability expansion — 2026-07-22
+- The user correctly rejected the 15-second visual-reset loop as an interesting proof rather than a watchable
+  broadcast. Runtime triage found no simulation failure: the lab document, timeline, renderer and local Three.js
+  runtime all return HTTP 200, state remains finite and server logs contain no JavaScript failure. The only 404 is
+  an irrelevant missing favicon. The root problem is editorial: one silent deterministic outcome, no cold open or
+  stakes, no answer possession or reversal, no truthful replay language, no audio consequence and no reason to care
+  about Stoopy or Toque before the play ends.
+- Expansion target is an autonomous, deterministic 75–90 second micro-broadcast with a complete tension curve,
+  multiple physically distinct certified outcomes, exact character gifts/counters, restrained replay and payoff
+  graphics, procedural arena sound, independent responsive cameras and a concise loop reset. It remains isolated
+  from the public Basketball route until the full watchability and repository gates pass.
+- The first physical expansion adds the previously missing Toronto attacking basket, left paint, key, restricted arc
+  and three-point geometry. Both hoops now expose independent rim/net response rigs, and the active response follows
+  the possession's exact attacking-rim coordinate. Official-client captures at setup and the existing 8.35-second
+  finish remain finite and error-free; the original right-rim contact framing is unchanged while the opening master
+  finally reads as a complete two-way court.
+- The completed director is a frozen 90,000 ms broadcast with eight contiguous chapters and five independently
+  certified outcomes. It introduces Stoopy's Moving Architecture / Heavy Foundation and Toque's Whiteout Release /
+  Traffic Lost before live play, then runs the Stoop Drop make, a recorded-frame 0.5375× replay, Toque's left-rim
+  three, a learned switch denial and live turnover, Toque's clean block, Stoopy's offensive board and putback, and a
+  non-certifying reset. Totals advance only after physical contact: 18–17 → 20–17 → 20–20 → 22–20. Game and shot
+  clocks freeze only for context/replay; the shot clock resets only for the turnover and offensive rebound.
+- The lab now presents as a broadcast rather than tooling: real score/game/shot/possession state, team marks, exact
+  LIVE/REPLAY/DEAD BALL truth, a concise rivalry open, short tactical reads, outcome-specific human copy, a clean
+  replay frame and restrained final consequence. Internal IDs and `Visual Lab · Not Live` are gone. The scorebug,
+  mode bug, one Home exit and one 44 px sound-only control stay in separate desktop/mobile safe zones.
+- Procedural Web Audio supplies a quiet High Room/crowd bed plus deterministic shoe, bounce, pass, catch, legal
+  screen/body, rim, net, crowd, replay, tension and horn transients. It creates no audio context before a gesture,
+  supports mute/volume/status, deduplicates every cue by loop, cancels safely on seek/reset, refuses unrecorded replay
+  audio and never plays a score stinger for the zero-point turnover or block. The exact director catalogue produces
+  three score stingers for the three positive makes and one landing hit for each named landing.
+- Official-client desktop captures at the cold open, screen, Stoop score, replay, Whiteout catch/score, switch
+  deflection, block, offensive board, putback, final card and reset are finite and have no console/page/request error
+  artifacts. Native 390×844 captures have no horizontal overflow; required UI text is at least 16 px, the Stoop ball
+  is 21×23 px, the left-rim Whiteout ball is 24×26 px and the block ball is 20×28 px, all fully inside frame. The
+  payoff and reset cards remain inside the bottom safe area. Sound unlock reaches `running`, unlocked, unmuted state
+  with the arena bed active.
+- A real-time 91-second browser run crossed every chapter, returned to cold-open loop 1, kept audio running and state
+  finite, and logged zero browser/request errors. Render p95 stayed 1.5–1.8 ms and wall-clock drift stayed within
+  99 ms, finishing at about 80 ms. SwiftShader presented only 20–24 fps, so its synthetic dropped-frame counter is
+  explicitly not treated as physical-GPU evidence; the render-cost and clock-drift measurements are the valid parts
+  of that run.
+- Current bytes pass 9/9 source visual tests, 25/25 director/audio tests, the complete `npm run verify` gate with
+  1,591/1,591 static/data checks, football brain/rules 28/28, standalone syntax and `git diff --check`. Public Home,
+  League HQ and `hoops.html` still contain no link to the isolated lab. The implementation gates are complete; the
+  separately specified ten-person blind comprehension/preference study remains honest external audience evidence,
+  not something this repository can self-certify.

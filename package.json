@@ -15,8 +15,9 @@
     "test:football-replay-memory": "node --test football-replay-memory.test.mjs",
     "test:basketball-brain": "node --test basketballbrain.test.mjs",
     "test:basketball-visual-reset": "node --test basketball-visual-reset.test.mjs",
+    "test:basketball-broadcast": "node --test basketball-broadcast-director.test.mjs basketball-broadcast-audio.test.mjs",
     "test:visuals": "node --test foundingvisual.test.mjs foundinglive.test.mjs",
-    "verify": "npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:chronicle && npm run test:football-replay-memory && npm run test:basketball-brain && npm run test:basketball-visual-reset && npm run test:visuals && node scripts/verify.mjs",
+    "verify": "npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:chronicle && npm run test:football-replay-memory && npm run test:basketball-brain && npm run test:basketball-visual-reset && npm run test:basketball-broadcast && npm run test:visuals && node scripts/verify.mjs",
     "release:check": "npm run verify && node scripts/release-check.mjs"
   },
   "engines": {

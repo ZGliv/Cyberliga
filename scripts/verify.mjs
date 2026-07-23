@@ -13,6 +13,12 @@ function check(condition, message, detail = '') {
   failures.push(detail ? `${message}: ${detail}` : message);
 }
 
+function isDeepFrozen(value, seen = new WeakSet()) {
+  if (!value || (typeof value !== 'object' && typeof value !== 'function') || seen.has(value)) return true;
+  seen.add(value);
+  return Object.isFrozen(value) && Object.keys(value).every((key) => isDeepFrozen(value[key], seen));
+}
+
 async function exists(relativePath) {
   try {
     return (await stat(path.join(ROOT, relativePath))).isFile();
@@ -71,8 +77,9 @@ if (packageManifest) {
   check(packageManifest.scripts?.['test:football-replay-memory'] === 'node --test football-replay-memory.test.mjs', 'npm run test:football-replay-memory must cover football replay adjudication and truthful footage provenance');
   check(packageManifest.scripts?.['test:basketball-brain'] === 'node --test basketballbrain.test.mjs', 'npm run test:basketball-brain must cover canonical identity, no-peek coordination, live reads, and certified possession memory');
   check(packageManifest.scripts?.['test:basketball-visual-reset'] === 'node --test basketball-visual-reset.test.mjs', 'npm run test:basketball-visual-reset must cover the deterministic Stoop Drop visual prototype');
+  check(packageManifest.scripts?.['test:basketball-broadcast'] === 'node --test basketball-broadcast-director.test.mjs basketball-broadcast-audio.test.mjs', 'npm run test:basketball-broadcast must cover the watchable director and procedural audio runtime');
   check(packageManifest.scripts?.['test:visuals'] === 'node --test foundingvisual.test.mjs foundinglive.test.mjs', 'npm run test:visuals must cover shared Founding portrait and live-cue renderers');
-  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:chronicle && npm run test:football-replay-memory && npm run test:basketball-brain && npm run test:basketball-visual-reset && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, named match memory, broadcast presentation, witness chronology, football replay memory, Basketball identity AI, the Stoop Drop visual prototype, and Founding visuals before static/data invariants');
+  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:chronicle && npm run test:football-replay-memory && npm run test:basketball-brain && npm run test:basketball-visual-reset && npm run test:basketball-broadcast && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, named match memory, broadcast presentation, witness chronology, football replay memory, Basketball identity AI, the legacy Stoop Drop proof, the watchable Basketball broadcast, and Founding visuals before static/data invariants');
   check(packageManifest.scripts?.['release:check'] === 'npm run verify && node scripts/release-check.mjs', 'npm run release:check must verify the repository before checking the canonical release source');
   check(Object.keys(packageManifest.dependencies || {}).length === 0, 'Runtime dependencies must remain empty');
   check(Object.keys(packageManifest.devDependencies || {}).length === 0, 'Development dependencies must remain empty');
@@ -80,10 +87,15 @@ if (packageManifest) {
 
 const visualResetFiles = [
   'BASKETBALL_VISUAL_RESET.md',
+  'BASKETBALL_WATCHABLE_BROADCAST.md',
   'basketball-visual-reset.html',
   'basketball-visual-reset.js',
+  'basketball-broadcast-director.js',
+  'basketball-broadcast-audio.js',
   'basketball-visual-reset-renderer.js',
-  'basketball-visual-reset.test.mjs'
+  'basketball-visual-reset.test.mjs',
+  'basketball-broadcast-director.test.mjs',
+  'basketball-broadcast-audio.test.mjs'
 ];
 const visualResetPresent = [];
 for (const file of visualResetFiles) {
@@ -94,25 +106,39 @@ for (const file of visualResetFiles) {
 if (visualResetPresent.every(Boolean)) {
   const labMarkup = await text('basketball-visual-reset.html');
   const labTimelineSource = await text('basketball-visual-reset.js');
+  const labDirectorSource = await text('basketball-broadcast-director.js');
+  const labAudioSource = await text('basketball-broadcast-audio.js');
   const labRendererSource = await text('basketball-visual-reset-renderer.js');
   const labContract = await text('BASKETBALL_VISUAL_RESET.md');
+  const labBroadcastContract = await text('BASKETBALL_WATCHABLE_BROADCAST.md');
   const timelineAt = labMarkup.indexOf('basketball-visual-reset.js');
+  const directorAt = labMarkup.indexOf('basketball-broadcast-director.js');
+  const audioAt = labMarkup.indexOf('basketball-broadcast-audio.js');
   const rendererAt = labMarkup.indexOf('basketball-visual-reset-renderer.js');
-  check(timelineAt >= 0 && rendererAt > timelineAt, 'Visual-reset lab must load its pure timeline before the Three.js renderer');
+  check(timelineAt >= 0 && directorAt > timelineAt && audioAt > directorAt && rendererAt > audioAt, 'Watchable Basketball lab must load base timeline, director, audio, then renderer in that exact order');
   check(/vendor\/three\/three\.module\.js/.test(labRendererSource), 'Visual-reset lab must use the repository-owned Three.js runtime');
   check(['maquette', 'paper', 'resin'].every((style) => labRendererSource.includes(style)), 'Visual-reset lab must retain all three local material studies');
   check(/desktopLandscapeCameraAt\(/.test(labRendererSource), 'Visual-reset lab must retain its independently composed desktop-safe tactical master');
-  check(/left:\s*max\(32px,\s*env\(safe-area-inset-left\)\)/.test(labMarkup) && /bottom:\s*max\(24px,\s*env\(safe-area-inset-bottom\)\)/.test(labMarkup), 'Visual-reset payoff must stay inside the declared desktop post-play safe zone');
+  check(/left:\s*max\(32px,\s*env\(safe-area-inset-left\)\)/.test(labMarkup) && /bottom:\s*max\(32px,\s*env\(safe-area-inset-bottom\)\)/.test(labMarkup), 'Watchable Basketball story/payoff cards must stay inside the declared desktop safe zone');
   check(/window\.render_game_to_text\s*=/.test(labRendererSource) && /window\.advanceTime\s*=/.test(labRendererSource), 'Visual-reset lab must expose deterministic browser QA hooks');
   check(/autonomous\s*:\s*!captureMode/.test(labRendererSource) && /interactive\s*:\s*false/.test(labRendererSource), 'Visual-reset lab must declare its autonomous view-only state');
-  check(!/<(?:button|input|select|textarea)\b/i.test(labMarkup), 'Visual-reset lab must not expose gameplay controls');
-  check(!arenaInputHandler.test(labMarkup + '\n' + labRendererSource), 'Visual-reset lab must not bind gameplay input handlers');
+  const labButtons = labMarkup.match(/<button\b[^>]*>/gi) || [];
+  check(labButtons.length === 1 && /\bid=["']sound-control["']/.test(labButtons[0]) && /\bclass=["'][^"']*\bsound-control\b/.test(labButtons[0]) && /\btype=["']button["']/.test(labButtons[0]) && /\baria-label=["'][^"']*sound/i.test(labButtons[0]), 'Watchable Basketball lab must expose one and only one real button, reserved for honest sound unlock/mute');
+  check(!/<(?:input|select|textarea)\b/i.test(labMarkup), 'Watchable Basketball lab must not expose form or gameplay controls');
+  const labInputHandlers = labRendererSource.match(/addEventListener\s*\(\s*["'](?:click|dblclick|auxclick|keydown|keyup|keypress|pointerdown|pointerup|pointermove|pointercancel|pointerenter|pointerleave|touchstart|touchmove|touchend|mousedown|mousemove|mouseup|wheel|contextmenu|beforeinput|input|change|submit)["']/gi) || [];
+  check(labInputHandlers.length === 1 && /\bsoundControl\??\.addEventListener\s*\(\s*["']click["']/.test(labRendererSource), 'Watchable Basketball lab may bind only the sound button click and no gameplay input');
   const labAnchors = labMarkup.match(/<a\b[^>]*>/gi) || [];
-  check(labAnchors.length === 1 && /href=["']world\.html["']/.test(labAnchors[0]), 'Visual-reset lab must expose only one exit to Home');
-  check(!/Math\.random\s*\(/.test(labTimelineSource + '\n' + labRendererSource), 'Visual-reset timeline and renderer must not use unseeded randomness');
-  check(!/\b(?:fetch|XMLHttpRequest|WebSocket)\b/.test(labTimelineSource + '\n' + labRendererSource), 'Visual-reset lab must remain local and network-independent');
+  const labHomeExit = labMarkup.match(/<a\b[^>]*>[\s\S]*?<\/a>/gi) || [];
+  const labHomeExitText = labHomeExit[0]?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  check(labAnchors.length === 1 && labHomeExit.length === 1 && /href=["']world\.html["']/.test(labAnchors[0]) && labHomeExitText === '← GLOBE', 'Visual-reset lab must expose exactly one ← GLOBE exit to Home');
+  check(!/Math\.random\s*\(/.test([labTimelineSource, labDirectorSource, labAudioSource, labRendererSource].join('\n')), 'Visual-reset timeline, director, audio and renderer must not use unseeded randomness');
+  check(!/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\b/.test([labMarkup, labTimelineSource, labDirectorSource, labAudioSource, labRendererSource].join('\n')), 'Watchable Basketball lab must remain local and network-independent');
+  check(!/\b(?:Date|localStorage|sessionStorage|indexedDB)\b/.test(labDirectorSource + '\n' + labAudioSource), 'Watchable Basketball director and audio plan must not depend on wall time or persistent storage');
+  check(!/<(?:script|link|audio|video|source)\b[^>]*(?:src|href)=["'](?:https?:)?\/\//i.test(labMarkup), 'Watchable Basketball lab must not load remote code, fonts, media or audio');
   check(/off-product visual lab/i.test(labContract) && /classic cyan\/hot-pink capsule athletes remain the public product/i.test(labContract), 'Visual-reset contract must preserve the public athlete quarantine');
   check(/No external prompt or external artwork was used/i.test(labContract), 'Visual-reset contract must record current asset provenance');
+  check(/75[–-]90 second broadcast story/i.test(labBroadcastContract) && /five physically distinct outcomes/i.test(labBroadcastContract), 'Watchable Basketball contract must define the complete broadcast length and physical outcome arc');
+  check(/single sound control may unlock\/mute/i.test(labBroadcastContract) && /not a gameplay, pause, restart or outcome control/i.test(labBroadcastContract), 'Watchable Basketball contract must quarantine sound from gameplay authority');
 
   const visualContext = vm.createContext({ module: { exports: {} }, exports: {}, Math, Number, Object, Array });
   vm.runInContext(labTimelineSource, visualContext, { filename: 'basketball-visual-reset.js', timeout: 2000 });
@@ -134,6 +160,36 @@ if (visualResetPresent.every(Boolean)) {
     check(landing.contacts?.landing?.occurred === true && lateRecovery.consequence?.secondJumpReady === false, 'Visual-reset landing must retain Stoopy\'s authored recovery cost');
     check(lowerThirdClear.presentation?.lowerThird?.opacity === 0, 'Visual-reset lower third must be visually clear by 14.40 seconds');
   }
+
+  const directorContext = vm.createContext({ Math, Number, Object, Array });
+  vm.runInContext(labTimelineSource, directorContext, { filename: 'basketball-visual-reset.js', timeout: 2000 });
+  vm.runInContext(labDirectorSource, directorContext, { filename: 'basketball-broadcast-director.js', timeout: 2000 });
+  const broadcastDirector = directorContext.CyberligaBasketballBroadcastDirector;
+  check(Boolean(broadcastDirector) && isDeepFrozen(broadcastDirector), 'Watchable Basketball director must expose a deeply frozen pure API');
+  if (broadcastDirector?.sample) {
+    const opening = broadcastDirector.sample(0);
+    const liveSample = broadcastDirector.sample(14500);
+    const replaySample = broadcastDirector.sample(25000);
+    const awayReply = broadcastDirector.sample(36700);
+    const finalMake = broadcastDirector.sample(73300);
+    const expectedOutcomeKinds = ['made-dunk', 'made-three', 'live-ball-turnover', 'blocked-miss', 'offensive-rebound-putback'];
+    const possessionIds = new Set((broadcastDirector.possessions || []).map((possession) => possession.id));
+    const offenseTeamIds = new Set((broadcastDirector.possessions || []).map((possession) => possession.offenseTeamId));
+    check(broadcastDirector.durationMs >= 75000 && broadcastDirector.durationMs <= 90000, 'Watchable Basketball director must run for 75–90 seconds');
+    check(broadcastDirector.actorIds?.length === 10 && new Set(broadcastDirector.actorIds).size === 10 && [opening, liveSample, replaySample, awayReply, finalMake].every((state) => state.actors?.length === 10), 'Watchable Basketball director must preserve all ten exact athletes in every story mode');
+    check(possessionIds.size >= 4 && offenseTeamIds.has('new-york-brownstones') && offenseTeamIds.has('toronto-lake-effect'), 'Watchable Basketball director must prove multiple possessions with both clubs attacking');
+    check(JSON.stringify((broadcastDirector.outcomes || []).map((outcome) => outcome.type)) === JSON.stringify(expectedOutcomeKinds), 'Watchable Basketball director must encode make, made reply, turnover, block/miss and rebound/putback in order');
+    check(liveSample.score?.certified === true && awayReply.score?.certified === true && finalMake.score?.certified === true, 'Watchable Basketball director must expose certified scores only after physical contact');
+    check(replaySample.broadcast?.replay?.active === true && replaySample.broadcast.replay.truthful === true && replaySample.broadcast.replay.recordedFootage === true && replaySample.broadcast.replay.sourceSegmentId === 'segment-01-stoop-drop-live' && replaySample.broadcast.replay.sourceEventId === broadcastDirector.outcomes?.[0]?.eventId, 'Watchable Basketball replay must identify truthful recorded footage from the prior certified possession');
+    check((broadcastDirector.audioCues || []).length >= 20 && new Set(broadcastDirector.audioCues.map((cue) => cue.id)).size === broadcastDirector.audioCues.length && broadcastDirector.audioCues.some((cue) => cue.atMs === 21000 && /replay/i.test(cue.id)), 'Watchable Basketball director must publish a deterministic, unique and replay-aware causal audio plan');
+    check([opening, liveSample, replaySample, awayReply, finalMake].every((state) => isDeepFrozen(state)), 'Watchable Basketball director samples must be deeply frozen');
+  }
+
+  const audioContext = vm.createContext({ Math, Number, Object, Array, Float32Array, Promise });
+  vm.runInContext(labAudioSource, audioContext, { filename: 'basketball-broadcast-audio.js', timeout: 2000 });
+  const broadcastAudio = audioContext.CyberligaBasketballBroadcastAudio;
+  check(Boolean(broadcastAudio) && isDeepFrozen(broadcastAudio), 'Watchable Basketball procedural audio must expose a deeply frozen local API');
+  check(['ball-bounce', 'shoe-squeak', 'screen-contact', 'rim', 'net', 'crowd-swell', 'replay-transition', 'horn'].every((cueType) => broadcastAudio?.cueTypes?.includes(cueType)), 'Watchable Basketball audio API must cover court, basket, crowd, replay and horn cues');
 
   for (const publicFile of ['world.html', 'league.html', 'hoops.html']) {
     const publicSource = await text(publicFile);
