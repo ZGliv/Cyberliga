@@ -301,36 +301,32 @@ html[data-home-edition="world-desk"] .sport-stage::before {
 html[data-home-edition="world-desk"] .filter-tabs,
 html[data-home-edition="world-desk"] .filter-tabs.mobile-open {
   position: static;
-  min-height: 54px;
-  display: flex;
+  min-height: 116px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: stretch;
   gap: 0;
   margin: 0;
   padding: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: visible;
   border: 0;
   background: transparent;
   box-shadow: none;
-  scrollbar-width: none;
-}
-
-html[data-home-edition="world-desk"] .filter-tabs::-webkit-scrollbar {
-  display: none;
 }
 
 html[data-home-edition="world-desk"] .filter-tab,
 html[data-home-edition="world-desk"] .filter-tab[data-sport="all"] {
   position: relative;
-  flex: 0 0 auto;
-  min-width: auto;
-  min-height: 54px;
+  min-width: 0;
+  min-height: 58px;
   display: flex;
+  flex-direction: column;
   grid-template-columns: none;
   grid-template-rows: none;
   align-items: center;
-  gap: 7px;
-  padding: 0 13px;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px;
   color: var(--muted);
   border: 0;
   background: transparent;
@@ -343,7 +339,7 @@ html[data-home-edition="world-desk"] .filter-tab[data-sport="all"] {
 }
 
 html[data-home-edition="world-desk"] .filter-tab:first-child {
-  padding-left: 0;
+  padding-left: 4px;
 }
 
 html[data-home-edition="world-desk"] .filter-tab::after {
@@ -398,10 +394,13 @@ html[data-home-edition="world-desk"] .fixture-sport-icon svg {
 
 html[data-home-edition="world-desk"] .sport-label,
 html[data-home-edition="world-desk"] .filter-tab .sport-label {
+  min-width: 0;
+  max-width: 100%;
   color: inherit;
-  font: 650 13px/1 "Archivo", system-ui, sans-serif;
+  font: 650 13px/1.1 "Archivo", system-ui, sans-serif;
   letter-spacing: 0;
-  white-space: nowrap;
+  text-align: center;
+  white-space: normal;
 }
 
 html[data-home-edition="world-desk"] .sport-count {
@@ -683,16 +682,35 @@ html[data-home-edition="world-desk"] .loading.done {
   html[data-home-edition="world-desk"] .filter-tabs,
   html[data-home-edition="world-desk"] .filter-tabs.mobile-open {
     min-height: 48px;
+    display: flex;
+    grid-template-columns: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  html[data-home-edition="world-desk"] .filter-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   html[data-home-edition="world-desk"] .filter-tab,
   html[data-home-edition="world-desk"] .filter-tab[data-sport="all"] {
+    flex: 0 0 auto;
+    flex-direction: row;
+    min-width: auto;
     min-height: 48px;
+    justify-content: flex-start;
     padding: 0 12px;
   }
 
   html[data-home-edition="world-desk"] .filter-tab:first-child {
     padding-left: 0;
+  }
+
+  html[data-home-edition="world-desk"] .sport-label,
+  html[data-home-edition="world-desk"] .filter-tab .sport-label {
+    text-align: left;
+    white-space: nowrap;
   }
 
   html[data-home-edition="world-desk"] .sport-icon,

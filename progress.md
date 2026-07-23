@@ -1041,3 +1041,15 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - Remaining non-code gate: the proposed five-person, five-second comprehension test is an external audience test
   and is not self-certified here. Release Manager still needs to audit/cherry-pick this feature and run the full
   canonical six-arena production gate before any deployment.
+
+## World Desk release-audit repairs — 2026-07-23
+- Release review found that the desktop schedule hid Hockey, Baseball and Combat beyond a scrollbar-free filter
+  strip. Desktop/tablet now show all seven filters in a two-row four-column grid; phone layouts retain the
+  intentionally touch-scrollable horizontal rail with 48px targets.
+- Soccer city-marker closures and route geometries now rebind to the current canonical matchup whenever the
+  six-minute universe slot changes. The selected pin is also remapped by stable team identity, so a long-lived
+  Home tab cannot open or emphasize a fixture that no longer contains the chosen club.
+- Escape now closes only an actual pin selection. With the separate preview modal intentionally absent, pressing
+  Escape on an ordinary filter or fixture no longer clears state or moves keyboard focus back to Home.
+- Added permanent verifier contracts for all-visible desktop filters, rollover rebinding and guarded Escape
+  behavior. Targeted rollover, focus and responsive browser proofs are part of the Release Manager gate.

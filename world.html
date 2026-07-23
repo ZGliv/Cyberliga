@@ -420,7 +420,7 @@ let activeFilter='all';
 let fixtureCards=[];
 let lastSoccerSlot=matches[0].slot;
 
-function placeFor(team){const coord=CITY_COORDS[team.city];return {city:team.city,lat:coord[0],lon:coord[1]};}
+function placeFor(team){const coord=CITY_COORDS[team.city];return {city:team.city,teamId:team.id,lat:coord[0],lon:coord[1]};}
 function arenaHref(league,index,liveMatch){
   if(league.live)return U.sharePath(liveMatch);
   return `${league.arena}?${league.query}=${index}`;
@@ -509,12 +509,12 @@ function setFilter(next,{push=false}={}){
 }
 const tabs=document.getElementById('filter-tabs');
 tabs.replaceChildren(...FILTERS.map(filter=>{const button=document.createElement('button');button.type='button';button.className='filter-tab';button.dataset.sport=filter.id;button.dataset.mobileName=displaySport(filter.id);button.dataset.mobileCount=`${filter.id==='all'?24:4} GAMES`;button.style.setProperty('--c',filter.color);const label=displaySport(filter.id);button.innerHTML=`<span class="sport-icon">${sportIconMarkup(filter.id)}</span><span class="sport-label">${escapeHtml(label)}</span><span class="sport-count">${filter.id==='all'?24:4} GAMES</span>`;button.title=label;button.setAttribute('aria-label',`Show ${label.toLowerCase()} games`);button.addEventListener('click',()=>setFilter(filter.id,{push:true}));return button;}));
-document.addEventListener('keydown',event=>{if(event.key==='Escape')closeGamePreview();});
 addEventListener('popstate',()=>setFilter(new URLSearchParams(location.search).get('sport')||'all'));
 
 const gamePreview=document.getElementById('game-preview');
 const previewWatch=document.getElementById('preview-watch');
 let previewCard=null,previewHost=null,previewReturnFocus=null;
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&previewCard)closeGamePreview();});
 function fillGamePreview(card){
   if(!card)return;
   gamePreview.style.setProperty('--preview-c',card.league.color);
@@ -560,9 +560,11 @@ function refreshRenderedSoccerCards(soccerCards){
 function tickNetwork(){
   matches=U.liveMatches(Date.now());
   const soccerCards=fixtureCards.filter(card=>card.league.id==='soccer');
+  const slotChanged=matches[0].slot!==lastSoccerSlot;
   matches.forEach((match,index)=>{const card=soccerCards[index];card.liveMatch=match;card.home=match.home;card.away=match.away;card.href=U.sharePath(match);});
+  if(slotChanged)syncSoccerFixtureBindings(soccerCards);
   if(activeFilter==='all'||activeFilter==='soccer'){
-    if(matches[0].slot!==lastSoccerSlot)renderGames();
+    if(slotChanged)renderGames();
     else refreshRenderedSoccerCards(soccerCards);
   }
   if(previewCard)fillGamePreview(previewCard);
@@ -608,6 +610,12 @@ const starGeo = new THREE.BufferGeometry(); starGeo.setAttribute('position',new 
 scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xaab8c7,size:.025,transparent:true,opacity:.55})));
 
 function point(place, lift=0) { const lat=THREE.MathUtils.degToRad(place.lat), lon=THREE.MathUtils.degToRad(place.lon), radius=R+lift; return new THREE.Vector3(radius*Math.cos(lat)*Math.cos(lon),radius*Math.sin(lat),-radius*Math.cos(lat)*Math.sin(lon)); }
+function routeGeometryForCard(card) {
+  const a=point(placeFor(card.home),.035).normalize(),b=point(placeFor(card.away),.035).normalize();
+  let mid=a.clone().add(b);if(mid.lengthSq()<.05)mid=new THREE.Vector3(0,1,0);mid.normalize().multiplyScalar(R*1.26);
+  const curve=new THREE.QuadraticBezierCurve3(a.clone().multiplyScalar(R*1.02),mid,b.clone().multiplyScalar(R*1.02));
+  return new THREE.TubeGeometry(curve,64,.0035,5,false);
+}
 const markers = [];
 const routes = [];
 const labelRoot = document.getElementById('labels');
@@ -622,21 +630,39 @@ fixtureCards.forEach(card => [card.home,card.away].forEach((team,hostIndex) => {
   const beacon=new THREE.Mesh(new THREE.RingGeometry(.071,.083,30),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.05,depthTest:true,depthWrite:false}));beacon.rotation.x=-Math.PI/2;beacon.position.y=.009;beacon.renderOrder=18;group.add(beacon);
   planet.add(group);
   const label=document.createElement('button');label.type='button';label.className='marker';label.dataset.league=league.id;label.dataset.team=team.id;label.style.setProperty('--c',markerColor);label.textContent=`${displayClubName(team.name)} · ${host.city}`;label.setAttribute('aria-label',`Focus ${team.name} in ${card.home.name} versus ${card.away.name}`);
-  label.addEventListener('pointerenter',()=>highlightFixture(card));
+  const marker={league,card,team,host,hostIndex,group,core:beaconMaterial,halo,beacon,label,filtered:false};
+  label.addEventListener('pointerenter',()=>highlightFixture(marker.card));
   label.addEventListener('pointerleave',()=>highlightFixture(previewCard));
-  label.addEventListener('focus',()=>highlightFixture(card));
+  label.addEventListener('focus',()=>highlightFixture(marker.card));
   label.addEventListener('blur',()=>highlightFixture(previewCard));
-  label.addEventListener('click',event=>{event.preventDefault();const rect=label.getBoundingClientRect();openGamePreview(card,host,{x:rect.left+rect.width/2,y:rect.bottom+8},{returnFocus:label,focusWatch:event.detail===0});});
+  label.addEventListener('click',event=>{event.preventDefault();const rect=label.getBoundingClientRect();openGamePreview(marker.card,host,{x:rect.left+rect.width/2,y:rect.bottom+8},{returnFocus:label,focusWatch:event.detail===0});});
   labelRoot.appendChild(label);
-  markers.push({league,card,team,host,hostIndex,group,core:beaconMaterial,halo,beacon,label,filtered:false});
+  markers.push(marker);
 }));
 
 fixtureCards.forEach(card => {
-  const league=card.league,a=point(placeFor(card.home),.035).normalize(),b=point(placeFor(card.away),.035).normalize();
-  let mid=a.clone().add(b);if(mid.lengthSq()<.05)mid=new THREE.Vector3(0,1,0);mid.normalize().multiplyScalar(R*1.26);
-  const curve=new THREE.QuadraticBezierCurve3(a.clone().multiplyScalar(R*1.02),mid,b.clone().multiplyScalar(R*1.02));
-  const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,64,.0035,5,false),new THREE.MeshBasicMaterial({color:league.color,transparent:true,opacity:.065,depthWrite:false}));tube.renderOrder=1;tube.userData.interactive=false;tube.raycast=()=>{};planet.add(tube);routes.push({league,card,mesh:tube});
+  const league=card.league;
+  const tube=new THREE.Mesh(routeGeometryForCard(card),new THREE.MeshBasicMaterial({color:league.color,transparent:true,opacity:.065,depthWrite:false}));tube.renderOrder=1;tube.userData.interactive=false;tube.raycast=()=>{};planet.add(tube);routes.push({league,card,mesh:tube});
 });
+
+function syncSoccerFixtureBindings(soccerCards) {
+  markers.forEach(marker=>{
+    if(marker.league.id!=='soccer')return;
+    const current=soccerCards.find(card=>card.home.id===marker.team.id||card.away.id===marker.team.id);
+    if(!current)return;
+    marker.card=current;
+    marker.label.setAttribute('aria-label',`Focus ${marker.team.name} in ${current.home.name} versus ${current.away.name}`);
+  });
+  routes.forEach(route=>{
+    if(route.league.id!=='soccer')return;
+    const nextGeometry=routeGeometryForCard(route.card);
+    route.mesh.geometry.dispose();
+    route.mesh.geometry=nextGeometry;
+  });
+  if(previewCard?.league.id==='soccer'&&previewHost?.teamId){
+    previewCard=soccerCards.find(card=>card.home.id===previewHost.teamId||card.away.id===previewHost.teamId)||previewCard;
+  }
+}
 
 let targetRotation = null;
 function flyTo(place) { const p=point(place).normalize(); targetRotation={x:THREE.MathUtils.clamp(Math.asin(p.y),-1,1),y:-Math.atan2(p.x,p.z)}; }
