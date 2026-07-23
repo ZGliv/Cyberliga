@@ -136,6 +136,9 @@ for (const page of supportingPages) {
 
 const worldSource = await text('world.html');
 const worldDeskStyles = await text('world-desk.css');
+const worldShareUrl = worldSource.match(/property=["']og:image["']\s+content=["']([^"']+)["']/)?.[1] || '';
+const worldShareName = worldShareUrl ? new URL(worldShareUrl).pathname.split('/').pop() : '';
+const worldShareImage = worldShareName ? await readFile(path.join(ROOT, worldShareName)) : Buffer.alloc(0);
 const fanworldSource = await text('fanworld.js');
 const fanworldStyles = await text('fanworld.css');
 const liveBridgeSource = await text('livebridge.js');
@@ -230,19 +233,30 @@ check(!/buildAthleteRig/.test(footballScript) && /from\s+['"]\.\/blobrig\.js['"]
 
 check(/football\.html/.test(worldSource), 'World map does not route to American football');
 check(/data-home-edition=["']world-desk["']/.test(worldSource) && /world-desk\.css/.test(worldSource), 'World Home must load the restrained World Desk edition');
+check(/<title>CYBERLIGA — Tonight’s Games Around the World<\/title>/.test(worldSource) && !/(?:autonomous sports|one planet|five leagues|5 leagues)/i.test(worldSource), 'World Home consumer metadata must read like tonight’s sports coverage rather than a technology manifesto');
+check(worldShareImage.subarray(1, 4).toString('ascii') === 'PNG' && worldShareImage.readUInt32BE(16) === 1200 && worldShareImage.readUInt32BE(20) === 630, 'World Home social card must remain an exact 1200×630 PNG');
 check(/>\s*Tonight\s*</.test(worldSource) && /24 games · 48 clubs/i.test(worldSource), 'World Desk must lead with an ordinary sports schedule and the canonical slate');
 check(!/(?:CHOOSE A GAME|ENTER THE ACTION|LIVE GAME NETWORK|ACQUIRING THE WORLD SIGNAL)/i.test(worldSource), 'World Home restored synthetic dashboard language');
 check(/quietWorldDesk[\s\S]{0,220}!quietWorldDesk\) ensureShell\(\)[\s\S]{0,180}pageKind === 'world' && !quietWorldDesk/.test(fanworldSource), 'World Desk must keep the empty supporter shell and synthetic story pulse off Home');
+check(!/<style(?:\s|>)/i.test(worldSource), 'World Home must not retain the legacy inline dashboard stylesheet');
 check(/body::before[\s\S]{0,120}body::after[\s\S]{0,120}content:\s*none/.test(worldDeskStyles), 'World Desk must remove the scanline and cinematic dashboard overlays');
 check(/\.liveboard\s*\{[\s\S]{0,420}width:\s*410px[\s\S]{0,300}background:\s*var\(--board\)/.test(worldDeskStyles), 'World Desk must use one matte desktop schedule rail');
-check(/@media \(max-width:\s*900px\)[\s\S]{0,2500}\.liveboard\s*\{[\s\S]{0,260}height:\s*49dvh/.test(worldDeskStyles), 'World Desk must preserve a globe-first phone composition');
+check(/grid-template-columns:\s*repeat\(12,\s*minmax\(0,\s*1fr\)\)[\s\S]{0,120}grid-auto-rows:\s*46px/.test(worldDeskStyles) && /\.filter-tab:nth-child\(-n \+ 3\)[\s\S]{0,100}grid-column:\s*span 4/.test(worldDeskStyles) && /\.filter-tab:nth-child\(n \+ 4\)[\s\S]{0,100}border-bottom:\s*0/.test(worldDeskStyles), 'World Desk must expose all seven sports in a deliberate two-row grid');
+check(/@media \(max-width:\s*900px\)[\s\S]{0,1300}\.filter-tabs,[\s\S]{0,180}min-height:\s*88px[\s\S]{0,100}grid-auto-rows:\s*44px/.test(worldDeskStyles) && !/tabs\.scrollTo/.test(worldSource), 'World Desk phone filters must remain all-visible 44px touch targets rather than a clipped carousel');
+check(/@media \(max-width:\s*900px\)[\s\S]{0,900}\.liveboard\s*\{[\s\S]{0,260}height:\s*53dvh/.test(worldDeskStyles), 'World Desk must preserve a globe-first phone composition with room for the editorial lead');
 check(/\.game-drawer\s*\{[\s\S]{0,500}overflow-y:\s*auto[\s\S]{0,220}touch-action:\s*pan-y/.test(worldDeskStyles) && !/scroll-snap-type:\s*x/.test(worldDeskStyles), 'World Desk schedule must retain vertical touch panning rather than nested swipe rails');
-check(/\.fixture-team-name\s*\{[\s\S]{0,260}font:\s*700 15px/.test(worldDeskStyles) && /\.sport-label[\s\S]{0,260}font:\s*650 13px/.test(worldDeskStyles), 'World Desk club and sport labels must remain ordinary readable sports typography');
-check(/fixtureStatus\(card\)/.test(worldSource) && /displayClubName\(card\.home\.name\)/.test(worldSource) && /displayClubName\(card\.away\.name\)/.test(worldSource), 'World Desk fixtures must prioritize truthful state and full club names');
+check(/\.fixture-team-name\s*\{[\s\S]{0,260}font:\s*700 15px/.test(worldDeskStyles) && /\.filter-tab \.sport-label\s*\{[\s\S]{0,180}font-size:\s*12px/.test(worldDeskStyles), 'World Desk club and sport labels must remain ordinary readable sports typography');
+check(/section\.className=['"]league-group['"]/.test(worldSource) && /league-group-head/.test(worldSource) && /leagueBrand\?\.name/.test(worldSource) && !/fixtureStatus\(card\)/.test(worldSource), 'World Desk must group fixtures by named league and state the shared broadcast status once');
+check(/fixture-card-lead/.test(worldSource) && /Who to watch/.test(worldSource) && /rivalAthlete/.test(worldSource) && /clubNickname\(featuredTeam\)/.test(worldSource), 'World Desk must make one real athlete rivalry the editorial lead instead of repeating database telemetry');
+check(/<script src=["']foundingvisual\.js["']><\/script>/.test(worldSource) && /FOUNDING_VISUAL\.drawFit/.test(worldSource) && /class=["']lead-portrait["']/.test(worldSource), 'World Desk lead must use the canonical procedural Founding-character renderer');
 check(/id=["']filter-tabs["']\s+role=["']group["']/.test(worldSource) && /setAttribute\(['"]aria-pressed['"],String\(on\)\)/.test(worldSource) && !/button\.role=['"]tab['"]/.test(worldSource), 'World Desk sport filters must expose honest native pressed-button semantics');
 check(/mobileSelectorMedia=matchMedia\(['"]\(max-width:900px\)['"]\)/.test(worldSource), 'World Desk state hook must use the same compact breakpoint as the rendered composition');
-check(/const labelVisible = active && front/.test(worldSource) && /route\.mesh\.material\.opacity=route\.card===card\?0\.48:0\.065/.test(worldSource), 'World Desk must show at most the selected matchup labels and route');
+check(/const labelVisible = active && front/.test(worldSource) && /route\.mesh\.material\.opacity=route\.card===focusCard\?0\.42:0/.test(worldSource), 'World Desk must show only the selected matchup labels and route');
+check(/function flyToMatch\(card\)[\s\S]{0,700}separation>\.78[\s\S]{0,500}globeFocusMode=['"]featured-city['"][\s\S]{0,500}globeFocusMode=['"]match['"]/.test(worldSource) && /focusMode:globeFocusMode/.test(worldSource), 'World Desk globe must frame close rivalries together and focus the featured city for transoceanic fixtures');
 check(/function setCanvasHoverMarker\(marker\)\{[\s\S]{0,260}highlightFixture\(marker\?\.card\|\|previewCard\)/.test(worldSource) && /pointerdown'[\s\S]{0,240}canvasHoverMarker\|\|pinAtPointer\(event\)/.test(worldSource), 'World Desk globe pins must remain stationary on hover and preserve the viewer click target');
+check(/function syncSoccerFixtureBindings\(soccerCards\)[\s\S]{0,700}marker\.card=current[\s\S]{0,500}routeGeometryForCard\(route\.card\)/.test(worldSource) && /slotChanged\)\{syncSoccerFixtureBindings\(soccerCards\)/.test(worldSource), 'World Desk must rebind soccer pins and routes when the canonical six-minute fixture slot rolls');
+check(/event\.key===['"]Escape['"]&&previewCard/.test(worldSource), 'World Desk Escape handling must not steal focus when no preview selection exists');
+check(!/id=["']game-preview["']/.test(worldSource) && !/gamePreview|previewWatch|fillGamePreview/.test(worldSource), 'World Desk must not restore the detached glass preview modal');
 check(/preview:previewCard\?\{open:false,selected:true/.test(worldSource) && /:\{open:false,selected:false\}/.test(worldSource), 'World Desk state hook must distinguish a selected fixture from a visible preview dialog');
 check(/data-cyberliga-presence\s+data-presence-mode=["']quiet["']/.test(worldSource) && !/data-presence-mode=["']quiet["'][^>]*aria-live/.test(worldSource) && /if\s*\(!quiet\)\s*node\.textContent\s*=\s*label/.test(liveBridgeSource), 'World Desk must not expose synthetic local-watcher copy visually or through an ARIA live region');
 check(/<script src=["']branddata\.js["']><\/script>/.test(worldSource) && /BRAND\?\.crestSvg/.test(worldSource), 'World fixture selector must render canonical club crests');
