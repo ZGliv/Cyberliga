@@ -263,10 +263,12 @@ function footballWatchCandidate() {
   return eligible[index];
 }
 
-function queueFootballWhoToWatch(delayMs = 1400) {
+function queueFootballWhoToWatch(delayMs = 0) {
   const watch = footballWatchCandidate();
   if (!watch) return false;
-  return footballBroadcastSpine?.spotlight(watch, { delayMs, durationMs: 5200 }) || false;
+  // The identity card belongs to the pre-snap window. Letting a five-second
+  // spotlight survive the snap obscured the very matchup it introduced.
+  return footballBroadcastSpine?.spotlight(watch, { delayMs, durationMs: 1650 }) || false;
 }
 
 function footballMomentClock() {
@@ -687,7 +689,12 @@ function makeBadge(text, color) {
     context.fillStyle = 'rgba(2,8,12,.91)';
     context.beginPath(); context.roundRect(5, 5, width - 10, height - 10, 22); context.fill();
     context.strokeStyle = color; context.lineWidth = 7; context.stroke();
-    context.fillStyle = color; context.font = '900 43px Orbitron, sans-serif';
+    let fontSize = 43;
+    context.fillStyle = color; context.font = `900 ${fontSize}px Orbitron, sans-serif`;
+    while (fontSize > 29 && context.measureText(text).width > width - 42) {
+      fontSize -= 2;
+      context.font = `900 ${fontSize}px Orbitron, sans-serif`;
+    }
     context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(text, width / 2, height / 2 + 2);
   });
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false }));
@@ -774,7 +781,8 @@ function buildPlayerView(player) {
   rig.group.scale.z *= widthScale;
   const gear = equipFootballPlayer(rig, player);
   rig.setDetailLevel?.(innerWidth < 700 || lineRoles.has(player.role) ? 'low' : 'medium');
-  const badge = makeBadge(`${player.role}  ${player.number}`, colorValue(classicPlayerColor(player.teamIndex), 0x00e5ff).getStyle());
+  const surname = String(player.name || player.role).trim().split(/\s+/).at(-1).slice(0, 11).toUpperCase();
+  const badge = makeBadge(`${surname} · ${player.number}`, colorValue(classicPlayerColor(player.teamIndex), 0x00e5ff).getStyle());
   scene.add(rig.group, badge);
   return {
     rig, badge, gearMaterials: gear.materials, gearGeometries: gear.geometries,
@@ -811,10 +819,154 @@ function fieldPositionLabel(spot = state.ballSpot) {
 }
 function distanceToGoal() { return 100 - state.ballSpot; }
 
+function footballCharacterSummary(player) {
+  const profile = player ? views.get(player.id)?.rig?.getState?.()?.identity?.characterProfile : null;
+  return profile ? {
+    archetype: profile.archetype,
+    foundingBody: profile.foundingBody,
+    motionName: profile.motionName,
+  } : null;
+}
+
+function selectBroadcastFocus(replayState = replayRenderState()) {
+  const visualPlayers = replayState?.players || players;
+  const visualBall = replayState?.ball || ball;
+  const visualPhase = replayState?.phase || state.phase;
+  const visualStage = replayState?.playStage || state.playStage;
+  const byId = (id) => {
+    if (!id) return null;
+    const identity = getPlayerById(id);
+    const visual = visualPlayers.find((candidate) => candidate.id === id) || identity;
+    return identity && visual ? { identity, visual } : null;
+  };
+  const nearest = (point, predicate = () => true) => {
+    let best = null, bestDistance = Infinity;
+    for (const visual of visualPlayers) {
+      const identity = getPlayerById(visual.id);
+      if (!identity || !predicate(identity) || visual.down) continue;
+      const candidateDistance = Math.hypot(visual.x - point.x, visual.z - point.z);
+      if (candidateDistance < bestDistance) { best = { identity, visual }; bestDistance = candidateDistance; }
+    }
+    return best;
+  };
+  const runner = byId(replayState?.carrierId || (!replayState ? state.carrierId : null));
+  const contact = replayState?.contact || (!replayState ? state.contact : null);
+  const catchBeat = replayState?.catchBeat || (!replayState ? state.catchBeat : null);
+  const replayEvent = replayState ? replayBuffer.selection?.event || null : null;
+  let kind = 'BALL SPOT';
+  let reason = phaseLabel();
+  let primary = null;
+  let secondary = [];
+  let anchor = { x: visualBall.x ?? state.ballSpot, z: visualBall.z ?? 0 };
+  let urgent = false;
+
+  if (contact) {
+    primary = byId(contact.carrierId);
+    secondary = (contact.tacklerIds || []).map(byId).filter(Boolean).slice(0, 2);
+    kind = 'TACKLE POINT'; reason = contact.outcome ? String(contact.outcome).replaceAll('_', ' ') : 'wrap and leverage';
+    urgent = true;
+  } else if (catchBeat) {
+    primary = byId(catchBeat.catcherId || catchBeat.intendedId);
+    const defenderId = catchBeat.defenderId
+      || visualPlayers.find((candidate) => {
+        const identity = getPlayerById(candidate.id);
+        return identity?.side !== primary?.identity?.side
+          && Math.hypot(candidate.x - catchBeat.x, candidate.z - catchBeat.z) < 2.8;
+      })?.id;
+    secondary = [byId(defenderId)].filter(Boolean);
+    kind = catchBeat.outcome === 'interception' ? 'TAKEAWAY POINT' : 'CATCH WINDOW';
+    reason = catchBeat.outcome || 'ball arriving';
+    anchor = { x: catchBeat.x, z: catchBeat.z };
+    urgent = true;
+  } else if (replayEvent) {
+    const data = replayEvent.data || {};
+    primary = byId(data.playerId || data.runnerId || data.catcherId || data.takeawayPlayerId);
+    secondary = [byId(data.defenderId || data.tacklerId)].filter(Boolean);
+    kind = `REPLAY ${String(replayEvent.type).replaceAll('_', ' ').toUpperCase()}`;
+    reason = 'recorded event subject';
+    urgent = true;
+  } else if (visualBall.mode === 'pass' && visualBall.intendedId) {
+    primary = byId(visualBall.intendedId);
+    const marker = primary && nearest(primary.visual, (identity) => identity.side !== primary.identity.side);
+    secondary = [marker].filter(Boolean);
+    kind = 'TARGET WINDOW';
+    reason = `${state.pass?.throwType || 'pass'} · ${state.qbDecision?.reason || 'ball in flight'}`;
+    anchor = {
+      x: lerp(visualBall.x, primary?.visual.x ?? visualBall.x, 0.36),
+      z: lerp(visualBall.z, primary?.visual.z ?? visualBall.z, 0.36),
+    };
+  } else if (visualBall.mode === 'loose' || visualStage === 'loose_ball') {
+    primary = nearest(visualBall);
+    const pursuitSide = primary?.identity?.side;
+    secondary = primary ? [nearest(visualBall, (identity) => identity.id !== primary.identity.id && identity.side !== pursuitSide)].filter(Boolean) : [];
+    kind = 'LOOSE BALL PURSUIT'; reason = 'nearest recovery race';
+    urgent = true;
+  } else if (runner) {
+    primary = runner;
+    secondary = [nearest(runner.visual, (identity) => identity.side !== runner.identity.side)].filter(Boolean);
+    const isReturn = runner.identity.side === 'def' || ['interception_return', 'fumble_return', 'punt_return'].includes(visualStage);
+    kind = isReturn ? (visualPhase === 'dead' ? 'RETURN SPOT' : 'TURNOVER RETURN')
+      : visualPhase === 'dead' ? 'PLAY RESULT' : 'BALL CARRIER';
+    reason = runner.identity.jukeT > 0 ? 'planted cut'
+      : secondary[0] ? `${secondary[0].identity.name} closing` : 'open grass';
+    urgent = isReturn || visualStage === 'juke' || visualStage === 'broken_tackle';
+  } else {
+    const quarterback = byId(getPlayer('off', 'QB')?.id);
+    const pressureThreat = quarterback && state.pressure > 0.55
+      ? nearest(quarterback.visual, (identity) => identity.side === 'def') : null;
+    if (pressureThreat) {
+      primary = quarterback; secondary = [pressureThreat];
+      kind = 'POCKET PRESSURE'; reason = state.qbDecision?.reason || 'edge closing';
+      urgent = true;
+    } else {
+      const firstRole = PLAYS[state.play]?.reads?.[0];
+      const readId = state.qbDecision?.targetId
+        || state.qbDecision?.considered?.find((read) => read.order === Math.max(1, state.qbReadIndex))?.targetId
+        || getPlayer('off', firstRole)?.id;
+      primary = byId(readId) || quarterback;
+      const marker = primary && nearest(primary.visual, (identity) => identity.side !== primary.identity.side);
+      secondary = [marker, primary?.identity?.id === quarterback?.identity?.id ? null : quarterback].filter(Boolean).slice(0, 2);
+      kind = visualPhase === 'preplay' ? 'PRIMARY MATCHUP' : 'QUARTERBACK READ';
+      reason = state.qbDecision?.reason || `${state.play || 'opening call'} vs ${state.defense}`;
+    }
+  }
+
+  if (primary && (!anchor || visualBall.mode !== 'loose')) anchor = { x: primary.visual.x, z: primary.visual.z };
+  const members = [primary, ...secondary].filter(Boolean);
+  if (members.length) {
+    const points = members.map((member) => member.visual);
+    const totalWeight = points.length + 2;
+    anchor = {
+      x: (anchor.x * 2 + points.reduce((sum, point) => sum + point.x, 0)) / totalWeight,
+      z: (anchor.z * 2 + points.reduce((sum, point) => sum + point.z, 0)) / totalWeight,
+    };
+  }
+  const spread = members.reduce((maximum, member) => Math.max(maximum,
+    Math.hypot(member.visual.x - anchor.x, member.visual.z - anchor.z)), 0);
+  const travelGameDirection = primary?.identity?.side === 'def' ? -1
+    : visualBall.mode === 'loose' && Math.abs(visualBall.vx || 0) > 0.5 ? Math.sign(visualBall.vx) : 1;
+  const serialize = (member) => member ? {
+    id: member.identity.id,
+    name: member.identity.name,
+    number: member.identity.number,
+    role: member.identity.role,
+    team: teams[member.identity.teamIndex].code,
+    x: +member.visual.x.toFixed(2),
+    z: +member.visual.z.toFixed(2),
+    character: footballCharacterSummary(member.identity),
+  } : null;
+  return {
+    kind, reason, urgent, anchor: { x: +anchor.x.toFixed(2), z: +anchor.z.toFixed(2) },
+    spread: +spread.toFixed(2), travelGameDirection,
+    primary: serialize(primary), secondary: secondary.map(serialize),
+  };
+}
+
 function captureReplaySnapshot() {
   return {
     phase: state.phase,
     playStage: state.playStage,
+    returnType: state.returnType,
     possession: state.possession,
     ballSpot: state.ballSpot,
     carrierId: state.carrierId,
@@ -834,6 +986,8 @@ function captureReplaySnapshot() {
     catchBeat: state.catchBeat ? {
       catcherId: state.catchBeat.catcherId,
       intendedId: state.catchBeat.intendedId,
+      defenderId: state.catchBeat.defenderId,
+      outcome: state.catchBeat.outcome,
       x: state.catchBeat.x, z: state.catchBeat.z, t: state.catchBeat.t,
     } : null,
     players: players.map((player) => ({
@@ -2987,8 +3141,10 @@ function phaseLabel() {
   })[state.playStage] || 'PLAY LIVE';
 }
 
+let lastFocusVisit = '';
 function updateHud() {
   const runner = carrier();
+  const broadcastFocus = selectBroadcastFocus();
   const liveReturn = runner?.side === 'def' && ['live', 'punt'].includes(state.phase);
   const displayPossession = liveReturn ? runner.teamIndex : state.possession;
   $('homeScore').textContent = state.score[0]; $('awayScore').textContent = state.score[1];
@@ -3006,13 +3162,25 @@ function updateHud() {
   $('driveTeam').textContent = state.specialTry === 'PAT' ? 'POINT AFTER' : runner?.side === 'def' ? `${teams[displayPossession].code} RETURN` : `${teams[state.possession].code} DRIVE`;
   $('driveStats').textContent = `${state.drivePlays} PLAY${state.drivePlays === 1 ? '' : 'S'} · ${state.driveYards} YARDS · ${state.firstDowns} 1ST`;
   $('driveFill').style.width = `${clamp(liveReturn ? 100 - runner.x : state.ballSpot, 0, 100)}%`;
-  const showFocus = !!runner && ['live', 'punt'].includes(state.phase) && ball.mode === 'carried';
-  $('playerFocus').hidden = !showFocus;
+  const focusPanel = $('playerFocus');
+  const showFocus = !!broadcastFocus.primary && momentTimer <= 0
+    && (state.replayActive || ['live', 'punt', 'dead'].includes(state.phase));
+  focusPanel.hidden = !showFocus;
   if (showFocus) {
-    $('focusRole').textContent = runner.side === 'def' ? 'TURNOVER RETURN' : 'BALL CARRIER';
-    $('focusName').textContent = `${runner.name.toUpperCase()} · ${runner.number}`;
-    $('focusState').textContent = runner.jukeT > 0 ? 'PLANTED CUT' : state.contact ? `${state.contact.tacklerIds.length > 1 ? 'GANG ' : ''}TACKLE CONTACT` : `${Math.hypot(runner.vx, runner.vz).toFixed(1)} YD/S · BALL SECURE`;
-  }
+    const matchup = broadcastFocus.secondary[0];
+    const focusVisit = `${broadcastFocus.kind}|${broadcastFocus.primary.id}`;
+    if (focusVisit !== lastFocusVisit) {
+      focusPanel.style.animation = 'none';
+      void focusPanel.offsetWidth;
+      focusPanel.style.animation = '';
+      lastFocusVisit = focusVisit;
+    }
+    $('focusRole').textContent = broadcastFocus.kind;
+    $('focusName').textContent = `${broadcastFocus.primary.name.toUpperCase()} · ${broadcastFocus.primary.number}`;
+    $('focusState').textContent = matchup
+      ? `VS ${matchup.name.toUpperCase()} · ${broadcastFocus.reason.toUpperCase()}`
+      : broadcastFocus.reason.toUpperCase();
+  } else lastFocusVisit = '';
   const showKick = state.phase === 'kick' && !!ball.kick;
   $('kickRead').hidden = !showKick;
   if (showKick) {
@@ -3025,6 +3193,11 @@ const renderBallPoint = new THREE.Vector3();
 let trailWasActive = false;
 function updatePlayerViews(dt) {
   const replayState = replayRenderState();
+  const broadcastFocus = selectBroadcastFocus(replayState);
+  const focusedIds = new Set([
+    broadcastFocus.primary?.id,
+    ...broadcastFocus.secondary.slice(0, 2).map((player) => player?.id),
+  ].filter(Boolean));
   const replayPlayers = replayState ? new Map(replayState.players.map((player) => [player.id, player])) : null;
   const visualBall = replayState?.ball || ball;
   const ballWorld = renderBallPoint.set(worldX(visualBall.x), visualBall.y, visualBall.z);
@@ -3069,7 +3242,7 @@ function updatePlayerViews(dt) {
     motion.lean = renderPlayer.action === 'juke' ? actionSide * 0.08 : 0;
     view.rig.update(dt, speedMeters, motion);
     view.badge.position.set(view.visualPosition.x, lineRoles.has(player.role) ? 3.25 : 3.05, view.visualPosition.z);
-    view.badge.visible = false;
+    view.badge.visible = focusedIds.has(player.id) && state.phase !== 'final';
     dummy.position.set(view.visualPosition.x, 0.028, view.visualPosition.z);
     dummy.rotation.set(-Math.PI / 2, 0, 0);
     const shadowScale = renderPlayer.down ? 1.28 : lineRoles.has(player.role) ? 1.08 : 0.88;
@@ -3177,55 +3350,73 @@ function updateCamera(dt) {
   const visualStage = replayState?.playStage || state.playStage;
   const visualBall = replayState?.ball || ball;
   const visualSpot = replayState?.ballSpot ?? state.ballSpot;
+  const broadcastFocus = selectBroadcastFocus(replayState);
   const portrait = innerWidth < 700 && innerHeight > innerWidth * 1.18;
   const side = fixture % 2 ? -1 : 1;
-  const direction = replayState ? (replayState.possession === 0 ? 1 : -1) : driveDirection();
-  const toWorldX = (gameX) => (gameX - 50) * direction;
+  const fieldDirection = replayState ? (replayState.possession === 0 ? 1 : -1) : driveDirection();
+  const travelDirection = fieldDirection * (broadcastFocus.travelGameDirection || 1);
+  const toWorldX = (gameX) => (gameX - 50) * fieldDirection;
   const runner = replayState ? replayState.players.find((player) => player.id === replayState.carrierId) || null : carrier();
-  let focusGameX = runner?.x ?? (['pass', 'kick', 'punt', 'loose'].includes(visualBall.mode) ? visualBall.x : visualSpot);
-  let focusZ = runner?.z ?? visualBall.z;
+  let focusGameX = broadcastFocus.anchor?.x ?? runner?.x
+    ?? (['pass', 'kick', 'punt', 'loose'].includes(visualBall.mode) ? visualBall.x : visualSpot);
+  let focusZ = broadcastFocus.anchor?.z ?? runner?.z ?? visualBall.z;
+  if (!replayState && visualPhase === 'preplay') { focusGameX = visualSpot; focusZ = 0; }
   let desired, target, fov;
   if (visualPhase === 'kick') {
     cameraMode = 'kick_track';
     focusGameX = visualBall.mode === 'kick' ? visualBall.x : visualSpot - 7;
     const focusX = toWorldX(focusGameX);
     const goalX = toWorldX(GOAL_PLANE);
-    const lookAhead = focusX + direction * (portrait ? 22 : 20);
-    const targetX = direction > 0 ? Math.min(goalX, lookAhead) : Math.max(goalX, lookAhead);
-    desired = new THREE.Vector3(clamp(focusX - direction * (portrait ? 14 : 12), -55, 55), portrait ? 13 : 8.5, side * (portrait ? 16 : 10));
+    const lookAhead = focusX + fieldDirection * (portrait ? 22 : 20);
+    const targetX = fieldDirection > 0 ? Math.min(goalX, lookAhead) : Math.max(goalX, lookAhead);
+    desired = new THREE.Vector3(clamp(focusX - fieldDirection * (portrait ? 14 : 12), -55, 55), portrait ? 13 : 8.5, side * (portrait ? 16 : 10));
     target = new THREE.Vector3(targetX, visualBall.mode === 'kick' ? clamp(visualBall.y * 0.24 + 2.5, 2.8, 5.2) : 2.7, lerp(focusZ, 0, 0.18));
     fov = portrait ? 47 : 38;
   } else if (visualPhase === 'punt') {
-    cameraMode = visualBall.mode === 'punt' ? 'punt_flight' : visualStage === 'punt_return' ? 'return' : 'special_teams';
+    const puntTravel = visualBall.mode === 'punt' ? fieldDirection : travelDirection;
+    cameraMode = visualBall.mode === 'punt' ? 'punt_flight'
+      : visualStage === 'punt_return' ? 'return_focus' : 'special_teams';
     const focusX = toWorldX(focusGameX);
-    desired = new THREE.Vector3(clamp(focusX - direction * 10, -54, 54), portrait ? 20 : 15, side * (portrait ? 38 : 32));
-    target = new THREE.Vector3(clamp(focusX + direction * 5, -58, 58), visualBall.mode === 'punt' ? clamp(visualBall.y * 0.23, 1, 5) : 1, focusZ * 0.45);
-    fov = portrait ? 51 : 41;
+    desired = new THREE.Vector3(clamp(focusX - puntTravel * 10, -54, 54), portrait ? 20 : 15, side * (portrait ? 38 : 32));
+    target = new THREE.Vector3(clamp(focusX + puntTravel * (visualBall.mode === 'punt' ? 5 : 1.5), -58, 58),
+      visualBall.mode === 'punt' ? clamp(visualBall.y * 0.23, 1, 5) : 1, clamp(focusZ * 0.86, -21, 21));
+    fov = portrait ? 51 : clamp(39 + broadcastFocus.spread * 0.35, 39, 45);
   } else if (visualBall.mode === 'pass') {
     cameraMode = 'deep_ball';
+    const intended = visualBall.intendedId
+      ? (replayState?.players || players).find((player) => player.id === visualBall.intendedId) : null;
+    focusGameX = lerp(visualBall.x, intended?.x ?? visualBall.x, 0.32);
+    focusZ = lerp(visualBall.z, intended?.z ?? visualBall.z, 0.32);
     const focusX = toWorldX(focusGameX);
-    desired = new THREE.Vector3(clamp(focusX - direction * 9, -53, 53), portrait ? 21 : 17.5, side * (portrait ? 40 : 35));
-    target = new THREE.Vector3(focusX + direction * 5, clamp(visualBall.y * 0.35, 1, 4.2), focusZ * 0.52);
+    desired = new THREE.Vector3(clamp(focusX - fieldDirection * 9, -53, 53), portrait ? 21 : 17.5, side * (portrait ? 40 : 35));
+    target = new THREE.Vector3(focusX + fieldDirection * 5, clamp(visualBall.y * 0.35, 1, 4.2), focusZ * 0.72);
     fov = portrait ? 52 : 42;
   } else {
-    cameraMode = replayState ? 'replay_sideline' : visualPhase === 'preplay' ? 'line' : visualPhase === 'dead' ? 'dead_ball' : 'carrier';
+    const focusSlug = broadcastFocus.kind.toLowerCase().replaceAll(' ', '_');
+    cameraMode = replayState ? focusSlug : visualPhase === 'preplay' ? 'line'
+      : visualPhase === 'dead' ? (broadcastFocus.kind === 'RETURN SPOT' ? 'dead_return_focus' : 'dead_ball')
+      : focusSlug;
     const focusX = clamp(toWorldX(focusGameX), -49, 49);
     const portraitLive = portrait && (visualPhase === 'live' || !!replayState);
     desired = new THREE.Vector3(
-      focusX - direction * (portrait ? 9 : 7),
+      focusX - travelDirection * (portrait ? 9 : broadcastFocus.urgent ? 8.5 : 7),
       portrait ? (portraitLive ? 15.8 : 18.5) : 14.8,
       side * (portrait ? (portraitLive ? 31.5 : 36) : 32),
     );
     target = new THREE.Vector3(
-      focusX + direction * (visualPhase === 'preplay' ? 4 : 2.5),
+      focusX + travelDirection * (!replayState && visualPhase === 'preplay' ? 4 : broadcastFocus.urgent ? 1.2 : 2.5),
       portrait ? (visualPhase === 'dead' ? 0.4 : 0.55) : visualPhase === 'dead' ? 0.75 : 1,
-      clamp(focusZ * 0.45, -12, 12),
+      clamp(focusZ * (broadcastFocus.urgent ? 0.98 : 0.88), -22, 22),
     );
-    fov = portrait ? (portraitLive ? 45 : 48) : 38;
+    fov = portrait ? (portraitLive ? 45 : 48) : !replayState && visualPhase === 'preplay' ? 38
+      : clamp(38 + broadcastFocus.spread * 0.42 + (broadcastFocus.urgent ? 1.5 : 0), 38, 45);
   }
   const changed = cameraMode !== lastCameraMode;
-  const cameraRate = changed && visualPhase !== 'live' ? 6.2 : 3.8;
-  const blend = cameraReady ? damp(cameraRate, dt) : 1;
+  const cameraRate = broadcastFocus.urgent ? (changed ? 8.2 : 6.1)
+    : changed && visualPhase !== 'live' ? 6.2 : 3.8;
+  // Replay opens on a frozen, certified segment. Cut directly to its actual
+  // subject so the first replay frame cannot inherit an off-screen live camera.
+  const blend = !cameraReady || (changed && !!replayState) ? 1 : damp(cameraRate, dt);
   camera.position.lerp(desired, blend);
   cameraTarget.lerp(target, blend);
   camera.fov += (fov - camera.fov) * damp(5, dt);
@@ -3255,6 +3446,7 @@ function renderGameState() {
   const visibleReplay = replayRenderState();
   const visibleBall = visibleReplay?.ball || ball;
   const visiblePlayers = visibleReplay ? new Map(visibleReplay.players.map((player) => [player.id, player])) : null;
+  const broadcastFocus = selectBroadcastFocus(visibleReplay);
   const runner = visibleReplay
     ? visibleReplay.players.find((player) => player.id === visibleReplay.carrierId) || null
     : carrier();
@@ -3302,6 +3494,7 @@ function renderGameState() {
       defensiveReason: state.defenseDecision?.selected?.reasons?.[0]?.label || null,
       completedPlayExplanation: state.lastSnap?.explanation || null,
     },
+    broadcastFocus,
     ball: {
       mode: visibleBall.mode, ownerId: visibleBall.ownerId, intendedId: visibleBall.intendedId,
       visible: football.visible, opacity: +football.material.opacity.toFixed(3),
@@ -3317,7 +3510,7 @@ function renderGameState() {
     },
     carrier: runner ? { id: runner.id, side: runnerIdentity?.side, role: runnerIdentity?.role, name: runnerIdentity?.name, x: +runner.x.toFixed(2), z: +runner.z.toFixed(2), jukeCooldown: +(runnerIdentity?.jukeCooldown || 0).toFixed(2), jukeImmune: +(runnerIdentity?.jukeImmune || 0).toFixed(2) } : null,
     catch: (visibleReplay?.catchBeat || state.catchBeat) ? {
-      outcome: state.catchBeat?.outcome || null,
+      outcome: (visibleReplay?.catchBeat || state.catchBeat).outcome || null,
       catcherId: (visibleReplay?.catchBeat || state.catchBeat).catcherId,
       intendedId: (visibleReplay?.catchBeat || state.catchBeat).intendedId,
       elapsed: +(visibleReplay?.catchBeat?.t ?? state.catchBeat?.t ?? 0).toFixed(2),
@@ -3329,7 +3522,13 @@ function renderGameState() {
       elapsed: +(visibleReplay?.contact?.t ?? state.contact?.t ?? 0).toFixed(2),
       impactSpeed: +(state.contact?.impactSpeed || 0).toFixed(2),
     } : null,
-    camera: { mode: cameraMode, position: { x: +camera.position.x.toFixed(2), y: +camera.position.y.toFixed(2), z: +camera.position.z.toFixed(2) }, fov: +camera.fov.toFixed(1) },
+    camera: {
+      mode: cameraMode,
+      focusAthleteId: broadcastFocus.primary?.id || null,
+      focusReason: broadcastFocus.kind,
+      position: { x: +camera.position.x.toFixed(2), y: +camera.position.y.toFixed(2), z: +camera.position.z.toFixed(2) },
+      fov: +camera.fov.toFixed(1),
+    },
     presentation: {
       formationTransition: state.formationTransition, ballOpacity: +ballPresentationOpacity().toFixed(2),
       secondsToSnap: state.phase === 'preplay' ? +Math.max(0, PREPLAY_SECONDS - state.t).toFixed(2) : 0,
@@ -3350,10 +3549,11 @@ function renderGameState() {
     players: players.map((player) => {
       const visible = visiblePlayers?.get(player.id) || player;
       return ({
-      id: player.id, side: player.side, team: teams[player.teamIndex].code, role: player.role, number: player.number,
+      id: player.id, name:player.name, side: player.side, team: teams[player.teamIndex].code, role: player.role, number: player.number,
       x: +visible.x.toFixed(2), z: +visible.z.toFixed(2), vx: +visible.vx.toFixed(2), vz: +visible.vz.toFixed(2),
       facing: +visible.facing.toFixed(2), action: visible.action, actionProgress: +(visible.actionProgress ?? clamp(player.actionT / player.actionDuration, 0, 1)).toFixed(2), down: visible.down, engagedId: player.engagedId,
       stamina: +player.stamina.toFixed(3), wear: +player.wear.toFixed(3), traits: player.traitLabel,
+      character: footballCharacterSummary(player),
     }); }),
     headline: state.headline, detail: state.detail, lastEvent: state.lastEvent, recentEvents: state.events.slice(0, 5), gameOver: state.gameOver,
   });

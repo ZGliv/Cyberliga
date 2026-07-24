@@ -1053,3 +1053,65 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
   Escape on an ordinary filter or fixture no longer clears state or moves keyboard focus back to Home.
 - Added permanent verifier contracts for all-visible desktop filters, rollover rebinding and guarded Escape
   behavior. Targeted rollover, focus and responsive browser proofs are part of the Release Manager gate.
+
+## Six-sport character and watchability pass — 2026-07-24
+- Current user goal: improve the characters and gameplay of all six autonomous broadcasts as much as possible,
+  making every game smoother and more entertaining to watch. This is an isolated feature branch from canonical
+  `fef34ab`; it must not deploy directly.
+- Baseline live desktop inspection covered Soccer, American Football, Basketball, Hockey, Baseball and Combat.
+  The simulations are already mechanically richer than the earliest prototype, but athlete identity is uneven,
+  cameras can lose the decisive action, transition beats sometimes look static, and several arenas spend too
+  much of the frame on repeated crowd geometry or empty playing surface.
+- A concrete shared identity gap is now repaired: canonical data already authors 416 names, roles, archetypes,
+  temperaments, silhouettes, signatures and team motion languages, while the classic capsule renderer previously
+  gave nearly everyone the same runtime-random gait. New pure `classic-character.js` creates a deterministic,
+  frozen performance fingerprint for every canonical athlete. `blobrig.js` now applies it to body proportion,
+  stride cadence, breathing, planting, cut response, lean, sway, action amplitude and the default celebration,
+  while preserving the exact cyan/hot-pink live-player palette and existing Founding silhouette cues.
+- Character tests prove hash/profile determinism, six-sport role classification, Founding motion identity,
+  bounded finite renderer parameters and 416/416 distinct canonical fingerprints. No sporting outcome depends on
+  this renderer-only layer.
+- Live audit found a severe Combat camera failure during a real R1 knockdown: both fighters left the desktop
+  frame while the camera held an empty octagon. Football likewise held a turnover-return transition with the
+  action cluster cropped to the left and a large empty midfield area. Both exact states were handed to their
+  sport owners as required regression checkpoints.
+- Compact-portrait inspection found a second cross-sport failure that zero document overflow had hidden: fixed
+  internal HUD widths visibly clipped the away club and live situation copy in Soccer, Basketball, Hockey and
+  Baseball. The exact score/event states were handed to each sport owner; final phone acceptance now requires
+  both clubs, the score/clock and the bounded action label to remain inside the 390px visual safe area.
+- Sport-local behavior, pacing, camera, replay and full-event improvements were implemented in parallel for
+  Soccer/Football, Basketball/Hockey and Baseball/Combat, then reconciled into this single feature tree. The
+  required official-client, deterministic full-event, desktop and 390x844 evidence is recorded below.
+- Completed sport passes:
+  - Soccer stages a readable passer/receiver/marker story with receipt and pressure lanes, a shoulder-check beat,
+    focused name tags, a deterministic pass-read hook, a single bounded portrait angle and shorter dead-ball holds.
+  - American Football selects the actual live or recorded subject for reads, catches, contact, loose balls and
+    reverse-direction returns. Its camera, HUD badge and state telemetry now agree on the same named athlete while
+    preserving the existing adjudication and truthful replay-certification path.
+  - Basketball gives each role stable tendencies and adds deflections, genuine 50/50 recoveries, charges,
+    athlete-weighted finishing/rebounding, faster inbounds and deterministic event-camera/outcome telemetry.
+  - Hockey gives each role stable ice tendencies and separates board battles and stick lifts from rarer full body
+    checks. One-timers, slap shots, blocks, goalie tracking/rebound control and stoppage pacing now use those traits.
+  - Baseball adds deterministic batter/pitcher/fielding profiles, count-aware matchup reads, athlete-influenced
+    recognition/barrel/range/arm decisions, result-tier presentation, sectional crowd response, a complete
+    portrait-diamond camera and shorter routine transitions. Per-frame crowd colors use cached objects.
+  - Combat maps all six canonical roles to distinct styles, signatures, guards and cadence; each strike exposes
+    anticipation, delivery, impact, follow-through and recovery. Clinch work is scored and visible, crowd response
+    is sectional, and a projected-frame safety check keeps both fighters on screen through knockdowns.
+- Deterministic browser evidence on the final feature bytes:
+  - Soccer same-seed full games both ended 1-3 with identical possession/shots/xG/offsides and top-three IDs.
+    Football same-seed games both ended 3-22 with identical last event and top-three IDs. The forced football
+    interception return and its certified replay both focus the actual carrier.
+  - Basketball forced deflection and charge accounting is single-write and finite; its full game ended 26-33.
+    Hockey forced board battle, stick lift and block each increment once; its full game ended 1-0 in overtime with
+    exact shots-on-goal truth (`team shots = team goals + opponent saves`).
+  - Baseball forced SINGLE advances LIVE to POSTPLAY and a seeded full game held a real 1-0 FINAL. Combat browser
+    QA passed 25/25, including ordered signature phases, scored clinch work, desktop/mobile count framing and a
+    260-second soak that completed a bout without using its 238-second per-event backstop.
+- Official web-game client screenshots were visually inspected for all six sports. Direct 390x844 plus 430/433px
+  audits keep scores, clubs/codes and event strips inside the visual safe area with no horizontal overflow. Every
+  arena retains classic cyan/hot-pink athletes, autonomous/view-only interaction and truthful recorded-footage
+  provenance. Fresh console, page and request errors are empty.
+- Final local gate on current bytes: `npm run verify` PASS (122 tests plus 1,544 static/data checks);
+  `node --test footballbrain.test.mjs footballrules.test.mjs` PASS 28/28; new-module syntax and `git diff --check`
+  PASS. The feature remains isolated and undeployed pending Release Manager integration.

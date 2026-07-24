@@ -70,7 +70,9 @@ if (packageManifest) {
   check(packageManifest.scripts?.['test:chronicle'] === 'node --test witness-chronicle.test.mjs witness-store.test.mjs', 'npm run test:chronicle must cover the pure witness ledger and device-local adapter');
   check(packageManifest.scripts?.['test:football-replay-memory'] === 'node --test football-replay-memory.test.mjs', 'npm run test:football-replay-memory must cover football replay adjudication and truthful footage provenance');
   check(packageManifest.scripts?.['test:visuals'] === 'node --test foundingvisual.test.mjs foundinglive.test.mjs', 'npm run test:visuals must cover shared Founding portrait and live-cue renderers');
-  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:chronicle && npm run test:football-replay-memory && npm run test:visuals && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, named match memory, broadcast presentation, witness chronology, football replay memory, and Founding visuals before static/data invariants');
+  check(packageManifest.scripts?.['test:characters'] === 'node --test classic-character.test.mjs', 'npm run test:characters must cover deterministic classic athlete performance fingerprints');
+  check(packageManifest.scripts?.['test:broadcast-polish'] === 'node --test soccer-football-broadcast-polish.test.mjs hoops-hockey-broadcast-polish.test.mjs baseball-broadcast-polish.test.mjs fight-broadcast-grammar.test.mjs', 'npm run test:broadcast-polish must cover all six sport-specific watchability contracts');
+  check(packageManifest.scripts?.verify === 'npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:chronicle && npm run test:football-replay-memory && npm run test:visuals && npm run test:characters && npm run test:broadcast-polish && node scripts/verify.mjs', 'npm run verify must cover APIs, athlete moments, named match memory, broadcast presentation, witness chronology, football replay memory, Founding visuals, classic athlete performance, and all six sport-specific watchability contracts before static/data invariants');
   check(packageManifest.scripts?.['release:check'] === 'npm run verify && node scripts/release-check.mjs', 'npm run release:check must verify the repository before checking the canonical release source');
   check(Object.keys(packageManifest.dependencies || {}).length === 0, 'Runtime dependencies must remain empty');
   check(Object.keys(packageManifest.devDependencies || {}).length === 0, 'Development dependencies must remain empty');
@@ -144,6 +146,7 @@ const leagueMarkupSource = await text('league.html');
 const soccerSource = await text('index.html');
 const hoopsSource = await text('hoops.html');
 const blobRigSource = await text('blobrig.js');
+const classicCharacterSource = await text('classic-character.js');
 const socialSource = await text('social.html');
 const momentSource = await text('moment.html');
 const clipSource = await text('clip.html');
@@ -195,6 +198,10 @@ check(/export const CLASSIC_PLAYER_COLORS\s*=\s*Object\.freeze\(\[0x00e5ff,\s*0x
 check(/export function classicPlayerColor\s*\(/.test(blobRigSource), 'Shared rig must expose side-stable classic athlete colors');
 check(/hasClassicSide[\s\S]{0,500}resolvedKitColor/.test(blobRigSource), 'Shared rig must prevent implicit white athlete bloom');
 check(/club-uniform-identity/.test(blobRigSource) && /jerseyNumber/.test(blobRigSource) && /kitPattern/.test(blobRigSource), 'Shared classic rig must carry club code, number, and authored kit identity');
+check(/createClassicCharacterProfile/.test(blobRigSource) && /characterProfile/.test(blobRigSource), 'Shared classic rig must apply canonical athlete performance fingerprints');
+check(/CLASSIC_CHARACTER_VERSION/.test(classicCharacterSource) && /Object\.freeze\(profile\)/.test(classicCharacterSource), 'Classic character fingerprints must be versioned and immutable');
+check(!/Math\.random/.test(classicCharacterSource) && /classicIdentityHash/.test(classicCharacterSource), 'Classic character fingerprints must be deterministic and local');
+check(/athlete\?\.temperament/.test(classicCharacterSource) && /athlete\?\.silhouette/.test(classicCharacterSource) && /team\?\.motion/.test(classicCharacterSource), 'Classic character fingerprints must consume authored temperament, silhouette, and team motion');
 for (const motifFamily of ['slash', 'weave', 'rings', 'grid', 'branch', 'hex', 'wave', 'fracture', 'constellation']) {
   check(blobRigSource.includes(`'${motifFamily}'`), `Shared classic rig is missing the ${motifFamily} uniform motif family`);
 }
@@ -311,7 +318,13 @@ check(/createCrowd\([^;]+rng:\s*presentationRandom/.test(soccerSource) && /creat
 check(/export function createCrowd\([\s\S]{0,500}\brng\b/.test(crowdSource) && !/\bMath\.random\s*\(/.test(crowdSource), 'Crowd implementation must use its injected presentation RNG');
 check(/export function createPresentation\([^)]*opts[\s\S]{0,220}\brng\b/.test(presentationSource), 'Presentation copy must use its injected presentation RNG');
 check(/RETRIEVE[\s\S]*BASELINE[\s\S]*READY[\s\S]*PASS/.test(hoopsSource) && /inboundsCompleted/.test(hoopsSource), 'Basketball must show a real baseline inbound sequence after baskets');
-check(/deterministicSeed/.test(hockeySource) && /const aimZ = \(rnd\(\)/.test(hockeySource) && /S\.forceCheck \|\| rnd\(\)/.test(hockeySource), 'Hockey sporting decisions must use the seeded simulation RNG');
+check(
+  /deterministicSeed/.test(hockeySource)
+    && /const aimZ = \(rnd\(\)/.test(hockeySource)
+    && /const commits=forcedMajorCheck\|\|rnd\(\)</.test(hockeySource)
+    && /const defenseWins=forced\|\|rnd\(\)</.test(hockeySource),
+  'Hockey sporting decisions must use the seeded simulation RNG',
+);
 check(/pitchTargetMarker/.test(baseballSource) && /pitchGuideStep/.test(baseballSource) && /pitchIntent/.test(baseballSource), 'Baseball must expose pitch tunnel, target, and intent causality');
 check(!/say\s*\(\s*spick\(/.test(baseballSource), 'Baseball commentary must not consume seeded sporting RNG');
 check(/const\s+spick\s*=/.test(baseballSource) && /:\s*spick\(\[a,b\]\)/.test(baseballSource), 'Baseball must retain seeded RNG for genuine sporting decisions');

@@ -208,8 +208,11 @@
       align-items:stretch;
       border-radius:10px;
     }
+    #scoreboard > .team { width:100%; max-width:100%; min-width:0; contain:inline-size; overflow:hidden; }
     .team { gap:7px; padding:0 9px; font-size:11px; letter-spacing:1px; }
-    .team-name { --score-fit-max:11px; --score-fit-min:7.5px; --score-fit-floor:5.75px; --score-fit-tracking:1px; --score-fit-min-tracking:-1.2px; }
+    #teamA { display:grid; grid-template-columns:auto minmax(0,1fr); }
+    #teamB { display:grid; grid-template-columns:minmax(0,1fr) auto; }
+    .team-name { width:100%; max-width:100%; display:block; --score-fit-max:11px; --score-fit-min:7.5px; --score-fit-floor:5.75px; --score-fit-tracking:1px; --score-fit-min-tracking:-1.2px; }
     .team .dot { width:8px; height:8px; flex:0 0 8px; }
     #score { min-width:70px; padding:0 10px; font-size:18px; letter-spacing:2px; }
     #momentum {
@@ -218,10 +221,11 @@
     }
     #clockwrap {
       top:calc(env(safe-area-inset-top, 0px) + 110px);
-      padding:4px 10px; gap:7px; border-radius:999px;
+      max-width:calc(100vw - 20px); min-width:0; overflow:hidden;
+      padding:4px 10px; gap:7px; border-radius:999px; white-space:nowrap;
     }
     #clock { font-size:12px; letter-spacing:1.4px; }
-    #half { font-size:10px; letter-spacing:1.2px; white-space:nowrap; }
+    #half { min-width:0; overflow:hidden; text-overflow:ellipsis; font-size:10px; letter-spacing:1.2px; white-space:nowrap; }
     #badge {
       top:calc(env(safe-area-inset-top, 0px) + 10px);
       left:calc(env(safe-area-inset-left, 0px) + 10px);
@@ -267,25 +271,38 @@
     #lineup .lrow { font-size:13px; gap:9px; }
     #matchcontext {
       top:calc(env(safe-area-inset-top, 0px) + 134px);
-      max-width:calc(100vw - 20px); padding:5px 9px; gap:6px;
+      width:calc(100vw - 20px); max-width:calc(100vw - 20px); padding:5px 9px; gap:6px;
       font-size:8px; letter-spacing:.75px;
     }
+    #matchcontext .phase { max-width:42%; overflow:hidden; text-overflow:ellipsis; }
     #analyststrip {
       top:calc(env(safe-area-inset-top, 0px) + 164px); width:calc(100vw - 20px);
+      grid-template-columns:minmax(0,1fr) minmax(0,.82fr) minmax(0,1fr); overflow:hidden;
       gap:5px; padding:5px 8px; font-size:7.5px; letter-spacing:.55px;
       background:rgba(3,6,16,.72);
     }
-    #analystphase { font-size:6.8px; letter-spacing:.8px; }
+    #analystA, #analystB, #analystphase { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #analystphase { font-size:6.8px; letter-spacing:.8px; text-align:center; }
     #ticker { height:34px; }
     #tickerlabel { padding:0 10px; font-size:10px; letter-spacing:2px; }
     #tickertext { font-size:13px; letter-spacing:.6px; }
     #watermark { display:none; }
   }
+  @media (max-width: 480px) {
+    #scoreboard {
+      left:10px; right:10px; width:auto; max-width:none; transform:none;
+      grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr);
+    }
+    #score { width:64px; min-width:0; padding:0 7px; }
+  }
   @media (max-width: 390px) {
-    #scoreboard { width:calc(100vw - 16px); }
+    #scoreboard {
+      left:8px; right:8px; width:auto; max-width:none; transform:none;
+      grid-template-columns:minmax(0,1fr) 58px minmax(0,1fr);
+    }
     .team { padding:0 7px; font-size:10px; letter-spacing:.7px; }
     .team-name { --score-fit-max:10px; --score-fit-min:7px; --score-fit-floor:5.5px; --score-fit-tracking:.7px; --score-fit-min-tracking:-1.45px; }
-    #score { min-width:62px; padding:0 8px; font-size:17px; }
+    #score { width:58px; min-width:0; padding:0 6px; font-size:17px; }
   }
 
   /* OG CUT — let the match be the graphic. The simulation still produces every
@@ -857,7 +874,8 @@ function mountAtBoneAnchor(anchor, plane, root) {
   plane.scale.multiplyScalar(1 / s);
   anchor.add(plane);
 }
-function buildPlayer(team, isGK, r, captain) {
+function buildPlayer(team, role, r, captain) {
+  const isGK = role === 'GK';
   const name = r.n, number = r.num;
   const side = team === TEAM_A ? 0 : 1;
   const playerColor = classicSideVisual(side);
@@ -878,7 +896,7 @@ function buildPlayer(team, isGK, r, captain) {
     accentColor: clubVisual.accentColor,
     teamCode: clubVisual.teamCode,
     kitPattern: clubVisual.kitPattern,
-    role: isGK ? 'GK' : 'FIELD',
+    role,
     flair: r.flair || [],
     dna: r.dna,
   });
@@ -931,7 +949,7 @@ const players = [];
 function makeTeam(team, dir) { // dir: -1 defends left goal, +1 defends right goal
   FORMATION.forEach((slot, i) => {
     const r = ROSTERS[team.name][i];
-    const mesh = buildPlayer(team, slot.role === 'GK', r, i === 1); // slot 1 wears the armband
+    const mesh = buildPlayer(team, slot.role, r, i === 1); // slot 1 wears the armband
     const sc = 0.94 + simRandom()*0.12; // height/mass variation affects duels
     mesh.scale.setScalar(sc);
     scene.add(mesh);
@@ -996,6 +1014,21 @@ passGuideGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array
 const passGuide = new THREE.Line(passGuideGeo,
   new THREE.LineBasicMaterial({ color:0xffffff, transparent:true, opacity:0, depthWrite:false }));
 passGuide.renderOrder = 4; scene.add(passGuide);
+// The intended receiver and the defender closing their blind side are the two
+// most important bodies during a pass. These pitch-level marks make that duel
+// legible before the ball arrives without turning the broadcast into a tactics UI.
+const receiptHalo = new THREE.Mesh(
+  new THREE.RingGeometry(.76, .91, 32),
+  new THREE.MeshBasicMaterial({ color:0x7ef0ff, transparent:true, opacity:0,
+    depthWrite:false, side:THREE.DoubleSide, blending:THREE.AdditiveBlending })
+);
+receiptHalo.rotation.x=-Math.PI/2; receiptHalo.position.y=.044; receiptHalo.renderOrder=5;
+scene.add(receiptHalo);
+const pressureGuideGeo = new THREE.BufferGeometry();
+pressureGuideGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3));
+const pressureGuide = new THREE.Line(pressureGuideGeo,
+  new THREE.LineBasicMaterial({color:0xff5bbd,transparent:true,opacity:0,depthWrite:false}));
+pressureGuide.renderOrder=4; scene.add(pressureGuide);
 // collapse the trail onto the ball and hide it — ballStep stops running in theater modes,
 // so without this a high-opacity streak hangs frozen in the goalmouth through every replay
 function resetTrail() {
@@ -1245,6 +1278,63 @@ function closestToBall(team) {
   return best;
 }
 
+function closestOpponent(player) {
+  if (!player) return null;
+  let best=null, bestDistance=Infinity;
+  for (const candidate of players) {
+    if (candidate.team===player.team || candidate.fallT>0 || candidate.slideT>0) continue;
+    const distance=candidate.pos.distanceTo(player.pos);
+    if (distance<bestDistance) { best=candidate; bestDistance=distance; }
+  }
+  return best;
+}
+
+function assignPassTarget(receiver, passer=null, kind='pass', seconds=2.7) {
+  if (!receiver || !players.includes(receiver)) return null;
+  const marker=closestOpponent(receiver);
+  state.passTarget={
+    player:receiver,
+    passer:passer&&players.includes(passer)?passer:null,
+    marker,
+    kind,
+    createdAt:state.clock,
+    until:state.clock+seconds,
+    armed:false,
+  };
+  if (passer) {
+    state.flow.lastPass={
+      from:passer.pos.clone(),to:receiver.pos.clone(),team:passer.team,
+      until:state.clock+1.35,
+    };
+  }
+  return state.passTarget;
+}
+
+function soccerBroadcastRead() {
+  const target=state.passTarget;
+  if (state.mode==='play' && target && players.includes(target.player)) {
+    const receiver=target.player;
+    const marker=target.marker&&players.includes(target.marker)&&target.marker.team!==receiver.team
+      ? target.marker : closestOpponent(receiver);
+    target.marker=marker;
+    return {
+      kind:target.armed?'RECEIPT WINDOW':'PASS DEVELOPING',
+      passer:target.passer&&players.includes(target.passer)?target.passer:null,
+      receiver,marker,
+      ballDistance:+receiver.pos.distanceTo(ball.pos).toFixed(2),
+      shoulderCheck:!!receiver._receiptScan,
+    };
+  }
+  const carrier=state.carrier&&players.includes(state.carrier)?state.carrier:null;
+  const marker=carrier?closestOpponent(carrier):null;
+  return {
+    kind:state.flow.transitionT>0?'TRANSITION DUEL':carrier?'ON-BALL DUEL':'LOOSE BALL',
+    passer:null,receiver:carrier,marker,
+    ballDistance:carrier?+carrier.pos.distanceTo(ball.pos).toFixed(2):null,
+    shoulderCheck:false,
+  };
+}
+
 function laneOpen(from, to, team, clearance=1.05) {
   const dx=to.x-from.x,dz=to.z-from.z,l2=dx*dx+dz*dz||1;
   for (const q of players) {
@@ -1298,13 +1388,40 @@ function matchFlowVisualStep(t) {
   ballLocator.scale.setScalar(pulse);
   ballLocator.material.opacity=THREE.MathUtils.clamp(.22+speed/55+(f.transitionT>0?.18:0),.2,.62);
   if (state.lastTouchTeam) ballLocator.material.color.setHex(classicSideVisual(state.lastTouchTeam === TEAM_A ? 0 : 1));
+  const read=soccerBroadcastRead();
+  const liveTarget=state.mode==='play'&&state.passTarget&&read.receiver;
   const lp=f.lastPass;
-  if (lp && state.clock<lp.until && state.mode==='play') {
+  if (liveTarget) {
+    const a=passGuideGeo.attributes.position;
+    a.setXYZ(0,ball.pos.x,.08,ball.pos.z);
+    a.setXYZ(1,read.receiver.pos.x,.08,read.receiver.pos.z);
+    a.needsUpdate=true;
+    passGuide.material.color.setHex(classicSideVisual(read.receiver.team===TEAM_A?0:1));
+    passGuide.material.opacity=state.passTarget.armed ? .26 : .17;
+  } else if (lp && state.clock<lp.until && state.mode==='play') {
     const a=passGuideGeo.attributes.position;
     a.setXYZ(0,lp.from.x,.08,lp.from.z); a.setXYZ(1,ball.pos.x,.08,ball.pos.z); a.needsUpdate=true;
     passGuide.material.color.setHex(classicSideVisual(lp.team === TEAM_A ? 0 : 1));
     passGuide.material.opacity=Math.max(0,(lp.until-state.clock)/1.15)*.25;
   } else passGuide.material.opacity=0;
+  receiptHalo.material.opacity=0;
+  pressureGuide.material.opacity=0;
+  if (liveTarget) {
+    receiptHalo.position.x=read.receiver.pos.x; receiptHalo.position.z=read.receiver.pos.z;
+    receiptHalo.material.color.setHex(classicSideVisual(read.receiver.team===TEAM_A?0:1));
+    const receiptPulse=.92+Math.sin(t*7+read.receiver.number*.17)*.09;
+    receiptHalo.scale.setScalar(receiptPulse);
+    receiptHalo.material.opacity=(state.passTarget.armed ? .43 : .25)
+      +(state.passTarget.armed?Math.max(0,Math.sin(t*9))*.12:0);
+    if (read.marker) {
+      const a=pressureGuideGeo.attributes.position;
+      a.setXYZ(0,read.receiver.pos.x,.07,read.receiver.pos.z);
+      a.setXYZ(1,read.marker.pos.x,.07,read.marker.pos.z);
+      a.needsUpdate=true;
+      pressureGuide.material.opacity=THREE.MathUtils.clamp(
+        .25-read.receiver.pos.distanceTo(read.marker.pos)*.025,.08,.22);
+    }
+  }
 }
 
 function applyDribbleAction(p, act) {
@@ -1432,7 +1549,10 @@ function scheduleKick(p, plan, dirV) {
   p._kiPlan = null; p._carryPlan = null; // committed — drop cached fallback plans
   poss.release(p); // possession ends with the strike commitment
   // the intended receiver RUNS TO MEET THE BALL — no more passes rolling past statues
-  if (plan.mate) {state.passTarget = { player: plan.mate, until: state.clock + 2.5 };watchOffsidePass(p,plan.mate);}
+  if (plan.mate) {
+    assignPassTarget(plan.mate,p,technique,2.7);
+    watchOffsidePass(p,plan.mate);
+  }
   if (plan.type === 'shoot') {
     recordShot(p);
     story.event('shot', { player: p.name, team: p.team.name });
@@ -2274,8 +2394,7 @@ function aiStep(dt) {
           // short distribution into the safer half-space
           aim=def.pos.clone().addScaledVector(def.vel,.3);
           technique='pass'; power=THREE.MathUtils.clamp(aim.distanceTo(ball.pos)/18,.35,.75);
-          state.flow.lastPass={from:p.pos.clone(),to:def.pos.clone(),team:p.team,until:state.clock+1.15};
-          state.passTarget={player:def,until:state.clock+2.8};
+          assignPassTarget(def,p,'keeper build-out',2.8);
         } else {
           // Press beaten only by a purposeful outlet toward the less occupied flank.
           const left=players.filter(q=>q.team!==p.team&&q.pos.z<0).length;
@@ -3129,7 +3248,7 @@ function takeSetPiece() {
     k.kickAnim = { t: 0, struck: false, type: 'throwin', flight: flightParams, leg: 0, windup: 0.55, follow: 0.3 };
     state.setpiece = null;
     state.mode = 'play';
-    if (mate) state.passTarget = { player: mate, until: state.clock + 2.5 };
+    if (mate) assignPassTarget(mate,k,'throw-in',2.5);
     return;
   } else if (s.kind === 'corner') {
     // whip it into the box
@@ -3203,7 +3322,12 @@ function ogLiveFrame(outPos, outTgt, t) {
   const fz = THREE.MathUtils.clamp(leadZ * 0.3, -8, 8);
   const bob = t === undefined ? 0 : Math.sin(t * 0.1) * 0.6;
   if (innerWidth < 700) {
-    const view = selectMobileCameraView(t, !!state.cameraBeat || state.mode === 'goal');
+    // One portrait angle per real pass gives the receiver/marker duel enough
+    // scale to read, then returns to the tactical overhead. Claim it once so
+    // the hold is bounded instead of being extended every simulation frame.
+    const passAngle=!!state.passTarget?.armed&&!state.passTarget.mobileCameraClaimed;
+    const view = selectMobileCameraView(t, !!state.cameraBeat || state.mode === 'goal' || passAngle);
+    if (passAngle) state.passTarget.mobileCameraClaimed=true;
     if (view === 'overhead') {
       // The tactical board remains the primary phone view: pitch length runs up the
       // screen so both goals and the active shape remain readable.
@@ -3382,6 +3506,7 @@ function gateOn(p, key, enter, exit) {
   return p[key];
 }
 function animatePlayers(dt, t) {
+  const broadcastRead=soccerBroadcastRead();
   for (const p of players) {
     const rig = p.mesh.userData.rig;
     p._poseDesc = null;
@@ -3404,8 +3529,23 @@ function animatePlayers(dt, t) {
     }
     p.mesh.rotation.y = p.yaw;
 
-    // head tracks the ball independently of the body (within neck limits)
-    const headYaw = shortestAngle(Math.atan2(ball.pos.x - p.pos.x, ball.pos.z - p.pos.z) - p.yaw);
+    // A receiver checks the blind shoulder during the passer's wind-up and the
+    // first half of flight, then snaps their gaze back to the ball for contact.
+    // That anticipation/recovery beat makes a completed pass read as a decision,
+    // not two blobs happening to meet the same moving point.
+    let gazeX=ball.pos.x,gazeZ=ball.pos.z;
+    p._receiptScan=false;
+    if (broadcastRead.receiver===p && broadcastRead.marker && state.passTarget) {
+      const elapsed=Math.max(0,state.clock-state.passTarget.createdAt);
+      const ballFar=p.pos.distanceTo(ball.pos)>4.2;
+      const scanWindow=elapsed<.22 || (elapsed>.38&&elapsed<.58&&ballFar);
+      if (scanWindow) {
+        gazeX=broadcastRead.marker.pos.x; gazeZ=broadcastRead.marker.pos.z;
+        p._receiptScan=true;
+      }
+    }
+    // head tracks the chosen live cue independently of the body (within neck limits)
+    const headYaw = shortestAngle(Math.atan2(gazeX - p.pos.x, gazeZ - p.pos.z) - p.yaw);
     const hp = p.mesh.userData.headPivot;
     hp.rotation.y = THREE.MathUtils.lerp(hp.rotation.y, THREE.MathUtils.clamp(headYaw, -1.1, 1.1), 1 - Math.exp(-10*dt));
 
@@ -3575,8 +3715,9 @@ function animatePlayers(dt, t) {
       const foulFocus = state.foul && (p === state.foul.offender || p === state.foul.victim);
       const goalFocus = (state.mode === 'goal' || state.mode === 'aftermath') && p === state.scorer;
       const nearBall = p.pos.distanceTo(ball.pos) < 2.25;
+      const passFocus = p===broadcastRead.passer || p===broadcastRead.receiver || p===broadcastRead.marker;
       const active = goalFocus || foulFocus || p.kickAnim || p.skillAnim || p.slideT > 0
-        || (state.mode === 'play' && nearBall);
+        || (state.mode === 'play' && (passFocus || (!state.passTarget && nearBall)));
       const targetOpacity = active ? 0.92 : 0;
       tag.material.opacity += (targetOpacity - tag.material.opacity) * (1 - Math.exp(-(active ? 14 : 7) * dt));
       tag.visible = tag.material.opacity > 0.025;
@@ -4225,7 +4366,7 @@ function tick(forcedDt, skipRender) {
   } else if (state.mode === 'halftime') {
     state.modeT += dt;
     ritualMovementStep(dt);
-    if (state.modeT > 6.5) {
+    if (state.modeT > 5.2) {
       hideCard();
       state.half = 2; elHalf.textContent = '2ND HALF';
       resetPositions(simRandom() < 0.5 ? TEAM_A : TEAM_B);
@@ -4241,7 +4382,7 @@ function tick(forcedDt, skipRender) {
     if (!f) {
       state.mode = 'play'; // WATCHDOG: foul mode without a foul record can never progress
     } else {
-    const fdur = f.ruling.penalty ? 5.2 : 4.2;
+    const fdur = f.ruling.penalty ? 4.6 : 3.35;
     // victim theater: pinned flat, then sits up (a held partial get-up, gently rocking —
     // reads as clutching the leg), then completes the rise just before the restart.
     // All clamps are driven off modeT, so the profile is frame-rate independent.
@@ -4304,7 +4445,7 @@ function tick(forcedDt, skipRender) {
       ball.pinned = true;
     }
     const placed = o && fs && fs.phase === 'returning';
-    if (o && (placed || state.modeT > 8 || !fs)) {
+    if (o && (placed || state.modeT > 6 || !fs)) {
       // ball is on the spot (or failsafe): hand over to the normal set-piece flow
       const far = Math.hypot(ball.pos.x - o.oob.spot.x, ball.pos.z - o.oob.spot.z) > 2;
       ball.pos.set(o.oob.spot.x, 0.24, o.oob.spot.z);
@@ -4331,8 +4472,8 @@ function tick(forcedDt, skipRender) {
       // a fallen taker (late argy-bargy) recovers fast — he can't approach from the turf
       if (sp.kicker.fallT > 0.45) sp.kicker.fallT = 0.45;
       // pens hold a longer beat: ball placed, keeper bouncing on his line, arc settled —
-      // THEN the run-up. Ordinary restarts keep the quick 0.8s. The 6s failsafe rules all.
-      if ((state.modeT > (sp.kind === 'penalty' ? 2.3 : 0.8) && arrived && facing) || state.modeT > 6) {
+      // THEN the run-up. Ordinary restarts keep the quick 0.8s. A 4.8s failsafe rules all.
+      if ((state.modeT > (sp.kind === 'penalty' ? 2.3 : 0.8) && arrived && facing) || state.modeT > 4.8) {
         if (!arrived) { // last-resort fallback so play can never stall forever
           sp.kicker.pos.set(ball.pos.x - Math.sign(ball.pos.x || 1), 0, ball.pos.z);
           sp.kicker.tgtSm.copy(sp.kicker.pos);
@@ -4608,6 +4749,22 @@ function forceSoccerMoment(type) {
     stopForBreak(); showCard('FULL TIME',`${TEAM_A.name} ${state.scoreA} — ${state.scoreB} ${TEAM_B.name}`,true);
     state.mode='fulltime'; state.modeT=0; state.ritual='final'; return true;
   }
+  if (type === 'pass-read') {
+    const passer=players.find(q=>q.team===TEAM_A&&q.role==='MID')||players.find(q=>q.team===TEAM_A&&q.role!=='GK');
+    const receiver=players.find(q=>q.team===TEAM_A&&q.role==='FWD'&&q!==passer);
+    const marker=players.find(q=>q.team!==TEAM_A&&q.role==='DEF')||players.find(q=>q.team!==TEAM_A&&q.role!=='GK');
+    if (!passer||!receiver||!marker) return false;
+    state.mode='play'; state.setpiece=null; state.offsideWatch=null; state.passTarget=null;
+    passer.pos.set(-7,0,-2); receiver.pos.set(6,0,3.5); marker.pos.set(7.4,0,4.5);
+    for (const q of [passer,receiver,marker]) { q.vel.set(0,0,0); q.tgtSm.copy(q.pos); q.fallT=0; q.slideT=0; }
+    const lane=receiver.pos.clone().sub(passer.pos).setY(0).normalize();
+    passer.yaw=Math.atan2(lane.x,lane.z); passer.kickAnim=null; passer.kickCooldown=0;
+    ball.pos.copy(passer.pos).addScaledVector(lane,.58); ball.pos.y=.24; ball.vel.set(0,0,0);
+    state.lastTouchTeam=passer.team; state.lastTouchPlayer=passer; state.carrier=passer;
+    scheduleKick(passer,{type:'pass',power:.62,mate:receiver,technique:'driven'},lane);
+    if (state.passTarget) state.passTarget.marker=marker;
+    return !!state.passTarget;
+  }
   const p=players.find(q=>q.role==='FWD'&&q.team===TEAM_A)||players.find(q=>q.role!=='GK');
   if (!p) return false;
   state.mode='play'; state.spectacleCooldown=0; p.kickAnim=null; p.kickCooldown=0; p.fallT=0;
@@ -4679,6 +4836,24 @@ window.render_game_to_text = () => JSON.stringify({
     lastTechnique:state.lastTechnique,
     contextEvent:state.contextEvent?.label||null,
   },
+  spectatorRead:(()=>{
+    const read=soccerBroadcastRead();
+    const identity=p=>p?{
+      id:p.athleteId,name:p.name,number:p.number,role:p.role,team:p.team.name,
+      character:(()=>{
+        const profile=p.mesh?.userData?.rig?.getState?.()?.identity?.characterProfile;
+        return profile?{archetype:profile.archetype,foundingBody:profile.foundingBody,motionName:profile.motionName}:null;
+      })(),
+    }:null;
+    return {
+      kind:read.kind,
+      passer:identity(read.passer),
+      receiver:identity(read.receiver),
+      marker:identity(read.marker),
+      ballDistance:read.ballDistance,
+      shoulderCheck:read.shoulderCheck,
+    };
+  })(),
   camera: { view:innerWidth<700?mobileCameraView:'broadcast', fov:+camera.fov.toFixed(1),
     position:[+camera.position.x.toFixed(1),+camera.position.y.toFixed(1),+camera.position.z.toFixed(1)],
     up:[+camera.up.x.toFixed(1),+camera.up.y.toFixed(1),+camera.up.z.toFixed(1)] },
@@ -4692,7 +4867,11 @@ window.render_game_to_text = () => JSON.stringify({
   players: players.map(p => ({ name: p.name, team: p.team.name, role: p.role,
     x: +p.pos.x.toFixed(1), z: +p.pos.z.toFixed(1), stamina:+p.stamina.toFixed(2),
     injury:p.injuryT>0?{kind:p.injuryKind,seconds:+p.injuryT.toFixed(1)}:null,
-    action:p.kickAnim?.type||p.skillAnim?.move||null }))
+    action:p.kickAnim?.type||p.skillAnim?.move||null,
+    character:(()=>{
+      const profile=p.mesh?.userData?.rig?.getState?.()?.identity?.characterProfile;
+      return profile?{archetype:profile.archetype,foundingBody:profile.foundingBody,motionName:profile.motionName}:null;
+    })() }))
 });
 window.advanceTime = ms => {
   const steps = Math.max(1, Math.round(ms / 50));
