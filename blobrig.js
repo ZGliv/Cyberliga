@@ -3,6 +3,7 @@
 // bodies without changing a single sporting decision. The motion language deliberately
 // stays non-humanoid: one soft competitive mass, one expressive head, and a ground halo.
 import * as THREE from 'three';
+import { createClassicCharacterProfile } from './classic-character.js';
 
 export async function preloadClassic() { /* nothing to load — instant */ }
 
@@ -376,6 +377,10 @@ export function buildBlobRig({
 
   const foundingDescriptor = prepareFoundingLive(athlete, foundingTeam);
   const foundingState = buildFoundingLiveCues(foundingDescriptor, body, headPivot, bodyMat, resolvedKitColor);
+  const characterProfile = createClassicCharacterProfile({
+    athlete, team: foundingTeam, role, founding: foundingState,
+  });
+  headPivot.scale.setScalar(characterProfile.headScale);
 
   g.add(body, headPivot, ring);
 
@@ -397,15 +402,24 @@ export function buildBlobRig({
   });
   let intent = neutral();
   let shown = neutral();
-  let bobT = Math.random() * Math.PI * 2;
+  let bobT = characterProfile.phase;
   let accelS = 0, turnS = 0;
 
   // A pose is absolute for this frame. Resetting unspecified channels prevents, e.g.,
   // a header's head offset from bleeding into a jockey pose selected on the next tick.
+  // The timing and contact frame stay identical for everyone; only the amplitude is
+  // filtered through the athlete's authored performance fingerprint.
   const setPose = values => {
     for (const key of POSE_CHANNELS) {
       const base = key === 'sx' || key === 'sy' || key === 'sz' ? 1 : 0;
-      intent[key] = values[key] ?? base;
+      const value = values[key] ?? base;
+      if (key === 'pitch' || key === 'headPitch') intent[key] = value * (0.82 + characterProfile.snap * 0.18);
+      else if (key === 'roll' || key === 'headRoll' || key === 'headX') intent[key] = value * (0.75 + characterProfile.sway * 0.25);
+      else if (key === 'lift' || key === 'headY') intent[key] = value * (0.78 + characterProfile.bounce * 0.22);
+      else if (key === 'sx' || key === 'sy') intent[key] = 1 + (value - 1) * (0.78 + characterProfile.plant * 0.22);
+      else if (key === 'sz') intent[key] = 1 + (value - 1) * (0.80 + characterProfile.lean * 0.20);
+      else if (key === 'ring') intent[key] = value * (0.76 + characterProfile.snap * 0.12 + characterProfile.plant * 0.12);
+      else intent[key] = value;
     }
   };
   const decayIntent = d => {
@@ -437,11 +451,11 @@ export function buildBlobRig({
 
     update(dt, speedNorm = 0, opts = {}) {
       const run = clamp01(speedNorm);
-      bobT += dt * (3.4 + run * 9.6);
+      bobT += dt * (3.4 + run * 9.6) * characterProfile.strideRate;
 
       // Host acceleration/turn are signed, normalized and simulation-derived. Smooth
       // them inside the renderer: collision spikes become a readable plant, not jitter.
-      const motionEase = 1 - Math.exp(-10 * dt);
+      const motionEase = 1 - Math.exp(-10 * characterProfile.snap * dt);
       accelS += ((opts.accel || 0) - accelS) * motionEase;
       turnS += ((opts.turn || 0) - turnS) * motionEase;
 
@@ -453,11 +467,15 @@ export function buildBlobRig({
       const plant = Math.pow(1 - airborne, 4);
       const drive = Math.max(accelS, 0);
       const brake = Math.max(-accelS, 0);
-      const cut = Math.abs(turnS) * run;
-      const bob = airborne * run * 0.105;
-      const locSY = 1 + run * 0.035 - plant * run * 0.075 + drive * 0.075 - brake * 0.105 - cut * 0.045;
-      const locSX = 1 + plant * run * 0.065 + brake * 0.095 + cut * 0.085;
-      const locSZ = 1 + run * 0.045 + drive * 0.10 - brake * 0.035;
+      const cut = Math.abs(turnS) * run * characterProfile.turn;
+      const bob = airborne * run * 0.105 * characterProfile.bounce;
+      const breath = Math.sin(bobT * 0.38 * characterProfile.breathRate + characterProfile.phase) * (1 - run) * 0.012;
+      const signatureSway = Math.sin(bobT * 0.52 + characterProfile.phase) * run * 0.018 * characterProfile.sway;
+      const locSY = 1 + breath + run * 0.035 - plant * run * 0.075 * characterProfile.plant
+        + drive * 0.075 * characterProfile.lean - brake * 0.105 * characterProfile.plant - cut * 0.045;
+      const locSX = 1 + plant * run * 0.065 * characterProfile.plant
+        + brake * 0.095 * characterProfile.plant + cut * 0.085;
+      const locSZ = 1 + run * 0.045 + drive * 0.10 * characterProfile.lean - brake * 0.035;
 
       const poseEase = 1 - Math.exp(-18 * dt);
       for (const key of POSE_CHANNELS) shown[key] += (intent[key] - shown[key]) * poseEase;
@@ -465,18 +483,24 @@ export function buildBlobRig({
       const sx = THREE.MathUtils.clamp(shown.sx * locSX, 0.68, 1.36);
       const sy = THREE.MathUtils.clamp(shown.sy * locSY, 0.62, 1.34);
       const sz = THREE.MathUtils.clamp(shown.sz * locSZ, 0.70, 1.48);
-      body.scale.set(sx, sy, sz);
+      body.scale.set(
+        sx * characterProfile.width,
+        sy * characterProfile.stature,
+        sz * characterProfile.depth,
+      );
 
       // Keep the soft mass grounded as it squashes instead of letting its bottom float.
       // The head follows the body's top but lags on starts, stops, and lateral cuts.
-      body.position.y = 0.20 + 0.85 * sy + bob + shown.lift;
+      body.position.y = 0.20 + 0.85 * sy * characterProfile.stature + bob + shown.lift;
       body.rotation.x = THREE.MathUtils.lerp(body.rotation.x,
-        shown.pitch + drive * 0.27 - brake * 0.20 + run * 0.055, 1 - Math.exp(-13 * dt));
+        shown.pitch + drive * 0.27 * characterProfile.lean - brake * 0.20
+          + run * 0.055 * characterProfile.lean, 1 - Math.exp(-13 * characterProfile.snap * dt));
       body.rotation.z = THREE.MathUtils.lerp(body.rotation.z,
-        shown.roll - turnS * (0.22 + run * 0.24), 1 - Math.exp(-13 * dt));
+        shown.roll - turnS * characterProfile.turn * (0.22 + run * 0.24) + signatureSway,
+        1 - Math.exp(-13 * characterProfile.snap * dt));
 
       headPivot.position.x = shown.headX + turnS * run * 0.055;
-      headPivot.position.y = 0.20 + 1.78 * sy + bob + shown.lift + shown.headY;
+      headPivot.position.y = 0.20 + 1.78 * sy * characterProfile.stature + bob + shown.lift + shown.headY;
       headPivot.position.z = shown.headZ - drive * 0.055 + brake * 0.045;
       headPivot.rotation.x = THREE.MathUtils.lerp(headPivot.rotation.x,
         shown.headPitch - drive * 0.10 + brake * 0.08, 1 - Math.exp(-15 * dt));
@@ -485,8 +509,10 @@ export function buildBlobRig({
 
       // The halo acts like a contact shadow and impact meter: it widens on a plant and
       // flares at the authored contact beat, preserving readability from the wide camera.
-      const haloX = 1 + plant * run * 0.12 + cut * 0.12 + shown.ring * 0.30;
-      const haloZ = 1 + plant * run * 0.08 + drive * 0.12 + shown.ring * 0.30;
+      const haloX = characterProfile.width * (1 + plant * run * 0.12 * characterProfile.plant
+        + cut * 0.12 + shown.ring * 0.30);
+      const haloZ = characterProfile.depth * (1 + plant * run * 0.08 * characterProfile.plant
+        + drive * 0.12 * characterProfile.lean + shown.ring * 0.30);
       ring.scale.set(haloX, haloZ, 1);
       ringMat.opacity = THREE.MathUtils.clamp(0.32 + run * 0.26 + shown.ring * 0.34, 0.25, 0.92);
       bodyMat.emissiveIntensity = 0.35 + shown.ring * 0.20 + drive * 0.05;
@@ -574,6 +600,7 @@ export function buildBlobRig({
           role: String(role || ''),
           visible: hasIdentity,
           founding: foundingState,
+          characterProfile,
         },
       };
     },
@@ -686,7 +713,7 @@ export function buildBlobRig({
         headPitch: 0.24 * down - 0.18 * push, ring: 0.22 * push });
     },
 
-    poseCelebrate(t, variant = 0) {
+    poseCelebrate(t, variant = characterProfile.celebrationVariant) {
       const v = Math.abs(Math.round(variant)) % 4;
       const pulse = Math.sin(t * (v === 3 ? 7.2 : 5.7) + v * 0.8);
       const hop = Math.max(pulse, 0);

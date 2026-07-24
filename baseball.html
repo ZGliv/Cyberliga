@@ -6,7 +6,7 @@
 <link rel="icon" href="data:," />
 <link rel="stylesheet" href="arena-score-fit.css" />
 <link rel="stylesheet" href="broadcast-spine.css" />
-<title>CYBERLIGA DIAMOND — AUTONOMOUS AI BASEBALL</title>
+<title>CYBERLIGA DIAMOND — LIVE BASEBALL</title>
 <script src="watchonly.js"></script>
 <script src="arena-score-fit.js" defer></script>
 <style>
@@ -69,6 +69,7 @@
   }
   #pitchread strong { display:block; font:900 10px/1 'Orbitron'; letter-spacing:2px; color:var(--pitch,#8effc8); }
   #pitchread span { display:block; margin-top:5px; font:700 12px/1 'Rajdhani'; letter-spacing:1.25px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #pitchread small { display:block; margin-top:5px; font:800 9px/1 'Orbitron'; letter-spacing:1.7px; color:rgba(234,255,245,.58); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .live { width:7px; height:7px; border-radius:50%; background:#ff2d55; animation:pulse 1.2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1; box-shadow:0 0 8px #ff2d55;} 50%{opacity:.3;} }
   #inn { font-family:'Orbitron'; font-weight:700; font-size:14px; color:#9dffd0; letter-spacing:2px; }
@@ -84,9 +85,16 @@
 
   #flash { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; opacity:0; transition:opacity .22s; }
   #flash.show { opacity:1; }
-  #flash.compact { justify-content:flex-start; padding-top:150px; }
-  #flash.compact #flashtext { font-size:clamp(28px,4.2vw,52px);letter-spacing:7px; }
-  #flash.compact #flashsub { font-size:15px;letter-spacing:3.5px; }
+  #flash.compact {
+    inset:116px 22px auto auto; width:min(390px,calc(100vw - 44px)); min-height:0;
+    align-items:flex-end; justify-content:center; padding:11px 15px 10px;
+    border-left:3px solid var(--fc,#58ffb4); border-top:1px solid rgba(255,255,255,.12); border-radius:4px;
+    background:linear-gradient(90deg,rgba(3,8,17,.55),rgba(3,8,17,.94));
+    box-shadow:0 12px 32px rgba(0,0,0,.38); backdrop-filter:blur(6px);
+  }
+  #flash.compact #flashtext { font-size:clamp(18px,2.2vw,26px);letter-spacing:4px; line-height:1; text-align:right; }
+  #flash.compact #flashsub { max-width:100%; margin-top:4px; font-size:12px;letter-spacing:2px; line-height:1.05; text-align:right; }
+  #flash.feature:not(.compact) #flashtext { font-size:clamp(42px,7vw,84px); }
   #flashtext {
     font-family:'Orbitron'; font-weight:900; font-size:clamp(54px, 10vw, 124px); letter-spacing:14px;
     color:#fff; text-shadow:0 0 28px var(--fc,#58ffb4), 0 0 86px var(--fc,#58ffb4);
@@ -166,17 +174,22 @@
       background:rgba(5,12,24,.82); box-shadow:0 0 18px rgba(88,255,180,.22), inset 0 1px 0 rgba(255,255,255,.08);
     }
     #scoreboard {
-      top:calc(env(safe-area-inset-top, 0px) + 53px); width:calc(100vw - 20px); max-width:460px; height:44px;
+      top:calc(env(safe-area-inset-top, 0px) + 53px); left:10px; right:10px; transform:none;
+      width:auto; max-width:none; height:44px;
       display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr);
       border-radius:12px; z-index:60;
       background:linear-gradient(180deg, rgba(8,14,30,.96), rgba(2,4,14,.92));
       box-shadow:0 10px 28px rgba(0,0,0,.38), 0 0 24px rgba(88,255,180,.2), inset 0 1px 0 rgba(255,255,255,.07);
     }
-    .team { min-width:0; gap:7px; padding:0 9px; font-size:10.5px; letter-spacing:.75px; white-space:nowrap; overflow:hidden; }
-    .team #nameA, .team #nameB { --score-fit-max:10.5px; --score-fit-min:7.25px; --score-fit-floor:5.75px; --score-fit-tracking:.75px; --score-fit-min-tracking:-1.15px; min-width:0; flex:1 1 auto; overflow:hidden; text-overflow:clip; }
+    .team { min-width:0; gap:5px; padding:0 6px; font-size:9px; letter-spacing:.35px; white-space:nowrap; overflow:hidden; }
+    .team #nameA, .team #nameB {
+      --score-fit-max:9px; --score-fit-min:6.8px; --score-fit-floor:6.2px; --score-fit-tracking:.35px; --score-fit-min-tracking:-.35px;
+      min-width:0; max-width:100%; flex:1 1 auto; overflow:hidden; text-overflow:clip;
+      font-size:clamp(6.8px,2vw,9px)!important; letter-spacing:.35px!important;
+    }
     #teamB { justify-content:flex-end; text-align:right; }
     .team .dot { width:8px; height:8px; flex:0 0 8px; }
-    #score { min-width:72px; height:100%; padding:0 8px; font-size:18px; letter-spacing:1.8px; }
+    #score { min-width:64px; height:100%; padding:0 6px; font-size:17px; letter-spacing:1.5px; }
     #countbar {
       top:calc(env(safe-area-inset-top, 0px) + 107px);
       gap:8px; min-height:31px; padding:4px 10px; border-radius:999px;
@@ -186,10 +199,11 @@
     #playstatus {
       top:calc(env(safe-area-inset-top, 0px) + 145px); min-width:168px; max-width:calc(100vw - 24px);
       padding:5px 11px; font-size:9px; letter-spacing:1.7px; z-index:60; background:rgba(5,9,22,.82);
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     }
     #venuebug {
-      top:calc(env(safe-area-inset-top, 0px) + 178px); left:50%; right:auto; transform:translateX(-50%);
-      width:min(280px,calc(100vw - 28px)); padding:5px 10px; border-right:0; border-bottom:2px solid var(--venue,#58ffb4);
+      top:calc(env(safe-area-inset-top, 0px) + 178px); left:14px; right:14px; transform:none;
+      width:auto; padding:5px 10px; border-right:0; border-bottom:2px solid var(--venue,#58ffb4);
       text-align:center; background:rgba(3,8,17,.72); z-index:59;
     }
     #venuebug strong { font-size:9px; letter-spacing:1.5px; }
@@ -198,14 +212,20 @@
       left:10px; right:10px; bottom:calc(43px + env(safe-area-inset-bottom, 0px)); width:auto; padding:6px 9px;
       z-index:64; background:rgba(3,8,17,.84); border-left-width:2px;
     }
-    #pitchread strong { font-size:8px; letter-spacing:1.35px; }
-    #pitchread span { margin-top:3px; font-size:10px; letter-spacing:.75px; }
+    #pitchread strong { font-size:9.5px; letter-spacing:1.25px; }
+    #pitchread span { margin-top:4px; font-size:11.5px; letter-spacing:.6px; }
+    #pitchread small { margin-top:4px; font-size:8.5px; letter-spacing:.7px; }
     #inn, #count { font-size:12px; letter-spacing:1.2px; white-space:nowrap; }
     #count em { font-size:9px; }
     #outs i { width:8px; height:8px; }
     #minibases { width:24px; height:24px; transform:scale(.9); transform-origin:center; }
     #flash { z-index:45; }
-    #flash.compact { padding-top:180px; }
+    #flash.compact {
+      inset:218px 10px auto 10px; width:auto; padding:9px 11px 8px;
+      align-items:flex-start; background:linear-gradient(90deg,rgba(3,8,17,.94),rgba(3,8,17,.62));
+    }
+    #flash.compact #flashtext { font-size:18px; letter-spacing:3px; text-align:left; }
+    #flash.compact #flashsub { font-size:11px; letter-spacing:1.55px; text-align:left; padding:0; }
     #flashtext { max-width:100vw; font-size:clamp(38px, 13vw, 68px); letter-spacing:5px; line-height:.98; text-align:center; overflow-wrap:anywhere; }
     #flash.long #flashtext { font-size:clamp(27px,8.6vw,38px); letter-spacing:3px; white-space:nowrap; overflow-wrap:normal; }
     #flashsub { max-width:calc(100vw - 28px); font-size:14px; letter-spacing:2.6px; line-height:1.15; text-align:center; padding:0 16px; }
@@ -230,11 +250,11 @@
   }
   @media (max-width:380px) {
     #badge { left:calc(env(safe-area-inset-left, 0px) + 8px); }
-    #scoreboard { width:calc(100vw - 16px); height:42px; }
-    .team { padding:0 7px; gap:6px; font-size:9.5px; letter-spacing:.55px; }
-    .team #nameA, .team #nameB { --score-fit-max:9.5px; --score-fit-min:6.75px; --score-fit-floor:5.35px; --score-fit-tracking:.55px; --score-fit-min-tracking:-1.3px; }
+    #scoreboard { left:8px; right:8px; width:auto; height:42px; }
+    .team { padding:0 5px; gap:4px; font-size:8px; letter-spacing:.25px; }
+    .team #nameA, .team #nameB { --score-fit-max:8px; --score-fit-min:6.5px; --score-fit-floor:6px; --score-fit-tracking:.25px; --score-fit-min-tracking:-.45px; }
     .team .dot { width:7px; height:7px; flex-basis:7px; }
-    #score { min-width:66px; font-size:16px; letter-spacing:1.5px; }
+    #score { min-width:60px; font-size:16px; letter-spacing:1.2px; }
     #countbar { max-width:calc(100vw - 16px); gap:6px; padding:4px 8px; }
     #inn, #count { font-size:11px; }
     #tickerlabel { padding:0 8px; font-size:9px; letter-spacing:1.4px; }
@@ -258,7 +278,7 @@
   </div>
   <div id="playstatus">FIRST PITCH LOADING</div>
   <div id="venuebug"><strong id="venuename">THE LONG AFTERNOON</strong><span id="venueline">ONE PITCH AT A TIME</span></div>
-  <div id="pitchread"><strong id="pitchreadtop">MATCHUP LOADING</strong><span id="pitchreadbody">PITCHER VS BATTER</span></div>
+  <div id="pitchread"><strong id="pitchreadtop">MATCHUP LOADING</strong><span id="pitchreadbody">PITCHER VS BATTER</span><small id="pitchreadmeta">SCOUTING THE FIRST MATCHUP</small></div>
   <div id="pitchcall" role="status" aria-live="polite"><strong id="pitchcalltext"></strong><span id="pitchcallsub"></span></div>
   <div id="flash"><div id="flashtext"></div><div id="flashsub"></div></div>
   <div id="ticker"><div id="tickerlabel">DIAMOND</div><div id="tickertext"></div></div>
@@ -289,6 +309,12 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { buildBlobRig, CLASSIC_PLAYER_COLORS, classicPlayerColor } from './blobrig.js';
+import {
+  BASEBALL_PACING,
+  baseballResultPresentation,
+  createBaseballMatchupRead,
+  createBaseballPlayerProfile,
+} from './baseball-broadcast-polish.js';
 
 const classicSideVisual = side => classicPlayerColor(Number(side) % CLASSIC_PLAYER_COLORS.length);
 
@@ -694,6 +720,8 @@ for (let i=0;i<180;i++){
     pick(crowdPalette), 0.2+Math.random()*0.15);
 }
 let crowdPulse=0, crowdWave=0;
+const crowdResponseColor=new THREE.Color(),crowdStandColor=new THREE.Color(),crowdHomeColor=new THREE.Color();
+const crowdWhiteColor=new THREE.Color(0xffffff),crowdLedColor=new THREE.Color(),crowdAccentColor=new THREE.Color();
 
 // ---------- fireworks ----------
 const sparks=[];
@@ -769,6 +797,19 @@ function swellCrowd(amount=0.25){
   crowdPulse=Math.min(1, Math.max(crowdPulse, amount));
   crowdLevel=Math.min(0.52, crowdLevel + amount*0.18);
 }
+function directCrowd(result,runs=0,homeBeneficiary=S.half===1){
+  const grammar=baseballResultPresentation(result,{homeBatting:homeBeneficiary,runs});
+  S.crowdReaction={
+    result:String(result||'PLAY').toUpperCase(),
+    mode:grammar.crowdMode,
+    propagation:grammar.propagation,
+    amplitude:grammar.crowdAmplitude,
+    elapsed:0,
+    duration:clamp(grammar.holdSeconds,1.05,4)
+  };
+  swellCrowd(grammar.crowdAmplitude);
+  return grammar;
+}
 
 // ---------- HUD ----------
 const $=id=>document.getElementById(id);
@@ -778,12 +819,17 @@ const elMB=[$('mb1'),$('mb2'),$('mb3')];
 const elFlash=$('flash'), elFT=$('flashtext'), elFS=$('flashsub'), elTicker=$('tickertext');
 const elCard=$('bigcard'), elPanel=$('cardpanel'), elPlayStatus=$('playstatus');
 const elPitchCall=$('pitchcall'), elPitchCallText=$('pitchcalltext'), elPitchCallSub=$('pitchcallsub');
-const elVenueName=$('venuename'),elVenueLine=$('venueline'),elPitchReadTop=$('pitchreadtop'),elPitchReadBody=$('pitchreadbody');
+const elVenueName=$('venuename'),elVenueLine=$('venueline'),elPitchReadTop=$('pitchreadtop'),elPitchReadBody=$('pitchreadbody'),elPitchReadMeta=$('pitchreadmeta');
 let flashTimer=0;
 function flashMsg(big, sub, color){
   elFT.textContent=big; elFS.textContent=sub; elFlash.style.setProperty('--fc',color);
-  const compact=['K','WALK','SINGLE','DOUBLE','TRIPLE','OUT','SAFE','ERROR','THROWING ERROR'].includes(big);
-  elFlash.classList.toggle('compact',compact);elFlash.classList.add('show'); flashTimer=compact?.9:1.7;
+  const routine=['K','WALK','SINGLE','DOUBLE','TRIPLE','OUT','SAFE','ERROR','THROWING ERROR'].includes(big);
+  const grammar=baseballResultPresentation(big==='K'?'STRIKEOUT':big,{homeBatting:S.half===1,runs:S.play?.officialRuns?.length||0});
+  const compact=routine&&grammar.compact;
+  elFlash.classList.toggle('compact',compact);
+  elFlash.classList.toggle('feature',routine&&grammar.tier==='feature');
+  elFlash.classList.add('show');
+  flashTimer=routine?Math.min(grammar.holdSeconds,compact?1.35:2.25):1.7;
 }
 const CALL_COLORS={ball:'#58ffb4',strike:'#ff5e75',foul:'#ffd34d',contact:'#37e0ff',live:'#f2fffa'};
 function showPitchCall(label,detail='',tone='live',seconds=1.25){
@@ -795,13 +841,13 @@ function showPitchCall(label,detail='',tone='live',seconds=1.25){
   elPitchCall.classList.add('show');
 }
 let tickerQ=[], tickerX=innerWidth;
-elTicker.textContent='WELCOME TO THE CYBERLIGA DIAMOND DOME — FULLY AUTONOMOUS AI BASEBALL — NO HUMAN SIGNS, NO STOLEN ONES EITHER — SEASON 2077 EXHIBITION ERA';
+elTicker.textContent='FIRST PITCH IS COMING — TONIGHT’S MATCHUP, BULLPEN SHAPES, AND BATTER TENDENCIES LIVE FROM THE DIAMOND';
 const say=s=>{ if (tickerQ.length<10) tickerQ.push(s.toUpperCase()); };
 const IDLE_CHATTER=[
-  ()=>`THE DIAMOND DOME CROWD IS ${pick(['ELECTRIC','MAGNETIZED','FULLY CHARGED','LOSING ITS FIRMWARE'])} TONIGHT`,
-  ()=>`SCOUTING REPORT: EVERY PITCH TRACKED BY 2077 LASER ARRAYS`,
-  ()=>`REMINDER: THE SEVENTH-INNING STRETCH IS A FIRMWARE UPDATE`,
-  ()=>`UMP-BOT 3000 HAS NEVER MISSED A CALL. IT HAS ALSO NEVER ADMITTED ONE`,
+  ()=>`${S.batter?.name||'THE NEXT HITTER'}: ${S.batter?.baseballProfile?.batting.broadcast||'LOOKING FOR A PITCH TO DRIVE'}`,
+  ()=>`${activePitcherName()}: ${activePitcherEntity()?.baseballProfile?.pitching.broadcast||'WORKING BOTH SIDES OF THE PLATE'}`,
+  ()=>`${TEAM_B?.name||'THE HOME CLUB'} HAVE THE CROWD LEANING INTO EVERY TWO-STRIKE PITCH`,
+  ()=>`${S.defense||'STRAIGHT UP'} BEHIND ${activePitcherName()} · ${S.approach||'READ AND REACT'} AT THE PLATE`,
 ];
 function tickerStep(dt){
   tickerX-=dt*130; elTicker.style.transform=`translateX(${tickerX}px)`;
@@ -825,6 +871,8 @@ function addBaseballGear(rig, role, color){
   crown.scale.y=.52; crown.position.set(0,2.13,0);
   const brim=new THREE.Mesh(new THREE.BoxGeometry(.34,.045,.22),dark); brim.position.set(0,2.08,.24);
   gear.add(crown,brim);
+  const helmetFlap=new THREE.Mesh(new THREE.BoxGeometry(.14,.28,.08),club);
+  helmetFlap.position.set(-.25,1.97,.08);helmetFlap.rotation.z=-.14;helmetFlap.userData.batterOnly=true;gear.add(helmetFlap);
   const glove=new THREE.Mesh(new THREE.SphereGeometry(role==='1B'? .23:.18,8,7),leather);
   glove.scale.set(1.25,.85,.55); glove.position.set(-.43,1.14,.05); glove.userData.fieldOnly=true; gear.add(glove);
   if(role==='C'){
@@ -852,9 +900,13 @@ function makeClub(def, side){
       brandColor:def.col,secondaryColor:def.secondary,accentColor:def.accent,teamCode:def.code,jerseyNumber:number,
       kitPattern:def.brand?.kitPattern||'pulse',role:athlete?.role||position,
       athlete,foundingTeam:def.team });
+    const characterProfile=rig.getState().identity.characterProfile;
+    const baseballProfile=createBaseballPlayerProfile(athlete||{name,id:`${def.id}-depth-${i+1}`,role:position},{
+      name,position,motionName:characterProfile.motionName,teamMotion:def.team.motion
+    });
     const gear=addBaseballGear(rig,position,def.col);
     scene.add(rig.group);
-    players.push({ rig, gear, name, athlete, number, side, role:i, position, x:-6, z:(side?-1:1)*(9+i*0.9), vx:0, vz:0,
+    players.push({ rig, gear, name, athlete, number, baseballProfile, characterProfile, side, role:i, position, x:-6, z:(side?-1:1)*(9+i*0.9), vx:0, vz:0,
       heading:0, tx:0, tz:0, sprint:6, duty:'dugout', baseIdx:-1, path:null, pathI:0,
       taggedUp:true, jumpY:0, jumpV:0, air:false, ph:Math.random()*6.28, poseT:0 });
   });
@@ -888,7 +940,9 @@ const S={ state:'SETUP', t:0, inning:1, half:0, outs:0, balls:0, strikes:0,
   scoreFlash:0, camMode:'plate', camCut:true, homerPan:0, lastState:'', clipMoment:'', clipT:0, clips:[],
   approach:'READ & REACT', defense:'STRAIGHT UP', intent:'ESTABLISH THE ZONE', lastPitch:null, pitchHistory:[], forceNext:null, playLog:[],
   callLabel:'', callDetail:'', callTone:'live', callT:0,
-  transition:null, strikeoutHold:null, entryMode:'fresh', tuneInSeconds:0, entryTargetSeconds:0, entryBucket:null, entryRecued:false, entryPhase:null };
+  transition:null, strikeoutHold:null, matchupRead:null, broadcastBeat:'OPENING PITCH', resultActor:null, crowdReaction:null,
+  pendingSpotlight:null,spotlightShown:false,
+  entryMode:'fresh', tuneInSeconds:0, entryTargetSeconds:0, entryBucket:null, entryRecued:false, entryPhase:null };
 let baseballMomentDirector=null,baseballBroadcastSpine=null,activeBaseballFixtureIndex=0,baseballMomentFixtureId='';
 let baseballMomentSequence=0,baseballMomentCounters={grand_slam:0,home_run:0,wall_robbery:0,double_play:0,triple:0,run:0,strikeout:0};
 let suppressBaseballSpinePresentation=false;
@@ -924,7 +978,8 @@ function queueBaseballWhoToWatch(){
   const founder=eligible.find(player=>window.CyberligaCharacters?.get(player.athlete.id));
   const watch=founder||eligible[hash32(baseballMomentFixtureId)%Math.max(1,eligible.length)];
   const team=watch&&teams[watch.side];
-  if(watch&&team)baseballBroadcastSpine?.spotlight({team:team.def.team,athlete:watch.athlete},{delayMs:3000});
+  S.pendingSpotlight=watch&&team?{team:team.def.team,athlete:watch.athlete}:null;
+  S.spotlightShown=false;
 }
 function baseballActorContext(player){
   if(!player?.athlete)return null;
@@ -943,7 +998,7 @@ function recordBaseballNamedMoment(kind,player){
     sequence,leverage:baseballMomentLeverage(kind),clock:baseballMomentClock(),
     score:{home:teams[1].runs,away:teams[0].runs},recordedFootage:false
   });
-  if(moment&&!suppressBaseballSpinePresentation)baseballBroadcastSpine?.present(moment);
+  if(moment&&!suppressBaseballSpinePresentation)baseballBroadcastSpine?.present(moment,{durationMs:2600});
   return moment;
 }
 function recordBaseballFinalizedPlay(play){
@@ -1013,6 +1068,8 @@ function applyVenueIdentity(){
   for(const member of crowdMembers){
     const section=Math.abs(Math.sin(member.phase*7.31));
     const color=section<.56?TEAM_B.glow:section<.78?TEAM_B.accent:section<.93?TEAM_A.glow:0xf2fffa;
+    member.section=section<.78?'home':section<.93?'away':'neutral';
+    member.baseCrowdColor=color;
     member.s.material.color.setHex(color);
   }
   applyVenueArchitecture(TEAM_B);
@@ -1041,8 +1098,16 @@ function hudStep(){
   elPlayStatus.classList.toggle('hot',hot);
   if(teams.length&&S.batter){
     const plan=S.pitchPlan,live=plan&&(S.state==='WINDUP'||S.state==='PITCH');
+    const matchup=createBaseballMatchupRead(activePitcherEntity()?.baseballProfile,S.batter.baseballProfile,{
+      balls:S.balls,strikes:S.strikes,runners:S.bases.filter(Boolean).length,
+      leverage:S.leverage==='MAX'?1:S.leverage==='HIGH'?.78:S.leverage==='MEDIUM'?.48:.2
+    });
+    S.matchupRead=matchup;
     elPitchReadTop.textContent=live?`${plan.name} · ${Math.round(plan.speed*4)} MPH`:`${activePitcherName()}  VS  ${S.batter.name}`;
-    elPitchReadBody.textContent=live?`${plan.location} · ${S.intent}`:`${S.approach} · ${S.defense}`;
+    elPitchReadBody.textContent=live?`${plan.location} · ${S.intent}`:(matchup?.headline||`${S.approach} · ${S.defense}`);
+    elPitchReadMeta.textContent=live
+      ? `${pitchFamily(plan.name)} · ${matchup?.edgeLabel||'MATCHUP EVEN'} · ${matchup?.pressure||'OPEN COUNT'}`
+      : `${matchup?.detail||`${S.approach} · ${S.defense}`} · ${matchup?.edgeLabel||'MATCHUP EVEN'}`;
     document.documentElement.style.setProperty('--pitch',live?(plan.inZone?'#ff5e75':'#58ffb4'):TEAM_B.css);
   }
 }
@@ -1064,13 +1129,15 @@ function setupMatch(){
   S.clipMoment=''; S.clipT=0; S.clips=[];
   S.approach='READ & REACT'; S.defense='STRAIGHT UP'; S.intent='ESTABLISH THE ZONE'; S.lastPitch=null; S.pitchHistory=[]; S.forceNext=null; S.playLog=[];
   S.callLabel=''; S.callDetail=''; S.callTone='live'; S.callT=0; elPitchCall.classList.remove('show');
-  S.transition=null;S.strikeoutHold=null;S.entryMode='fresh';S.tuneInSeconds=0;S.entryTargetSeconds=0;S.entryBucket=null;S.entryRecued=false;S.entryPhase=null;
+  S.transition=null;S.strikeoutHold=null;S.matchupRead=null;S.broadcastBeat='OPENING PITCH';S.resultActor=null;S.crowdReaction=null;
+  S.pendingSpotlight=null;S.spotlightShown=false;
+  S.entryMode='fresh';S.tuneInSeconds=0;S.entryTargetSeconds=0;S.entryBucket=null;S.entryRecued=false;S.entryPhase=null;
   initializeBaseballBroadcastMemory(fixtureIdx);
   applyTeamHUD(); applyVenueIdentity(); hideCard();
   // Clear the venue card before the 3.03s setup + windup releases the first
   // pitch.  A longer card looked beautiful but hid the entire opening at-bat.
   if(window.CyberligaEstablishing) window.CyberligaEstablishing.show({sportId:'baseball',homeTeam:TEAM_B.team,awayTeam:TEAM_A.team,duration:2400});
-  say(`FIRST PITCH AT ${TEAM_B.brand?.venue||'THE DIAMOND'} — ${TEAM_A.name} VS ${TEAM_B.name} — ${INNINGS} INNINGS OF FULLY AUTONOMOUS BASEBALL`);
+  say(`FIRST PITCH AT ${TEAM_B.brand?.venue||'THE DIAMOND'} — ${TEAM_A.name} VS ${TEAM_B.name} — ${INNINGS} INNINGS ON THE CARD`);
   flashMsg('PLAY BALL', `${TEAM_A.name} VS ${TEAM_B.name}`, '#58ffb4');
   nextBatter(true);
   cut('plate');
@@ -1087,6 +1154,8 @@ function nextBatter(snap=false){
   S.balls=0; S.strikes=0;
   S.pitchHistory=[];
   S.batter.duty='batter'; S.batter.baseIdx=-1; S.batter.path=null;
+  S.broadcastBeat=`MATCHUP · ${activePitcherName()} vs ${S.batter.name}`;
+  S.resultActor=null;
   ball.mode='IDLE'; ball.pos.set(MOUND_X-0.55,1.4,0); ball.vel.set(0,0,0);
   if (snap) snapAll();
 }
@@ -1110,7 +1179,13 @@ function beginBatterChange(reason='NEXT HITTER'){
   const start=dutySpot(incoming);incoming.x=start.x;incoming.z=start.z;incoming.vx=incoming.vz=0;
   transitionPath(incoming,[{x:-2.7,z:side*4.3},{x:-.5,z:1.15}],4.15,p=>{p.duty='batter';p.baseIdx=-1;});
   S.transition={reason,outgoing,incoming,side};
-  say(`${incoming.name} LEAVES THE ON-DECK CIRCLE — ${reason}`);
+  S.broadcastBeat=`WALK-UP · ${incoming.name}`;
+  const spineState=baseballBroadcastSpine?.state();
+  if(S.pendingSpotlight&&!S.spotlightShown&&!spineState?.visible&&!spineState?.queueLength){
+    baseballBroadcastSpine?.spotlight(S.pendingSpotlight,{durationMs:2400});
+    S.spotlightShown=true;
+  }
+  say(`${incoming.name} LEAVES THE ON-DECK CIRCLE — ${incoming.baseballProfile.batting.label} · ${incoming.baseballProfile.batting.broadcast}`);
   setState('BATTER_CHANGE');cut('dugout');
 }
 // every player's resting assignment for the current situation
@@ -1226,10 +1301,13 @@ function battingPoseLocal(style,t){
   // Negative local z keeps the grip on the camera-facing side of the torso
   // after the hips rotate. The previous positive-z finish placed both hands
   // behind the blob, leaving only a barrel apparently growing from a shoulder.
-  const readyH=V3(.34,1.48,-.24), loadH=V3(.48,1.53,-.38), slotH=V3(.19,1.33,-.26), hitH=V3(-.50,1.20,-.55), wrapH=V3(-.55,1.36,-.62), finishH=V3(-.55,1.52,-.68);
-  const readyE=V3(.92,2.43,-.48), loadE=V3(.78,2.33,-.72), slotE=V3(.54,1.12,.94), hitE=V3(-1.95,1.18,-1.30), wrapE=V3(-1.55,1.98,-1.30), finishE=V3(-1.25,2.32,-1.35);
-  if(t<0) return {hand:poseA.copy(readyH),end:poseB.copy(readyE)};
-  const k=clamp(t/.82,0,1);
+  const stance=S.batter?.baseballProfile?.batting;
+  const crouch=(stance?.crouch||0)*1.2,load=(stance?.load||1)-1;
+  const idleWaggle=t<0?Math.sin(tGlobal*(2.3+(stance?.waggle||.5)*1.7)+S.batter.ph)*(stance?.waggle||.5)*.1:0;
+  const readyH=V3(.34+load*.13,1.48-crouch,-.24), loadH=V3(.48+load*.18,1.53-crouch*.7,-.38-load*.08), slotH=V3(.19,1.33-crouch*.45,-.26), hitH=V3(-.50,1.20,-.55), wrapH=V3(-.55,1.36,-.62), finishH=V3(-.55,1.52,-.68);
+  const readyE=V3(.92+load*.12,2.43-crouch+idleWaggle,-.48), loadE=V3(.78+load*.12,2.33-crouch*.7,-.72-load*.18), slotE=V3(.54,1.12,.94), hitE=V3(-1.95,1.18,-1.30), wrapE=V3(-1.55,1.98,-1.30), finishE=V3(-1.25,2.32,-1.35);
+  if(t<0) return {hand:poseA.copy(readyH).add(V3(0,idleWaggle*.22,0)),end:poseB.copy(readyE)};
+  const k=clamp(t/(.82*(stance?.finish||1)),0,1);
   if(style==='CHECK'){
     const checkH=V3(.02,1.37,-.4), checkE=V3(-.42,2.25,.02);
     if(k<.28) return {hand:mixPose(poseA,readyH,loadH,k/.28),end:mixPose(poseB,readyE,loadE,k/.28)};
@@ -1243,10 +1321,11 @@ function battingPoseLocal(style,t){
   return {hand:mixPose(poseA,wrapH,finishH,(k-.88)/.12),end:mixPose(poseB,wrapE,finishE,(k-.88)/.12)};
 }
 function battingBodyTurn(style,t){
-  if(t<0)return -.08;
-  const k=clamp(t/.82,0,1);
-  if(style==='CHECK')return k<.42?lerp(-.08,-.25,smooth01(k/.42)):lerp(-.25,-.02,smooth01((k-.42)/.58));
-  if(k<.18)return lerp(-.08,-.34,smooth01(k/.18));
+  const stance=S.batter?.baseballProfile?.batting,open=stance?.open||0,ready=-.08+open;
+  if(t<0)return ready+Math.sin(tGlobal*1.7+S.batter.ph)*(stance?.waggle||.5)*.018;
+  const k=clamp(t/(.82*(stance?.finish||1)),0,1);
+  if(style==='CHECK')return k<.42?lerp(ready,-.25+open*.5,smooth01(k/.42)):lerp(-.25+open*.5,-.02+open,smooth01((k-.42)/.58));
+  if(k<.18)return lerp(ready,-.34+open*.35,smooth01(k/.18));
   if(k<.58)return lerp(-.34,.46,smooth01((k-.18)/.40));
   return lerp(.46,.72,smooth01((k-.58)/.42));
 }
@@ -1316,7 +1395,7 @@ function pitchGuideStep(){
 }
 
 const pitcherP = () => fldTeam().players[0];
-const activePitcherPlayer=()=>{const tm=fldTeam();return tm.players.find(player=>player.name===tm.staff.active&&player.athlete)||null;};
+const activePitcherPlayer=()=>{const player=activePitcherEntity();return player?.athlete?player:null;};
 const infielders = () => fldTeam().players.filter(p => p.fieldPos >= 2 && p.fieldPos <= 5);
 const allSettled = () => batTeam().players.every(p => !p.path);
 function clearRunnerFromBases(p){
@@ -1439,9 +1518,20 @@ function advanceOnHit(n, batter) {
 }
 
 // ---------- pitch planning + the at-bat ----------
-function playerTrait(player,key){ return ((hash32(`${player.name}:${key}`)%1000)/1000); }
+function playerTrait(player,key){
+  const texture=((hash32(`${player.name}:${key}`)%1000)/1000),profile=player.baseballProfile;
+  const authored=key==='baserunning'?profile?.batting.speed
+    :key==='pitch-recognition'||key==='patience'?profile?.batting.eye
+      :key==='contact'?profile?.batting.contact
+        :key==='power'?profile?.batting.power
+          :key==='range'?profile?.fielding.range
+            :key==='hands'?profile?.fielding.hands
+              :key==='arm'?profile?.fielding.arm:null;
+  return Number.isFinite(authored)?clamp(texture*.42+authored*.58,0,1):texture;
+}
 const pitchFamily=name=>['FOUR-SEAM','SINKER','CUTTER'].includes(name)?'HEAT':['SLIDER','CURVEBALL'].includes(name)?'BREAK':'SPEED';
 const activePitcherName=()=>fldTeam().staff.active;
+const activePitcherEntity=()=>fldTeam().players.find(player=>player.name===fldTeam().staff.active)||pitcherP();
 function gameLeverage(){
   const diff=Math.abs(teams[0].runs-teams[1].runs),traffic=S.bases.filter(Boolean).length;
   if(S.inning>=INNINGS && diff<=1 && (traffic||S.outs>=1)) return 'MAX';
@@ -1505,19 +1595,22 @@ function configureGamePlan(){
 function planPitch() {
   configureGamePlan();
   maybeBullpen(false);
+  const pitcher=activePitcherEntity(),pitcherProfile=pitcher?.baseballProfile?.pitching;
+  const batterProfile=S.batter?.baseballProfile?.batting;
   const forced=S.forceNext; S.forceNext=null;
   let type=forced&&forced.pitch ? PITCH_TYPES.find(p=>p.name===forced.pitch) : null;
   type=type||sequencedPitch();
   const fatigue=clamp(fldTeam().staff.pitches/(fldTeam().staff.role==='SP'?52:34),0,.94);
   let zoneP=S.strikes===2?.44:S.balls===3?.86:.64;
+  zoneP+=((pitcherProfile?.command??.52)-.52)*.18;
   if(S.intent==='INDUCE THE GROUNDER') zoneP+=.08;
   let inZone=forced&&forced.result==='ball'?false:forced&&forced.result==='called_strike'?true:simRandom()<zoneP;
   const edge=inZone&&(S.strikes===2||S.balls<2)&&simRandom()<.58;
   const high=simRandom()<.5, armSide=simRandom()<.5?1:-1;
   const aimY=inZone?(high?1.20:.75)+(simRandom()-.5)*.16:(high?1.55:.34)+(simRandom()-.5)*.16;
   const aimZ=inZone?(edge?armSide*(.43+simRandom()*.08):(simRandom()-.5)*.48):armSide*(.66+simRandom()*.3);
-  const speed=lerp(type.velo[0],type.velo[1],simRandom())*(1-fatigue*.075);
-  const curve=type.breakX*(.84+simRandom()*.3), press=S.strikes===2?.18:0;
+  const speed=lerp(type.velo[0],type.velo[1],simRandom())*(1-fatigue*.075)*(1+((pitcherProfile?.stuff??.52)-.52)*.045);
+  const curve=type.breakX*(.84+simRandom()*.3)*(1+(pitcherProfile?.breakBias||0)*.28), press=S.strikes===2?.18:0;
   let swingP=inZone?.72:.18;
   if(S.approach==='PROTECT THE PLATE') swingP+=inZone?.2:.17;
   else if(S.approach==='HUNT ONE ZONE') swingP+=inZone?.1:-.13;
@@ -1526,13 +1619,15 @@ function planPitch() {
   const prior=recent[recent.length-1], tunnel=prior&&pitchFamily(prior.name)!==pitchFamily(type.name)
     ? clamp(.35+Math.abs((prior.curve||0)-curve)*.35-Math.abs((prior.aimY??aimY)-aimY)*.3,0,1):.18;
   const eye=playerTrait(S.batter,'pitch-recognition');
-  const recognition=clamp(.38+eye*.38+repeats*.08-tunnel*.25,0.14,.93);
+  const recognition=clamp(.34+eye*.42+repeats*.08-tunnel*.25+((batterProfile?.eye??.52)-.52)*.16,0.14,.95);
   const guessedFamily=repeats>=2?pitchFamily(type.name):(prior?pitchFamily(prior.name):pitchFamily(type.name));
   if(guessedFamily===pitchFamily(type.name)) swingP+=.05+eye*.04;
   else swingP-=S.approach==='PROTECT THE PLATE'?0:.08;
+  if(!inZone)swingP-=((batterProfile?.eye??.52)-.52)*.24;
   let swing=forced&&['called_strike','ball'].includes(forced.result)?false:forced?true:simRandom()<clamp(swingP+press,0.03,.97);
-  const commandMiss=fatigue*.11, pq=clamp((speed-17)/10*.42+Math.abs(curve)/1.4*.3+type.whiff*.8,0,1);
-  const contact=clamp((inZone?.8:.48)-pq*.22-commandMiss+(S.strikes===2?.04:0),.2,.94);
+  const commandMiss=fatigue*.11-Math.max(-.02,((pitcherProfile?.command??.52)-.52)*.08);
+  const pq=clamp((speed-17)/10*.4+Math.abs(curve)/1.4*.28+type.whiff*.74+((pitcherProfile?.stuff??.52)-.52)*.18,0,1);
+  const contact=clamp((inZone?.79:.47)-pq*.22-commandMiss+(S.strikes===2?.04:0)+((batterProfile?.contact??.52)-.52)*.21,.18,.95);
   const forcedContact=forced&&['foul','ground','double_play','error','fly','sac_fly','liner','single','double','triple','homer'].includes(forced.result);
   const forcedWhiff=forced&&['swing_miss','early_whiff','late_whiff','check_swing'].includes(forced.result);
   const contactMade=!!swing&&(forcedContact?true:forcedWhiff?false:simRandom()<contact);
@@ -1542,10 +1637,13 @@ function planPitch() {
   else if(forced&&forced.result==='late_whiff') swingStyle='LATE';
   else if(forced&&forced.result==='check_swing') swingStyle='CHECK';
   else if(swing&&!contactMade) swingStyle=spick(['EARLY','LATE','CHASE','CHECK']);
+  const familyRead=guessedFamily===pitchFamily(type.name);
+  const timingError=clamp((simRandom()-.5)*(.42-recognition*.2)+(familyRead?0:(simRandom()<.5?-.16:.16)), -.34,.34);
+  const barrel=clamp(contact+((batterProfile?.power??.52)-.52)*.16+((batterProfile?.contact??.52)-.52)*.12-Math.abs(timingError)*.52+(simRandom()-.5)*.07,0.08,.98);
   const vertical=aimY<.55?'LOW':aimY>1.38?'HIGH':aimY>1.05?'UP':'DOWN';
   const horizontal=Math.abs(aimZ)<.22?'MIDDLE':aimZ>0?'ARM-SIDE':'GLOVE-SIDE';
   return { name:type.name,speed,inZone,curve,drop:type.drop,groundBias:type.ground,aimY,aimZ,swing,contact,contactMade,foulMade,swingStyle,
-    location:`${vertical} ${horizontal}`,foulP:S.strikes===2?.34:.25,forcedResult:forced&&forced.result||null };
+    recognition,timingError,barrel,location:`${vertical} ${horizontal}`,foulP:S.strikes===2?.34:.25,forcedResult:forced&&forced.result||null };
 }
 function throwPitch() {
   const plan = S.pitchPlan;
@@ -1566,7 +1664,8 @@ function strikeOut(how) {
   S.outs++; callBeep(false); glovePop();
   fldTeam().strikeouts++; commitPitch('STRIKEOUT','out');
   recordBaseballNamedMoment('strikeout',activePitcherPlayer());
-  swellCrowd(0.22);
+  directCrowd('STRIKEOUT',0,S.half===0);
+  S.broadcastBeat=`STRIKEOUT · ${activePitcherName()}`;
   flashMsg('K', `${S.batter.name} ${how}`, '#ff4d5e');
   say(`PUNCHED OUT — ${S.batter.name} ${how} — ${S.outs} ${S.outs === 1 ? 'OUT' : 'OUTS'}`);
   ball.mode = 'IDLE'; S.play = null;
@@ -1585,7 +1684,7 @@ function walk() {
   say(`BALL FOUR — ${S.batter.name} TAKES HIS BASE`);
   showPitchCall('BALL FOUR',`${S.batter.name} EARNS FIRST`,'ball',1.65);
   flashMsg('WALK', `${S.batter.name} WORKS THE COUNT`, '#58ffb4');
-  callBeep(true); swellCrowd(0.18);
+  callBeep(true); directCrowd('WALK',0,S.half===1);
   // forced chain only: runners move up when pushed
   const moves = []; let carrier = S.batter, from = -1, i = 0;
   while (true) {
@@ -1657,13 +1756,16 @@ function inPlay(plan) {
   let chaser = null, best = 1e9;
   for (const p of fldTeam().players) {
     if (p.fieldPos === 1) continue;                 // catcher holds the plate
-    const d = dxz(p.x, p.z, lx, lz) + (p.fieldPos === 0 ? 2 : 0);
+    const range=playerTrait(p,'range');
+    const d = (dxz(p.x, p.z, lx, lz) + (p.fieldPos === 0 ? 2 : 0))/(.9+range*.2);
     if (d < best) { best = d; chaser = p; }
   }
   const routePressure = best/Math.max(1.2, tl*8);
+  const chaserRange=chaser?playerTrait(chaser,'range'):.5;
   const canCatch = type === 'GROUND' ? false : forced&&['fly','sac_fly'].includes(forced)?true:forced&&['single','double','triple'].includes(forced)?false:
-    simRandom() < clamp((type === 'FLY' ? 0.92 : 0.64) - quality*0.43 - routePressure*0.2, type === 'FLY' ? 0.28 : 0.12, 0.9);
-  const fieldClean = forced==='double_play'?true:type !== 'GROUND' || forced==='error'?false:simRandom() > clamp(quality*0.22 + 0.08, 0.08, 0.26);
+    simRandom() < clamp((type === 'FLY' ? 0.88 : 0.61) - quality*0.43 - routePressure*0.2+(chaserRange-.5)*.2, type === 'FLY' ? 0.28 : 0.12, 0.92);
+  const fieldClean = forced==='double_play'?true:type !== 'GROUND' || forced==='error'?false:
+    simRandom() > clamp(quality*0.22 + 0.12-(chaser?playerTrait(chaser,'hands'):.5)*.08, 0.06, 0.27);
   const aboard=S.bases.filter(Boolean).length;
   const originalBases=S.bases.slice();
   S.play = { type, quality, batter:S.batter, chaser, lx, lz, resolved:false, bounced:false, fielded:false,
@@ -1672,6 +1774,7 @@ function inPlay(plan) {
              pendingResult:type==='HOMER'?'HOME RUN':null,
              originalBases, forcedResult:forced, launchAngle:Math.round(e*180/Math.PI), exitVelo:Math.round(v*2.45),
              grandSlam:type==='HOMER' && aboard===3, moonshot:type==='HOMER' && quality>0.9 };
+  S.broadcastBeat=`CONTACT · ${type} · ${S.play.exitVelo} MPH`;
   showPitchCall('CONTACT',`${S.play.exitVelo} MPH · ${S.play.launchAngle}° · ${type}`,'contact',1.05);
   S.lastPitch.result=`IN PLAY · ${type}`;
   if (type === 'HOMER') {
@@ -1715,7 +1818,7 @@ function resolvePitch(forcedBall = false) {
     } else {
       S.balls++; glovePop();
       swellCrowd(.05);
-      say(pick([`BALL ${S.balls} — JUST OFF THE PLATE`, `BALL ${S.balls} — THE LASERS SAY NO`, `BALL ${S.balls} OUTSIDE`]));
+      say(pick([`BALL ${S.balls} — JUST OFF THE PLATE`, `BALL ${S.balls} — MISSED THE EDGE`, `BALL ${S.balls} OUTSIDE`]));
       showPitchCall('BALL',`${plan?`${plan.name} · ${plan.location}`:'MISSED THE ZONE'} · ${S.balls}-${S.strikes}`,'ball',1.25);
       if (S.balls >= 4) { walk(); return; }
       commitPitch('BALL','ball');
@@ -1801,8 +1904,10 @@ function projectedAdvanceDistance(p,from,to){
 }
 function projectedDefenseTime(from,base,pickupDelay=0){
   const spot=BASES[base],receiver=receiverForBase(base,from);
-  const throwT=dxz(from.x,from.z,spot.x,spot.z)/23.5;
-  const coverT=receiver?dxz(receiver.x,receiver.z,spot.x,spot.z)/8.4:1.4;
+  const throwSpeed=21.5+playerTrait(from,'arm')*4;
+  const coverSpeed=7.7+(receiver?playerTrait(receiver,'range'):0)*1.35;
+  const throwT=dxz(from.x,from.z,spot.x,spot.z)/throwSpeed;
+  const coverT=receiver?dxz(receiver.x,receiver.z,spot.x,spot.z)/coverSpeed:1.4;
   const relayTransfer=base>0&&dxz(from.x,from.z,spot.x,spot.z)>12?.62:.22;
   return pickupDelay+Math.max(throwT,coverT)+relayTransfer;
 }
@@ -2125,6 +2230,12 @@ function finalizePlayCall(pl){
   if(pl.reachedOnError&&!pl.errorCharged){fldTeam().errors++;pl.errorCharged=true;}
   commitPitch(result,hitResult?'live':'out');
   const batterName=S.batter&&S.batter.name||'BATTER';
+  const offensiveResult=hitResult||result.includes('ERROR')||result==='SACRIFICE FLY';
+  const crowdKey=pl.wallRobbery?'WALL ROBBERY':pl.grandSlam?'GRAND SLAM':result;
+  const grammar=directCrowd(crowdKey,(pl.officialRuns||[]).length,offensiveResult?S.half===1:S.half===0);
+  S.broadcastBeat=`${grammar.tier.toUpperCase()} · ${crowdKey}`;
+  S.resultActor=offensiveResult?S.batter:(pl.chaser||pl.fielder);
+  pl.presentation=grammar;
   if(pl.wallRobbery){
     flashMsg('WALL ROBBERY',`${pl.chaser.name} FINISHES THE PLAY`,'#ff4d5e');
   }else if(pl.stretchOut){
@@ -2149,6 +2260,7 @@ function finalizePlayCall(pl){
     flashMsg('OUT',result,'#ff4d5e');
   }
   pl.callAt={state:S.state,allRunnersSettled:allSettled(),throwsComplete:!pl.activeThrow};
+  if(grammar.tier!=='standard'&&S.resultActor)cut('result');
   recordBaseballFinalizedPlay(pl);
 }
 function afterPlay() {
@@ -2207,6 +2319,7 @@ function sideChange() {
   say(`SIDE RETIRED — ${S.half === 0 ? 'TOP' : 'BOTTOM'} OF ${S.inning} COMING UP, ${up.name} BATTING`);
   if (wasBottom && doneInn >= INNINGS) say('EXTRA INNINGS AT THE DIAMOND DOME — FREE BASEBALL, ON THE HOUSE');
   S.transition={reason:'SIDE RETIRED · FIELD FLIP',outgoing:null,incoming:null,side:0,extraRunner:S.inning>INNINGS};
+  S.broadcastBeat=`FIELD FLIP · ${S.half===0?'TOP':'BOTTOM'} ${S.inning}`;
   setState('SIDECHG'); cut('changeover');
 }
 let lastGameT = 0;
@@ -2225,8 +2338,9 @@ function showFinal() {
     <table><tr><th></th><th>R</th><th>H</th><th>E</th><th>HR</th><th>K</th></tr>
     <tr><td class="n" style="color:${TEAM_A.css}">${TEAM_A.name}</td><td>${a.runs}</td><td>${a.hits}</td><td>${a.errors}</td><td>${a.hrs}</td><td>${a.strikeouts}</td></tr>
     <tr><td class="n" style="color:${TEAM_B.css}">${TEAM_B.name}</td><td>${b.runs}</td><td>${b.hits}</td><td>${b.errors}</td><td>${b.hrs}</td><td>${b.strikeouts}</td></tr></table>
-    <p style="margin-top:14px;font-size:14px;letter-spacing:3px;color:#7dffc0">NEXT — ${TEAMS[ni].name} vs ${TEAMS[nj].name} — <span id="nextin">12</span>s</p>`);
+    <p style="margin-top:14px;font-size:14px;letter-spacing:3px;color:#7dffc0">NEXT — ${TEAMS[ni].name} vs ${TEAMS[nj].name} — <span id="nextin">${BASEBALL_PACING.final}</span>s</p>`);
   if(!suppressBaseballSpinePresentation)baseballBroadcastSpine?.finale(baseballMomentDirector?.top()||[]);
+  S.broadcastBeat=`FINAL · ${w?w.def.name:'DRAW'}`;
   setState('FINAL'); cut('card');
 }
 
@@ -2263,11 +2377,14 @@ function stateStep(dt) {
   switch (S.state) {
     case 'SETUP': {
       if (S.swingT > .86) S.swingT=-1;
-      if (S.t > 1.65) { S.pitchPlan = planPitch(); S.swingT = -1; S.swung = false; setState('WINDUP'); }
+      if (S.t > BASEBALL_PACING.setup) {
+        S.pitchPlan=planPitch();S.broadcastBeat=`PITCH DESIGN · ${S.pitchPlan.name} · ${S.pitchPlan.location}`;
+        S.swingT=-1;S.swung=false;setState('WINDUP');
+      }
       break;
     }
     case 'WINDUP': {
-      if (S.t > 1.38 || S.t > 4) throwPitch();         // readable leg-load before release
+      if (S.t > BASEBALL_PACING.windup || S.t > 4) throwPitch();         // readable leg-load before release
       break;
     }
     case 'PITCH': {
@@ -2280,7 +2397,7 @@ function stateStep(dt) {
     }
     case 'RESOLVE': { // dead-ball beat: fouls + walks settle here
       const isWalk = S.play && S.play.type === 'WALK';
-      if (S.t > (isWalk ? 1.9 : 1.65) && (allSettled() || S.t > 4.8)) {
+      if (S.t > (isWalk ? BASEBALL_PACING.walkHold : BASEBALL_PACING.foulHold) && (allSettled() || S.t > 4.8)) {
         if (isWalk) afterPlay();
         else { S.play = null; ball.mode = 'IDLE'; setState('SETUP'); cut('plate'); }
       }
@@ -2289,7 +2406,7 @@ function stateStep(dt) {
     case 'STRIKEOUT_HOLD': {
       // The swing begins shortly before the pitch reaches the plate. Hold this
       // side-on cut until hands, barrel and hips reach their authored finish.
-      if((S.swingT>=.98&&S.t>.62)||S.t>1.18){
+      if((S.swingT>=.92&&S.t>.56)||S.t>BASEBALL_PACING.strikeoutHold){
         const hold=S.strikeoutHold;S.strikeoutHold=null;S.swingT=-1;S.swung=false;
         if(hold?.sideChange)sideChange();
         else beginBatterChange(hold?.reason||'AFTER THE STRIKEOUT');
@@ -2298,7 +2415,7 @@ function stateStep(dt) {
     }
     case 'BATTER_CHANGE': {
       const incoming=S.transition&&S.transition.incoming;
-      if((incoming&&incoming.duty==='batter'&&S.t>2.0)||S.t>3.35){
+      if((incoming&&incoming.duty==='batter'&&S.t>BASEBALL_PACING.batterChangeMin)||S.t>BASEBALL_PACING.batterChangeMax){
         for(const p of batTeam().players){p.path=null;p.pathI=0;if(p!==incoming&&p.duty==='exit')p.duty='dugout';}
         if(incoming)incoming.duty='batter';
         snapAll();S.transition=null;setState('SETUP');cut('plate');
@@ -2313,7 +2430,8 @@ function stateStep(dt) {
       if (pl.chaser && !pl.fielded && !pl.resolved) {
         if (pl.type === 'GROUND') { pl.chaser.tx = ball.pos.x + ball.vel.x*0.25; pl.chaser.tz = ball.pos.z + ball.vel.z*0.25; }
         else { pl.chaser.tx = pl.lx; pl.chaser.tz = pl.lz; }
-        pl.chaser.sprint = pl.forcedResult==='sac_fly' ? 9.4 : 8;
+        const range=playerTrait(pl.chaser,'range');
+        pl.chaser.sprint = pl.forcedResult==='sac_fly' ? 9.4 : 7.45+range*1.25;
       }
       if (pl.type === 'GROUND') { // first baseman covers the bag
         const fb = fldTeam().players[2];
@@ -2347,7 +2465,7 @@ function stateStep(dt) {
           if (S.play === pl && !pl.fielded && Math.hypot(ball.pos.x, ball.pos.z) > 19.5) creditHit(pl); // through the infield
         }
       }
-      if (pl.resolved && S.t > 1.9 && allSettled()) { afterPlay(); break; }
+      if (pl.resolved && S.t > BASEBALL_PACING.liveSettle && allSettled()) { afterPlay(); break; }
       if (S.t > 9) { forceSettle(); afterPlay(); }    // watchdog: play never hangs
       break;
     }
@@ -2367,7 +2485,7 @@ function stateStep(dt) {
         pl.activeThrow.elapsed += dt;
         if (pl.activeThrow.elapsed >= pl.activeThrow.time) resolveThrow(pl,pl.activeThrow);
       }
-      if (pl.resolved && S.t > 1.65 && allSettled()) { afterPlay(); break; }
+      if (pl.resolved && S.t > BASEBALL_PACING.throwSettle && allSettled()) { afterPlay(); break; }
       if (S.t > 4.5) { forceSettle(); afterPlay(); }  // watchdog
       break;
     }
@@ -2397,19 +2515,19 @@ function stateStep(dt) {
       break;
     }
     case 'POSTPLAY': {
-      if(S.t>1.55) completeAfterPlay();
+      if(S.t>BASEBALL_PACING.postplay) completeAfterPlay();
       break;
     }
     case 'SIDECHG': {
-      if (S.t > 3.65) {
+      if (S.t > BASEBALL_PACING.sideChange) {
         for(const p of allPlayers()){p.path=null;p.pathI=0;if(p.duty==='exit')p.duty='dugout';}
         placeExtraRunner(batTeam());nextBatter(false);snapAll();S.transition=null;setState('SETUP');cut('plate');
       }
       break;
     }
     case 'FINAL': {
-      const n = $('nextin'); if (n) n.textContent = String(Math.max(0, Math.ceil(12 - S.t)));
-      if (S.t > 12) { fixtureIdx = (fixtureIdx + 1) % FIXTURES.length; S.halfRuns = 0; setupMatch(); }
+      const n = $('nextin'); if (n) n.textContent = String(Math.max(0, Math.ceil(BASEBALL_PACING.final - S.t)));
+      if (S.t > BASEBALL_PACING.final) { fixtureIdx = (fixtureIdx + 1) % FIXTURES.length; S.halfRuns = 0; setupMatch(); }
       break;
     }
   }
@@ -2417,7 +2535,7 @@ function stateStep(dt) {
   if (S.state === S.lastState) { S.stuckT = (S.stuckT || 0) + dt; } else { S.stuckT = 0; S.lastState = S.state; }
   if (S.stuckT > 20 && S.state !== 'FINAL') {
     S.stuckT = 0; forceSettle(); S.play = null; ball.mode = 'IDLE';
-    say('UMP-BOT 3000 CALLS TIME — RESETTING THE DIAMOND');
+    say('TIME IS CALLED — THE CREW RESETS THE DIAMOND');
     nextBatter(true); setState('SETUP'); cut('plate');
   }
 }
@@ -2428,11 +2546,12 @@ function posePlayers() {
   const pitcher = pitcherP(), catcher = fldTeam().players[1];
   for(const p of allPlayers()){
     p.rig.group.scale.set(1,1,1);
-    p.gear.traverse(o=>{ if(o.userData.fieldOnly) o.visible=p.duty==='fielder'; });
+    p.gear.traverse(o=>{
+      if(o.userData.fieldOnly)o.visible=p.duty==='fielder';
+      if(o.userData.batterOnly)o.visible=p.duty==='batter'||p.duty==='walkup';
+    });
   }
-  catcher.rig.group.scale.set(1.08,.8,1.08);
-  ump.group.scale.set(1.05,.88,1.05);
-  if (S.state === 'WINDUP') pitcher.rig.poseThrowIn(clamp(S.t/1.38, 0, 1));   // slower, readable leg-load and release
+  if (S.state === 'WINDUP') pitcher.rig.poseThrowIn(clamp(S.t/BASEBALL_PACING.windup, 0, 1));
   catcher.rig.poseGKSet(tGlobal);
   if(S.callT>0&&(S.callTone==='strike'||S.callTone==='ball')) catcher.rig.poseGKCatch(1);
   if(S.callT>0&&S.callTone==='strike') ump.posePointToSpot(tGlobal);
@@ -2496,25 +2615,38 @@ function ballVisualStep(dt) {
 function crowdStep(dt){
   crowdWave += dt*(1.15 + crowdPulse*2.4);
   const pop=crowdPulse, homeGlow=TEAM_B ? TEAM_B.glow : 0x58ffb4, awayGlow=TEAM_A ? TEAM_A.glow : 0xff5ec4;
+  const reaction=S.crowdReaction;
+  crowdResponseColor.setHex(reaction?.mode==='AWAY_POCKET'?awayGlow:reaction?.mode==='HOME_ROAR'?homeGlow:venueAccent);
+  crowdHomeColor.setHex(homeGlow);
+  crowdAccentColor.setHex(venueAccent);
+  if(reaction)reaction.elapsed+=dt;
+  const reactionLife=reaction?clamp(1-reaction.elapsed/reaction.duration,0,1):0;
   for (const m of crowdMembers){
     const ritualOffset=venueRitual==='rings'?Math.sin(m.baseY*.85-crowdWave*4.1):venueRitual==='seam'?Math.sin(m.s.position.z*.24-crowdWave*4.6):venueRitual==='bell'?Math.sin(m.phase>Math.PI?crowdWave*3.5:crowdWave*3.5+Math.PI*.4):Math.sin(crowdWave*3.2 + m.phase);
-    const hop=ritualOffset;
-    m.s.position.y = m.baseY + hop*0.025*(1 + pop*2.6);
-    const sc=m.baseScale*(1 + Math.max(0, hop)*0.09*pop);
+    const sectionWeight=!reaction?0:reaction.mode==='HOME_ROAR'?(m.section==='home'?1:.28)
+      :reaction.mode==='AWAY_POCKET'?(m.section==='away'?1:.18):m.section==='neutral'?.72:1;
+    const travel=!reaction?0:reaction.propagation==='VISITOR_POCKET'
+      ?clamp(reaction.elapsed*2.2-Math.abs(Math.sin(m.phase*1.7))*.65,0,1)
+      :clamp(reaction.elapsed*2.6-(m.phase%(Math.PI*2))/(Math.PI*2)*.72,0,1);
+    const authoredBeat=reactionLife*sectionWeight*travel*(reaction?.amplitude||0);
+    const hop=ritualOffset+Math.sin(crowdWave*4.2+m.phase)*authoredBeat*.72;
+    m.s.position.y = m.baseY + hop*0.025*(1 + pop*2.2+authoredBeat*2.4);
+    const sc=m.baseScale*(1 + Math.max(0, hop)*(.07*pop+.08*authoredBeat));
     m.s.scale.set(sc,sc,1);
-    m.s.material.opacity = clamp(m.baseOpacity + pop*0.28 + Math.sin(crowdWave*1.7 + m.phase)*0.05, 0.25, 0.96);
-    if (pop > 0.25 && Math.random() < dt*1.9) m.s.material.color.setHex(pick([homeGlow,homeGlow,venueAccent,awayGlow]));
+    m.s.material.opacity = clamp(m.baseOpacity + pop*0.2+authoredBeat*.26 + Math.sin(crowdWave*1.7 + m.phase)*0.045, 0.25, 0.96);
+    m.s.material.color.setHex(m.baseCrowdColor??homeGlow).lerp(crowdResponseColor,clamp(authoredBeat*.7,0,.68));
   }
   for (const m of standMats){
-    const c=new THREE.Color(0xaebad8);
-    c.lerp(new THREE.Color(homeGlow), 0.11 + pop*0.22).lerp(new THREE.Color(0xffffff), pop*0.08);
-    m.color.copy(c);
+    crowdStandColor.setHex(0xaebad8).lerp(crowdHomeColor,0.11+pop*.22).lerp(crowdWhiteColor,pop*.08);
+    m.color.copy(crowdStandColor);
   }
   const ritualK=pop*Math.sin(crowdWave*2.4);
   venueIdentityGroup.position.y=venueRitual==='rings'?Math.max(0,ritualK)*.16:0;
   venueIdentityGroup.scale.set(1,1+(venueRitual==='porcelain'?Math.max(0,ritualK)*.018:0),1);
   venueIdentityGroup.rotation.x=venueRitual==='wing'?ritualK*.006:0;
-  ledMat.color.setHex(new THREE.Color(homeGlow).lerp(new THREE.Color(venueAccent),.35+.25*Math.max(0,ritualK)).getHex());
+  crowdLedColor.copy(crowdHomeColor).lerp(crowdAccentColor,.35+.25*Math.max(0,ritualK));
+  ledMat.color.copy(crowdLedColor);
+  if(reaction&&reaction.elapsed>=reaction.duration)S.crowdReaction=null;
 }
 function markerStep(){
   const pl=S.play, live=pl && (S.state==='LIVE' || S.state==='THROW' || S.state==='HOMER');
@@ -2575,7 +2707,7 @@ const camPos = new THREE.Vector3(-10.8, 5.2, 2.4), camLook = new THREE.Vector3(M
 const tmpP = new THREE.Vector3(), tmpL = new THREE.Vector3();
 function cameraStep(dt) {
   const portrait = innerWidth <= 700 && innerHeight > innerWidth*1.2;
-  const wholePlay = portrait && (S.camMode==='chase'||S.camMode==='run'||S.camMode==='changeover');
+  const wholePlay = portrait && ['chase','run','field','homer','result','changeover'].includes(S.camMode);
   // During a live ball the phone becomes a portrait scorebook view: +x runs
   // vertically and z runs horizontally. Fit the bases, all active defenders /
   // runners and the ball instead of following one actor out of frame.
@@ -2631,10 +2763,16 @@ function cameraStep(dt) {
       if(portrait)fitPortraitDiamond();
       else {tmpP.set(2.5,23.5,24);tmpL.set(DIAG/2*1.08,0.4,0);}
       break;
+    case 'field':
+      if(portrait)fitPortraitDiamond();
+      else {tmpP.set(2.5,23.5,24);tmpL.set(clamp(ball.pos.x*.15+9,7.5,15),.45,clamp(ball.pos.z*.08,-2,2));}
+      break;
     case 'dugout': {
       const side=S.transition?.side||1;
-      tmpP.set(portrait?-3.5:-7.5,portrait?17:8.5,-side*(portrait?17:12));
-      tmpL.set(-1.3,.9,side*3.7);
+      const incoming=S.transition?.incoming;
+      const focusX=incoming?.x??-2.7,focusZ=incoming?.z??side*4.3;
+      tmpP.set(focusX-(portrait?5.8:6.8),portrait?8.8:5.7,focusZ+side*(portrait?7.2:6.1));
+      tmpL.set(focusX,1.05,focusZ);
       break;
     }
     case 'changeover':
@@ -2642,9 +2780,22 @@ function cameraStep(dt) {
       else {tmpP.set(4,25.5,26);tmpL.set(10.5,.35,0);}
       break;
     case 'homer':
-      tmpP.set(portrait?-10:-8, (portrait?5:4) + Math.min(S.t, 5)*1.2, portrait?4:3.2);
-      tmpL.set(ball.pos.x, Math.max(1.5, ball.pos.y*0.8), ball.pos.z);
+      if(portrait)fitPortraitDiamond();
+      else{
+        tmpP.set(-8,4+Math.min(S.t,5)*1.2,3.2);
+        tmpL.set(ball.pos.x,Math.max(1.5,ball.pos.y*.8),ball.pos.z);
+      }
       break;
+    case 'result': {
+      if(portrait)fitPortraitDiamond();
+      else{
+        const actor=S.resultActor||S.batter||pitcherP();
+        const side=actor.z>=0?1:-1;
+        tmpP.set(actor.x-5.8,3.5,actor.z+side*5.2);
+        tmpL.set(actor.x,1.15,actor.z);
+      }
+      break;
+    }
     case 'card': {
       const a = tGlobal*0.07;
       tmpP.set(12 + Math.cos(a)*24, 9.5, Math.sin(a)*24);
@@ -2664,7 +2815,7 @@ function cameraStep(dt) {
     camLook.lerp(tmpL, dampK(S.camMode==='field'?2.1:2.6, dt));
   }
   camera.position.copy(camPos);
-  const desiredFov=portrait?(S.camMode==='plate'?65:S.camMode==='card'?50:(S.camMode==='chase'||S.camMode==='run'||S.camMode==='changeover')?74:S.camMode==='dugout'?58:S.camMode==='contact'?58:65):S.camMode==='dugout'?39:S.camMode==='contact'?38:S.camMode==='changeover'?46:42;
+  const desiredFov=portrait?(S.camMode==='plate'?65:S.camMode==='card'?50:['chase','run','field','homer','result','changeover'].includes(S.camMode)?74:S.camMode==='dugout'?58:S.camMode==='contact'?58:65):S.camMode==='dugout'?39:S.camMode==='contact'?38:S.camMode==='changeover'?46:S.camMode==='result'?36:42;
   camera.fov += (desiredFov-camera.fov)*dampK(7,dt);
   camera.updateProjectionMatrix();
   camera.lookAt(camLook);
@@ -2689,6 +2840,8 @@ function gameSnapshot(){
     matchMemory:baseballMomentDirector?.state()||null,
     broadcastSpine:baseballBroadcastSpine?.state()||null,
     status:elPlayStatus.textContent, clipMoment:S.clipMoment || null, clipSeconds:+S.clipT.toFixed(1), clipsThisGame:S.clips.slice(),
+    broadcast:{beat:S.broadcastBeat,matchup:S.matchupRead,pacing:BASEBALL_PACING,
+      resultPresentation:pl?.presentation||null,camera:S.camMode},
     resultBanner:{visible:elFlash.classList.contains('show'),big:elFT.textContent,sub:elFS.textContent},
     state:S.state, t:+S.t.toFixed(2), inning:S.inning, half:S.half,
     outs:S.outs, balls:S.balls, strikes:S.strikes,
@@ -2703,10 +2856,15 @@ function gameSnapshot(){
     hrs:teams.length ? [teams[0].hrs, teams[1].hrs] : [0,0],
     bases:S.bases.map(b => b ? b.name : null), activeRunners,
     batter:S.batter && S.batter.name,
+    characters:{
+      batter:S.batter?{name:S.batter.name,position:S.batter.position,baseball:S.batter.baseballProfile,classic:S.batter.characterProfile}:null,
+      pitcher:teams.length?(()=>{const p=activePitcherEntity();return p?{name:p.name,position:p.position,baseball:p.baseballProfile,classic:p.characterProfile}:null;})():null
+    },
     swing:S.swingT>=0?{seconds:+S.swingT.toFixed(2),style:S.pitchPlan?.swingStyle||null,runnerDelay:+(S.batter?.path?.delay||0).toFixed(2)}:null,
     strikeoutHold:S.strikeoutHold?{batter:S.strikeoutHold.batter?.name||null,next:S.strikeoutHold.sideChange?'SIDE CHANGE':'BATTER CHANGE',swingSeconds:+Math.max(0,S.swingT).toFixed(2),minimumFinishSeconds:.98}:null,
     transition:S.transition?{reason:S.transition.reason,outgoing:S.transition.outgoing?.name||null,incoming:S.transition.incoming?.name||null}:null,
-    pitch:S.pitchPlan ? {name:S.pitchPlan.name,speedMph:Math.round(S.pitchPlan.speed*4),location:S.pitchPlan.location,inZone:!!S.pitchPlan.inZone,curve:+S.pitchPlan.curve.toFixed(2),swing:!!S.pitchPlan.swing,swingStyle:S.pitchPlan.swingStyle,contactMade:!!S.pitchPlan.contactMade} : null,
+    pitch:S.pitchPlan ? {name:S.pitchPlan.name,speedMph:Math.round(S.pitchPlan.speed*4),location:S.pitchPlan.location,inZone:!!S.pitchPlan.inZone,curve:+S.pitchPlan.curve.toFixed(2),swing:!!S.pitchPlan.swing,swingStyle:S.pitchPlan.swingStyle,contactMade:!!S.pitchPlan.contactMade,
+      recognition:+Number(S.pitchPlan.recognition??0).toFixed(2),timingError:+Number(S.pitchPlan.timingError??0).toFixed(2),barrel:+Number(S.pitchPlan.barrel??0).toFixed(2)} : null,
     lastPitch:S.lastPitch,
     pitchCall:S.callT>0?{label:S.callLabel,detail:S.callDetail,tone:S.callTone,seconds:+S.callT.toFixed(2)}:null,
     ball:{ mode:ball.mode, pos:[+ball.pos.x.toFixed(1), +ball.pos.y.toFixed(1), +ball.pos.z.toFixed(1)], vel:[+ball.vel.x.toFixed(1),+ball.vel.y.toFixed(1),+ball.vel.z.toFixed(1)] },
@@ -2742,7 +2900,7 @@ function gameSnapshot(){
     teams:teams.map(t => ({name:t.def.name,runs:t.runs,hits:t.hits,homeRuns:t.hrs,errors:t.errors,walks:t.walks,strikeouts:t.strikeouts,pitches:t.pitches,
       pitcher:{name:t.staff.active,role:t.staff.role,pitches:t.staff.pitches,stress:+t.staff.stress.toFixed(2),changes:t.staff.changes,history:t.staff.history.slice()},
       nextBatter:t.players[t.batIdx%t.players.length].name})),
-    crowd:{ members:crowdMembers.length,pulse:+crowdPulse.toFixed(2),ritual:venueRitual,
+    crowd:{ members:crowdMembers.length,pulse:+crowdPulse.toFixed(2),ritual:venueRitual,reaction:S.crowdReaction?{...S.crowdReaction,elapsed:+S.crowdReaction.elapsed.toFixed(2)}:null,
       palette:{home:TEAM_B?.css||null,accent:TEAM_B?.team?.colors?.accent||null,away:TEAM_A?.css||null} }
   };
 }
