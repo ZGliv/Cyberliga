@@ -158,8 +158,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--paper); outline
 .club-card { position: relative; min-width: 0; min-height: 390px; display: grid; grid-template-rows: 205px 1fr; overflow: hidden; border: 0; color: var(--paper); background: #080a0c; cursor: pointer; text-align: left; }
 .club-scene { position: relative; min-width: 0; overflow: hidden; background: #06080a; }
 .club-scene::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg,#080a0c 0,transparent 55%); }
-.club-scene svg { width: 100%; height: 100%; object-fit: cover; transition: transform .45s ease, filter .3s; }
-.club-card:hover .club-scene svg, .club-card.selected .club-scene svg { transform: scale(1.045); filter: saturate(1.15); }
+.club-scene svg, .club-scene .venue-photo { width: 100%; height: 100%; display: block; object-fit: cover; transition: transform .45s ease, filter .3s; }
+.club-scene .venue-photo { filter: saturate(.82) contrast(1.05); }
+.club-card:hover .club-scene svg, .club-card.selected .club-scene svg, .club-card:hover .club-scene .venue-photo, .club-card.selected .club-scene .venue-photo { transform: scale(1.045); filter: saturate(1.03) contrast(1.05); }
 .club-card.selected { box-shadow: inset 0 0 0 2px var(--team); }
 .club-card.selected::after { content: 'SELECTED'; position: absolute; z-index: 4; top: 13px; right: 13px; padding: 7px 9px; color: #050607; background: var(--team); font: 900 7px/1 'Barlow Condensed', sans-serif; letter-spacing: .15em; }
 .club-body { position: relative; z-index: 2; min-width: 0; padding: 0 18px 18px; }
@@ -186,9 +187,16 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--paper); outline
 .color-swatch { width: 55px; height: 78px; display: flex; align-items: flex-end; padding: 7px; background: var(--swatch); }
 .color-swatch span { color: var(--label); font: 900 7px/1 'Barlow Condensed', sans-serif; letter-spacing: .08em; writing-mode: vertical-rl; transform: rotate(180deg); }
 
+.club-fact-strip { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin-bottom: 18px; border: 1px solid var(--line); background: var(--line); gap: 1px; }
+.club-fact-strip div { min-width: 0; min-height: 78px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; padding: 14px 16px; background: #080a0c; }
+.club-fact-strip span { color: var(--muted); font: 700 8px/1 'Barlow Condensed',sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+.club-fact-strip strong { overflow: hidden; color: var(--paper); font: 850 13px/1.15 Archivo,sans-serif; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
+.club-fact-strip div:last-child strong { color: var(--team); }
+
 .dossier-stage { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(290px, .65fr); min-height: 540px; border: 1px solid var(--line); background: #07090b; }
 .venue-scene { min-width: 0; overflow: hidden; border-right: 1px solid var(--line); }
-.venue-scene svg { width: 100%; height: 100%; display: block; object-fit: cover; }
+.venue-scene svg, .venue-scene .venue-photo { width: 100%; height: 100%; display: block; object-fit: cover; }
+.venue-scene .venue-photo { object-position: center; filter: saturate(.86) contrast(1.04); }
 .venue-caption { display: flex; flex-direction: column; justify-content: flex-end; padding: clamp(24px, 4vw, 55px); background: linear-gradient(145deg,color-mix(in srgb,var(--team) 11%,#080a0c),#080a0c); }
 .venue-caption p { color: var(--team); font: 800 9px/1 'Barlow Condensed', sans-serif; letter-spacing: .18em; }
 .venue-caption h3 { margin-top: 13px; overflow-wrap: anywhere; font-size: clamp(34px, 3.7vw, 58px); font-stretch: 120%; font-weight: 900; line-height: .79; letter-spacing: -.06em; }
@@ -277,6 +285,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--paper); outline
   .world-proof strong { font-size: 28px; }
   .channel-grid { grid-template-columns: repeat(2, 1fr); }
   .dossier-header { grid-template-columns: 86px 1fr; }
+  .club-fact-strip { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .dossier-crest { width: 86px; height: 86px; }
   .color-system { grid-column: 1/-1; }
   .color-swatch { width: 72px; height: 39px; }
@@ -334,6 +343,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--paper); outline
   .dossier-crest { width: 68px; height: 68px; }
   .dossier-title h2 { font-size: clamp(34px, 10vw, 43px); line-height: .8; overflow-wrap: anywhere; }
   .dossier-title span { font-size: 10px; }
+  .club-fact-strip { margin-bottom: 12px; }
+  .club-fact-strip div { min-height: 68px; padding: 12px; }
+  .club-fact-strip strong { font-size: 11px; }
   .venue-scene { min-height: 265px; }
   .venue-caption { padding: 25px 20px; }
   .venue-caption h3 { font-size: 42px; }
@@ -469,6 +481,7 @@ body { background: #080a0d; }
   .sport-switcher { top: 12px; right: 14px; left: 14px; }
   .league-hero-copy { bottom: 154px; left: 16px; width: calc(100% - 32px); }
   .league-hero h1 { font-size: clamp(40px, 13vw, 58px); line-height: .82; }
+  body[data-sport="combat"] .league-hero h1 { font-size: clamp(37px, 10.5vw, 46px); }
   .league-thesis { font-size: 14px; }
   .hero-actions { grid-template-columns: 1fr 1fr; }
   .hero-actions a,

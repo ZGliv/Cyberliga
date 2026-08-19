@@ -147,7 +147,8 @@ const worldShareImage = worldShareName ? await readFile(path.join(ROOT, worldSha
 const fanworldSource = await text('fanworld.js');
 const fanworldStyles = await text('fanworld.css');
 const liveBridgeSource = await text('livebridge.js');
-const atlasSource = `${await text('league.html')}\n${await text('league-page.js')}\n${await text('branddata.js')}`;
+const brandSource = await text('branddata.js');
+const atlasSource = `${await text('league.html')}\n${await text('league-page.js')}\n${brandSource}`;
 const leagueMarkupSource = await text('league.html');
 const soccerSource = await text('index.html');
 const hoopsSource = await text('hoops.html');
@@ -456,6 +457,25 @@ check(/pg_advisory_xact_lock/.test(migrationSource), 'Canonical tick needs a fix
 const contentWindow = evaluateBrowserScript(await text('worlddata.js'), 'worlddata.js');
 const content = contentWindow.CYBERLIGA_CONTENT;
 check(Boolean(content), 'worlddata.js did not expose CYBERLIGA_CONTENT');
+evaluateBrowserScript(brandSource, 'branddata.js', contentWindow);
+const brand = contentWindow.CyberligaBrand;
+check(Boolean(brand), 'branddata.js did not expose CyberligaBrand');
+if (brand && content) {
+  const brandedTeams = content.sports.flatMap((sport) => sport.teams).map((team) => ({ team, identity: brand.getTeam(team.id) }));
+  check(brandedTeams.length === 48 && brandedTeams.every(({ identity }) => identity), 'Every public club must have an authored brand identity');
+  check(brandedTeams.every(({ identity }) => Number.isInteger(identity.founded) && identity.founded >= 1900 && Number.isInteger(identity.capacity) && identity.capacity >= 1800 && identity.supporterGroup), 'Every club must expose stable founding, capacity, and supporter identity');
+  check(brandedTeams.every(({ team }) => brand.rivalryName(team.id, team.rivalryId) !== 'THE CITY SERIES'), 'Every reciprocal rivalry must have an authored competition name');
+  for (const sport of content.sports) {
+    const identity = brand.getLeague(sport.id);
+    const anchor = identity?.heroClubId && content.getTeam(identity.heroClubId, sport.id);
+    check(Boolean(identity?.hero && anchor), `${sport.id} league must map an authored hero to an exact anchor club`);
+    if (identity?.hero) {
+      check(await exists(identity.hero), `${sport.id} authored league hero is missing`, identity.hero);
+      if (await exists(identity.hero)) check((await stat(path.join(ROOT, identity.hero))).size > 250000, `${sport.id} authored league hero is unexpectedly small`, identity.hero);
+    }
+  }
+  check(brandedTeams.filter(({ identity }) => identity.venueImage).length === 6, 'The initial venue-image batch must map one exact anchor club per league');
+}
 if (content) {
   check(content.metrics?.sports === 6, 'Worlddata sport total must be 6', String(content.metrics?.sports));
   check(content.metrics?.teams === 48, 'Worlddata team total must be 48', String(content.metrics?.teams));
