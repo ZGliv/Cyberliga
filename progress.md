@@ -1190,3 +1190,12 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - All eight secondary surfaces expose the same Home/Leagues pair at 390×844 with no runtime errors or overflow. Final League HQ and Athlete Files captures confirm the My Signal collision is gone.
 - Official web-game client captures and finite text state passed for Home and League HQ. Repository verification now protects the shared shell and inline supporter slot across 1,587 static/data checks.
 - No arena chrome, simulation, data/schema, backend, deployment, or canonical worktree changes were made. Live arenas retain their single `← GLOBE` exit by design.
+
+## Six-league identity expansion — 2026-08-19
+- Current prompt: make all six leagues and their clubs feel more real through richer logos, venues, supporters, rivalries, stadium imagery, and AI-generated environmental art.
+- Preserved the 48 deterministic code-native SVG crests, three-kit systems, venue plates, roster contracts, fixture routes, and exact arena links. Added club founding years, sport-scaled capacities, 48 named supporter sections, and 24 reciprocal named rivalries.
+- Generated six versioned 1672×941 architectural hero photographs with the built-in image-generation workflow: The Fold, The Crown, The Block, Cabane 21, El Taller, and The Foundry. Each image is tied to one exact anchor club and appears in both its league masthead and club dossier; the remaining 42 clubs retain their unique native venue illustrations until a dedicated image batch is approved.
+- League HQ now distinguishes authored venue photography from native SVG scenes in its deterministic text-state hook and exposes the selected club's founding year, capacity, supporter group, rivalry, crowd ritual, and hero source.
+- Browser QA covered all six league anchors, reciprocal rivalry/fallback behavior, club switching, 1280×720 hero and dossier captures, and Combat at 390×844. A clipped long mobile title was corrected; the final document width is exactly 390px with no console, page, or request errors.
+- Final gate passes: `npm run verify` (all behavioral suites plus 1,611 static/data checks), `node --test footballbrain.test.mjs footballrules.test.mjs` (28/28), module syntax, asset dimensions/loading, and `git diff --check`.
+- Prompt provenance and the expansion contract are documented beside the image assets. No deployment or canonical-worktree mutation was performed.

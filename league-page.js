@@ -14,6 +14,7 @@
   var sportId = publicIds.indexOf(params.get('sport')) >= 0 ? params.get('sport') : 'soccer';
   var sport = C.getSport(sportId);
   var league = B.getLeague(sportId);
+  document.body.dataset.sport = sportId;
   var teams = C.getTeams(sportId);
   var requestedTeam = C.getTeam(params.get('team'), sportId);
   var selectedTeam = requestedTeam || teams[0];
@@ -34,6 +35,11 @@
   function brand(teamValue) { return B.getTeam(teamValue.id) || {venue:'HOME GROUND',venueLine:teamValue.city,ritual:'The home end carries the signal.',statement:teamValue.motion}; }
   function displayName(teamValue) { return B.displayName(teamValue); }
   function displayCity(teamValue) { return B.displayCity(teamValue); }
+  function venueMedia(teamValue, eager) {
+    var identity = brand(teamValue);
+    if (!identity.venueImage) return B.sceneSvg(teamValue);
+    return '<img class="venue-photo" src="' + esc(identity.venueImage) + '" alt="' + esc(identity.venue + ', the home venue of ' + displayName(teamValue)) + '"' + (eager ? '' : ' loading="lazy"') + ' />';
+  }
   function arenaUrl(homeId, awayId) {
     var query = new URLSearchParams({home:homeId || selectedTeam.id, away:awayId || selectedTeam.rivalryId, league:sportId});
     return league.arena + '?' + query.toString();
@@ -84,7 +90,8 @@
     image.hidden = !hasImage;
     if (hasImage) {
       image.src = league.hero;
-      image.alt = league.name + ' venue concept: ' + league.architecture;
+      var anchor = league.heroClubId ? C.getTeam(league.heroClubId,sportId) : null;
+      image.alt = anchor ? brand(anchor).venue + ', home of ' + displayName(anchor) : league.name + ' venue concept: ' + league.architecture;
     } else {
       image.removeAttribute('src');
       image.alt = '';
@@ -108,7 +115,7 @@
     byId('club-grid').innerHTML = teams.map(function (item) {
       var identity = brand(item);
       return '<button class="club-card' + (item.id === selectedTeam.id ? ' selected' : '') + '" type="button" data-team="' + esc(item.id) + '" style="--team:' + esc(item.colors.primary) + '" aria-pressed="' + String(item.id === selectedTeam.id) + '">' +
-        '<div class="club-scene">' + B.sceneSvg(item) + '</div>' +
+        '<div class="club-scene">' + venueMedia(item,false) + '</div>' +
         '<div class="club-body"><div class="club-brand-row">' + B.crestSvg(item) + '<div class="club-city"><p>' + esc(displayCity(item).toUpperCase()) + ' / ' + esc(item.code) + '</p><h3>' + esc(displayName(item)) + '</h3></div>' + B.kitSvg(item,'home') + '</div>' +
         '<div class="club-venue"><span>' + esc(identity.venue) + '<br>' + esc(item.motif.toUpperCase()) + '</span><b>OPEN DOSSIER ↓</b></div></div></button>';
     }).join('');
@@ -176,14 +183,18 @@
     byId('club-name').textContent = displayName(item);
     byId('club-statement').textContent = identity.statement;
     byId('color-system').innerHTML = swatch(item.colors.primary,'PRIMARY') + swatch(item.colors.secondary,'FIELD') + swatch(item.colors.accent,'FLASH');
-    byId('venue-scene').innerHTML = B.sceneSvg(item);
+    byId('club-founded').textContent = String(identity.founded);
+    byId('club-capacity').textContent = Number(identity.capacity).toLocaleString();
+    byId('club-supporters').textContent = identity.supporterGroup;
+    byId('club-rivalry').textContent = B.rivalryName(item.id,rival.id);
+    byId('venue-scene').innerHTML = venueMedia(item,true);
     byId('venue-name').textContent = identity.venue;
     byId('venue-line').textContent = identity.venueLine;
     byId('crowd-ritual').textContent = identity.ritual;
     byId('motion-title').textContent = item.motif.toUpperCase();
     byId('motion-line').textContent = item.motion + '. Materials: ' + item.texture + '.';
-    byId('rival-name').textContent = displayName(rival);
-    byId('rival-line').textContent = displayCity(item) + ' and ' + displayCity(rival) + ' carry the league\'s authored rivalry: ' + displayName(item) + ' vs ' + displayName(rival) + '.';
+    byId('rival-name').textContent = B.rivalryName(item.id,rival.id);
+    byId('rival-line').textContent = displayName(item) + ' and ' + displayName(rival) + ' meet in ' + displayCity(item) + ' and ' + displayCity(rival) + '.';
     byId('club-arena-link').href = arenaUrl(item.id,rival.id);
     renderKits(item);
     renderRoster(item);
@@ -289,7 +300,7 @@
       sport:{id:sport.id,name:sport.name,league:league.name},
       publicWorld:{sports:6,clubs:48,simultaneousGames:24,combatPublic:true},
       selectedClub:{id:selectedTeam.id,name:displayName(selectedTeam),city:displayCity(selectedTeam),venue:identity.venue,statement:identity.statement,rival:selectedTeam.rivalryId,colors:selectedTeam.colors},
-      identity:{crest:'native-svg',uniforms:['home','away','night'],cityScene:'native-svg',venueHero:league.hero || 'procedural-fallback',crowdRitual:identity.ritual},
+      identity:{crest:'native-svg',uniforms:['home','away','night'],cityScene:identity.venueImage ? 'authored-photo' : 'native-svg',venueHero:identity.venueImage || league.hero || 'procedural-fallback',founded:identity.founded,capacity:identity.capacity,supporterGroup:identity.supporterGroup,rivalryName:B.rivalryName(selectedTeam.id,selectedTeam.rivalryId),crowdRitual:identity.ritual},
       liveChannels:round.matches.map(function (match,index) { return {channel:index + 1,home:match.homeId,away:match.awayId,rivalry:match.rivalry}; }),
       roster:{filter:rosterFilter,count:selectedTeam.athletes.length},
       standingsSource:stateSource,

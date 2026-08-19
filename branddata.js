@@ -4,42 +4,42 @@
   var LEAGUES = {
     soccer: {
       code: 'SCL', name: 'THE COMMON GROUND', short: 'COMMON GROUND',
-      hero: 'assets/world/league-heroes/soccer.jpg', accent: '#f05b67', arena: 'index.html',
+      hero: 'assets/world/league-heroes/soccer-v2.jpg', heroClubId: 'tokyo-paper-cranes', accent: '#f05b67', arena: 'index.html',
       thesis: 'Eight cities. One uninterrupted field. Football built from local rituals and played on a shared global clock.',
       architecture: 'Civic bowls, transit plazas and terraces that make the city part of the match.',
       broadcast: 'Continuous pressure · four channels · no dead air'
     },
     'american-football': {
       code: 'AMF', name: 'THE SUNDAY ANIMAL', short: 'SUNDAY ANIMAL',
-      hero: 'assets/world/league-heroes/american-football.jpg', accent: '#e67b2f', arena: 'football.html',
+      hero: 'assets/world/league-heroes/american-football-v2.jpg', heroClubId: 'new-orleans-bayou-kings', accent: '#e67b2f', arena: 'football.html',
       thesis: 'A collision league of authored systems, regional obsessions and one full-field consequence on every snap.',
       architecture: 'Industrial cathedrals with long sightlines, heavy roofs and entrances that shake the structure.',
       broadcast: 'Route geometry · consequence · four live fields'
     },
     basketball: {
       code: 'HPS', name: 'THE HIGH ROOM', short: 'HIGH ROOM',
-      hero: 'assets/world/league-heroes/basketball.jpg', accent: '#e98555', arena: 'hoops.html',
+      hero: 'assets/world/league-heroes/basketball-v2.jpg', heroClubId: 'new-york-brownstones', accent: '#e98555', arena: 'hoops.html',
       thesis: 'The vertical league: eight dense cities, compressed courts and possessions that turn into weather.',
       architecture: 'Arenas stacked into neighborhoods, towers and transit halls instead of isolated parking lots.',
       broadcast: 'Violent transitions · high leverage · four courts'
     },
     hockey: {
       code: 'ICE', name: 'THE COLD ARGUMENT', short: 'COLD ARGUMENT',
-      hero: 'assets/world/league-heroes/hockey.jpg', accent: '#69d1dc', arena: 'hockey.html',
+      hero: 'assets/world/league-heroes/hockey-v2.jpg', heroClubId: 'montreal-sugar-maples', accent: '#69d1dc', arena: 'hockey.html',
       thesis: 'Cold-city hockey where material, weather and crowd acoustics turn every home rink into a different problem.',
       architecture: 'Timber, basalt, glass and ice shaped by climate rather than copied from a universal arena plan.',
       broadcast: 'Compressed space · sudden death · four rinks'
     },
     baseball: {
       code: 'BSB', name: 'THE LONG AFTERNOON', short: 'LONG AFTERNOON',
-      hero: 'assets/world/league-heroes/baseball.jpg', accent: '#e3aa52', arena: 'baseball.html',
+      hero: 'assets/world/league-heroes/baseball-v2.jpg', heroClubId: 'mexico-city-alebrijes', accent: '#e3aa52', arena: 'baseball.html',
       thesis: 'Eight ballparks built for patience, civic memory and the instant when an entire city follows one white ball.',
       architecture: 'Open parks shaped by coastlines, workshops, mountains, trees and the streets beyond the wall.',
       broadcast: 'One pitch at a time · long memory · four diamonds'
     },
     combat: {
       code: 'FYT', name: 'THE HANDMADE UNDERCARD', short: 'HANDMADE UNDERCARD',
-      hero: '', accent: '#ff3d5a', arena: 'fight.html',
+      hero: 'assets/world/league-heroes/combat-v2.jpg', heroClubId: 'accra-brass-bell', accent: '#ff3d5a', arena: 'fight.html',
       thesis: 'Eight fight cities, eight handmade gyms and a league where every guard, feint and finish carries the material language of home.',
       architecture: 'Intimate rooms built from rope, cloth, timber, metal and local workshop light, with the ring always at the center.',
       broadcast: 'Measured pressure · sudden finishes · four rings'
@@ -103,6 +103,68 @@
     ['liverpool-ropeworks','ROPEHOUSE','A dockside brick hall framed by tar-dark rope, sailcloth acoustic panels and blue steel galleries.','The four corner ropes illuminate one after another while the crowd holds a steady low note.','Take the slack. Own the knot.','knot','industrial','woven']
   ];
 
+  var SUPPORTER_GROUPS = [
+    'THE PAPER END','THE NIGHT WATCH','SOUTH THICKET','THE CHALK LINE','THE SHARP END','HIGH RIBBONS','THE CURRENT','EIGHT LOOMS',
+    'STOOP TWELVE','THE WHITEOUT','THE RAIN DECK','THE COLONY','THE ROOT SECTION','HIGH FLIGHT','THE HUM','THE BRIDGE END',
+    'THE RED CABIN','RIFT CHOIR','THE PACK','THE BIRCH RING','WARM LIGHT','THE LOW SOUND','KILN GATE','THE LONG NOTE',
+    'WORKSHOP EIGHT','CANE ROW','QUIET WHITE','THE BELL STAND','PALM SHADE','THE RAIN CHORUS','CAPE LINE','THE NINTH RING',
+    'THE SECOND LINE','THE PEACH PIT','YARD SHIFT','NORTH FLIGHT','THE LONG RUN','THE GROVE','RAINHOUSE','THE BREAK LINE',
+    'THE BRASS CIRCLE','THE GREEN FOLD','CLAY FOUR','THE DUST COIL','SIX LOOMS','SHELL GUARD','THE GOLD WING','THE ROPE END'
+  ];
+
+  var VENUE_IMAGES = {
+    'tokyo-paper-cranes':'assets/world/league-heroes/soccer-v2.jpg',
+    'new-york-brownstones':'assets/world/league-heroes/basketball-v2.jpg',
+    'montreal-sugar-maples':'assets/world/league-heroes/hockey-v2.jpg',
+    'mexico-city-alebrijes':'assets/world/league-heroes/baseball-v2.jpg',
+    'new-orleans-bayou-kings':'assets/world/league-heroes/american-football-v2.jpg',
+    'accra-brass-bell':'assets/world/league-heroes/combat-v2.jpg'
+  };
+
+  var RIVALRY_NAMES = {
+    'osaka-lanterns|tokyo-paper-cranes':'THE PAPER LIGHT DERBY',
+    'berlin-bramble|london-chalk-horses':'THORN & CHALK',
+    'sao-paulo-mango-teeth|valparaiso-salt-kites':'TEETH IN THE WIND',
+    'lagos-river-drums|marrakech-sun-carpets':'CURRENT & LOOM',
+    'new-york-brownstones|toronto-lake-effect':'THE COLD FRONT',
+    'manila-monsoons|melbourne-velvet-ants':'PRESSURE SYSTEM',
+    'dakar-baobabs|medellin-condors':'ROOTS & ALTITUDE',
+    'belgrade-beehive|istanbul-teacups':'THE TWO SHORES',
+    'montreal-sugar-maples|reykjavik-lava-loons':'FIRE UNDER ICE',
+    'helsinki-birch-knots|stockholm-wool-wolves':'THE BALTIC BIND',
+    'anchorage-tundra-drums|sapporo-snow-lanterns':'NORTH LIGHT',
+    'prague-river-golems|tromso-whale-choir':'STONE & SOUND',
+    'havana-sugar-kings|mexico-city-alebrijes':'THE WORKSHOP SERIES',
+    'kyoto-lucky-cats|seoul-moon-jars':'BELL & PORCELAIN',
+    'san-juan-coquis|santo-domingo-coco-bats':'THE RAIN BELT',
+    'auckland-kauri|cape-town-jackals':'THE OPEN HORIZON',
+    'atlanta-peaches|new-orleans-bayou-kings':'THE SOUTHERN CROWN',
+    'chicago-stockyards|minneapolis-snow-geese':'YARD & FLIGHT',
+    'dallas-prairie-hounds|oakland-redwoods':'THE LONG GROUND',
+    'honolulu-wave-riders|seattle-rain-dogs':'THE WEATHER GAME',
+    'accra-brass-bell|bangkok-banana-leaf':'BELL & FOLD',
+    'las-vegas-dust-devils|tbilisi-clay-knuckles':'DUST & CLAY',
+    'cebu-shell-guard|tunis-sand-loom':'THE WOVEN GUARD',
+    'lima-condor-gym|liverpool-ropeworks':'WING & ROPE'
+  };
+
+  function clubSport(order) {
+    return ['soccer','basketball','hockey','baseball','american-football','combat'][Math.floor(order / 8)] || 'soccer';
+  }
+
+  function clubCapacity(teamId, sportId) {
+    var ranges = {
+      soccer:[26000,56000,1000], basketball:[7600,18400,200], hockey:[9200,19200,200],
+      baseball:[18000,42000,500], 'american-football':[42000,76000,1000], combat:[1800,8200,200]
+    };
+    var range = ranges[sportId] || ranges.soccer;
+    return range[0] + (hash(teamId + '|capacity') % Math.floor((range[1] - range[0]) / range[2] + 1)) * range[2];
+  }
+
+  function rivalryName(teamId, rivalId) {
+    return RIVALRY_NAMES[[teamId,rivalId].sort().join('|')] || 'THE CITY SERIES';
+  }
+
   var TEAMS = {};
   var DISPLAY = {
     'sao-paulo-mango-teeth': {displayCity:'São Paulo',displayName:'SÃO PAULO MANGO TEETH'},
@@ -114,9 +176,14 @@
     'san-juan-coquis': {displayName:'SAN JUAN COQUÍS'}
   };
   TEAM_ROWS.forEach(function (row, index) {
+    var sportId = clubSport(index);
     TEAMS[row[0]] = {
       id: row[0], venue: row[1], venueLine: row[2], ritual: row[3], statement: row[4],
-      mark: row[5], scene: row[6], kitPattern: row[7], order: index
+      mark: row[5], scene: row[6], kitPattern: row[7], order: index,
+      founded: 1908 + (hash(row[0] + '|founded') % 97),
+      capacity: clubCapacity(row[0], sportId),
+      supporterGroup: SUPPORTER_GROUPS[index],
+      venueImage: VENUE_IMAGES[row[0]] || ''
     };
     if (DISPLAY[row[0]]) Object.assign(TEAMS[row[0]], DISPLAY[row[0]]);
   });
@@ -357,6 +424,7 @@
     teams: TEAMS,
     getLeague: function (sportId) { return LEAGUES[sportId] || null; },
     getTeam: function (teamId) { return TEAMS[teamId] || null; },
+    rivalryName: rivalryName,
     displayName: function (team) { var item = team && TEAMS[team.id]; return item && item.displayName || team && team.name || ''; },
     displayCity: function (team) { var item = team && TEAMS[team.id]; return item && item.displayCity || team && team.city || ''; },
     getPublicSports: getPublicSports,
