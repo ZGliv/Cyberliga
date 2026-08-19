@@ -12,20 +12,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="league.css" />
   <link rel="stylesheet" href="fanworld.css" />
+  <link rel="stylesheet" href="app-shell.css" />
 </head>
 <body>
   <a class="skip-link" href="#clubs">Skip to clubs</a>
-  <div class="site-grain" aria-hidden="true"></div>
-
-  <header class="league-masthead">
-    <a class="league-brand" href="world.html" aria-label="Cyberliga world home">
-      <strong>CYBERLIGA</strong><i aria-hidden="true"></i><span>THE AUTONOMOUS SPORTS WORLD</span>
+  <header class="cl-app-header">
+    <a class="cl-app-brand" href="world.html" aria-label="Cyberliga Home">
+      <strong>CYBERLIGA</strong><span>World sports, always on</span>
     </a>
-    <nav class="league-nav" aria-label="Primary navigation">
-      <a href="world.html">HOME</a>
-      <a class="active" href="league.html?sport=soccer" aria-current="page">LEAGUES</a>
+    <nav class="cl-app-nav" aria-label="Primary navigation">
+      <a href="world.html">Home</a>
+      <a href="league.html?sport=soccer" aria-current="page">Leagues</a>
     </nav>
   </header>
+  <div class="cl-context-bar">
+    <p class="cl-context-label"><strong>League HQ</strong><span>Six leagues · 48 clubs</span></p>
+    <div class="cl-context-fan" data-cl-fan-slot></div>
+  </div>
 
   <main id="league-hq">
     <section class="league-hero" id="league-hero" aria-labelledby="league-name">

@@ -8,26 +8,19 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='11' fill='%230b0c0c'/%3E%3Cpath d='M19 17h26v8H27v8h15v8H27v7h18' fill='none' stroke='%23d9ff43' stroke-width='6'/%3E%3C/svg%3E">
   <title>Replay Center · Cyberliga</title>
   <link rel="stylesheet" href="replay.css">
+  <link rel="stylesheet" href="app-shell.css">
 </head>
 <body>
   <a class="skip" href="#replay-stage">Skip to replay</a>
 
-  <header class="masthead">
-    <a class="brand" href="world.html" aria-label="Cyberliga world map">
-      <span class="brand-mark" aria-hidden="true">C</span>
-      <span>CYBERLIGA<small>REPLAY CENTER / HIGHLIGHT DESK</small></span>
-    </a>
-    <nav class="mast-nav" aria-label="Primary navigation">
-      <a href="menu.html">Broadcast guide</a>
-      <a href="league.html">League atlas</a>
-      <a href="social.html">World Wire</a>
-      <a href="world.html">World</a>
-    </nav>
-    <div class="desk-clock">
-      <i aria-hidden="true"></i>
-      <span><b id="utc-clock">--:--:--</b><small>UTC DESK CLOCK</small></span>
-    </div>
+  <header class="cl-app-header">
+    <a class="cl-app-brand" href="world.html" aria-label="Cyberliga Home"><strong>CYBERLIGA</strong><span>World sports, always on</span></a>
+    <nav class="cl-app-nav" aria-label="Primary navigation"><a href="world.html">Home</a><a href="league.html">Leagues</a></nav>
   </header>
+  <div class="cl-context-bar">
+    <p class="cl-context-label"><strong>Replay center</strong><span>Highlight desk</span></p>
+    <p class="cl-context-meta"><span class="cl-context-dot" aria-hidden="true"></span><b id="utc-clock">--:--:--</b><span>UTC</span></p>
+  </div>
 
   <main>
     <section class="hero" aria-labelledby="page-title">

@@ -516,19 +516,15 @@
       *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .001ms !important; }
     }
   </style>
+  <link rel="stylesheet" href="app-shell.css" />
 </head>
 <body>
   <a class="skip-link" href="#lab">Skip to character lab</a>
-  <header class="masthead">
-    <a class="brand" href="world.html" aria-label="Return to Cyberliga world">
-      <div class="brand-mark" aria-hidden="true">C</div>
-      <div class="brand-copy">
-        <div class="brand-name">Cyberliga</div>
-        <div class="brand-sub">Cast development / identity systems</div>
-      </div>
-    </a>
-    <a class="status-seal" href="league.html"><span>Leagues</span></a>
+  <header class="cl-app-header">
+    <a class="cl-app-brand" href="world.html" aria-label="Cyberliga Home"><strong>CYBERLIGA</strong><span>World sports, always on</span></a>
+    <nav class="cl-app-nav" aria-label="Primary navigation"><a href="world.html">Home</a><a href="league.html">Leagues</a></nav>
   </header>
+  <div class="cl-context-bar"><p class="cl-context-label"><strong>Character laboratory</strong><span>Identity systems</span></p></div>
 
   <main id="lab">
     <section class="intro" aria-labelledby="page-title">

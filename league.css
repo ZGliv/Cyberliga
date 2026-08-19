@@ -355,3 +355,129 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--paper); outline
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Shared product direction: League HQ belongs to the same restrained broadcast
+   system as Home. Club color is information, not page chrome. */
+body { background: #080a0d; }
+.site-grain { display: none; }
+.league-hero {
+  min-height: 650px;
+  max-height: 760px;
+  background: #080a0d;
+}
+.league-hero::after { display: none; }
+.league-hero::before {
+  z-index: -2;
+  background: linear-gradient(90deg, #080a0d 0 36%, rgba(8,10,13,.82) 54%, rgba(8,10,13,.16) 100%);
+}
+.league-hero-image {
+  left: auto;
+  width: 58%;
+  filter: saturate(.72) contrast(1.06) brightness(.74);
+}
+.league-hero-shade {
+  background: linear-gradient(90deg, #080a0d 0 4%, rgba(8,10,13,.74) 35%, rgba(8,10,13,.06) 100%),
+    linear-gradient(0deg, #080a0d 0, transparent 30%);
+}
+.sport-switcher {
+  top: 28px;
+  right: 28px;
+  left: 28px;
+  border-color: rgba(243,241,235,.14);
+  background: rgba(8,10,13,.9);
+}
+.sport-tab { min-height: 56px; }
+.sport-tab::before { height: 2px; }
+.sport-tab:hover,
+.sport-tab.active { background: rgba(255,255,255,.045); }
+.league-hero-copy {
+  bottom: 132px;
+  left: clamp(28px, 4vw, 64px);
+  width: min(690px, 58vw);
+}
+.network-kicker { color: #f34e45; letter-spacing: .12em; }
+.league-hero h1 {
+  max-width: 10ch;
+  margin-top: 15px;
+  font-size: clamp(56px, 7.6vw, 112px);
+  line-height: .82;
+  letter-spacing: -.065em;
+}
+.league-thesis {
+  max-width: 52ch;
+  margin-top: 23px;
+  color: rgba(243,241,235,.86);
+  font-family: Archivo, system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 550;
+  line-height: 1.5;
+}
+.league-architecture {
+  max-width: 62ch;
+  color: #9299a3;
+  font-family: Archivo, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 550;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+.hero-actions { gap: 8px; margin-top: 23px; }
+.hero-actions a,
+.hero-actions button {
+  min-height: 44px;
+  padding: 0 16px;
+  border-color: rgba(243,241,235,.2);
+  background: rgba(8,10,13,.82);
+  font-family: Archivo, system-ui, sans-serif;
+  font-size: 10px;
+  letter-spacing: .04em;
+}
+.hero-actions .primary-action {
+  border-color: #f3f1eb;
+  background: #f3f1eb;
+  color: #080a0d;
+}
+.world-proof {
+  right: clamp(28px, 4vw, 64px);
+  bottom: 24px;
+  left: clamp(28px, 4vw, 64px);
+  border-color: rgba(243,241,235,.12);
+  background: rgba(8,10,13,.9);
+}
+.world-proof div { min-height: 68px; padding: 13px 16px; }
+.world-proof strong { font-size: 27px; }
+.world-proof span { letter-spacing: .08em; }
+.live-slate,
+.clubs-section,
+.club-dossier,
+.league-record { padding-top: clamp(64px, 7vw, 98px); padding-bottom: clamp(64px, 7vw, 98px); }
+.section-heading h2 { font-size: clamp(38px, 4.8vw, 70px); line-height: .86; }
+.compact-heading h2 { font-size: clamp(32px, 3.6vw, 52px); }
+.section-heading p,
+.subsection-heading p { letter-spacing: .12em; }
+.channel-card:hover { transform: none; }
+
+@media (max-width: 900px) {
+  .league-hero { min-height: 690px; max-height: none; }
+  .league-hero-image { width: 100%; object-position: 68% center; opacity: .68; }
+  .league-hero-shade { background: linear-gradient(0deg,#080a0d 0 18%,rgba(8,10,13,.7) 62%,rgba(8,10,13,.2) 100%); }
+  .league-hero-copy { bottom: 142px; width: calc(100% - 48px); }
+}
+
+@media (max-width: 680px) {
+  .league-hero { min-height: 690px; }
+  .sport-switcher { top: 12px; right: 14px; left: 14px; }
+  .league-hero-copy { bottom: 154px; left: 16px; width: calc(100% - 32px); }
+  .league-hero h1 { font-size: clamp(40px, 13vw, 58px); line-height: .82; }
+  .league-thesis { font-size: 14px; }
+  .hero-actions { grid-template-columns: 1fr 1fr; }
+  .hero-actions a,
+  .hero-actions button { min-height: 44px; font-size: 9px; }
+  .world-proof { right: 14px; bottom: 12px; left: 14px; }
+  .world-proof div { min-height: 61px; }
+  .live-slate,
+  .clubs-section,
+  .club-dossier,
+  .league-record { padding-right: 14px; padding-left: 14px; }
+  .section-heading h2 { font-size: 38px; line-height: .9; }
+}

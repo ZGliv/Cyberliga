@@ -1180,3 +1180,13 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - Mobile at 390×844 opens on Live without initializing the globe, switches to an isolated World surface with one route/two endpoints, returns to Live with selection intact, and holds zero horizontal overflow. Desktop, mobile Live and mobile World screenshots were visually inspected; the camera-framing error found on the first World capture was corrected.
 - Final official-client state is finite with `selectedRouteCount:1`, `selectedEndpointCount:2`, 24 fixtures and no error artifact. `npm run verify` passes all behavioral suites and 1,541 repository checks; `git diff --check` and module syntax pass.
 - No deployment or canonical-worktree mutation was performed. Next decision is product review of the Home proof before any soccer-broadcast work.
+
+## Application shell unification — 2026-08-19
+- Current prompt: standardize the entire application so Home and Leagues feel like one coherent product and navigation no longer changes or breaks between surfaces.
+- Added one shared `app-shell.css` contract and migrated Home, League HQ, Athlete Files, Replay Center, Broadcast Guide, Clip Viewer, Moment Maker, World Wire, Character Lab, and Operations to the same Cyberliga brand lockup and exactly two primary destinations: Home and Leagues.
+- Preserved page-specific clocks, status, and controls in a restrained secondary context bar. The legacy My Signal control now mounts inside that context bar on League HQ and Athlete Files instead of floating over or disappearing behind global navigation.
+- Re-art-directed the League HQ entry viewport to match Home: the same near-black/warm-white shell, fixed typography and action language, restrained red, quieter club color, 44px controls, and a contained editorial hero rather than a separate neon application.
+- Browser round-trip passed Home → Leagues → Home at 1280×720 and 390×844 with identical measured header geometry (64px desktop, 56px mobile), correct active destination, exact query-preserving League route, and zero horizontal overflow.
+- All eight secondary surfaces expose the same Home/Leagues pair at 390×844 with no runtime errors or overflow. Final League HQ and Athlete Files captures confirm the My Signal collision is gone.
+- Official web-game client captures and finite text state passed for Home and League HQ. Repository verification now protects the shared shell and inline supporter slot across 1,587 static/data checks.
+- No arena chrome, simulation, data/schema, backend, deployment, or canonical worktree changes were made. Live arenas retain their single `← GLOBE` exit by design.

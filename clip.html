@@ -90,13 +90,17 @@
     }
     @media(prefers-reduced-motion:reduce) { .signal::before { animation:none; } }
   </style>
+  <link rel="stylesheet" href="app-shell.css" />
 </head>
 <body>
-  <header class="mast">
-    <a class="brand" href="world.html">CYBERLIGA <span id="clip-brand-mode">/ CLIP DIRECTOR</span></a>
-    <div class="signal"><span data-cyberliga-presence>1 WATCHING · LOCAL</span></div>
-    <nav aria-label="Primary navigation"><a href="world.html">HOME</a><a href="league.html">LEAGUES</a></nav>
+  <header class="cl-app-header">
+    <a class="cl-app-brand" href="world.html" aria-label="Cyberliga Home"><strong>CYBERLIGA</strong><span>World sports, always on</span></a>
+    <nav class="cl-app-nav" aria-label="Primary navigation"><a href="world.html">Home</a><a href="league.html">Leagues</a></nav>
   </header>
+  <div class="cl-context-bar">
+    <p class="cl-context-label"><strong id="clip-brand-mode">Clip director</strong></p>
+    <p class="cl-context-meta"><span class="cl-context-dot" aria-hidden="true"></span><b data-cyberliga-presence>1 WATCHING · LOCAL</b></p>
+  </div>
   <main>
     <div class="stage" id="stage">
       <canvas id="clip" width="540" height="960" aria-label="Animated 12-second vertical Cyberliga match clip"></canvas>
