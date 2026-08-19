@@ -163,6 +163,10 @@ const replayScript = await text('replay.js');
 const playerSource = await text('player.html');
 const playerScript = await text('player.js');
 const playerStyles = await text('player.css');
+const characterLabSource = await text('characterlab.html');
+const characterLabScript = await text('characterlab.js');
+const opsSource = await text('ops.html');
+const appShellStyles = await text('app-shell.css');
 const footballSource = await text('football.html');
 const footballScript = await text('football.js');
 const baseballSource = await text('baseball.html');
@@ -190,16 +194,30 @@ check(/root\.CyberligaEstablishing\s*=/.test(establishingSource) && /HOME RITUAL
 check(/brand\.sceneSvg\(home\)/.test(establishingSource) && /league\.hero/.test(establishingSource), 'Shared establishing package must combine league hero art with the selected club concept');
 check(/pointer-events:none/.test(establishingSource), 'Establishing shot must remain a non-interactive broadcast layer');
 
-const worldPrimaryNav = worldSource.match(/<nav class=["']nav["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
-const leaguePrimaryNav = leagueMarkupSource.match(/<nav class=["']league-nav["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
-const playerPrimaryNav = playerSource.match(/<nav[^>]*aria-label=["']Primary navigation["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
-const clipPrimaryNav = clipSource.match(/<nav[^>]*aria-label=["']Primary navigation["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
-for (const [label, nav] of [['World', worldPrimaryNav], ['League HQ', leaguePrimaryNav], ['Athlete Files', playerPrimaryNav], ['Clip Viewer', clipPrimaryNav]]) {
+const shellPages = [
+  ['Home', worldSource],
+  ['League HQ', leagueMarkupSource],
+  ['Athlete Files', playerSource],
+  ['Replay Center', replaySource],
+  ['Broadcast Guide', menuSource],
+  ['Clip Viewer', clipSource],
+  ['Moment Maker', momentSource],
+  ['World Wire', socialSource],
+  ['Character Lab', characterLabSource],
+  ['Operations', opsSource]
+];
+for (const [label, source] of shellPages) {
+  const nav = source.match(/<nav class=["']cl-app-nav["'][^>]*aria-label=["']Primary navigation["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
+  check(/app-shell\.css/i.test(source), `${label} must load the shared application shell`);
+  check(/<header class=["']cl-app-header["']>/i.test(source), `${label} must use the shared application header`);
   check((nav.match(/<a\b/gi) || []).length === 2, `${label} primary navigation must expose exactly Home and Leagues`);
   check(/world\.html/i.test(nav) && /league\.html/i.test(nav), `${label} primary navigation must link Home and Leagues`);
   check(!/(?:menu\.html|social\.html|COMMUNITY|LIVE NOW|>\s*WATCH\s*<\/)/i.test(nav), `${label} primary navigation restored a removed destination`);
 }
-check(!/\.masthead\s+nav\s+a:not\(:last-child\)\s*\{\s*display\s*:\s*none/i.test(playerStyles), 'Athlete Files must keep both primary destinations visible on mobile');
+check(/--cl-shell-height:\s*64px/.test(appShellStyles) && /@media\s*\(max-width:\s*680px\)/.test(appShellStyles), 'Shared application shell must define one desktop and mobile navigation geometry');
+check(!/\.cl-app-nav\s*\{[^}]*display\s*:\s*none/i.test(appShellStyles), 'Shared application shell must keep both primary destinations visible on mobile');
+check(/data-cl-fan-slot/.test(leagueMarkupSource) && /data-cl-fan-slot/.test(playerSource), 'League HQ and Athlete Files must reserve the shared context-bar supporter slot');
+check(/data-cl-fan-slot[\s\S]{0,400}fw-trigger-inline/.test(fanworldSource) && /\.fw-trigger\.fw-trigger-inline/.test(appShellStyles), 'My Signal must mount inside the application context bar instead of floating over navigation');
 
 check(/export const CLASSIC_PLAYER_COLORS\s*=\s*Object\.freeze\(\[0x00e5ff,\s*0xff45d6\]\)/i.test(blobRigSource), 'Shared rig must preserve the canonical cyan/hot-pink athlete palette');
 check(/export function classicPlayerColor\s*\(/.test(blobRigSource), 'Shared rig must expose side-stable classic athlete colors');
@@ -376,8 +394,6 @@ for (const [sportId, source] of classicArenaSources) {
   check(/\bfoundingTeam\s*:/.test(source), `${sportId} arena must pass the exact world team into the strict Founding cue gate`);
   check(/\bfoundingCues\s*:|const\s+foundingCues\s*=/.test(source), `${sportId} arena must expose currently rendered Founding cues in machine-readable state`);
 }
-const characterLabSource = await text('characterlab.html');
-const characterLabScript = await text('characterlab.js');
 check(/Marquee 12/i.test(characterLabSource), 'Character Lab must expose the first twelve marquee athletes');
 check(/window\.render_game_to_text\s*=/.test(characterLabScript), 'Character Lab is missing window.render_game_to_text');
 check(/window\.advanceTime\s*=/.test(characterLabScript), 'Character Lab is missing window.advanceTime');
@@ -404,8 +420,7 @@ check(/founding-canvas/.test(playerSource) && /is-founding/.test(playerStyles), 
 const momentPrimaryNav = momentSource.match(/<nav\b[^>]*aria-label=["']Primary navigation["'][^>]*>([\s\S]*?)<\/nav>/i)?.[1] || '';
 const momentPrimaryTargets = [...momentPrimaryNav.matchAll(/href=["']([^"']+)["']/gi)].map((match) => match[1]);
 check(JSON.stringify(momentPrimaryTargets) === JSON.stringify(['world.html', 'league.html']), 'Moment Maker primary navigation must expose only Home and Leagues', momentPrimaryTargets.join(', '));
-check(/<a\b[^>]*class=["'][^"']*status-seal[^"']*["'][^>]*href=["']league\.html["'][^>]*>\s*<span>Leagues<\/span>\s*<\/a>/i.test(characterLabSource), 'Character Lab masthead must pair its Home brand with a Leagues destination');
-check(!/<header\b[^>]*class=["'][^"']*masthead[^"']*["'][\s\S]*?href=["']menu\.html["'][\s\S]*?<\/header>/i.test(characterLabSource), 'Character Lab masthead must not restore the retired Broadcast Guide destination');
+check(!/<header\b[^>]*class=["'][^"']*cl-app-header[^"']*["'][\s\S]*?href=["']menu\.html["'][\s\S]*?<\/header>/i.test(characterLabSource), 'Character Lab header must not restore the retired Broadcast Guide destination');
 check(await exists('presence.js'), 'Missing shared presence client');
 check(await exists('livebridge.js'), 'Missing shared live bridge');
 const presenceSource = await text('presence.js');

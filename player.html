@@ -18,16 +18,21 @@
   <link rel="canonical" href="https://cyberliga-ten.vercel.app/player.html" />
   <link rel="stylesheet" href="player.css" />
   <link rel="stylesheet" href="fanworld.css" />
+  <link rel="stylesheet" href="app-shell.css" />
 </head>
 <body>
   <a class="skip-link" href="#athlete-main">Skip to athlete file</a>
-  <header class="masthead">
-    <a class="brand" href="world.html" aria-label="Cyberliga world home"><b>CYBERLIGA</b><span>ATHLETE FILES</span></a>
-    <div class="issue"><span id="issue-sport">WORLD SPORT</span><b id="issue-code">FILE 000</b></div>
-    <nav aria-label="Primary navigation">
+  <header class="cl-app-header">
+    <a class="cl-app-brand" href="world.html" aria-label="Cyberliga Home"><strong>CYBERLIGA</strong><span>World sports, always on</span></a>
+    <nav class="cl-app-nav" aria-label="Primary navigation">
       <a href="world.html">Home</a><a href="league.html" id="top-league">Leagues</a>
     </nav>
   </header>
+  <div class="cl-context-bar">
+    <p class="cl-context-label"><strong>Athlete files</strong></p>
+    <p class="cl-context-meta cl-context-meta-optional"><span id="issue-sport">WORLD SPORT</span><b id="issue-code">FILE 000</b></p>
+    <div class="cl-context-fan" data-cl-fan-slot></div>
+  </div>
 
   <main id="athlete-main" tabindex="-1">
     <section class="hero" id="hero" aria-labelledby="player-name">

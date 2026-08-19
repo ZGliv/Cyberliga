@@ -72,13 +72,17 @@
     }
     @media (prefers-reduced-motion:reduce) { * { animation:none!important; transition:none!important; } }
   </style>
+  <link rel="stylesheet" href="app-shell.css" />
 </head>
 <body>
-  <header class="mast">
-    <a class="brand" href="world.html">CYBERLIGA <span>/ MOMENT MAKER</span></a>
-    <div class="live"><span data-cyberliga-presence>1 WATCHING · LOCAL</span></div>
-    <nav aria-label="Primary navigation"><a href="world.html">HOME</a><a id="league-link" href="league.html">LEAGUES</a></nav>
+  <header class="cl-app-header">
+    <a class="cl-app-brand" href="world.html" aria-label="Cyberliga Home"><strong>CYBERLIGA</strong><span>World sports, always on</span></a>
+    <nav class="cl-app-nav" aria-label="Primary navigation"><a href="world.html">Home</a><a id="league-link" href="league.html">Leagues</a></nav>
   </header>
+  <div class="cl-context-bar">
+    <p class="cl-context-label"><strong>Moment maker</strong></p>
+    <p class="cl-context-meta"><span class="cl-context-dot" aria-hidden="true"></span><b data-cyberliga-presence>1 WATCHING · LOCAL</b></p>
+  </div>
 
   <main>
     <div class="poster-shell"><canvas id="poster" width="1080" height="1920" aria-label="Shareable vertical Cyberliga match-moment poster"></canvas></div>

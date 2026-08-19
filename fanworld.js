@@ -826,7 +826,13 @@
     trigger.setAttribute('aria-expanded','false');
     trigger.setAttribute('aria-label','Open My Signal supporter passport and witness chronicle');
     trigger.innerHTML = triggerLabel();
-    document.body.appendChild(trigger);
+    var shellSlot = document.querySelector('[data-cl-fan-slot]');
+    if (shellSlot) {
+      trigger.classList.add('fw-trigger-inline');
+      shellSlot.appendChild(trigger);
+    } else {
+      document.body.appendChild(trigger);
+    }
 
     var backdrop = document.createElement('button');
     backdrop.type = 'button';

@@ -256,18 +256,20 @@ main { width: min(1600px, 100%); margin: 0 auto; padding: var(--pad); }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
 </style>
+<link rel="stylesheet" href="app-shell.css" />
 </head>
 <body>
-<header class="topbar">
-  <a class="brand" href="world.html"><b>CYBERLIGA</b><span>/ OPERATIONS CONSOLE</span></a>
-  <nav class="top-actions" aria-label="Console actions">
-    <a href="menu.html">BROADCAST GUIDE ↗</a>
-    <a href="world.html">PUBLIC WORLD ↗</a>
-    <a href="social.html">WORLD WIRE ↗</a>
+<header class="cl-app-header">
+  <a class="cl-app-brand" href="world.html" aria-label="Cyberliga Home"><strong>CYBERLIGA</strong><span>World sports, always on</span></a>
+  <nav class="cl-app-nav" aria-label="Primary navigation"><a href="world.html">Home</a><a href="league.html">Leagues</a></nav>
+</header>
+<div class="cl-context-bar">
+  <p class="cl-context-label"><strong>Operations console</strong><span>Read-only system view</span></p>
+  <div class="cl-context-actions" aria-label="Console actions">
     <button type="button" id="copy-snapshot">COPY INCIDENT</button>
     <button type="button" class="primary" id="refresh">REFRESH</button>
-  </nav>
-</header>
+  </div>
+</div>
 
 <main>
   <section class="mast">

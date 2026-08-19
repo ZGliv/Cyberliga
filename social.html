@@ -206,14 +206,18 @@
   }
   @media (prefers-reduced-motion:reduce) { * { animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; } }
 </style>
+<link rel="stylesheet" href="app-shell.css" />
 </head>
 <body>
 <div class="topline"></div>
-<header class="masthead">
-  <a class="brand" href="social.html">CYBERLIGA <span>/ WORLD WIRE</span></a>
-  <div class="edition"><b>SEASON ZERO · GLOBAL EDITION</b><time id="utc-clock">--:--:-- UTC</time></div>
-  <nav class="mastnav"><span class="utc-label"><i class="pulse"></i><b data-cyberliga-presence>1 WATCHING · LOCAL</b></span><a href="menu.html">BROADCAST GUIDE</a><a href="league.html?sport=soccer">LEAGUE ATLAS</a><a href="moment.html">MOMENT MAKER</a><a class="world" href="world.html">WORLD MAP ↗</a></nav>
+<header class="cl-app-header">
+  <a class="cl-app-brand" href="world.html" aria-label="Cyberliga Home"><strong>CYBERLIGA</strong><span>World sports, always on</span></a>
+  <nav class="cl-app-nav" aria-label="Primary navigation"><a href="world.html">Home</a><a href="league.html?sport=soccer">Leagues</a></nav>
 </header>
+<div class="cl-context-bar">
+  <p class="cl-context-label"><strong>World Wire</strong><span>Season zero · Global edition</span></p>
+  <p class="cl-context-meta"><span class="cl-context-dot" aria-hidden="true"></span><b data-cyberliga-presence>1 WATCHING · LOCAL</b><time id="utc-clock">--:--:-- UTC</time></p>
+</div>
 
 <div class="club-tape" aria-label="Trending clubs">
   <div class="tape-label">TRENDING //</div><div class="tape-track" id="club-tape"></div>
