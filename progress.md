@@ -1169,3 +1169,14 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - The merged verifier retains the World Desk release guards and adds permanent contracts for both adjudication
   repairs. Canonical World Desk markup, styling and evergreen social-image bytes remain unchanged from the prior
   production release.
+
+## Premium Home kill gate — 2026-08-19
+- Current prompt: implement the approved Cyberliga Rescue one-hour Home kill gate: premium Home only, desktop globe plus live rail, mobile Live-first with a separate World surface, 24 preserved arena links, no deployment.
+- Created isolated branch/worktree `codex/home-kill-gate` from canonical `codex/vercel-sports-revamp` HEAD `81da120`.
+- Replaced the rejected Home presentation with a semantic shell, focused `world-home.js` controller and restrained editorial CSS. Home now uses only world/brand/schedule/presence dependencies; the toy athlete portrait, supporter drawer and synthetic story graphics are intentionally absent.
+- Desktop renders one selected route/two endpoints beside a matte schedule rail. Mobile defaults to Live and mounts the globe only after the explicit World tab is selected.
+- Updated the repository verifier from the obsolete globe-first/Founding-portrait contract to the approved premium Home acceptance contract.
+- Final browser gate passes: all seven filters produce 24/4 fixtures, the Home exposes 24 unique reachable arena URLs, hover previews without camera travel, explicit selection flies to the chosen city, and the featured Watch action reaches the canonical soccer deep link.
+- Mobile at 390×844 opens on Live without initializing the globe, switches to an isolated World surface with one route/two endpoints, returns to Live with selection intact, and holds zero horizontal overflow. Desktop, mobile Live and mobile World screenshots were visually inspected; the camera-framing error found on the first World capture was corrected.
+- Final official-client state is finite with `selectedRouteCount:1`, `selectedEndpointCount:2`, 24 fixtures and no error artifact. `npm run verify` passes all behavioral suites and 1,541 repository checks; `git diff --check` and module syntax pass.
+- No deployment or canonical-worktree mutation was performed. Next decision is product review of the Home proof before any soccer-broadcast work.
