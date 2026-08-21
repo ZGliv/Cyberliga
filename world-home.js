@@ -50,6 +50,7 @@ const els = {
   worldStage: document.getElementById('world-stage'),
   worldCard: document.getElementById('world-match-card'),
   worldSelection: document.getElementById('world-selection'),
+  heroImage: document.getElementById('home-hero-image'),
   canvas: document.getElementById('globe'),
   labels: document.getElementById('globe-labels'),
   liveTab: document.getElementById('surface-live'),
@@ -61,7 +62,7 @@ let fixtures = buildFixtures();
 let activeFilter = validSport(new URLSearchParams(location.search).get('sport'));
 let selectedCard = fixtures.find((card) => card.league.id === 'soccer') || fixtures[0];
 let previewCard = null;
-let activeSurface = innerWidth <= 900 ? 'live' : 'combined';
+let activeSurface = 'live';
 let globe = null;
 let lastSoccerSlot = soccerMatches[0]?.slot;
 
@@ -116,7 +117,7 @@ function buildFixtures() {
 }
 
 function fixtureStatus(card) {
-  return card.league.canonical ? `Live · ${UNIVERSE.clock(card.liveMatch.elapsedMs)}` : 'Available now';
+  return card.league.canonical ? `Live / ${UNIVERSE.clock(card.liveMatch.elapsedMs)}` : 'Available now';
 }
 
 function cardStory(card) {
@@ -125,8 +126,8 @@ function cardStory(card) {
   const homeBrand = BRAND.getTeam?.(home.id);
   const rivalry = home.rivalryId === away.id || away.rivalryId === home.id;
   if (rivalry) return `${home.city} and ${away.city} renew a city rivalry.`;
-  if (homeBrand?.venue) return `${displayName(homeBrand.venue)} · ${displayName(home.city)}.`;
-  return `${displayName(card.league.league)} · ${displayName(home.city)}.`;
+  if (homeBrand?.venue) return `${displayName(homeBrand.venue)} in ${displayName(home.city)}.`;
+  return `${displayName(card.league.league)} from ${displayName(home.city)}.`;
 }
 
 function visibleFixtures() {
@@ -146,7 +147,7 @@ function featuredMarkup(card) {
   return `<article class="featured-card" style="--home-color:${escapeHtml(home.colors?.primary || card.league.color)};--status-color:${live ? '#f34e45' : '#a7adb5'}">
     <div class="featured-top">
       <span class="featured-kicker"><i></i><span${card.league.canonical ? ` data-live-clock="${card.index}" data-live-mode="full"` : ''}>${escapeHtml(fixtureStatus(card))}</span></span>
-      <span class="featured-league">${escapeHtml(card.league.name)} · ${escapeHtml(displayName(card.league.league))}</span>
+      <span class="featured-league">${escapeHtml(card.league.name)} / ${escapeHtml(displayName(card.league.league))}</span>
     </div>
     <div class="featured-matchup">
       <div class="featured-team">${crestMarkup(card.home, card.league)}<strong>${escapeHtml(displayName(home.name))}</strong><span>${escapeHtml(displayName(home.city))}</span></div>
@@ -164,9 +165,14 @@ function featuredMarkup(card) {
 function worldCardMarkup(card) {
   const home = teamIdentity(card.home, card.league);
   const away = teamIdentity(card.away, card.league);
-  return `<div class="world-card-top"><span>${escapeHtml(card.league.name)}</span><span${card.league.canonical ? ` data-live-clock="${card.index}" data-live-mode="full"` : ''}>${escapeHtml(fixtureStatus(card))}</span></div>
-    <div class="world-card-matchup"><strong>${escapeHtml(displayName(home.name))}</strong><span>vs</span><strong>${escapeHtml(displayName(away.name))}</strong></div>
-    <a class="watch-action" href="${escapeHtml(card.href)}"${card.league.canonical ? ` data-live-watch="${card.index}"` : ''} aria-label="Watch ${escapeHtml(home.name)} versus ${escapeHtml(away.name)}"><span>Watch</span><span aria-hidden="true">↗</span></a>`;
+  return `<div class="world-card-top"><span>${escapeHtml(card.league.name)} / ${escapeHtml(displayName(card.league.league))}</span><span${card.league.canonical ? ` data-live-clock="${card.index}" data-live-mode="full"` : ''}>${escapeHtml(fixtureStatus(card))}</span></div>
+    <div class="world-card-matchup">
+      <div>${crestMarkup(card.home, card.league)}<span><strong>${escapeHtml(displayName(home.name))}</strong><small>${escapeHtml(displayName(home.city))}</small></span></div>
+      <em>vs</em>
+      <div>${crestMarkup(card.away, card.league)}<span><strong>${escapeHtml(displayName(away.name))}</strong><small>${escapeHtml(displayName(away.city))}</small></span></div>
+    </div>
+    <p>${escapeHtml(cardStory(card))}</p>
+    <div class="world-card-actions"><a class="watch-action" href="${escapeHtml(card.href)}"${card.league.canonical ? ` data-live-watch="${card.index}"` : ''} aria-label="Watch ${escapeHtml(home.name)} versus ${escapeHtml(away.name)}"><span>Watch match</span><span aria-hidden="true">↗</span></a><button class="locate-action" type="button" data-locate="${escapeHtml(card.id)}">Open world</button></div>`;
 }
 
 function fixtureMarkup(card) {
@@ -185,8 +191,15 @@ function fixtureMarkup(card) {
 function renderFilters() {
   const filters = [{ id: 'all', name: 'All' }, ...LEAGUES];
   els.filters.innerHTML = filters.map((filter) => `<button class="filter-tab" type="button" data-filter="${escapeHtml(filter.id)}" aria-pressed="${String(filter.id === activeFilter)}">
-    <span class="sport-icon">${SPORT_ICONS[filter.id]}</span><span class="sport-label">${escapeHtml(filter.name)}</span>
+    <span class="sport-label">${escapeHtml(filter.name)}</span>
   </button>`).join('');
+}
+
+function updateHeroMedia(card) {
+  const identity = BRAND.getLeague?.(card.league.id);
+  const anchor = identity?.heroClubId ? CONTENT.getTeam(identity.heroClubId, card.league.id) : null;
+  els.heroImage.src = identity?.hero || 'assets/world/league-heroes/soccer-v2.jpg';
+  els.heroImage.alt = anchor ? `${displayName(BRAND.getTeam(anchor.id)?.venue || 'Home venue')}, home of ${displayName(anchor.name)}` : `${displayName(card.league.league)} venue`;
 }
 
 function renderSchedule({ preserveScroll = false } = {}) {
@@ -196,16 +209,17 @@ function renderSchedule({ preserveScroll = false } = {}) {
   els.featured.innerHTML = featuredMarkup(lead);
   const groups = LEAGUES.map((league) => ({ league, cards: visibleFixtures().filter((card) => card.league === league) })).filter((group) => group.cards.length);
   els.gameList.innerHTML = groups.map(({ league, cards }) => `<section class="league-group" data-sport="${escapeHtml(league.id)}">
-    <header class="league-group-head"><strong>${escapeHtml(league.name)} · ${escapeHtml(displayName(league.league))}</strong><span>${league.canonical ? 'Live' : 'Channel open'}</span></header>
+    <header class="league-group-head"><strong>${escapeHtml(league.name)} / ${escapeHtml(displayName(league.league))}</strong><span>${league.canonical ? 'Live' : 'Channel open'}</span></header>
     ${cards.map(fixtureMarkup).join('')}
   </section>`).join('');
   els.worldCard.innerHTML = worldCardMarkup(selectedCard);
+  updateHeroMedia(selectedCard);
   updateWorldCopy(selectedCard);
   if (preserveScroll) document.getElementById('game-drawer').scrollTop = scrollTop;
 }
 
 function updateWorldCopy(card) {
-  els.worldSelection.textContent = `${displayName(card.home.city)} to ${displayName(card.away.city)} · ${displayName(card.league.league)}`;
+  els.worldSelection.textContent = `${displayName(card.home.city)} against ${displayName(card.away.city)}. ${displayName(card.league.league)}.`;
 }
 
 function setFilter(next, { push = true } = {}) {
@@ -233,7 +247,7 @@ function selectCard(card, { moveCamera = true, showWorld = false } = {}) {
   previewCard = null;
   renderSchedule({ preserveScroll: true });
   globe?.focus(card, { moveCamera });
-  if (showWorld && innerWidth <= 900) setSurface('world');
+  if (showWorld) setSurface('world');
 }
 
 function preview(card) {
@@ -242,14 +256,13 @@ function preview(card) {
 }
 
 function setSurface(surface) {
-  const mobile = innerWidth <= 900;
-  activeSurface = mobile ? (surface === 'world' ? 'world' : 'live') : 'combined';
-  els.body.dataset.surface = activeSurface === 'world' ? 'world' : 'live';
-  els.liveTab.classList.toggle('active', activeSurface !== 'world');
+  activeSurface = surface === 'world' ? 'world' : 'live';
+  els.body.dataset.surface = activeSurface;
+  els.liveTab.classList.toggle('active', activeSurface === 'live');
   els.worldTab.classList.toggle('active', activeSurface === 'world');
-  els.liveTab.setAttribute('aria-pressed', String(activeSurface !== 'world'));
+  els.liveTab.setAttribute('aria-pressed', String(activeSurface === 'live'));
   els.worldTab.setAttribute('aria-pressed', String(activeSurface === 'world'));
-  if (activeSurface === 'world' || !mobile) ensureGlobe().then(() => globe?.focus(selectedCard, { moveCamera: activeSurface === 'world' }));
+  if (activeSurface === 'world') ensureGlobe().then(() => globe?.focus(selectedCard, { moveCamera: true }));
 }
 
 els.filters.addEventListener('click', (event) => {
@@ -287,6 +300,11 @@ els.featured.addEventListener('click', (event) => {
   if (locate) selectCard(cardById(locate.dataset.locate), { moveCamera: true, showWorld: true });
 });
 
+els.worldCard.addEventListener('click', (event) => {
+  const locate = event.target.closest('[data-locate]');
+  if (locate) selectCard(cardById(locate.dataset.locate), { moveCamera: true, showWorld: true });
+});
+
 document.querySelector('.surface-tabs').addEventListener('click', (event) => {
   const button = event.target.closest('[data-surface-target]');
   if (button) setSurface(button.dataset.surfaceTarget);
@@ -294,7 +312,6 @@ document.querySelector('.surface-tabs').addEventListener('click', (event) => {
 
 addEventListener('popstate', () => setFilter(new URLSearchParams(location.search).get('sport') || 'all', { push: false }));
 addEventListener('resize', () => {
-  setSurface(innerWidth <= 900 ? (els.body.dataset.surface === 'world' ? 'world' : 'live') : 'combined');
   globe?.resize();
 });
 
@@ -409,7 +426,7 @@ async function createGlobe() {
       focusGroup.add(marker);
       endpoints.push(marker);
       labelNodes[index].style.setProperty('--team', identity.colors?.primary || card.league.color);
-      labelNodes[index].querySelector('b').textContent = `${displayName(team.city)} · ${displayName(identity.name)}`;
+      labelNodes[index].querySelector('b').textContent = `${displayName(team.city)} / ${displayName(identity.name)}`;
     });
     updateWorldCopy(card);
     els.worldCard.innerHTML = worldCardMarkup(card);
@@ -579,13 +596,13 @@ function tickNetwork() {
 els.date.textContent = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
 renderFilters();
 renderSchedule();
-setSurface(activeSurface);
+setSurface('live');
 setTimeout(() => els.loading.classList.add('done'), 240);
 setInterval(tickNetwork, 1000);
 
 window.render_game_to_text = () => JSON.stringify({
   screen: 'world',
-  edition: 'premium-home-kill-gate',
+  edition: 'taste-redesign',
   activeSurface,
   activeSport: activeFilter,
   selectedFixture: selectedCard ? { id: selectedCard.id, sport: selectedCard.league.id, home: selectedCard.home.name, away: selectedCard.away.name, href: selectedCard.href } : null,
@@ -595,7 +612,7 @@ window.render_game_to_text = () => JSON.stringify({
   selectedGlobeEndpoints: selectedCard ? [selectedCard.home.city, selectedCard.away.city] : [],
   preview: previewCard ? { open: false, selected: false, fixture: previewCard.id } : { open: false, selected: true, fixture: selectedCard?.id || null },
   globe: globe ? globe.state() : { initialized: false, selectedRouteCount: 0, selectedEndpointCount: 0 },
-  coordinateSystem: 'Home document flow; globe uses latitude/longitude with screen origin top-left; mobile opens on the Live surface'
+  coordinateSystem: 'Home document flow; globe uses latitude/longitude with screen origin top-left; Home opens on the Live surface'
 });
 
 window.advanceTime = (ms) => {

@@ -5,42 +5,42 @@
     soccer: {
       code: 'SCL', name: 'THE COMMON GROUND', short: 'COMMON GROUND',
       hero: 'assets/world/league-heroes/soccer-v2.jpg', heroClubId: 'tokyo-paper-cranes', accent: '#f05b67', arena: 'index.html',
-      thesis: 'Eight cities. One uninterrupted field. Football built from local rituals and played on a shared global clock.',
+      thesis: 'Eight cities play one uninterrupted game shaped by local rituals and a shared global clock.',
       architecture: 'Civic bowls, transit plazas and terraces that make the city part of the match.',
       broadcast: 'Continuous pressure · four channels · no dead air'
     },
     'american-football': {
       code: 'AMF', name: 'THE SUNDAY ANIMAL', short: 'SUNDAY ANIMAL',
       hero: 'assets/world/league-heroes/american-football-v2.jpg', heroClubId: 'new-orleans-bayou-kings', accent: '#e67b2f', arena: 'football.html',
-      thesis: 'A collision league of authored systems, regional obsessions and one full-field consequence on every snap.',
+      thesis: 'Regional football systems collide, with every snap carrying a full-field consequence.',
       architecture: 'Industrial cathedrals with long sightlines, heavy roofs and entrances that shake the structure.',
       broadcast: 'Route geometry · consequence · four live fields'
     },
     basketball: {
       code: 'HPS', name: 'THE HIGH ROOM', short: 'HIGH ROOM',
       hero: 'assets/world/league-heroes/basketball-v2.jpg', heroClubId: 'new-york-brownstones', accent: '#e98555', arena: 'hoops.html',
-      thesis: 'The vertical league: eight dense cities, compressed courts and possessions that turn into weather.',
+      thesis: 'Eight dense cities turn compressed courts and fast possessions into weather.',
       architecture: 'Arenas stacked into neighborhoods, towers and transit halls instead of isolated parking lots.',
       broadcast: 'Violent transitions · high leverage · four courts'
     },
     hockey: {
       code: 'ICE', name: 'THE COLD ARGUMENT', short: 'COLD ARGUMENT',
       hero: 'assets/world/league-heroes/hockey-v2.jpg', heroClubId: 'montreal-sugar-maples', accent: '#69d1dc', arena: 'hockey.html',
-      thesis: 'Cold-city hockey where material, weather and crowd acoustics turn every home rink into a different problem.',
+      thesis: 'Material, weather and crowd acoustics make every cold-city rink a different problem.',
       architecture: 'Timber, basalt, glass and ice shaped by climate rather than copied from a universal arena plan.',
       broadcast: 'Compressed space · sudden death · four rinks'
     },
     baseball: {
       code: 'BSB', name: 'THE LONG AFTERNOON', short: 'LONG AFTERNOON',
       hero: 'assets/world/league-heroes/baseball-v2.jpg', heroClubId: 'mexico-city-alebrijes', accent: '#e3aa52', arena: 'baseball.html',
-      thesis: 'Eight ballparks built for patience, civic memory and the instant when an entire city follows one white ball.',
+      thesis: 'Eight ballparks hold civic memory and the instant when a city follows one white ball.',
       architecture: 'Open parks shaped by coastlines, workshops, mountains, trees and the streets beyond the wall.',
       broadcast: 'One pitch at a time · long memory · four diamonds'
     },
     combat: {
       code: 'FYT', name: 'THE HANDMADE UNDERCARD', short: 'HANDMADE UNDERCARD',
       hero: 'assets/world/league-heroes/combat-v2.jpg', heroClubId: 'accra-brass-bell', accent: '#ff3d5a', arena: 'fight.html',
-      thesis: 'Eight fight cities, eight handmade gyms and a league where every guard, feint and finish carries the material language of home.',
+      thesis: 'Eight handmade gyms give every guard, feint and finish the material language of home.',
       architecture: 'Intimate rooms built from rope, cloth, timber, metal and local workshop light, with the ring always at the center.',
       broadcast: 'Measured pressure · sudden finishes · four rings'
     }

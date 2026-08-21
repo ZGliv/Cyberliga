@@ -215,7 +215,7 @@ for (const [label, source] of shellPages) {
   check(/world\.html/i.test(nav) && /league\.html/i.test(nav), `${label} primary navigation must link Home and Leagues`);
   check(!/(?:menu\.html|social\.html|COMMUNITY|LIVE NOW|>\s*WATCH\s*<\/)/i.test(nav), `${label} primary navigation restored a removed destination`);
 }
-check(/--cl-shell-height:\s*64px/.test(appShellStyles) && /@media\s*\(max-width:\s*680px\)/.test(appShellStyles), 'Shared application shell must define one desktop and mobile navigation geometry');
+check(/--cl-shell-height:\s*68px/.test(appShellStyles) && /@media\s*\(max-width:\s*680px\)[\s\S]{0,120}--cl-shell-height:\s*56px/.test(appShellStyles), 'Shared application shell must define one desktop and mobile navigation geometry');
 check(!/\.cl-app-nav\s*\{[^}]*display\s*:\s*none/i.test(appShellStyles), 'Shared application shell must keep both primary destinations visible on mobile');
 check(/data-cl-fan-slot/.test(leagueMarkupSource) && /data-cl-fan-slot/.test(playerSource), 'League HQ and Athlete Files must reserve the shared context-bar supporter slot');
 check(/data-cl-fan-slot[\s\S]{0,400}fw-trigger-inline/.test(fanworldSource) && /\.fw-trigger\.fw-trigger-inline/.test(appShellStyles), 'My Signal must mount inside the application context bar instead of floating over navigation');
@@ -263,20 +263,22 @@ check(!/buildAthleteRig/.test(footballScript) && /from\s+['"]\.\/blobrig\.js['"]
 
 check(/football\.html/.test(worldBundle), 'World map does not route to American football');
 check(/data-home-edition=["']world-desk["']/.test(worldSource) && /world-desk\.css/.test(worldSource), 'World Home must load the restrained World Desk edition');
-check(/<title>CYBERLIGA — Tonight’s Games Around the World<\/title>/.test(worldSource) && !/(?:autonomous sports|one planet|five leagues|5 leagues)/i.test(worldSource), 'World Home consumer metadata must read like tonight’s sports coverage rather than a technology manifesto');
+check(/<title>CYBERLIGA - Live Sports Around the World<\/title>/.test(worldSource) && !/(?:autonomous sports|one planet|five leagues|5 leagues)/i.test(worldSource), 'World Home consumer metadata must read like live sports coverage rather than a technology manifesto');
 check(worldShareImage.subarray(1, 4).toString('ascii') === 'PNG' && worldShareImage.readUInt32BE(16) === 1200 && worldShareImage.readUInt32BE(20) === 630, 'World Home social card must remain an exact 1200×630 PNG');
 check(createHash('sha256').update(worldShareImage).digest('hex') === '097800017917d1673783f2ae699ebd7f9b3caf7df52e6b80d3a711ab2ce98835', 'World Home social card must remain the visually audited evergreen Match Night capture');
-check(/property=["']og:image:alt["'][^>]*Stoopy–Toque/.test(worldSource) && /name=["']twitter:image:alt["'][^>]*Stoopy–Toque/.test(worldSource), 'World Home social image must retain accessible rivalry alt text');
-check(/>\s*Tonight\s*</.test(worldSource) && /24 games · 48 clubs/i.test(worldSource), 'World Desk must lead with an ordinary sports schedule and the canonical slate');
+check(/property=["']og:image:alt["'][^>]*six leagues and twenty-four games/i.test(worldSource) && /name=["']twitter:image:alt["'][^>]*six leagues and twenty-four games/i.test(worldSource), 'World Home social image must retain accessible world-sports alt text');
+check(/>The world is playing\.<\/h1>/.test(worldSource) && /24 games \/ 48 clubs/i.test(worldSource), 'World Home must lead with the live sports world and canonical slate');
 check(!/(?:CHOOSE A GAME|ENTER THE ACTION|LIVE GAME NETWORK|ACQUIRING THE WORLD SIGNAL)/i.test(worldSource), 'World Home restored synthetic dashboard language');
 check(/quietWorldDesk[\s\S]{0,220}!quietWorldDesk\) ensureShell\(\)[\s\S]{0,180}pageKind === 'world' && !quietWorldDesk/.test(fanworldSource), 'World Desk must keep the empty supporter shell and synthetic story pulse off Home');
 check(!/<style(?:\s|>)/i.test(worldSource), 'World Home must not retain the legacy inline dashboard stylesheet');
-check(/body::before[\s\S]{0,120}body::after[\s\S]{0,120}content:\s*none/.test(worldDeskStyles), 'World Desk must remove the scanline and cinematic dashboard overlays');
-check(/grid-template-columns:\s*minmax\(0,\s*1fr\)\s+440px/.test(worldDeskStyles) && /background:\s*var\(--panel\)/.test(worldDeskStyles), 'Premium Home must use one composed globe and matte schedule rail');
-check(/@media \(max-width:\s*900px\)[\s\S]{0,2600}\.surface-tabs\s*\{[\s\S]{0,240}display:\s*grid/.test(worldDeskStyles), 'Premium Home must expose dedicated Live and World phone surfaces');
-check(/body\[data-surface=["']world["']\][\s\S]{0,220}overflow:\s*hidden/.test(worldDeskStyles) && /body\[data-surface=["']world["']\] \.liveboard\s*\{\s*display:\s*none/.test(worldDeskStyles), 'Phone World mode must not compete with the live schedule');
-check(/\.filter-tab\s*\{[\s\S]{0,260}min-height:\s*44px/.test(worldDeskStyles) && /\.watch-action\s*\{[\s\S]{0,180}min-height:\s*44px/.test(worldDeskStyles), 'Premium Home controls must retain 44px touch targets');
-check(/\.game-drawer\s*\{[\s\S]{0,220}overflow-y:\s*auto[\s\S]{0,120}touch-action:\s*pan-y/.test(worldDeskStyles), 'Premium Home schedule must retain vertical touch panning');
+check(!/(?:scanline|repeating-linear-gradient|mix-blend-mode)/i.test(worldDeskStyles), 'Taste Home must not restore scanlines or synthetic dashboard overlays');
+check(/\.home-hero-image[\s\S]{0,220}object-fit:\s*cover/.test(worldDeskStyles) && /\.liveboard\s*\{[\s\S]{0,180}width:\s*min\(1500px,\s*100%\)/.test(worldDeskStyles), 'Taste Home must use a cinematic venue hero and full-width channel index');
+check(/\.surface-tabs\s*\{[\s\S]{0,180}display:\s*flex/.test(worldDeskStyles) && /activeSurface\s*=\s*'live'/.test(worldControllerSource), 'Taste Home must expose dedicated Live and World surfaces and open on Live');
+check(/body\[data-surface=["']world["']\]\s*\{\s*overflow:\s*hidden/.test(worldDeskStyles) && /body\[data-surface=["']world["']\] \.liveboard,[\s\S]{0,120}display:\s*none/.test(worldDeskStyles), 'World mode must not compete with the live channel index');
+check(/\.filter-tab\s*\{[\s\S]{0,260}min-height:\s*48px/.test(worldDeskStyles) && /\.watch-action,[\s\S]{0,120}min-height:\s*44px/.test(worldDeskStyles), 'Taste Home controls must retain 44px touch targets');
+check(/\.game-drawer\s*\{\s*overflow:\s*visible/.test(worldDeskStyles) && /body\s*\{[\s\S]{0,220}overflow-x:\s*hidden/.test(worldDeskStyles), 'Taste Home schedule must use natural vertical document scrolling without horizontal overflow');
+check(!/[—–]/.test(`${worldBundle}\n${atlasSource}`), 'Taste-redesigned Home and League HQ must contain zero em-dash or en-dash characters');
+check(/--live:\s*#ff4b43/.test(worldDeskStyles) && /border-radius:\s*0/.test(worldDeskStyles), 'Taste Home must lock one live-red accent and sharp-corner geometry');
 check(/fixtureStatus\(card\)[\s\S]{0,120}canonical[\s\S]{0,120}Available now/.test(worldControllerSource), 'Home must distinguish canonical live soccer from available client channels');
 check(/featured-card/.test(worldBundle) && /cardStory\(card\)/.test(worldControllerSource) && !/lead-portrait|FOUNDING_VISUAL|Who to watch/.test(worldBundle), 'Premium Home must use a restrained matchup lead without the rejected toy athlete portrait');
 check(/id=["']filter-tabs["']\s+role=["']group["']/.test(worldSource) && /aria-pressed/.test(worldControllerSource), 'Premium Home sport filters must expose pressed-button semantics');

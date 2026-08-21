@@ -80,7 +80,7 @@
     var hero = byId('league-hero');
     var image = byId('league-hero-image');
     var hasImage = Boolean(league.hero);
-    document.title = 'CYBERLIGA — ' + league.name;
+    document.title = 'CYBERLIGA - ' + league.name;
     byId('league-code').textContent = league.code;
     byId('league-name').textContent = league.name;
     byId('league-thesis').textContent = league.thesis;
@@ -105,9 +105,9 @@
       var home = team(match.homeId);
       var away = team(match.awayId);
       return '<a class="channel-card" href="' + esc(arenaUrl(home.id,away.id)) + '" aria-label="Enter live channel ' + (index + 1) + ': ' + esc(displayName(home)) + ' against ' + esc(displayName(away)) + '">' +
-        '<div class="channel-top"><b>LIVE</b><span>CHANNEL ' + String(index + 1).padStart(2,'0') + ' · ROUND ' + esc(round.number) + '</span></div>' +
+        '<div class="channel-top"><b>LIVE</b><span>CHANNEL ' + String(index + 1).padStart(2,'0') + ' / ROUND ' + esc(round.number) + '</span></div>' +
         '<div class="channel-match"><div class="channel-club" style="--club-color:' + esc(home.colors.primary) + '"><strong>' + esc(home.code) + '</strong><span>' + esc(displayName(home)) + '</span></div><em>VS</em><div class="channel-club" style="--club-color:' + esc(away.colors.primary) + '"><strong>' + esc(away.code) + '</strong><span>' + esc(displayName(away)) + '</span></div></div>' +
-        '<p>' + esc(displayCity(home).toUpperCase()) + ' ↔ ' + esc(displayCity(away).toUpperCase()) + (match.rivalry ? ' · RIVALRY SIGNAL' : ' · SHARED WORLD CLOCK') + '</p></a>';
+        '<p>' + esc(displayCity(home).toUpperCase()) + ' ↔ ' + esc(displayCity(away).toUpperCase()) + (match.rivalry ? ' / RIVALRY' : ' / SHARED CLOCK') + '</p></a>';
     }).join('');
   }
 
@@ -250,7 +250,7 @@
     var max = ranges[sportId] || 6;
     var left = floor + B.hash(match.id + '|home') % (max - floor + 1);
     var right = floor + B.hash(match.id + '|away') % (max - floor + 1);
-    return left + '–' + right;
+    return left + '-' + right;
   }
 
   function renderFixtureList() {

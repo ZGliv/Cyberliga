@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>CYBERLIGA — Tonight’s Games Around the World</title>
+  <title>CYBERLIGA - Live Sports Around the World</title>
   <meta name="description" content="Tonight across Cyberliga: 24 games, 48 clubs and six leagues, with live broadcasts from New York to Tokyo." />
   <meta name="theme-color" content="#080a0d" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="CYBERLIGA — Tonight Around the World" />
+  <meta property="og:title" content="CYBERLIGA - Live Sports Around the World" />
   <meta property="og:description" content="24 games, 48 clubs and six leagues, live from New York to Tokyo." />
   <meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-world-og.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="Cyberliga Match Night: a world globe beside tonight’s six-sport schedule and the Stoopy–Toque basketball rivalry." />
+  <meta property="og:image:alt" content="Cyberliga live sports world with six leagues and twenty-four games." />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="CYBERLIGA — Tonight Around the World" />
+  <meta name="twitter:title" content="CYBERLIGA - Live Sports Around the World" />
   <meta name="twitter:description" content="24 games, 48 clubs and six leagues, live from New York to Tokyo." />
   <meta name="twitter:image" content="https://cyberliga-ten.vercel.app/cyberliga-world-og.png" />
-  <meta name="twitter:image:alt" content="Cyberliga Match Night: a world globe beside tonight’s six-sport schedule and the Stoopy–Toque basketball rivalry." />
+  <meta name="twitter:image:alt" content="Cyberliga live sports world with six leagues and twenty-four games." />
   <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="app-shell.css" />
 </head>
 <body data-surface="live" data-cyberliga-presence-manual>
-  <div class="loading" id="loading" role="status"><span></span><p>Opening tonight’s world</p></div>
+  <div class="loading" id="loading" role="status"><p>Tuning in</p></div>
 
   <header class="cl-app-header">
     <a class="cl-app-brand" href="world.html" aria-label="Cyberliga Home">
@@ -46,25 +46,24 @@
 
   <main class="home-shell">
     <section class="world-stage" id="world-stage" aria-labelledby="world-heading">
+      <img class="home-hero-image" id="home-hero-image" src="assets/world/league-heroes/soccer-v2.jpg" width="1672" height="941" fetchpriority="high" decoding="async" alt="The Fold, home of Tokyo Paper Cranes" />
       <canvas id="globe" aria-label="Interactive globe showing the selected Cyberliga fixture"></canvas>
       <div class="globe-labels" id="globe-labels" aria-hidden="true"></div>
       <div class="world-heading">
-        <p>World view</p>
-        <h1 id="world-heading">One world.<br />Always playing.</h1>
-        <span id="world-selection">Select a game to locate it on the globe.</span>
+        <p>Twenty-four games live</p>
+        <h1 id="world-heading">The world is playing.</h1>
+        <span id="world-selection">Six leagues. Forty-eight clubs. Every game already in motion.</span>
       </div>
-      <div class="world-instruction" aria-hidden="true"><span></span>Drag to explore</div>
       <article class="world-match-card" id="world-match-card" aria-label="Selected world fixture"></article>
     </section>
 
     <aside class="liveboard" aria-label="Tonight’s Cyberliga schedule">
       <header class="liveboard-header">
         <div>
-          <p>Live now</p>
-          <h2>Tonight</h2>
+          <h2>Choose what to watch</h2>
         </div>
         <div class="slate-meta">
-          <strong>24 games · 48 clubs</strong>
+          <strong>24 games / 48 clubs</strong>
           <span id="tonight-date">Around the world</span>
         </div>
       </header>
@@ -73,7 +72,7 @@
 
       <section class="schedule" aria-labelledby="schedule-heading">
         <header class="schedule-heading">
-          <h3 id="schedule-heading">All channels</h3>
+          <h3 id="schedule-heading">All games</h3>
           <span class="presence-quiet" data-cyberliga-presence data-presence-mode="quiet">Schedule updates automatically</span>
         </header>
         <div class="filter-tabs" id="filter-tabs" role="group" aria-label="Filter games by sport"></div>
