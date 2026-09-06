@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#e9e3d5">
+  <title>Cyberliga · Court motion study</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%232c3c35'/%3E%3Cpath d='M28 12H15l-5 8 5 8h13l-5-8z' fill='%23e9e3d5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="broadcast">
+    <header class="masthead">
+      <div class="wordmark"><svg viewBox="0 0 30 30" aria-hidden="true"><path d="M24 5H11L4 15l7 10h13l-7-10z"/></svg>CYBERLIGA</div>
+      <span class="study">COURT STUDY <span>01</span></span>
+    </header>
+    <section class="scoreboard" aria-label="Match score">
+      <div class="club home"><span class="crest kiln" aria-hidden="true">K</span><div><span class="city">PITTSBURGH</span><strong>Kiln</strong></div></div>
+      <div class="score"><span id="home-score">0</span><span class="dash">:</span><span id="away-score">0</span><div class="match-clock"><span class="live-dot"></span><span id="clock">00:00</span><span class="session-label">EXHIBITION</span></div></div>
+      <div class="club away"><div><span class="city">OAKLAND</span><strong>Switch</strong></div><span class="crest switch" aria-hidden="true">S</span></div>
+    </section>
+    <section class="stage" aria-label="Autonomous three versus three court broadcast">
+      <canvas id="court" aria-label="Six animated animal athletes pass, intercept, and shoot a yellow ball at two goals."></canvas>
+      <div id="player-labels" aria-hidden="true"></div>
+      <div class="stage-top"><span><span class="small-dot"></span>AUTONOMOUS PLAY</span><span id="possession">KILN BALL · 12s</span></div>
+      <div id="moment" class="moment" aria-live="off"><span id="moment-type">OPENING POSSESSION</span><strong id="moment-text">Find the open player.</strong></div>
+      <div class="stage-bottom"><span>THE CHECKPOINT</span><span>3 v 3 · ONE BALL · TWO GOALS</span></div>
+      <div id="loading" class="loading">Preparing the court…</div>
+    </section>
+    <footer class="footer">
+      <p class="rule"><strong>Pass. Find space. Score.</strong><span>Carry for up to 3 seconds. Throw into the goal for 1 point.</span></p>
+      <p class="prototype-note">Motion prototype<span>Local simulation · Procedural character models</span></p>
+    </footer>
+  </main>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
