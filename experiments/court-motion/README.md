@@ -32,7 +32,7 @@ Watch an entire attack and the response after it. Can you locate the ball, under
 ## Verification
 
 ```sh
-node --test experiments/court-motion/sim.test.mjs
+node --test experiments/court-motion/sim.test.mjs experiments/court-motion/qa/pose-check.mjs experiments/court-motion/qa/rig-motion.test.mjs
 node /Users/Test/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js \
   --url http://127.0.0.1:4186/experiments/court-motion/index.html \
   --actions-json '{"steps":[{"buttons":[],"frames":120}]}' \

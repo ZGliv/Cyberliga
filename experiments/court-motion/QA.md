@@ -1,5 +1,31 @@
 # Motion study verification — 2026-09-06
 
+## Shaking correction after user review
+
+The user correctly identified visibly unstable movement despite the initial frame-rate/replay checks. New diagnostics found actual pose discontinuities: cancelling a foot swing could move a foot 0.77 m in one tick, receiving hands changed targets abruptly at a two-metre cutoff, and shot contact could reset the jump timer at its apex. Steering and facing also repeatedly reversed small corrections.
+
+The correction commits movement/avoidance intentions briefly, damps linear and angular acceleration, keeps defenders facing the play, finishes foot steps independently of speed, gives jumps their own continuous arc, blends arm poses and stabilizes knees/elbows through folded poses. Name labels also ease into new positions.
+
+Matching 120-second seed-7 diagnostic runs at 60 Hz:
+
+| Maximum single-tick displacement | Initial | Corrected |
+| --- | ---: | ---: |
+| Foot, world space | 0.774 m | 0.110 m |
+| Hand, body space | 1.261 m | 0.133 m |
+| Knee, body space | 0.739 m | 0.120 m |
+| Elbow, body space | 0.743 m | 0.112 m |
+| Torso translation | 0.191 m | 0.120 m |
+
+None of those corrected pose categories has a displacement above 0.15 m in that run. The simulation's rapid heading reversals fall from 414 to 56 while total athlete travel changes by only 3.5%. These measurements support the specific jitter repair; they are not a claim of finished animation quality.
+
+The required official client was rerun and its screenshots inspected. A new 30-second continuous portrait recording and the full portrait/landscape/desktop browser checks pass, including input immunity, resize, finite state, and zero page/console/request/HTTP/graphics errors or warnings. The user's existing in-app tab was reloaded with the correction. `qa/output/smoothing/`, `qa/output/smoothing-final/`, and `qa/output/smoothing-official/` contain current evidence. `review/portrait-demo.mp4` now contains the corrected recording.
+
+Current regression coverage includes stable sidesteps, bounded acceleration/rapid turns, interrupted foot steps, the receiving reach threshold, jump-timer resets, deterministic replay, and pose equality across display rates. `qa/motion-check.mjs --ref=1748fc8` reproduces the initial motion diagnostic; `--ref=working` checks the current code. A ten-minute numerical motion soak was also inspected while refining the repair.
+
+The current 120-second held-ball diagnostic remains finite with three isolated first-recovery ticks above its 0.27 m hand-centre threshold (worst 0.341 m), each lasting one tick. Catches and contact still merit production animation work. Physical-phone testing remains outstanding.
+
+## Initial prototype verification at 1748fc8
+
 ## Result
 
 The scoped motion prototype passes its simulation, fixed-pose and browser checks. It is ready for visual/product review, not production release or wagering use.
@@ -35,7 +61,7 @@ A separate deliberate `WEBGL_lose_context` check verified that the restoration n
 
 - `qa/output/official-final/`: required-client screenshots and state.
 - `qa/output/verified/`: final three-layout screenshots, continuous recordings, browser report and forced-recovery evidence.
-- `review/portrait-demo.mp4`: tracked, continuous 21.6-second portrait recording of this version. Encoded from the browser recording without cuts, compositing, speed changes or generated footage.
+- `review/portrait-demo.mp4`: tracked continuous portrait recording, updated after the shaking correction. Encoded from the browser recording without cuts, compositing, speed changes or generated footage. The initial commit retains the earlier recording for comparison.
 
 ## Remaining judgment and engineering
 

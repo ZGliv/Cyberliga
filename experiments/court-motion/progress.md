@@ -23,3 +23,11 @@ Original prompt: Go ahead — build the small autonomous motion prototype propos
 ## Next decision
 - User should judge the actual exchange: ball legibility, movement quality, individuality and desire to keep watching. Do not expand the league or treat the experimental sport as accepted merely because engineering checks pass.
 - If accepted, refine match rhythm and production-quality character/animation assets; then run sustained physical-device testing. The official hosted match/streaming/league platform remains separate future work.
+
+## User-reported shaking correction
+- User: athletes shake back and forth and do not look smooth. Continuing the same isolated prototype feature; no canonical or deployment changes.
+- Reproduced unstable steering plus actual foot/hand/jump discontinuities. The first tests did not cover these visual continuity failures.
+- Added committed avoidance and movement targets, damped acceleration/turning, and play-facing defensive movement. Replaced cancellable gait swings with complete alternating steps; blended reaching/pose changes; separated jumping from resettable action timers; stabilized IK bends and label positions.
+- Matching 120-second diagnostics: maximum foot jump .774→.110 m, hand jump1.261→.133 m, knee .739→.120 m, elbow .743→.112 m. No corrected category exceeds .15 m per tick. Rapid heading reversals414→56 while movement distance stays within3.5% of baseline.
+- Re-ran required official client, a30-second portrait recording and three-layout browser checks; screenshots inspected and all browser/error/layout/input checks pass. Updated the tracked recording and reloaded the user's existing preview tab. Added targeted regressions for the reported transitions.
+- The preview server had stopped between turns; restarted port4186 from the prototype worktree and verified it with agent-browser before browser QA.

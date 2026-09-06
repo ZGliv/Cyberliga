@@ -69,6 +69,7 @@ const labels = sim.players.map(p=>{
   label.innerHTML=`${p.name.toUpperCase()}<span class="number">${p.number}</span>`;
   document.querySelector('#player-labels').append(label); return label;
 });
+const labelPositions=sim.players.map(()=>null);
 const ballMaterial = new THREE.MeshStandardMaterial({color:0xf2c019,roughness:.67,metalness:0,emissive:0xb56b0c,emissiveIntensity:.08});
 const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(.19,20,14),ballMaterial);
 ballMesh.castShadow=true; scene.add(ballMesh);
@@ -162,7 +163,9 @@ function render(alpha,dt,draw=true){
     px=THREE.MathUtils.clamp(px,lw/2+8,width-lw/2-8);
     for(const b of boxes)if(Math.abs(b.x-px)<(b.w+lw)/2+4&&Math.abs(b.y-py)<14)py=b.y+15;
     py=THREE.MathUtils.clamp(py,35,height-34);boxes.push({x:px,y:py,w:lw});
-    labels[i].style.transform=`translate(${px}px,${py}px) translate(-50%,-50%)`;
+    if(!labelPositions[i]||dt<=0)labelPositions[i]={x:px,y:py};
+    else{const blend=1-Math.exp(-dt*14);labelPositions[i].x+=(px-labelPositions[i].x)*blend;labelPositions[i].y+=(py-labelPositions[i].y)*blend;}
+    labels[i].style.transform=`translate(${labelPositions[i].x}px,${labelPositions[i].y}px) translate(-50%,-50%)`;
   });
   ballMesh.position.set(viewBall.x,viewBall.y,viewBall.z);
   ballMesh.rotation.x=displayTime*4;ballMesh.rotation.z=displayTime*2;

@@ -53,10 +53,16 @@ function hand(p) {
     z: p.z + Math.cos(p.facing) * forward - Math.sin(p.facing) * side,
   };
 }
-function turn(p, x, z, dt) {
-  const angle = Math.atan2(x - p.x, z - p.z);
+function turn(p, x, z, dt, preparing = false) {
+  const nearby = Math.hypot(x - p.x, z - p.z) < (preparing ? .12 : .72);
+  const angle = nearby ? p.facing : Math.atan2(x - p.x, z - p.z);
   const delta = Math.atan2(Math.sin(angle - p.facing), Math.cos(angle - p.facing));
-  p.facing += clamp(delta, -dt * 6, dt * 6);
+  // Angular velocity has inertia. Tiny corrections cannot reverse the entire
+  // body in one frame; pass/shot preparation keeps its faster response.
+  const wanted = Math.abs(delta) < .012 ? 0 : clamp(delta * (preparing ? 13 : 7), preparing ? -8 : -5.2, preparing ? 8 : 5.2);
+  const acceleration = clamp((wanted - p.yawVelocity) * (preparing ? 16 : 11), preparing ? -65 : -30, preparing ? 65 : 30);
+  p.yawVelocity += acceleration * dt;
+  p.facing += p.yawVelocity * dt;
 }
 function controlled(sim, p, type = 'catch') {
   const priorTeam = sim.possession;
@@ -98,7 +104,9 @@ export function createSimulation(seed = 7) {
       const lane = id % 3;
       return { id, team, name, species, number, role, speed, skill,
         x: [-2.8, 0, 2.8][lane], z: team === 0 ? 3.7 + (lane === 1 ? -.8 : .5) : -.4 + (lane === 1 ? -1.8 : 0),
-        vx: 0, vz: 0, facing: team === 0 ? Math.PI : 0,
+        vx: 0, vz: 0, ax: 0, az: 0, yawVelocity: 0, facing: team === 0 ? Math.PI : 0,
+        avoidSide: 0, avoidUntil: 0, avoidTargetX: 0, steerAt: 0, steerKey: '', lookMode: 'play', lookUntil: 0,
+        steerX: [-2.8, 0, 2.8][lane], steerZ: team === 0 ? 3.7 + (lane === 1 ? -.8 : .5) : -.4 + (lane === 1 ? -1.8 : 0),
         action: 'idle', actionT: 0, actionDuration: 0, intent: 'Find space',
         carryTime: 0, decisionAt: 0, pending: null, contactUntil: 0,
       };
@@ -206,13 +214,18 @@ function movePlayers(sim, dt) {
   const ball = sim.ball, owner = ball.owner === null ? null : sim.players[ball.owner];
   const loose = ball.owner === null && ball.mode === 'loose';
   const eligible = sim.phase === 'restart' ? sim.players.filter(p => p.team === sim.possession) : sim.players;
-  const chasers = eligible.slice().sort((a, b) => distance(a, ball) - distance(b, ball)).slice(0, loose ? 2 : 1);
+  const chaseKey = `${sim.phase}:${sim.possession}:${ball.flightId}`;
+  if (sim.chaseKey !== chaseKey || sim.time >= (sim.chaseUntil || 0)) {
+    sim.chaseKey = chaseKey; sim.chaseUntil = sim.time + .55;
+    sim.chaserIds = eligible.slice().sort((a, b) => distance(a, ball) - distance(b, ball)).slice(0, loose ? 2 : 1).map(p => p.id);
+  }
+  const chasers = sim.chaserIds;
   for (const p of sim.players) {
     p.actionT += dt;
     const dir = direction(p.team), lane = p.id % 3;
     let tx = p.x, tz = p.z, speed = p.speed;
     if (sim.phase === 'restart') {
-      if (p.team === sim.possession && chasers.includes(p) && ball.owner === null) {
+      if (p.team === sim.possession && chasers.includes(p.id) && ball.owner === null) {
         tx = ball.x; tz = ball.z; p.intent = 'Retrieve for restart';
       } else if (owner?.id === p.id) {
         p.intent = 'Restart possession'; speed = 0;
@@ -221,7 +234,7 @@ function movePlayers(sim, dt) {
         p.intent = 'Reset shape';
       }
     } else if (loose) {
-      if (chasers.includes(p)) {
+      if (chasers.includes(p.id)) {
         tx = clamp(ball.x + ball.vx * .12, -4.55, 4.55);
         tz = clamp(ball.z + ball.vz * .12, -7.25, 7.25); p.intent = 'Recover the loose ball';
       } else {
@@ -231,9 +244,16 @@ function movePlayers(sim, dt) {
       tx = clamp(p.x * .70 + Math.sin(sim.time * 1.2 + p.id) * .6, -3.7, 3.7);
       tz = clamp(p.z + dir * 2.2, -6.45, 6.45);
       const front = sim.players.filter(q => q.team !== p.team && (q.z - p.z) * dir > 0).sort((a, b) => distance(a, p) - distance(b, p))[0];
-      if (front && distance(front, p) < 2.2 && Math.abs(front.x - p.x) < 1.15) {
-        tx = clamp(p.x + (p.x >= front.x ? 1 : -1) * 1.9, -4, 4);
-        tz = p.z + dir * .55;
+      if (front && distance(front, p) < 2.35 && Math.abs(front.x - p.x) < 1.2) {
+        if (sim.time >= p.avoidUntil) {
+          const lateral = p.x - front.x;
+          p.avoidSide = Math.abs(lateral) > .3 ? Math.sign(lateral) : (p.x > 0 ? -1 : 1);
+          p.avoidTargetX = clamp(p.x + p.avoidSide * 1.75, -4, 4);
+          p.avoidUntil = sim.time + .95;
+        }
+      }
+      if (sim.time < p.avoidUntil) {
+        tx = p.avoidTargetX; tz = p.z + dir * .70;
       }
       speed = p.pending ? .20 : 1.42;
       p.carryTime += dt;
@@ -269,32 +289,65 @@ function movePlayers(sim, dt) {
       }
     }
     tx = clamp(tx, -4.55, 4.55); tz = clamp(tz, -7.38, 7.38);
-    let dx = tx - p.x, dz = tz - p.z;
+    const steerKey = `${sim.phase}:${sim.possession}:${ball.owner}:${ball.mode}:${p.intent}`;
+    // Commit to a short movement intention. A moving marker or possession line
+    // cannot retarget a whole-body correction on every simulation tick.
+    if (p.steerKey !== steerKey || sim.time >= p.steerAt) {
+      p.steerX = tx; p.steerZ = tz; p.steerKey = steerKey;
+      p.steerAt = sim.time + (ball.mode === 'shot' || ball.targetId === p.id ? .10 : .24 + p.id * .009);
+    }
+    let dx = p.steerX - p.x, dz = p.steerZ - p.z;
     const attraction = Math.hypot(dx, dz);
     if (attraction > 1.4) { dx *= 1.4 / attraction; dz *= 1.4 / attraction; }
-    // Bound attraction so a distant target cannot overpower nearby bodies.
-    // Separation is a steering force, not positional teleportation.
+    let contactDampX = 0, contactDampZ = 0;
     for (const q of sim.players) {
       if (q.id === p.id) continue;
       const d = distance(p, q);
-      if (d < 1.22 && d > .001) {
-        const force = (1.22 - d) * 7;
-        dx += (p.x - q.x) / d * force; dz += (p.z - q.z) / d * force;
+      if (d < 1.30 && d > .001) {
+        const nx = (p.x - q.x) / d, nz = (p.z - q.z) / d;
+        const force = (1.30 - d) * 5.2;
+        dx += nx * force; dz += nz * force;
+        const closing = Math.min(0, (p.vx - q.vx) * nx + (p.vz - q.vz) * nz);
+        contactDampX -= nx * closing * 2; contactDampZ -= nz * closing * 2;
       }
     }
-    const d = Math.hypot(dx, dz), desired = Math.min(speed, d * 2.8);
-    const vx = d > .04 ? dx / d * desired : 0, vz = d > .04 ? dz / d * desired : 0;
-    const ax = vx - p.vx, az = vz - p.vz, accel = Math.hypot(ax, az), max = 6.2 * dt;
-    p.vx += accel > max ? ax / accel * max : ax;
-    p.vz += accel > max ? az / accel * max : az;
+    // Damped arrival: spring toward a local target, dissipate velocity near it.
+    // Acceleration itself is continuous, including a change of defensive intent.
+    const d = Math.hypot(dx, dz), desiredSpeed = Math.min(speed, d * 2.2);
+    let desiredVX = d > .055 ? dx / d * desiredSpeed : 0;
+    let desiredVZ = d > .055 ? dz / d * desiredSpeed : 0;
+    // Brake before a boundary rather than slamming velocity to zero at it.
+    desiredVX = clamp(desiredVX, -Math.max(0, p.x + 4.5) * 2.5, Math.max(0, 4.5 - p.x) * 2.5);
+    desiredVZ = clamp(desiredVZ, -Math.max(0, p.z + 7.3) * 2.5, Math.max(0, 7.3 - p.z) * 2.5);
+    let ax = (desiredVX - p.vx) * 8 + contactDampX, az = (desiredVZ - p.vz) * 8 + contactDampZ;
+    const acceleration = Math.hypot(ax, az);
+    if (acceleration > 6.2) { ax *= 6.2 / acceleration; az *= 6.2 / acceleration; }
+    const changeX = ax - p.ax, changeZ = az - p.az, change = Math.hypot(changeX, changeZ);
+    const maxChange = 45 * dt;
+    p.ax += change > maxChange ? changeX / change * maxChange : changeX;
+    p.az += change > maxChange ? changeZ / change * maxChange : changeZ;
+    p.vx += p.ax * dt; p.vz += p.az * dt;
     p.x = clamp(p.x + p.vx * dt, -4.6, 4.6); p.z = clamp(p.z + p.vz * dt, -7.4, 7.4);
-    if (p.x === -4.6 || p.x === 4.6) p.vx = 0;
-    if (p.z === -7.4 || p.z === 7.4) p.vz = 0;
+    if (p.x === -4.6 || p.x === 4.6) { p.vx = 0; p.ax = 0; }
+    if (p.z === -7.4 || p.z === 7.4) { p.vz = 0; p.az = 0; }
     if (p.pending?.type === 'pass') {
-      const target = sim.players[p.pending.targetId]; turn(p, target.x, target.z, dt);
-    } else if (p.pending?.type === 'shoot') turn(p, 0, dir * 8, dt);
-    else if (ball.owner === p.id) turn(p, p.x + Math.sin(p.facing) * .25, p.z + dir, dt);
-    else if (Math.hypot(p.vx, p.vz) > .18) turn(p, p.x + p.vx, p.z + p.vz, dt);
+      const target = sim.players[p.pending.targetId]; turn(p, target.x, target.z, dt, true);
+    } else if (p.pending?.type === 'shoot') turn(p, 0, dir * 8, dt, true);
+    else if (ball.owner === p.id) turn(p, p.x, p.z + dir * 4, dt);
+    else if (p.team !== sim.possession || ball.targetId === p.id || loose || sim.phase === 'restart') {
+      // Defenders shuffle/backpedal while watching the contest, not their feet.
+      const look = owner || ball;
+      turn(p, look.x, look.z, dt);
+    } else {
+      const running = Math.hypot(p.vx, p.vz);
+      if (sim.time >= p.lookUntil) {
+        if (p.lookMode === 'travel' && (running < .55 || distance(p, ball) < 3)) p.lookMode = 'play';
+        else if (p.lookMode !== 'travel' && running > 1.25 && distance(p, ball) > 4) p.lookMode = 'travel';
+        p.lookUntil = sim.time + .45;
+      }
+      if (p.lookMode === 'travel') turn(p, p.x + p.vx * 2, p.z + p.vz * 2, dt);
+      else turn(p, ball.x, ball.z, dt);
+    }
     if (p.actionT >= p.actionDuration && ball.owner !== p.id) p.action = Math.hypot(p.vx, p.vz) > .2 ? 'run' : 'idle';
   }
 }

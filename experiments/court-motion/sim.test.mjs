@@ -140,6 +140,59 @@ test('passes gather and shots rise before release without discontinuous ball mov
   }
 });
 
+
+test('a committed sidestep does not flip when the defender crosses the carrier centerline', () => {
+  const sim = createSimulation(17), carrier = sim.players[0], defender = sim.players[3];
+  Object.assign(carrier, { x: 0, z: 3, vx: 0, vz: 0, decisionAt: 100 });
+  for (const p of sim.players) if (p.id !== 0 && p.id !== 3) Object.assign(p, { x: p.id % 2 ? -4 : 4, z: -2 });
+  Object.assign(sim.ball, { x: 0, y: 1.2, z: 2.58 });
+  let side, target;
+  for (let n = 0; n < 24; n++) {
+    // Small observed lateral changes used to select the opposite dodge every
+    // tick. A decision should persist long enough to produce an actual move.
+    defender.x = carrier.x + (n % 2 ? .10 : -.10);
+    defender.z = carrier.z - 1.1;
+    stepSimulation(sim);
+    if (n === 0) { side = carrier.avoidSide; target = carrier.avoidTargetX; }
+    assert.equal(carrier.avoidSide, side);
+    assert.equal(carrier.avoidTargetX, target);
+  }
+  assert.ok(Math.abs(side) === 1);
+  assert.ok(carrier.x * side > .10, 'the carrier follows through on the chosen side');
+});
+
+test('two minutes of autonomous play avoid rapid rocking without sacrificing movement', () => {
+  const sim = createSimulation(7);
+  const memory = sim.players.map(p => ({ x: p.x, z: p.z, vx: 0, vz: 0, facing: p.facing,
+    ax: 0, az: 0, omega: 0, yawSign: 0, yawChanged: -99 }));
+  let rapidYawReversals = 0, totalTravel = 0, maxYawAcceleration = 0, maxJerk = 0;
+  for (let n = 0; n < 7200; n++) {
+    stepSimulation(sim);
+    for (const p of sim.players) {
+      const m = memory[p.id];
+      const omega = Math.atan2(Math.sin(p.facing - m.facing), Math.cos(p.facing - m.facing)) / FIXED_STEP;
+      if (Math.abs(omega) > .4) {
+        const sign = Math.sign(omega);
+        if (m.yawSign && sign !== m.yawSign) {
+          if (sim.time - m.yawChanged < .35) rapidYawReversals++;
+          m.yawChanged = sim.time;
+        }
+        m.yawSign = sign;
+      }
+      const ax = (p.vx - m.vx) / FIXED_STEP, az = (p.vz - m.vz) / FIXED_STEP;
+      maxYawAcceleration = Math.max(maxYawAcceleration, Math.abs(omega - m.omega) / FIXED_STEP);
+      maxJerk = Math.max(maxJerk, Math.hypot(ax - m.ax, az - m.az) / FIXED_STEP);
+      totalTravel += Math.hypot(p.x - m.x, p.z - m.z);
+      Object.assign(m, { x: p.x, z: p.z, vx: p.vx, vz: p.vz, facing: p.facing, ax, az, omega });
+    }
+  }
+  assert.ok(rapidYawReversals < 100, `rapid rocking count ${rapidYawReversals}; previous regression produced 414`);
+  assert.ok(maxYawAcceleration < 80, `angular acceleration ${maxYawAcceleration}`);
+  assert.ok(maxJerk < 75, `linear jerk ${maxJerk}`);
+  assert.ok(totalTravel > 850, 'smoothness cannot be obtained by freezing or globally slowing the athletes');
+  assert.ok(sim.stats.shots.reduce((a, b) => a + b) >= 8, 'autonomous play still produces chances');
+});
+
 test('invalid time steps cannot corrupt the simulation', () => {
   for (const dt of [-1, Infinity, NaN, 61]) assert.throws(() => stepSimulation(createSimulation(), dt), RangeError);
 });

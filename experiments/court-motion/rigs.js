@@ -54,13 +54,30 @@ function jerseyTexture(number, name, team) {
   const texture = new THREE.CanvasTexture(c); texture.colorSpace = THREE.SRGBColorSpace;
   return new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
 }
-function solveJoint(a, b, lengthA, lengthB, bend) {
+function solveJoint(a, b, lengthA, lengthB, bend, previous) {
   const direction = new THREE.Vector3().subVectors(b, a);
   const distance = clamp(direction.length(), .001, lengthA + lengthB - .001); direction.normalize();
   const along = (lengthA * lengthA - lengthB * lengthB + distance * distance) / (2 * distance);
   const height = Math.sqrt(Math.max(0, lengthA * lengthA - along * along));
-  const normal = bend.clone().addScaledVector(direction, -bend.dot(direction)).normalize();
-  return a.clone().addScaledVector(direction, along).addScaledVector(normal, height);
+  let normal = bend.clone().addScaledVector(direction, -bend.dot(direction));
+  if(previous){
+    const prior=previous.clone().sub(a);prior.addScaledVector(direction,-prior.dot(direction));
+    if(prior.lengthSq()>.00001){
+      prior.normalize();
+      if(normal.lengthSq()<.005)normal.copy(prior);
+      else{normal.normalize();if(normal.dot(prior)<0)normal.negate();normal.lerp(prior,.75);}
+    }
+  }
+  normal.normalize();
+  const joint=a.clone().addScaledVector(direction,along).addScaledVector(normal,height);
+  if(previous){
+    // Keep the bend direction continuous through folded-arm/leg singularities.
+    // The upper segment keeps its length while the bend settles toward the IK solution.
+    const prior=previous.clone().sub(a).normalize(),desired=joint.clone().sub(a).normalize();
+    const angle=prior.angleTo(desired);
+    if(angle>.16)joint.copy(a).add(desired.lerp(prior,1-.16/angle).normalize().multiplyScalar(lengthA));
+  }
+  return joint;
 }
 
 // Bake the unmoving pieces within each articulated part into one mesh per material.
@@ -156,7 +173,7 @@ export function createAthlete(player, scene) {
     mesh(shoe, 'box', 0xf3e9ce, [0, .025, .045], [.19, .065, .36]);
     mesh(shoe, 'box', palette.kit, [0, .095, .035], [.17, .11, .32]);
     mesh(shoe, 'box', palette.trim, [0, .16, .045], [.075, .015, .18]);
-    return { side, upper, lower, shoe, anchor: null, start: null, target: null, swinging: false };
+    return { side, upper, lower, shoe, anchor: null, start: null, target: null, swinging: false, stepT:0, stepDuration:.25 };
   });
   const arms = [-1, 1].map(side => {
     const upper = link(root, profile.fur, w > .4 ? .14 : .085);
@@ -170,7 +187,7 @@ export function createAthlete(player, scene) {
   const shadow = new THREE.Mesh(new THREE.CircleGeometry(w + .10, 24), new THREE.MeshBasicMaterial({ color:0x253a2d, transparent:true, opacity:.12, depthWrite:false }));
   shadow.rotation.x = -Math.PI / 2; shadow.position.y = .012; root.add(shadow);
   batchStatic(head);if(tail)batchStatic(tail);batchStatic(body);legs.forEach(leg=>batchStatic(leg.shoe));
-  return { root, body, head, torso, tail, legs, arms, ring, profile, shoulderY, hipY, crouch:0, pickupUntil:0, phase: player.id * 1.1, lastX:player.x, lastZ:player.z, labelHeight:2.1 * h + (profile.ears === 'long' ? .23 : 0) };
+  return { root, body, head, torso, tail, legs, arms, ring, profile, shoulderY, hipY, crouch:0, pickupUntil:0, motionSpeed:0, jumpT:1, wasBlocking:false, leanX:0, leanZ:0, lastStepSide:player.id%2?1:-1, phase: player.id * 1.1, lastX:player.x, lastZ:player.z, labelHeight:2.1 * h + (profile.ears === 'long' ? .23 : 0) };
 }
 
 export function updateAthlete(rig, p, ball, dt, time) {
@@ -183,86 +200,115 @@ export function updateAthlete(rig, p, ball, dt, time) {
   const cy = Math.cos(p.facing), sy = Math.sin(p.facing);
   const local = (x, y, z) => new THREE.Vector3((x - p.x) * cy - (z - p.z) * sy, y, (x - p.x) * sy + (z - p.z) * cy);
   const world = (x, z) => ({ x:p.x + x * cy + z * sy, z:p.z - x * sy + z * cy });
-  const moving = speed > .20;
-  const bob = moving ? Math.abs(Math.sin(rig.phase)) * .025 * Math.min(speed / 2, 1) : Math.sin(time * 2 + p.id) * .005;
-  const airborne = p.action === 'block' ? Math.sin(clamp(p.actionT / Math.max(.1,p.actionDuration),0,1)*Math.PI) * .19 : 0;
+  rig.motionSpeed+=(speed-rig.motionSpeed)*(1-Math.exp(-dt*10));
+  const bob=Math.sin(rig.phase*2)*.010*Math.min(rig.motionSpeed/2,1);
+  // Contact can reset a sporting action timer at the apex. A committed jump
+  // finishes its own arc, so a block or catch cannot drop the body to the floor.
+  if(p.action==='block'&&!rig.wasBlocking&&rig.jumpT>=.52)rig.jumpT=0;
+  rig.wasBlocking=p.action==='block';
+  rig.jumpT=Math.min(1,rig.jumpT+dt);
+  const airborne=rig.jumpT<.52?Math.sin(rig.jumpT/.52*Math.PI)**2*.14:0;
   const ballDistance=Math.hypot(ball.x-p.x,ball.z-p.z);
   const preparingPickup=ball.owner===null&&ball.y<1.05&&ballDistance<1.6&&/recover|retrieve/i.test(p.intent||'');
   const lowHeld=ball.owner===p.id&&ball.y<1.05;
   if(preparingPickup||lowHeld)rig.pickupUntil=time+.24;
   const crouchTarget=preparingPickup||lowHeld||time<rig.pickupUntil?.57:0;
-  rig.crouch+=(crouchTarget-rig.crouch)*(1-Math.exp(-dt*(crouchTarget>rig.crouch?19:9)));
+  rig.crouch+=(crouchTarget-rig.crouch)*(1-Math.exp(-dt*(crouchTarget>rig.crouch?12:8)));
   const ballLocal=local(ball.x,ball.y,ball.z);
   const leanScale=rig.crouch/.57*.26/Math.max(.1,Math.hypot(ballLocal.x,ballLocal.z));
-  const leanX=ballLocal.x*leanScale,leanZ=ballLocal.z*leanScale;
+  rig.leanX+=(ballLocal.x*leanScale-rig.leanX)*(1-Math.exp(-dt*14));
+  rig.leanZ+=(ballLocal.z*leanScale-rig.leanZ)*(1-Math.exp(-dt*14));
+  const leanX=rig.leanX,leanZ=rig.leanZ;
   body.position.set(leanX,bob+airborne-rig.crouch,leanZ);
-  body.rotation.x = Math.min(speed * .024, .07);
-  body.rotation.z = clamp((-p.vx * cy + p.vz * sy) * .018, -.065, .065);
+  body.rotation.x += (Math.min(rig.motionSpeed * .024, .07)-body.rotation.x)*(1-Math.exp(-dt*10));
+  body.rotation.z += (clamp((-p.vx * cy + p.vz * sy) * .018, -.065, .065)-body.rotation.z)*(1-Math.exp(-dt*10));
   head.rotation.y = Math.sin(time * 1.3 + p.id) * .025;
   if (rig.tail) rig.tail.rotation.y = Math.sin(rig.phase) * .15;
   rig.ring.visible = ball.owner === p.id;
   const footSpread = profile.width * .50;
+  // Each foot commits to a short world-space step. Speed/intent changes can
+  // request the next step, but never cancel or teleport the current one.
   for (const leg of legs) {
-    const phase = ((rig.phase / TAU + (leg.side > 0 ? .5 : 0)) % 1 + 1) % 1;
     const home = world(leg.side * footSpread, .015);
     if (!leg.anchor) leg.anchor = { ...home };
-    const movingFast = moving && traveled < .3;
-    const swinging = movingFast && phase > .56;
-    let lift = 0;
-    let point = leg.anchor;
-    if (swinging) {
-      if (!leg.swinging) {
-        leg.start = { ...leg.anchor };
-        const stride = Math.min(.48, speed * .17);
-        leg.target = {x:home.x + p.vx / Math.max(.1,speed) * stride,z:home.z + p.vz / Math.max(.1,speed) * stride};
-      }
-      const t = (phase - .56) / .44, eased = t*t*(3-2*t);
-      point = {x:THREE.MathUtils.lerp(leg.start.x,leg.target.x,eased),z:THREE.MathUtils.lerp(leg.start.z,leg.target.z,eased)};
-      lift = Math.sin(t * Math.PI) * .20;
-      leg.anchor = point;
-    } else if (leg.swinging) {
-      if (leg.target) leg.anchor = { ...leg.target };
-      point = leg.anchor;
-    } else if (!movingFast || Math.hypot(point.x-home.x,point.z-home.z) > .65) {
-      // Small recovery steps bring planted feet under the body after a cut or stop.
-      const blend = Math.min(1,dt * 12);
-      leg.anchor.x += (home.x-leg.anchor.x)*blend; leg.anchor.z += (home.z-leg.anchor.z)*blend;
-      point = leg.anchor;
+    const other=legs.find(q=>q!==leg);
+    const distanceFromHome=Math.hypot(leg.anchor.x-home.x,leg.anchor.z-home.z);
+    const otherEstablished=!other.swinging||other.stepT/other.stepDuration>.56;
+    const needsStep=distanceFromHome>(rig.motionSpeed>.18?.19:.22);
+    const otherHome=world(other.side*footSpread,.015);
+    const alternating=rig.lastStepSide!==leg.side||!other.anchor||!other.swinging&&Math.hypot(other.anchor.x-otherHome.x,other.anchor.z-otherHome.z)<.19;
+    if(!leg.swinging&&needsStep&&otherEstablished&&alternating){
+      leg.start={...leg.anchor};
+      const lead=rig.motionSpeed>.18?.13:0;
+      leg.target={x:home.x+p.vx*lead,z:home.z+p.vz*lead};
+      const stepLength=Math.hypot(leg.target.x-leg.start.x,leg.target.z-leg.start.z);
+      if(stepLength>.72){const k=.72/stepLength;leg.target.x=leg.start.x+(leg.target.x-leg.start.x)*k;leg.target.z=leg.start.z+(leg.target.z-leg.start.z)*k;}
+      leg.stepDuration=clamp(.30-rig.motionSpeed*.034,.20,.30);
+      leg.stepT=0;leg.swinging=true;rig.lastStepSide=leg.side;
     }
-    leg.swinging = swinging;
+    let lift=0,pitch=0;
+    if(leg.swinging){
+      leg.stepT=Math.min(leg.stepDuration,leg.stepT+dt);
+      const t=leg.stepT/leg.stepDuration;
+      const eased=t*t*t*(t*(t*6-15)+10);
+      leg.anchor.x=THREE.MathUtils.lerp(leg.start.x,leg.target.x,eased);
+      leg.anchor.z=THREE.MathUtils.lerp(leg.start.z,leg.target.z,eased);
+      lift=Math.sin(t*Math.PI)**2*.13*(1-rig.crouch/.75);
+      pitch=-.18*Math.sin(t*Math.PI)**2;
+      if(t>=1)leg.swinging=false;
+    }
+    const point=leg.anchor;
     const ankle = local(point.x,.15+lift+airborne,point.z);
     const hip = new THREE.Vector3(leg.side*footSpread+leanX,rig.hipY + bob + airborne-rig.crouch,leanZ);
-    const knee = solveJoint(hip,ankle,.41*profile.height,.41*profile.height,new THREE.Vector3(0,.1,1));
+    const knee = solveJoint(hip,ankle,.41*profile.height,.41*profile.height,new THREE.Vector3(0,.1,1),leg.knee);
+    leg.knee=knee;
     aimLink(leg.upper,hip,knee); aimLink(leg.lower,knee,ankle);
     leg.shoe.position.copy(ankle).add(new THREE.Vector3(0,-.12,0));
-    leg.shoe.rotation.x = swinging ? -.30*Math.sin(((phase-.56)/.44)*Math.PI) : 0;
+    leg.shoe.rotation.x = pitch;
   }
   const progress = clamp(p.actionT / Math.max(.15,p.actionDuration || .4),0,1);
   for (const arm of arms) {
     const side = arm.side;
     const shoulder = new THREE.Vector3(side*(profile.width+.035)+leanX,rig.shoulderY+bob+airborne-rig.crouch,leanZ);
-    let hand = new THREE.Vector3(side*(profile.width+.04),.94*profile.height+bob,Math.sin(rig.phase + (side < 0 ? Math.PI : 0))*.24*Math.min(speed/2.2,1));
+    let hand = new THREE.Vector3(side*(profile.width+.04),.94*profile.height+bob,Math.sin(rig.phase + (side < 0 ? Math.PI : 0))*.20*Math.min(rig.motionSpeed/2.2,1));
     if (ball.owner === p.id) {
       hand = local(ball.x,ball.y,ball.z); hand.x += side*.115; hand.z -= .015;
-    } else if(preparingPickup) {
-      hand=ballLocal.clone();hand.x+=side*.115;
+    } else if(preparingPickup||ball.owner===null&&ballDistance<2.4&&/recover|retrieve|attack the pass/i.test(p.intent||'')) {
+      const reachTarget=ballLocal.clone();reachTarget.x+=side*.115;
+      const weight=clamp((2.4-ballDistance)/1.3,0,1);
+      hand.lerp(reachTarget,weight*weight*(3-2*weight));
     } else if (p.action === 'pass' || p.action === 'shoot') {
       hand.set(side * .22, (p.action==='shoot'?1.65:1.28)*profile.height + Math.sin(progress*Math.PI)*.14, .62*(1-progress*.28));
     } else if (p.action === 'block') {
       hand.set(side * .38, 1.94 * profile.height + airborne, .24);
     } else if (p.action === 'catch' || ball.targetId === p.id && ball.mode === 'pass') {
       const distance = Math.hypot(ball.x-p.x,ball.z-p.z);
-      if (distance < 2) { hand=local(ball.x,clamp(ball.y,.85,1.65),ball.z); hand.x+=side*.13; }
-      else hand.set(side*.23,1.26*profile.height,.44);
+      hand.set(side*.23,1.26*profile.height,.44);
+      const receiving=local(ball.x,clamp(ball.y,.85,1.65),ball.z);receiving.x+=side*.13;
+      const weight=clamp((2.7-distance)/1.5,0,1);
+      hand.lerp(receiving,weight*weight*(3-2*weight));
     } else if (p.action === 'celebrate') {
       hand.set(side*.47,1.90*profile.height,.05);
     } else if (p.intent && /defend|mark|press|guard|block/i.test(p.intent)) {
       hand.set(side*(profile.width+.20),1.11*profile.height,.10);
     }
+    // Raising/lowering an arm travels in front of the shoulder, rather than
+    // through its pivot (where the elbow's bending plane becomes undefined).
+    if(arm.poseHand&&ball.owner!==p.id){
+      const currentHeight=arm.poseHand.y-shoulder.y,targetHeight=hand.y-shoulder.y;
+      if(currentHeight*targetHeight<0||Math.abs(currentHeight)<.18)hand.z=Math.max(hand.z,shoulder.z+.30);
+    }
     // Keep reach anatomical, including when the ball is approaching rather than caught.
     const reach = hand.clone().sub(shoulder), maxReach = .71 * profile.height;
     if (reach.length() > maxReach) hand.copy(shoulder).add(reach.setLength(maxReach));
-    const elbow = solveJoint(shoulder,hand,.36*profile.height,.37*profile.height,new THREE.Vector3(side*.65,-.9,-.15));
+    if(!arm.poseHand)arm.poseHand=hand.clone();
+    const handDelta=hand.clone().sub(arm.poseHand);
+    const gripping=ball.owner===p.id;
+    const blend=Math.min(1-Math.exp(-dt*(gripping?40:18)),dt*(gripping?8:6)/Math.max(.001,handDelta.length()));
+    arm.poseHand.addScaledVector(handDelta,blend);
+    hand.copy(arm.poseHand);
+    const elbow = solveJoint(shoulder,hand,.36*profile.height,.37*profile.height,new THREE.Vector3(side*.65,-.9,-.15),arm.elbow);
+    arm.elbow=elbow;
     aimLink(arm.upper,shoulder,elbow); aimLink(arm.lower,elbow,hand);
     arm.hand.position.copy(hand); arm.shoulder.position.copy(shoulder);
   }
