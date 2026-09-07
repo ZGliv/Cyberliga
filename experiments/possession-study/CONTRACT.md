@@ -1,0 +1,13 @@
+# Possession study interfaces
+
+World: metres; y up; x across court; z toward midcourt. Halfcourt width15 (x ±7.5), baseline z=-7, halfcourt line z=7. Attacking rim centre [0,3.05,-5.8], backboard plane z=-6.22. Facing uses atan2(dx,dz), local forward+z. Physical ball radius .123.
+
+timeline.js exports DURATION=20, ROSTER and sampleStudy(seconds). Pure analytic sampling (no Three/DOM), independent of frame rate. ROSTER six entries {id,name,number,team,height,skin,hair,style}. Offense team0 Pittsburgh Kiln in ember, team1 Oakland Switch in pale teal. Names: HART7 handler, BRUNT44 roller, ZIP11 corner spacer; REED4 on-ball, TOLL33 help defender, SABLE21 corner defender. Heights roughly1.9,2.15,1.82,1.94,2.08,1.88m.
+
+sampleStudy returns {time,stage,title,description,score:[22,23],clock,players,ball:{position:[x,y,z],mode,owner,rotation},net,impact,fade}. Player entry {id,position:[x,groundY,z],facing,vx,vz,speed,jump,crouch,lean,pose,handL:null|[x,y,z],handR:null|[x,y,z]}. Hand targets refer to palm centres in world space. position y=0; jump is separate root lift. Pose free strings communicated to root. Roster heights normalized by base modelheight2.0. Rest hipY1.00, shouldersY1.52, head1.80, upper/lower arms .36/.35. Strong chest/shoulders, proper elbow/knee IK handled by root.
+
+Continuous20s pick-and-roll: deliberate setup, screen, crossover and drive, help commitment, lob, roller jumps and catches/dunks, lands and reacts. Score updates after ball passes rim. Reserve final1s for tasteful fade hiding loop reset. Clarity and smoothness before speed. Document exact event times once chosen.
+
+arena.js exports buildArena(scene) returning {rim,net,update(time,state),dispose?}. THREE imported ../../vendor/three/three.module.js. Root owns lights/camera/renderer/ball. Arena includes quality court, basketball markings, padded stanchion and glass backboard/rim/net, restrained distant arena seating/LED identity. No lights unless coordinated. Performance budget target <150 environment drawcalls via instancing; static meaningful texture details, no remote dependencies. Main renderer shadows and ACES exposure~1.2. Both sides and basket must read from camera in +z, slightly+x, elevated at y~10, and portrait at x~10,y~14,z~15. Avoid arena structures blocking play.
+
+main.js provides window.render_game_to_text(), window.advanceTime(ms), and window.__study {seek(seconds),state(),metrics()}. advanceTime switches to manual clock and advances pure timeline. seek is QA-only (no visible controls) and switches to manual. Visible page automatically loops. Browser QA must inspect fullsequence continuous capture plus event stills, hand/rim alignment and mobile visibility.

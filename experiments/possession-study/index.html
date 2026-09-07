@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111d21">
+  <title>Cyberliga · Above the rim</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%23ed5b32'/%3E%3Cpath d='M28 10H15l-7 10 7 10h13l-7-10z' fill='%23fff4df'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="broadcast" aria-label="Cyberliga basketball possession study">
+    <header class="masthead">
+      <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M27 5H13L5 16l8 11h14l-8-11z"/></svg><span>CYBERLIGA</span><span class="division">THREE ON THREE</span></div>
+      <span class="edition">MOTION STUDY <b>02</b></span>
+    </header>
+    <section class="stage" aria-label="A scripted pick-and-roll basketball possession">
+      <canvas id="court" aria-label="Six stylized basketball players execute a pick-and-roll, lob pass and alley-oop dunk."></canvas>
+      <div class="top-shade" aria-hidden="true"></div>
+      <div class="scorebug" aria-label="Score and shot clock">
+        <div class="fixture"><span class="home-team">PIT <b id="home-score">22</b></span><i></i><span class="away-team">OAK <b id="away-score">23</b></span></div>
+        <div class="clock-row"><span>EXHIBITION</span><span class="possession-mark" aria-hidden="true">◆</span><span id="clock">14.0</span><span class="clock-label">SHOT CLOCK</span></div>
+      </div>
+      <div class="venue-tag"><span>THE FOUNDRY</span><strong>PITTSBURGH, PA</strong></div>
+      <div id="featured" class="featured"><span id="featured-role">THE PLAYMAKER</span><strong><i id="featured-number">07</i><span id="featured-name">HART</span></strong></div>
+      <div class="story" aria-live="off"><span class="story-kicker" id="beat-kicker">ONE POSSESSION</span><h1 id="beat-title">Make them<br>commit.</h1><p id="beat-description">A screen. A split second. An open sky.</p></div>
+      <div class="result" id="result" aria-hidden="true"><span>HART → BRUNT</span><strong>UP THERE.</strong><b>+2</b></div>
+      <div class="fade" id="fade" aria-hidden="true"></div>
+      <div id="loading" class="loading"><span>CYBERLIGA</span>Setting the floor…</div>
+      <div id="failure" class="failure" hidden>The court could not start. Reload the page to try again.</div>
+      <div class="sequence-progress" aria-hidden="true"><div id="progress"></div></div>
+    </section>
+    <footer class="broadcast-footer"><span><i></i> ABOVE THE RIM</span><p>20-second choreographed possession</p><span class="footer-end">PITTSBURGH KILN <span>vs</span> OAKLAND SWITCH</span></footer>
+  </main>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
