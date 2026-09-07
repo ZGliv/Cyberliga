@@ -60,6 +60,22 @@ try {
     const response=await page.request.get(`${origin}/${route}.html?sport=basketball`,{maxRedirects:0});
     assert.equal(response.status(),307);assert.equal(response.headers().location,'/world.html?sport=basketball');
   }
+  await page.goto(`${origin}/world.html`,{waitUntil:'networkidle'});
+  for (const viewport of [{width:390,height:844},{width:1440,height:960},{width:844,height:390},{width:390,height:844}]) {
+    await page.setViewportSize(viewport);
+    await page.waitForFunction(() => {
+      const canvas=document.getElementById('globe'),rect=canvas.getBoundingClientRect();
+      return Math.abs((canvas.width/canvas.height)/(rect.width/rect.height)-1)<.01;
+    });
+    const globe=await page.evaluate(() => {
+      const canvas=document.getElementById('globe'),rect=canvas.getBoundingClientRect();
+      return {backing:[canvas.width,canvas.height],box:[rect.width,rect.height],overflow:document.documentElement.scrollWidth>innerWidth};
+    });
+    assert.equal(globe.overflow,false);
+    await page.screenshot({path:`${out}/world-${viewport.width}.png`});
+    reports.push({viewport,globe});
+  }
+  console.log('Globe stays proportional through portrait → desktop → landscape → portrait PASS');
   await page.close();
 } finally { await browser.close(); }
 await writeFile(`${out}/report.json`,JSON.stringify(reports,null,2));
