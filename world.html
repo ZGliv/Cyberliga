@@ -534,7 +534,17 @@ function resize(){
   camera.aspect=Math.max(1,rect.width)/Math.max(1,rect.height);camera.updateProjectionMatrix();
   renderer.setPixelRatio(Math.min(devicePixelRatio,mobileGlobeView?1.35:1.75));
   renderer.setSize(Math.max(1,rect.width),Math.max(1,rect.height),false);paintLeadPortrait();
-} addEventListener('resize',resize);resize();
+}
+// A viewport event can precede the responsive canvas layout. Observe the final
+// content box so the projection and backing buffer always match the visible globe.
+let globeResizeFrame=0;
+function scheduleGlobeResize(){
+  cancelAnimationFrame(globeResizeFrame);
+  globeResizeFrame=requestAnimationFrame(()=>{globeResizeFrame=0;resize();});
+}
+addEventListener('resize',scheduleGlobeResize);
+new ResizeObserver(scheduleGlobeResize).observe(canvas);
+resize();
 document.getElementById('aw-sport-cast').innerHTML=LEAGUES.map(league=>{
   const team=CONTENT.getTeams(league.contentId)[0],athlete=team.athletes[0];
   const query=new URLSearchParams({home:team.id,away:team.rivalryId,league:league.contentId});
