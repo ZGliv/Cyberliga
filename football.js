@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { installArcadeBroadcast, prepareArcadeRenderer } from './arcade-broadcast.js';
 import { buildBlobRig, classicPlayerColor } from './blobrig.js';
 import { FootballAudioDirector, FootballReplayBuffer } from './footballpresentation.js';
 import { createFootballVenueIdentity, footballClubEquipmentPalette } from './spectator-football-identity.js';
@@ -64,7 +65,10 @@ const fixture = ((Number.isFinite(fixtureNumber) ? Math.trunc(fixtureNumber) : 0
 const content = window.CYBERLIGA_CONTENT;
 if (!content) throw new Error('Cyberliga world data did not load.');
 const sport = content.getSport('american-football');
-const teams = [sport.teams[fixture * 2], sport.teams[fixture * 2 + 1]];
+const requestedHome = content.getTeam(query.get('home'), 'american-football');
+const requestedAway = content.getTeam(query.get('away'), 'american-football');
+const requestedPair = requestedHome && requestedAway && requestedHome.id !== requestedAway.id;
+const teams = requestedPair ? [requestedHome, requestedAway] : [sport.teams[fixture * 2], sport.teams[fixture * 2 + 1]];
 window.CyberligaEstablishing?.show?.({
   sportId: 'american-football',
   homeTeam: teams[0],
@@ -325,6 +329,7 @@ const input = { left: false, right: false, up: false, down: false, juke: false }
 let renderer;
 try {
   renderer = new THREE.WebGLRenderer({ antialias: innerWidth >= 700, powerPreference: 'high-performance' });
+  prepareArcadeRenderer(renderer);
 } catch (error) {
   $('loading').classList.add('ready');
   $('renderError').hidden = false;
@@ -3442,6 +3447,57 @@ function renderFrame(dt = 1 / 60) {
   renderer.render(scene, camera);
 }
 
+function readFootballArcadeFrame() {
+  const replay = replayRenderState();
+  const visibleBall = replay?.ball || ball;
+  const replayPlayers = replay ? new Map(replay.players.map(player => [player.id, player])) : null;
+  const possession = replay?.possession ?? state.possession;
+  const direction = possession === 0 ? 1 : -1;
+  // The engine uses yards and possession-relative x; the shared stage uses fixed
+  // world metres. Use the recorded possession during replay, not a later drive.
+  const metre = .9144;
+  const xWorld = x => (replay ? (x-50)*direction : worldX(x))*metre;
+  const identity = id => players.find(player => player.id === id)?.athlete.id || null;
+  const brand = window.CyberligaBrand?.getTeam(teams[0].id);
+  const ownerId = identity(visibleBall.ownerId);
+  return {
+    sportId:'american-football', fixtureId:footballMemoryFixtureId,
+    time:presentationTime, phase:replay ? 'replay' : state.phase,
+    clock:state.clock, period:state.quarter, source:'local-fixture',
+    teams:teams.map((team, side) => ({ id:team.id, name:team.name, code:team.code, city:team.city,
+      colors:team.colors, score:state.score[side] })),
+    venue:{ name:brand?.venue || teams[0].city, city:teams[0].city },
+    bounds:{ halfX:60*metre, halfZ:26.65*metre },
+    entities:players.map(player => {
+      const visible = replayPlayers?.get(player.id) || player;
+      const progress = visible.actionProgress ?? player.actionT / Math.max(player.actionDuration, .001);
+      return {
+        id:player.athlete.id, engineId:player.id, name:player.name, number:player.number,
+        team:player.teamIndex, role:player.role,
+        x:xWorld(visible.x), y:0, z:visible.z*metre,
+        vx:visible.vx*direction*metre, vz:visible.vz*metre, facing:visible.facing*direction,
+        action:visible.down ? 'fall' : visible.action,
+        progress:clamp(progress,0,1),
+        actionElapsed:replay ? null : player.actionT,
+        actionDuration:replay ? null : player.actionDuration,
+        visible:true, hasBall:ownerId === player.athlete.id,
+        profile:views.get(player.id)?.rig.getState().identity.characterProfile || player.athlete,
+      };
+    }),
+    projectile:{ x:xWorld(visibleBall.x), y:visibleBall.y*metre, z:visibleBall.z*metre,
+      vx:visibleBall.vx*direction*metre, vy:visibleBall.vy*metre, vz:visibleBall.vz*metre,
+      ownerId, mode:visibleBall.mode, visible:replay ? true : ballPresentationOpacity() > .001 },
+    event:{ title:replay ? 'Instant replay' : state.headline,
+      detail:replay ? String(replay.playStage || '').replaceAll('_',' ') : state.detail,
+      type:replay?.playStage || state.playStage },
+    presentation:{ attackSign:direction, replay:!!replay, source:'local-fixture',
+      down:state.down, toGo:state.toGo, playClock:state.playClock,
+      lineOfScrimmage:xWorld(replay?.ballSpot ?? state.ballSpot),
+      lineToGain:xWorld(clamp((replay?.ballSpot ?? state.ballSpot)+state.toGo,0,100)),
+      possession, yardToMetre:metre, playStage:replay?.playStage || state.playStage },
+  };
+}
+
 function renderGameState() {
   const visibleReplay = replayRenderState();
   const visibleBall = visibleReplay?.ball || ball;
@@ -3459,9 +3515,9 @@ function renderGameState() {
     return { ...cue, side:player.teamIndex, entityIndex, teamPlayerIndex, arenaRole:player.role };
   }).filter(Boolean).sort((a, b) => a.entityIndex - b.entityIndex);
   return JSON.stringify({
-    screen: 'american-football', renderer: 'three-only-sideline-broadcast',
+    screen: 'american-football', renderer: 'arcade-broadcast',
     autonomous: true, interaction: 'view-only',
-    note: 'Simulation x runs possession-relative from own goal (0) to opponent goal (100); world rendering mirrors x for the away offense so painted end zones stay fixed. Goalpost plane is x=110, y is height in yards, and z is lateral. No 2D overhead renderer exists.',
+    note: 'These QA coordinates are raw engine yards: x runs possession-relative from own goal (0) to opponent goal (100), y is height, and z is lateral. The arcade adapter converts to fixed world metres and mirrors x with possession; the goalpost plane is engine x=110.',
     fixture, phase: state.replayActive ? 'replay' : state.phase, simulationPhase: state.phase,
     playStage: visibleReplay?.playStage || state.playStage, paused: state.paused,
     quarter: state.quarter, clock: +state.clock.toFixed(1), playClock: +state.playClock.toFixed(1), timeouts: state.timeouts.slice(), score: { home: state.score[0], away: state.score[1] },
@@ -3703,6 +3759,7 @@ $('homeName').textContent = teams[0].name.replace(`${teams[0].city.toUpperCase()
 $('awayName').textContent = teams[1].name.replace(`${teams[1].city.toUpperCase()} `, '');
 
 beginPreplay();
+installArcadeBroadcast({ sportId:'american-football', renderer, readFrame:readFootballArcadeFrame });
 renderFrame();
 requestAnimationFrame(() => $('loading').classList.add('ready'));
 

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>CYBERLIGA — Tonight’s Games Around the World</title>
 <meta name="description" content="Tonight across Cyberliga: 24 games, 48 clubs and six leagues, with live broadcasts from New York to Tokyo." />
-<meta name="theme-color" content="#020304" />
+<meta name="theme-color" content="#f4f4ed" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="CYBERLIGA — Tonight Around the World" />
 <meta property="og:description" content="24 games, 48 clubs and six leagues, live from New York to Tokyo." />
@@ -24,8 +24,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="fanworld.css" />
 <link rel="stylesheet" href="world-desk.css" />
+<link rel="stylesheet" href="arcade-world.css" />
 </head>
-<body>
+<body class="arcade-home">
 <div class="loading" id="loading"><p>Loading tonight’s schedule…</p></div>
 <canvas id="globe" aria-label="Interactive globe showing six Cyberliga sports leagues"></canvas>
 <div id="labels"></div>
@@ -34,10 +35,19 @@
   <a class="brand" href="world.html"><strong>CYBERLIGA</strong><i></i><span>World sports, always on</span></a>
   <nav class="nav" aria-label="Primary navigation"><a class="active" href="world.html" aria-current="page">Home</a><a class="secondary" href="league.html?sport=soccer">Leagues</a></nav>
 </header>
+<section class="aw-world-intro" aria-labelledby="aw-home-title">
+  <p><i aria-hidden="true"></i> AN AUTONOMOUS SPORTS WORLD</p>
+  <h1 id="aw-home-title">A whole world.<br>Every sport.</h1>
+  <span>Find a city. Meet your team. Watch what happens.</span>
+</section>
+<section class="aw-world-cast" aria-label="Explore the six sports">
+  <div class="aw-cast-heading"><strong>SIX SPORTS. YOUR NEXT OBSESSION.</strong><span>48 clubs / 416 athletes</span></div>
+  <div id="aw-sport-cast"></div>
+</section>
 
 <aside class="liveboard" id="network" aria-label="Tonight’s Cyberliga schedule">
   <div class="panel-label">
-    <span class="desk-title"><strong>Tonight</strong><span id="tonight-date">Around the world</span></span>
+    <span class="desk-title"><strong>Pick a game.</strong><span id="tonight-date">Around the world</span></span>
     <span id="round-label">24 games · 48 clubs</span>
     <span class="presence-quiet" data-cyberliga-presence data-presence-mode="quiet">Schedule updates automatically</span>
   </div>
@@ -63,6 +73,7 @@
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
 <script type="module">
 import * as THREE from 'three';
+import { drawArcadePortrait, paintArcadePortraits } from './arcade-world.js';
 
 const U = window.CyberligaUniverse;
 let matches = U.liveMatches(Date.now());
@@ -206,7 +217,7 @@ function makeFixtureCard(card,isLead=false){
     link.style.setProperty('--c',featuredTeam.colors?.primary||card.league.color);
     link.setAttribute('aria-label',`${displaySport(card.league.id)} ${reciprocal?'featured rivalry':'featured match'}: ${card.home.name} versus ${card.away.name}. Who to watch: number ${featuredAthlete?.number}, ${featuredAthlete?.name}, ${featuredAthlete?.role} for ${featuredTeam.name}.${record?.motionName?` Signature move: ${record.motionName}.`:''}${rivalAthlete?` Opposing them: number ${rivalAthlete.number}, ${rivalAthlete.name}, ${rivalAthlete.role} for ${rivalTeam.name}.`:''}${homeVenue?` At ${homeVenue}, ${card.home.city}.`:''} ${status}.`);
     link.innerHTML=`<canvas class="lead-portrait" aria-hidden="true"></canvas><span class="lead-copy"><span class="lead-kicker"><span>Who to watch</span><span>${escapeHtml(rivalryLabel)}</span></span><span class="lead-athlete">#${escapeHtml(featuredAthlete?.number||'–')} ${escapeHtml(featuredAthlete?.name||displayClubName(featuredTeam.name))}</span><span class="lead-role">${escapeHtml(featuredAthlete?.role||'Featured athlete')} · ${escapeHtml(clubNickname(featuredTeam))}</span>${record?.motionName?`<span class="lead-motion">${escapeHtml(record.motionName)}</span>`:''}<span class="lead-matchline">${clubEmblemMarkup(card.home,card.league)}<span>${escapeHtml(card.home.city)}</span><span aria-hidden="true">vs</span>${clubEmblemMarkup(card.away,card.league)}<span>${escapeHtml(card.away.city)}</span></span><span class="lead-ground">${homeVenue?`${escapeHtml(titleCaseCanon(homeVenue))} · `:''}${escapeHtml(card.home.city)}</span></span><span class="fixture-enter" aria-hidden="true"><b>›</b></span>`;
-    link._leadVisual={record,team:featuredTeam};
+    link._leadVisual={record,team:featuredTeam,athlete:featuredAthlete};
   }else{
     link.setAttribute('aria-label',`${card.league.sport}: ${card.home.name} versus ${card.away.name}`);
     link.innerHTML=`<span class="fixture-teams"><span class="fixture-team">${clubEmblemMarkup(card.home,card.league)}<span class="fixture-team-copy"><span class="fixture-team-name">${escapeHtml(displayClubName(card.home.name))}</span></span></span><span class="fixture-team">${clubEmblemMarkup(card.away,card.league)}<span class="fixture-team-copy"><span class="fixture-team-name">${escapeHtml(displayClubName(card.away.name))}</span></span></span></span><span class="fixture-enter" aria-hidden="true"><b>›</b></span>`;
@@ -224,17 +235,8 @@ function paintLeadPortrait(){
     const link=gameList.querySelector('.fixture-card-lead');
     const canvas=link?.querySelector('.lead-portrait');
     const visual=link?._leadVisual;
-    if(!canvas||!visual?.record||!FOUNDING_VISUAL||typeof FOUNDING_VISUAL.prepare!=='function')return;
-    const descriptor=FOUNDING_VISUAL.prepare(visual.record,visual.team);
-    const rect=canvas.getBoundingClientRect();
-    if(!descriptor||rect.width<1||rect.height<1)return;
-    const pixelRatio=Math.min(devicePixelRatio||1,2);
-    canvas.width=Math.max(1,Math.round(rect.width*pixelRatio));
-    canvas.height=Math.max(1,Math.round(rect.height*pixelRatio));
-    const context=canvas.getContext('2d');
-    context.setTransform(pixelRatio,0,0,pixelRatio,0,0);
-    context.clearRect(0,0,rect.width,rect.height);
-    FOUNDING_VISUAL.drawFit(context,descriptor,{x:0,y:0,width:rect.width,height:rect.height},{padding:0,bounds:{left:-260,top:-270,right:260,bottom:270},phase:FOUNDING_VISUAL.showcasePhase,surface:'world-lead-fixture',shadow:true});
+    if(!canvas||!visual?.athlete)return;
+    drawArcadePortrait(canvas,{team:visual.team,athlete:visual.athlete,sportId:link.dataset.sport});
   });
 }
 function visibleCards(){return activeFilter==='all'?fixtureCards:fixtureCards.filter(card=>card.league.id===activeFilter);}
@@ -470,6 +472,8 @@ canvas.addEventListener('pointerleave',()=>setCanvasHoverMarker(null));
 canvas.addEventListener('wheel',event=>{event.preventDefault();targetCameraZ=null;globeFocusMode='manual';camera.position.z=THREE.MathUtils.clamp(camera.position.z+event.deltaY*.0045,5.7,10.5);},{passive:false});
 
 function updateLabels(now) {
+  const globeRect=canvas.getBoundingClientRect();
+  const introRect=document.querySelector('.aw-world-intro').getBoundingClientRect();
   const view = new THREE.Vector3().subVectors(camera.position,planet.position).normalize();
   const compact=innerWidth<=900;
   const boardRect=networkPanel.getBoundingClientRect();
@@ -481,10 +485,11 @@ function updateLabels(now) {
     const facing=world.clone().sub(planet.position).normalize().dot(view),front=facing>.08;
     const faceStrength=THREE.MathUtils.smoothstep(facing,-.2,.22);
     const projected = world.clone().project(camera);
-    const sx=(projected.x*.5+.5)*innerWidth,sy=(-projected.y*.5+.5)*innerHeight;
-    const labelProtectedUI=bottomBoard
+    const sx=globeRect.left+(projected.x*.5+.5)*globeRect.width,sy=globeRect.top+(-projected.y*.5+.5)*globeRect.height;
+    const behindIntro=sx>introRect.left-40&&sx<introRect.right+70&&sy>introRect.top-5&&sy<introRect.bottom+38;
+    const labelProtectedUI=behindIntro || (bottomBoard
       ? sy<68 || sy>boardRect.top-14
-      : sy<72 || sx>boardRect.left-14 || sy>innerHeight-24;
+      : sy<72 || sx>boardRect.left-14 || sy>innerHeight-24);
     const projectedOnScreen=Math.abs(projected.x)<1.08&&Math.abs(projected.y)<1.08;
     const labelMargin=bottomBoard?72:88;
     const labelRight=bottomBoard?innerWidth-labelMargin:boardRect.left-labelMargin;
@@ -505,12 +510,27 @@ function updateLabels(now) {
 }
 let last=performance.now();
 function render(now){requestAnimationFrame(render);const dt=Math.min((now-last)/1000,.05);last=now;if(targetRotation){planet.rotation.x=THREE.MathUtils.lerp(planet.rotation.x,targetRotation.x,1-Math.exp(-3.4*dt));let dy=((targetRotation.y-planet.rotation.y+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;planet.rotation.y+=dy*(1-Math.exp(-3.4*dt));if(Math.abs(dy)<.003)targetRotation=null;}if(targetCameraZ!==null){camera.position.z=THREE.MathUtils.lerp(camera.position.z,targetCameraZ,1-Math.exp(-3.4*dt));if(Math.abs(camera.position.z-targetCameraZ)<.003)targetCameraZ=null;}clouds.rotation.y+=dt*.007;updateLabels(now);renderer.render(scene,camera);}
-function resize(){const shortLandscape=innerWidth<=900&&innerHeight<=520,nextMobile=innerWidth<700&&!shortLandscape;if(nextMobile!==mobileGlobeView){mobileGlobeView=nextMobile;camera.position.z=mobileGlobeView?9.4:7.7;}planet.position.x=shortLandscape?-1.05:0;planet.position.y=mobileGlobeView?.62:0;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,mobileGlobeView?1.35:1.75));renderer.setSize(innerWidth,innerHeight,false);paintLeadPortrait();} addEventListener('resize',resize);resize();
+function resize(){
+  const shortLandscape=innerWidth<=900&&innerHeight<=520,nextMobile=innerWidth<=900&&!shortLandscape;
+  mobileGlobeView=nextMobile;
+  const rect=canvas.getBoundingClientRect();
+  planet.position.x=0;planet.position.y=mobileGlobeView?-.28:-.38;
+  camera.position.z=mobileGlobeView?9.8:9.1;
+  camera.aspect=Math.max(1,rect.width)/Math.max(1,rect.height);camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(devicePixelRatio,mobileGlobeView?1.35:1.75));
+  renderer.setSize(Math.max(1,rect.width),Math.max(1,rect.height),false);paintLeadPortrait();
+} addEventListener('resize',resize);resize();
+document.getElementById('aw-sport-cast').innerHTML=LEAGUES.map(league=>{
+  const team=CONTENT.getTeams(league.contentId)[0],athlete=team.athletes[0];
+  const query=new URLSearchParams({home:team.id,away:team.rivalryId,league:league.contentId});
+  return `<a class="aw-sport-character" href="${league.arena}?${query}" aria-label="Watch ${escapeHtml(league.sport)} with ${escapeHtml(athlete.name)}"><canvas data-arcade-athlete="${athlete.id}" data-team-id="${team.id}" data-sport="${league.contentId}" aria-hidden="true"></canvas><strong>${escapeHtml(displaySport(league.id))}</strong></a>`;
+}).join('');
+paintArcadePortraits(document.getElementById('aw-sport-cast'));
 document.getElementById('tonight-date').textContent=new Intl.DateTimeFormat(undefined,{weekday:'long',month:'long',day:'numeric'}).format(new Date());
 tickNetwork();setFilter(new URLSearchParams(location.search).get('sport')||'all');requestAnimationFrame(render);setTimeout(()=>document.getElementById('loading').classList.add('done'),260);
 setInterval(tickNetwork,1000);
 window.render_game_to_text=()=>JSON.stringify({
-  screen:'world',edition:'world-desk',activeFilter,fixtureCount:visibleCards().length,cityEndpointCount:visibleCards().length*2,totalFixtureCount:fixtureCards.length,totalCityEndpointCount:markers.length,selector:{compact:mobileSelectorMedia.matches,open:true,sportControls:tabs.querySelectorAll('.filter-tab').length,renderedClubCrests:gameList.querySelectorAll('.club-emblem').length},
+  screen:'world',edition:'arcade-world',activeFilter,fixtureCount:visibleCards().length,cityEndpointCount:visibleCards().length*2,totalFixtureCount:fixtureCards.length,totalCityEndpointCount:markers.length,selector:{compact:mobileSelectorMedia.matches,open:true,sportControls:tabs.querySelectorAll('.filter-tab').length,renderedClubCrests:gameList.querySelectorAll('.club-emblem').length},
   coordinateSystem:'globe latitude/longitude; schedule top to bottom',
   globe:{rotationX:Number(planet.rotation.x.toFixed(4)),rotationY:Number(planet.rotation.y.toFixed(4)),focusMode:globeFocusMode,flyToActive:Boolean(targetRotation),cameraFitActive:targetCameraZ!==null,hoverSnapPending:false,hoverSnapLocked:false,hoverSnapCount,lastSnapSource,lastSnapCity,hoveredPin:canvasHoverMarker?.team.id||null,visiblePins:markers.filter(marker=>marker.group.visible&&marker.frontFacing).length,frontPins:markers.filter(marker=>marker.group.visible&&marker.frontFacing).length,activePinGroups:markers.filter(marker=>marker.group.visible).length,visibleLabels:markers.filter(marker=>marker.label.classList.contains('visible')).length,selectedPins:markers.filter(marker=>marker.label.classList.contains('selected')).length,interactiveRoutes:routes.filter(route=>route.mesh.userData.interactive!==false).length,pinTargets:markers.filter(marker=>marker.group.visible&&marker.frontFacing).slice(0,12).map(marker=>({team:marker.team.id,city:marker.host.city,x:Math.round(marker.screenX),y:Math.round(marker.screenY),front:true}))},
   preview:previewCard?{open:false,selected:true,sport:previewCard.league.id,index:previewCard.index,home:previewCard.home.name,away:previewCard.away.name,selectedCity:previewHost?.city||null,href:previewCard.href}:{open:false,selected:false},

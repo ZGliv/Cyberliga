@@ -380,19 +380,27 @@ import { createReplaySystem, SKILL_MOVES } from './replaysys.js';
 import { buildBlobRig, CLASSIC_PLAYER_COLORS, classicPlayerColor } from './blobrig.js';
 import { createStoryEngine } from './story.js';
 import { createSoccerVenueIdentity, soccerClubVisual } from './spectator-soccer-identity.js';
+import { installArcadeBroadcast, prepareArcadeRenderer } from './arcade-broadcast.js';
 const classicSideVisual = side => classicPlayerColor(Number(side) % CLASSIC_PLAYER_COLORS.length);
 const UNIVERSE = window.CyberligaUniverse;
 const QUERY = new URLSearchParams(location.search);
+const requestedSoccerHome = window.CYBERLIGA_CONTENT?.getTeam(QUERY.get('home'), 'soccer');
+const requestedSoccerAway = window.CYBERLIGA_CONTENT?.getTeam(QUERY.get('away'), 'soccer');
+const requestedSoccerPair = requestedSoccerHome && requestedSoccerAway && requestedSoccerHome.id !== requestedSoccerAway.id
+  ? [requestedSoccerHome, requestedSoccerAway] : null;
+const requestedSoccerBroadcast = requestedSoccerPair && UNIVERSE
+  ? UNIVERSE.liveMatches(Date.now()).find(match => match.home.id === requestedSoccerHome.id && match.away.id === requestedSoccerAway.id)
+  : null;
 // `?exhibition=1&seed=...` is the deterministic rehearsal room used by the release gate.
 // The public selector still always joins the canonical UTC broadcast; this opt-in route
 // merely lets us run complete matches without a six-minute channel rollover navigating
 // the page halfway through a test.
 const LIVE_BROADCAST = UNIVERSE && !QUERY.has('exhibition')
-  ? UNIVERSE.selected(location.search, Date.now()) : null;
+  ? (requestedSoccerPair ? requestedSoccerBroadcast || null : UNIVERSE.selected(location.search, Date.now())) : null;
 const nativeRandom = Math.random.bind(Math);
 const soccerSeed = LIVE_BROADCAST
   ? LIVE_BROADCAST.seed
-  : (UNIVERSE ? UNIVERSE.hash(`soccer-exhibition|${QUERY.get('seed') || 'local-preview'}`) : 0x5cce77);
+  : (UNIVERSE ? UNIVERSE.hash(`soccer-exhibition|${QUERY.get('seed') || 'local-preview'}${requestedSoccerPair ? `|${requestedSoccerHome.id}|${requestedSoccerAway.id}` : ''}`) : 0x5cce77);
 // Sporting decisions and presentation must never advance the same stream.
 // This keeps crowd/copy/camera changes from altering the event history.
 const simRandom = UNIVERSE
@@ -404,7 +412,7 @@ const presentationRandom = UNIVERSE
 if (window.CyberligaLiveBridge) {
   window.CyberligaLiveBridge.start({
     leagueId: 'soccer',
-    matchId: LIVE_BROADCAST ? LIVE_BROADCAST.id : 'soccer-local-preview',
+    matchId: LIVE_BROADCAST ? LIVE_BROADCAST.id : requestedSoccerPair ? `soccer-local-${requestedSoccerHome.id}-${requestedSoccerAway.id}-${soccerSeed}` : 'soccer-local-preview',
     page: 'live-soccer',
     clubLeanInput: false
   });
@@ -414,6 +422,16 @@ const story = createStoryEngine();
 // Public soccer is blobs-only until a genuinely ownable character language exists.
 // The rejected humanoid experiments remain in Git history, not in the product surface.
 const buildRig = buildBlobRig;
+let arcadeReplayCapture = false;
+let arcadeReplayPrevious = null;
+let arcadeReplayMotion = null;
+const arcadeSoccerPoseMethods = {
+  poseKick:'kick', poseHeader:'header', poseThrowIn:'throw-in', poseDive:'dive',
+  poseFall:'fall', poseGetUp:'get-up', poseSkill:'skill', poseSlideTackle:'tackle',
+  poseCelebrate:'celebrate', poseGKCatch:'keeper-catch', poseKneeSlide:'knee-slide',
+  poseJockey:'jockey', poseGKSet:'keeper-ready', poseArgue:'argue',
+  poseGKShuffle:'keeper-shuffle', poseGKScoop:'keeper-scoop',
+};
 
 // ============ CONSTANTS ============
 const FIELD_W = 64, FIELD_H = 40;          // pitch dims (x = length, z = width)
@@ -452,6 +470,7 @@ LEAGUE_TEAMS.forEach(team => {
 
 // ============ RENDERER / SCENE ============
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+prepareArcadeRenderer(renderer);
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
@@ -901,6 +920,19 @@ function buildPlayer(team, role, r, captain) {
     dna: r.dna,
   });
   const g = rig.group;
+  // Replays drive the compatibility rig directly. Capture those exact pose calls
+  // without changing the replay engine or reading stale live action timers.
+  for (const [method, action] of Object.entries(arcadeSoccerPoseMethods)) {
+    if (typeof rig[method] !== 'function') continue;
+    const original = rig[method];
+    rig[method] = function (...args) {
+      if (arcadeReplayCapture) {
+        const progress = method === 'poseDive' || method === 'poseSkill' ? args[1] : args[0];
+        g.userData.arcadeReplayPose = { action, progress:Number.isFinite(progress) ? progress : 0 };
+      }
+      return original.apply(this, args);
+    };
+  }
 
   // W3: a rig that renders its own printed jersey name/number sets rendersJersey —
   // the host's legacy number planes would double up on top of it, so skip them
@@ -4163,6 +4195,7 @@ function clearTeams() {
 function startMatch() {
   const [ia, ib] = LIVE_BROADCAST
     ? [LIVE_BROADCAST.home.index, LIVE_BROADCAST.away.index]
+    : requestedSoccerPair ? requestedSoccerPair.map(team => LEAGUE_TEAMS.findIndex(entry => entry.content?.id === team.id))
     : FIXTURES[league.fixture % FIXTURES.length];
   TEAM_A = LEAGUE_TEAMS[ia]; TEAM_B = LEAGUE_TEAMS[ib];
   window.CyberligaEstablishing?.show?.({
@@ -4208,7 +4241,9 @@ function startMatch() {
   momentum = momSm = 0; momShotsA = momShotsB = 0; // fresh momentum ledger per fixture
   momCssA = cA; momCssB = cB;                      // bar blends this fixture's colors
   const matchday = LIVE_BROADCAST ? LIVE_BROADCAST.round : league.fixture + 1;
-  commentate(`MATCHDAY ${matchday}: ${TEAM_A.name} vs ${TEAM_B.name} — ONE MATCH · ONE TIMELINE · EVERY SCREEN`, true);
+  commentate(requestedSoccerPair && !LIVE_BROADCAST
+    ? `LOCAL FIXTURE: ${TEAM_A.name} vs ${TEAM_B.name}`
+    : `MATCHDAY ${matchday}: ${TEAM_A.name} vs ${TEAM_B.name} — ONE MATCH · ONE TIMELINE · EVERY SCREEN`, true);
   if (!LIVE_BROADCAST) {
     story.startMatch(TEAM_A.name, TEAM_B.name, matchday);
     for (const l of story.prematchLines(TEAM_A.name, TEAM_B.name)) commentate(l, true);
@@ -4272,6 +4307,10 @@ const clock3 = new THREE.Clock();
 let simT = 0; // manual sim-time accumulator: stays consistent when catch-up steps force dt
 function tick(forcedDt, skipRender) {
   const dt = typeof forcedDt === 'number' ? forcedDt : Math.min(clock3.getDelta(), 0.05);
+  if (state.mode !== 'replay') {
+    arcadeReplayPrevious = null;
+    arcadeReplayMotion = null;
+  }
   simT += dt;
   broadcastSpine?.tick(dt * 1000);
   const t = simT;
@@ -4353,7 +4392,12 @@ function tick(forcedDt, skipRender) {
     }
     aiStep(dt); // full-speed celebration mobbing
   } else if (state.mode === 'replay') {
-    const r = replaySys.step(dt, players, ball.mesh, replayCam);
+    for (const p of players) p.mesh.userData.arcadeReplayPose = null;
+    arcadeReplayCapture = true;
+    let r;
+    try { r = replaySys.step(dt, players, ball.mesh, replayCam); }
+    finally { arcadeReplayCapture = false; }
+    captureArcadeSoccerReplayMotion(dt);
     if (r.done) {
       document.getElementById('replaytag').classList.remove('show');
       state.mode = 'aftermath'; state.modeT = 0;
@@ -4626,7 +4670,72 @@ function refRigStep(dt, t) {
   refPrev.copy(ref.pos);
 }
 
+function captureArcadeSoccerReplayMotion(dt) {
+  const previous = arcadeReplayPrevious;
+  const current = {
+    players: new Map(players.map(p => [p.athleteId, { x:p.mesh.position.x, z:p.mesh.position.z }])),
+    ball: { x:ball.mesh.position.x, y:ball.mesh.position.y, z:ball.mesh.position.z },
+  };
+  const velocity = (point, last) => last && dt > 0
+    ? { vx:(point.x-last.x)/dt, vy:((point.y||0)-(last.y||0))/dt, vz:(point.z-last.z)/dt }
+    : { vx:0, vy:0, vz:0 };
+  arcadeReplayMotion = {
+    players: new Map([...current.players].map(([id, point]) => [id, velocity(point, previous?.players.get(id))])),
+    ball: velocity(current.ball, previous?.ball),
+  };
+  arcadeReplayPrevious = current;
+}
+
+function readSoccerArcadeFrame() {
+  const replaying = state.mode === 'replay';
+  const ballPosition = replaying ? ball.mesh.position : ball.pos;
+  const ballVelocity = replaying ? arcadeReplayMotion?.ball : { vx:ball.vel.x, vy:ball.vel.y, vz:ball.vel.z };
+  const owner = replaying ? null : players.find(p => p._gkHold) || state.carrier;
+  const activeContext = state.contextEvent && state.contextEvent.until >= simT ? state.contextEvent : null;
+  const poseNames = { 1:'kick', 2:'header', 3:'throw-in', 4:'dive', 5:'fall', 6:'get-up', 7:'skill', 8:'tackle',
+    9:'celebrate', 10:'keeper-catch', 11:'knee-slide', 12:'jockey', 13:'keeper-ready', 14:'argue', 15:'keeper-shuffle', 16:'keeper-scoop' };
+  const home = TEAM_A.content || TEAM_A;
+  const brand = window.CyberligaBrand?.getTeam(home.id);
+  return {
+    sportId:'soccer', fixtureId:fixtureMemoryId(), time:simT,
+    phase:state.mode, clock:fmtClock(state.clock), period:state.half,
+    source:LIVE_BROADCAST ? 'utc-broadcast' : 'local-fixture',
+    teams:[TEAM_A, TEAM_B].map((entry, side) => {
+      const team = entry.content || entry;
+      return { id:team.id, name:team.name, code:team.code, city:team.city,
+        score:side === 0 ? state.scoreA : state.scoreB, colors:team.colors };
+    }),
+    venue:{ name:brand?.venue || home.city || 'Home ground', city:home.city },
+    bounds:{ halfX:HALF_W, halfZ:HALF_H },
+    entities:players.map(p => {
+      const position = replaying ? p.mesh.position : p.pos;
+      const motion = replaying ? arcadeReplayMotion?.players.get(p.athleteId) : { vx:p.vel.x, vz:p.vel.z };
+      const pose = replaying ? p.mesh.userData.arcadeReplayPose : null;
+      const action = replaying ? pose?.action : p.kickAnim?.type || p.skillAnim?.move || poseNames[p._poseDesc?.kind];
+      const progress = replaying ? pose?.progress : p._poseDesc?.k;
+      return {
+        id:p.athleteId, name:p.name, number:p.number, team:p.team === TEAM_A ? 0 : 1, role:p.role,
+        x:position.x, y:p.mesh.position.y, z:position.z, vx:motion?.vx || 0, vz:motion?.vz || 0,
+        facing:replaying ? p.mesh.rotation.y : p.yaw,
+        action:action || (owner === p ? 'carry' : Math.hypot(motion?.vx || 0, motion?.vz || 0) > .15 ? 'run' : 'idle'),
+        progress:Number.isFinite(progress) ? THREE.MathUtils.clamp(progress,0,1) : 0,
+        actionElapsed:replaying ? null : p.kickAnim?.t ?? p.skillAnim?.t ?? null,
+        actionDuration:replaying ? null : p.kickAnim ? p.kickAnim.windup+p.kickAnim.follow : p.skillAnim?.dur ?? null,
+        visible:p.mesh.visible, hasBall:owner === p,
+        profile:p.mesh.userData.rig.getState().identity.characterProfile || p.athlete,
+      };
+    }),
+    projectile:{ x:ballPosition.x, y:ballPosition.y, z:ballPosition.z,
+      vx:ballVelocity?.vx || 0, vy:ballVelocity?.vy || 0, vz:ballVelocity?.vz || 0,
+      ownerId:owner?.athleteId || null, mode:replaying ? 'replay' : owner ? 'carried' : 'free' },
+    event:{ title:activeContext?.label || (replaying ? 'Instant replay' : state.mode === 'goal' ? `GOAL · ${state.scorer?.name || state.goalTeam?.name || ''}` : state.flow.phase || state.mode),
+      detail:activeContext?.detail || (requestedSoccerPair && !LIVE_BROADCAST ? 'Local fixture' : state.tactical.reason || ''), type:state.mode },
+    presentation:{ attackSign:1, replay:replaying, source:LIVE_BROADCAST ? 'utc-broadcast' : 'local-fixture' },
+  };
+}
+
 startMatch();
+installArcadeBroadcast({ sportId:'soccer', renderer, readFrame:readSoccerArcadeFrame });
 
 // Join the canonical broadcast at the point the rest of the world has reached.
 // Fixed 30Hz steps plus the match seed make outcomes independent of load time,
@@ -4649,10 +4758,13 @@ if (LIVE_BROADCAST) {
   composer.render();
   clock3.getDelta();
   setInterval(() => {
-    const current = UNIVERSE.selected(location.search, Date.now());
+    // A club-pair link may join any channel; follow that resolved channel on the
+    // next UTC round instead of falling back to channel zero every second.
+    const current = UNIVERSE.selected(`?match=${encodeURIComponent(LIVE_BROADCAST.id)}`, Date.now());
     if (current.id !== LIVE_BROADCAST.id) {
       const u = new URL(location.href);
       u.searchParams.set('match', current.id);
+      u.searchParams.delete('home'); u.searchParams.delete('away');
       location.replace(u.href);
     }
   }, 1000);

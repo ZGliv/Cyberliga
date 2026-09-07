@@ -12,11 +12,11 @@
   <script src="arena-score-fit.js" defer></script>
 </head>
 <body>
-  <main id="stadium" aria-label="Three-dimensional live American football broadcast"></main>
+  <main id="stadium" aria-label="Autonomous American football broadcast"></main>
   <div id="loading" role="status"><span></span><strong>LIGHTING THE STADIUM</strong><small>Building the live 11-on-11 broadcast</small></div>
   <div id="renderError" role="alert" hidden>
-    <strong>THE 3D BROADCAST COULD NOT START</strong>
-    <span>Reload the arena to try again. There is no overhead fallback.</span>
+    <strong>THE BROADCAST COULD NOT START</strong>
+    <span>Reload the arena to try again.</span>
   </div>
 
   <div id="hud">
@@ -97,7 +97,7 @@
     <div id="vignette"></div>
   </div>
 
-  <noscript>This arena requires JavaScript for its 3D broadcast.</noscript>
+  <noscript>This arena requires JavaScript for its autonomous broadcast.</noscript>
   <script src="worlddata.js"></script>
   <script src="characterdata.js"></script>
   <script src="foundingvisual.js"></script>
@@ -110,7 +110,7 @@
   <script src="mythos.js"></script>
   <script>
     window.render_game_to_text = window.render_game_to_text || function () {
-      return JSON.stringify({ screen: 'american-football', phase: 'loading-3d-broadcast' });
+      return JSON.stringify({ screen: 'american-football', phase: 'loading-broadcast' });
     };
     window.advanceTime = window.advanceTime || function () { return window.render_game_to_text(); };
   </script>
