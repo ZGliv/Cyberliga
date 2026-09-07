@@ -1,12 +1,138 @@
 {
   "redirects": [
-    { "source": "/", "destination": "/world.html", "permanent": false }
+    {
+      "source": "/",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/menu.html",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/menu",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/social.html",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/social",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/replay.html",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/replay",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/moment.html",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/moment",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/clip.html",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/clip",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/characterlab.html",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/characterlab",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/ops.html",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/ops",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/portraits.html",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/portraits",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/rigtest.html",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/rigtest",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/humanrigtest.html",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/humanrigtest",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/kayrigtest.html",
+      "destination": "/world.html",
+      "permanent": false
+    },
+    {
+      "source": "/kayrigtest",
+      "destination": "/world.html",
+      "permanent": false
+    }
   ],
   "headers": [
     {
       "source": "/(portraits/.*|portraits-v2/.*|skins/.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(?:html|js|mjs|css))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     }
   ]

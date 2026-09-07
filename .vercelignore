@@ -16,3 +16,28 @@ football-artifacts/
 output/
 football 2.css
 football 2.html
+
+# Publish the current world only; experiments and internal review material stay local.
+*.md
+*.test.mjs
+scripts/
+experiments/
+arcade-review/
+.claude/
+.git/
+node_modules/
+menu.html
+menu.js
+menu.css
+social.html
+replay.html
+replay.js
+replay.css
+moment.html
+clip.html
+characterlab.html
+characterlab.js
+ops.html
+
+api/*.test.mjs
+cyberliga-world-og.png

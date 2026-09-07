@@ -302,3 +302,87 @@ body.arcade-leagues { --paper:var(--aw-ink);--muted:#596575;--faint:#8c96a0;--li
 }
 
 html:not(.fw-open) .arcade-leagues .fw-drawer { visibility:hidden;box-shadow:none; }
+
+/* The public edition: a consistent frame, readable phone controls and club color. */
+html[data-home-edition="world-desk"] body.arcade-home .brand::before,
+.arcade-leagues .league-brand::before { flex-shrink:0; }
+html[data-home-edition="world-desk"] body.arcade-home .aw-world-intro { isolation:isolate; }
+html[data-home-edition="world-desk"] body.arcade-home .aw-world-intro::before { content:'';position:absolute;z-index:-1;inset:-32px -80px -38px -34px;background:radial-gradient(ellipse at top left,#071017eb,transparent 76%); }
+html[data-home-edition="world-desk"] body.arcade-home .aw-world-intro h1 { text-shadow:0 2px 24px #07101770; }
+html[data-home-edition="world-desk"] body.arcade-home .aw-world-intro>span { color:#d5dfe5; }
+html[data-home-edition="world-desk"] body.arcade-home .aw-globe-caption { position:fixed;z-index:18;left:30px;right:calc(var(--aw-desk) + 30px);bottom:176px;display:flex;justify-content:space-between;align-items:center;pointer-events:none; }
+html[data-home-edition="world-desk"] body.arcade-home .aw-globe-caption>span { color:#c3d0db;font-size:9px;letter-spacing:.08em;text-shadow:0 1px 6px #071017; }
+html[data-home-edition="world-desk"] body.arcade-home .aw-share { min-height:44px;min-width:83px;display:flex;align-items:center;justify-content:center;gap:16px;padding:0 12px;border:1px solid #607087;background:#101e31e8;color:var(--aw-paper);font-size:11px;font-weight:700;cursor:pointer;pointer-events:auto; }
+html[data-home-edition="world-desk"] body.arcade-home .aw-share:hover { background:var(--aw-blue);border-color:var(--aw-blue); }
+html[data-home-edition="world-desk"] body.arcade-home .loading { background:var(--aw-paper); }
+html[data-home-edition="world-desk"] body.arcade-home .loading>div { display:flex;flex-direction:column;align-items:center;gap:18px; }
+html[data-home-edition="world-desk"] body.arcade-home .loading strong { color:var(--aw-ink);font-size:23px;letter-spacing:-.05em;font-weight:900; }
+html[data-home-edition="world-desk"] body.arcade-home .loading p { color:#586777;font-size:12px; }
+.aw-loading-mark { width:30px;height:30px;background:var(--aw-blue);clip-path:polygon(0 0,75% 0,75% 25%,100% 25%,100% 100%,25% 100%,25% 75%,0 75%); }
+html[data-home-edition="world-desk"] body.arcade-home .fixture-card-lead { position:relative;overflow:hidden; }
+html[data-home-edition="world-desk"] body.arcade-home .fixture-card-lead::before { content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c); }
+html[data-home-edition="world-desk"] body.arcade-home .lead-kicker { font-size:10px;line-height:1.35; }
+html[data-home-edition="world-desk"] body.arcade-home .lead-role { font-size:11px;line-height:1.3; }
+html[data-home-edition="world-desk"] body.arcade-home .lead-matchline { font-size:10px; }
+html[data-home-edition="world-desk"] body.arcade-home .lead-ground { font-size:10px; }
+.arcade-leagues .hero-actions { display:flex; }
+.arcade-leagues .hero-actions a,.arcade-leagues .hero-actions button { min-height:44px;font-size:10px; }
+.arcade-leagues #copy-league { display:inline-flex;font-size:9px;min-height:44px;padding:0 12px;border:1px solid var(--aw-line);color:var(--aw-ink); }
+.arcade-leagues .aw-league-portrait>canvas { height:auto;aspect-ratio:13/7;max-height:280px; }
+.arcade-leagues .aw-league-portrait>div { border:1px solid var(--aw-line);border-top:0; }
+.arcade-leagues .aw-league-portrait>div span:last-child { font-size:11px; }
+.arcade-leagues .club-scene { background:color-mix(in srgb,var(--team) 13%,#e8ebe3);border-top:3px solid var(--team); }
+.arcade-leagues .aw-club-code { top:16px;left:12px;font-size:49px;letter-spacing:-.075em;color:color-mix(in srgb,var(--team) 28%,#cbd1c4); }
+.arcade-leagues .aw-club-number { position:absolute;right:12px;bottom:12px;color:var(--aw-ink);font-size:10px;font-weight:750; }
+.arcade-leagues .club-city p { letter-spacing:.03em; }
+.arcade-leagues .club-venue { font-family:'Archivo',sans-serif; }
+.arcade-leagues .club-venue span { letter-spacing:0;line-height:1.4;font-size:10px; }
+.arcade-leagues .club-venue b { font-family:'Archivo',sans-serif;letter-spacing:0; }
+.arcade-leagues .athlete-links a { padding:0 12px;font-size:9px;font-weight:750; }
+.arcade-leagues .channel-top { font-size:9px; }
+.arcade-leagues .channel-card>p { font-size:9px;line-height:1.5; }
+.arcade-leagues .record-fixture small { letter-spacing:0;font-family:'Archivo',sans-serif; }
+.arcade-leagues .section-heading>span,.arcade-leagues .subsection-heading>span { font-size:12px; }
+.arcade-leagues .world-proof span { font-size:9px; }
+.arcade-leagues .world-proof div:last-child { border-right:0; }
+@media(max-width:900px) {
+  html[data-home-edition="world-desk"] body.arcade-home .aw-globe-caption { left:20px;right:16px;bottom:calc(49dvh + 8px); }
+  html[data-home-edition="world-desk"] body.arcade-home .aw-globe-caption>span { font-size:8px; }
+  html[data-home-edition="world-desk"] body.arcade-home .aw-world-intro::before { inset:-20px -65px -27px -20px; }
+}
+@media(max-width:600px) {
+  .arcade-leagues .hero-actions { display:flex;flex-wrap:wrap;gap:8px;margin-top:18px; }
+  .arcade-leagues .hero-actions a,.arcade-leagues .hero-actions button { font-size:9px;flex:1 1 auto;padding:0 13px; }
+  .arcade-leagues .hero-actions .primary-action { flex-basis:46%; }
+  .arcade-leagues #copy-league { flex:0 1 auto;padding:0;min-height:32px;border:0;color:var(--aw-blue); }
+  .arcade-leagues .aw-league-portrait>canvas { height:auto;max-height:none;aspect-ratio:13/7; }
+  .arcade-leagues .aw-league-portrait>div { padding:12px; }
+  .arcade-leagues .aw-league-portrait>div span:last-child { font-size:10px; }
+  .arcade-leagues .world-proof div { min-height:64px; }
+  .arcade-leagues .world-proof span { font-size:8px;line-height:1.35; }
+  .arcade-leagues .channel-grid { grid-template-columns:1fr; }
+  .arcade-leagues .channel-card { min-height:153px;padding:16px; }
+  .arcade-leagues .channel-top { font-size:9px; }
+  .arcade-leagues .channel-match { margin-top:19px; }
+  .arcade-leagues .channel-club strong { font-size:30px; }
+  .arcade-leagues .channel-club span { max-width:130px;font-size:10px; }
+  .arcade-leagues .channel-card>p { margin-top:14px;font-size:9px; }
+  .arcade-leagues .club-card { min-height:247px; }
+  .arcade-leagues .club-city p { font-size:8px;line-height:1.35; }
+  .arcade-leagues .club-venue span { font-size:9px; }
+  .arcade-leagues .kit-caption p { font-size:7px;letter-spacing:0; }
+  .arcade-leagues .kit-caption h4 { font-size:13px; }
+  .arcade-leagues .dossier-title p { font-size:8px; }
+  .arcade-leagues .dossier-title span { font-size:11px;line-height:1.45; }
+  .arcade-leagues .athlete-role { font-size:9px; }
+  .arcade-leagues .athlete-signature { font-size:11px; }
+  .arcade-leagues .athlete-archetype { font-size:11px; }
+}
+@media(max-width:900px) and (max-height:520px) {
+  html[data-home-edition="world-desk"] body.arcade-home .aw-globe-caption { right:calc(var(--aw-desk) + 16px);bottom:12px;left:18px; }
+  html[data-home-edition="world-desk"] body.arcade-home .aw-globe-caption>span { max-width:110px;line-height:1.5; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .arcade-leagues { scroll-behavior:auto; }
+  .arcade-leagues .channel-card:hover { transform:none; }
+}

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="arcade-mode">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="icon" href="data:," />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<link rel="icon" href="cyberliga-mark.svg" />
 <link rel="stylesheet" href="arena-score-fit.css" />
 <link rel="stylesheet" href="broadcast-spine.css" />
 <title>CYBERLIGA HOOPS — AUTONOMOUS AI BASKETBALL</title>
@@ -219,8 +219,22 @@
     #tickertext { font-size:12px; }
   }
 </style>
+<meta name="theme-color" content="#f4f4ed" />
+<meta name="description" content="Watch autonomous basketball in Cyberliga. Six sports. Forty-eight clubs. A world of characters." />
+<meta property="og:title" content="Cyberliga — Basketball" />
+<meta property="og:description" content="Your next team is somewhere in this world. Watch six sports, always on." />
+<meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png" />
+<link rel="stylesheet" href="arcade-broadcast.css" />
+<link rel="stylesheet" href="arcade-boot.css" />
+<script src="arcade-boot.js" defer></script>
 </head>
 <body>
+<div class="arcade-loading" role="status" aria-live="polite">
+  <a class="arcade-loading-brand watch-only-exit" href="world.html"><i aria-hidden="true"></i>CYBERLIGA</a>
+  <div class="arcade-loading-copy"><span>BASKETBALL / ON AIR</span><h1>Taking you courtside.</h1><p>Connecting to the broadcast…</p><div class="arcade-loading-progress" aria-hidden="true"></div></div>
+  <nav aria-label="Loading navigation"><a class="watch-only-exit" href="world.html">Home</a><a class="watch-only-exit" href="league.html?sport=basketball">Leagues</a></nav>
+  <noscript>Enable JavaScript to watch the broadcast.</noscript>
+</div>
 <div id="hud">
   <div id="badge"><a id="leaguepill" class="watch-only-exit" href="world.html" aria-label="Back to the Cyberliga globe">← GLOBE</a></div>
   <div id="scoreboard">

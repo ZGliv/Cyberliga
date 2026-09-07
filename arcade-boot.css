@@ -1,0 +1,20 @@
+/* Present the current edition from first paint, before the engine modules arrive. */
+html.arcade-mode:not([data-arcade-ready="true"]) #arcade-root{visibility:hidden!important}
+html.arcade-mode body>.arcade-loading{visibility:visible!important;pointer-events:auto!important;position:fixed;inset:0;z-index:2147483001;display:flex!important;flex-direction:column;justify-content:space-between;padding:28px max(24px,5vw);color:#101e31;background:#f4f4ed;font-family:Arial,Helvetica,sans-serif;letter-spacing:normal;text-transform:none}
+html.arcade-mode[data-arcade-ready="true"] body>.arcade-loading{display:none!important}
+.arcade-loading *{box-sizing:border-box}
+.arcade-loading a{color:#101e31!important;text-decoration:none!important;pointer-events:auto!important}
+.arcade-loading-brand{display:flex!important;align-items:center;gap:10px;font-size:23px;font-weight:900;letter-spacing:-1px}
+.arcade-loading-brand i{width:24px;height:24px;background:#2b4ef0;clip-path:polygon(0 0,100% 0,100% 33%,33% 33%,33% 66%,100% 66%,100% 100%,0 100%)}
+.arcade-loading-copy{max-width:640px}
+.arcade-loading-copy>span{font:700 11px/1.5 monospace;letter-spacing:1px;color:#2b4ef0}
+.arcade-loading-copy h1{font-size:clamp(40px,6vw,76px);line-height:1;letter-spacing:-2px;margin:18px 0}
+.arcade-loading-copy p{font:14px/1.6 Arial;color:#59636e}
+.arcade-loading-progress{width:160px;height:3px;margin-top:28px;background:#d7dbd6;overflow:hidden}
+.arcade-loading-progress::after{content:"";display:block;width:40%;height:100%;background:#2b4ef0;animation:arcade-connecting 1.4s ease-in-out infinite alternate}
+.arcade-loading nav{display:flex!important;gap:24px;font:700 13px Arial}
+.arcade-loading nav a{min-height:44px;display:grid!important;place-items:center}
+.arcade-loading noscript{font:14px Arial}
+@keyframes arcade-connecting{to{transform:translateX(150%)}}
+@media(prefers-reduced-motion:reduce){.arcade-loading-progress::after{animation:none}}
+@media(max-height:500px){html.arcade-mode body>.arcade-loading{padding:16px 24px}.arcade-loading-copy h1{font-size:34px;margin:8px 0}.arcade-loading-progress{margin-top:12px}}

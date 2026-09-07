@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>CYBERLIGA — Tonight’s Games Around the World</title>
-<meta name="description" content="Tonight across Cyberliga: 24 games, 48 clubs and six leagues, with live broadcasts from New York to Tokyo." />
+<title>CYBERLIGA — A Whole World of Sport</title>
+<meta name="description" content="Six sports. 48 city clubs. 416 characters. Explore the globe, find your team and watch the games unfold in Cyberliga." />
 <meta name="theme-color" content="#f4f4ed" />
 <meta property="og:type" content="website" />
-<meta property="og:title" content="CYBERLIGA — Tonight Around the World" />
-<meta property="og:description" content="24 games, 48 clubs and six leagues, live from New York to Tokyo." />
-<meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-world-og.png" />
+<meta property="og:title" content="CYBERLIGA — A Whole World of Sport" />
+<meta property="og:description" content="Six sports. 48 city clubs. 416 characters. Find your team and watch what happens." />
+<meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:image:alt" content="Cyberliga Match Night: a world globe beside tonight’s six-sport schedule and the Stoopy–Toque basketball rivalry." />
+<meta property="og:image:alt" content="Cyberliga’s interactive world globe and six sports with an original cast of pixel athletes." />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="CYBERLIGA — Tonight Around the World" />
-<meta name="twitter:description" content="24 games, 48 clubs and six leagues, live from New York to Tokyo." />
-<meta name="twitter:image" content="https://cyberliga-ten.vercel.app/cyberliga-world-og.png" />
-<meta name="twitter:image:alt" content="Cyberliga Match Night: a world globe beside tonight’s six-sport schedule and the Stoopy–Toque basketball rivalry." />
-<link rel="icon" href="data:," />
+<meta name="twitter:title" content="CYBERLIGA — A Whole World of Sport" />
+<meta name="twitter:description" content="Six sports. 48 city clubs. 416 characters. Find your team and watch what happens." />
+<meta name="twitter:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png" />
+<meta name="twitter:image:alt" content="Cyberliga’s interactive world globe and six sports with an original cast of pixel athletes." />
+<link rel="icon" href="cyberliga-mark.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet" />
@@ -27,7 +27,7 @@
 <link rel="stylesheet" href="arcade-world.css" />
 </head>
 <body class="arcade-home">
-<div class="loading" id="loading"><p>Loading tonight’s schedule…</p></div>
+<div class="loading" id="loading"><div><b class="aw-loading-mark" aria-hidden="true"></b><strong>CYBERLIGA</strong><p>Bringing the world together…</p></div></div>
 <canvas id="globe" aria-label="Interactive globe showing six Cyberliga sports leagues"></canvas>
 <div id="labels"></div>
 
@@ -40,6 +40,7 @@
   <h1 id="aw-home-title">A whole world.<br>Every sport.</h1>
   <span>Find a city. Meet your team. Watch what happens.</span>
 </section>
+<div class="aw-globe-caption"><span>DRAG TO EXPLORE THE WORLD</span><button class="aw-share" id="share-world" type="button" aria-label="Share Cyberliga">Share <span aria-hidden="true">↗</span></button></div>
 <section class="aw-world-cast" aria-label="Explore the six sports">
   <div class="aw-cast-heading"><strong>SIX SPORTS. YOUR NEXT OBSESSION.</strong><span>48 clubs / 416 athletes</span></div>
   <div id="aw-sport-cast"></div>
@@ -73,7 +74,9 @@
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
 <script type="module">
 import * as THREE from 'three';
-import { drawArcadePortrait, paintArcadePortraits } from './arcade-world.js';
+import { drawArcadePortrait, paintArcadePortraits, shareArcadeLink } from './arcade-world.js';
+
+document.getElementById('share-world').addEventListener('click',event=>shareArcadeLink(event.currentTarget,{title:'Cyberliga',text:'Six sports. 48 clubs. Find your team.',url:location.href}));
 
 const U = window.CyberligaUniverse;
 let matches = U.liveMatches(Date.now());
@@ -478,6 +481,7 @@ function updateLabels(now) {
   const compact=innerWidth<=900;
   const boardRect=networkPanel.getBoundingClientRect();
   const bottomBoard=compact&&boardRect.width>=innerWidth-2&&boardRect.top>68;
+  const placedLabels=[];
   markers.forEach(marker => {
     if(marker.filtered){marker.group.visible=false;marker.label.classList.remove('visible');return;}
     marker.group.visible=true;
@@ -498,7 +502,18 @@ function updateLabels(now) {
     marker.frontFacing=front;marker.screenX=sx;marker.screenY=sy;
     marker.label.classList.toggle('visible',labelVisible);
     marker.label.tabIndex=labelVisible?0:-1;marker.label.setAttribute('aria-hidden',String(!labelVisible));
-    if(labelVisible){marker.label.style.left=`${sx}px`;marker.label.style.top=`${sy}px`;}
+    if(labelVisible){
+      const width=marker.label.offsetWidth,height=marker.label.offsetHeight;
+      const maxRight=bottomBoard?innerWidth-12:boardRect.left-12;
+      const maxBottom=bottomBoard?boardRect.top-36:innerHeight-28;
+      const labelX=THREE.MathUtils.clamp(sx,width/2+12,maxRight-width/2);
+      let labelY=sy;
+      const overlaps=(y)=>placedLabels.some(box=>labelX+width/2+6>box.left&&labelX-width/2-6<box.right&&y+6>box.top&&y-height-6<box.bottom);
+      for(let step=0;step<6&&overlaps(labelY);step++)labelY=sy+(step%2===0?-1:1)*Math.ceil((step+1)/2)*(height+7);
+      labelY=THREE.MathUtils.clamp(labelY,globeRect.top+height+12,maxBottom);
+      marker.label.style.left=`${labelX}px`;marker.label.style.top=`${labelY}px`;
+      placedLabels.push({left:labelX-width/2,right:labelX+width/2,top:labelY-height,bottom:labelY});
+    }
     const baseScale=.72+faceStrength*.18;
     marker.group.scale.setScalar(active?1.18:hovered?1.08:baseScale);
     marker.core.opacity=active?1:hovered?.82:.18+faceStrength*.28;

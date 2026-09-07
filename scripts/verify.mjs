@@ -91,8 +91,8 @@ for (const arena of arenas) {
   check(arenaAnchors.length > 0 && arenaAnchors.every((anchor) => /class=["'][^"']*watch-only-exit/.test(anchor)), `${arena.file} must expose only exempt watch-only exit links`);
   const globeExits = htmlSource.match(/<a\b[^>]*class=["'][^"']*\bwatch-only-exit\b[^"']*["'][^>]*>[\s\S]*?<\/a>/gi) || [];
   const globeExitText = globeExits[0]?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-  check(globeExits.length === 1, `${arena.file} must expose exactly one watch-only arena exit`, String(globeExits.length));
-  check(/href\s*=\s*["']world\.html["']/i.test(globeExits[0] || '') && globeExitText === '← GLOBE', `${arena.file} arena exit must read ← GLOBE and target world.html`);
+  check(globeExits.length >= 3 && /class=["']arcade-loading["']/.test(htmlSource), `${arena.file} must expose a current loading shell with safe navigation`);
+  check(/<html[^>]*class=["'][^"']*arcade-mode/.test(htmlSource) && /href=["']arcade-boot\.css["']/.test(htmlSource) && /href=["']arcade-broadcast\.css["']/.test(htmlSource), `${arena.file} must suppress retired arena UI before the engine initializes`);
   check(!/id=["'](?:wordmark|erapill)["']/i.test(htmlSource), `${arena.file} must not restore the obsolete top-left mode wordmark or era pill`);
   check(/(?:href\s*=\s*["']world\.html|location\.href\s*=\s*["']world\.html)/i.test(source), `${arena.file} has no route back to world.html`);
   check(/window\.render_game_to_text\s*=/.test(source), `${arena.file} is missing window.render_game_to_text`);
@@ -242,13 +242,13 @@ check(!/buildAthleteRig/.test(footballScript) && /from\s+['"]\.\/blobrig\.js['"]
 
 check(/football\.html/.test(worldSource), 'World map does not route to American football');
 check(/data-home-edition=["']world-desk["']/.test(worldSource) && /world-desk\.css/.test(worldSource), 'World Home must load the restrained World Desk edition');
-check(/<title>CYBERLIGA — Tonight’s Games Around the World<\/title>/.test(worldSource) && /<meta name=["']description["'][^>]*24 games, 48 clubs and six leagues/i.test(worldSource) && !/(?:five leagues|5 leagues)/i.test(worldSource), 'World Home metadata must describe the canonical six-sport schedule and 48-club slate');
+check(/<title>CYBERLIGA — A Whole World of Sport<\/title>/.test(worldSource) && /<meta name=["']description["'][^>]*Six sports\. 48 city clubs\. 416 characters/i.test(worldSource) && !/(?:five leagues|5 leagues)/i.test(worldSource), 'World Home metadata must describe the canonical six-sport schedule and 48-club slate');
 check(worldShareImage.subarray(1, 4).toString('ascii') === 'PNG' && worldShareImage.readUInt32BE(16) === 1200 && worldShareImage.readUInt32BE(20) === 630, 'World Home social card must remain an exact 1200×630 PNG');
-check(createHash('sha256').update(worldShareImage).digest('hex') === '097800017917d1673783f2ae699ebd7f9b3caf7df52e6b80d3a711ab2ce98835', 'World Home social card must remain the visually audited evergreen Match Night capture');
-check(/property=["']og:image:alt["'][^>]*Stoopy–Toque/.test(worldSource) && /name=["']twitter:image:alt["'][^>]*Stoopy–Toque/.test(worldSource), 'World Home social image must retain accessible rivalry alt text');
+check(/^cyberliga-share\.png$/.test(worldShareName), 'World Home must share the approved pixel release card rather than the retired edition');
+check(/property=["']og:image:alt["'][^>]*pixel/i.test(worldSource) && /name=["']twitter:image:alt["'][^>]*pixel/i.test(worldSource), 'World Home social image must describe the current pixel world accessibly');
 check(/>\s*Pick a game\.\s*</.test(worldSource) && /24 games · 48 clubs/i.test(worldSource) && /id=["']tonight-date["']/.test(worldSource) && /id=["']game-list["']/.test(worldSource), 'Arcade World must retain a dated, browsable sports schedule and the canonical slate');
 check(!/(?:CHOOSE A GAME|ENTER THE ACTION|LIVE GAME NETWORK|ACQUIRING THE WORLD SIGNAL)/i.test(worldSource), 'World Home restored synthetic dashboard language');
-check(/quietWorldDesk[\s\S]{0,220}!quietWorldDesk\) ensureShell\(\)[\s\S]{0,180}pageKind === 'world' && !quietWorldDesk/.test(fanworldSource), 'World Desk must keep the empty supporter shell and synthetic story pulse off Home');
+check(!/!quietWorldDesk\) ensureShell\(\)/.test(fanworldSource), 'Public world must not restore the retired supporter shell and synthetic story pulse');
 check(!/<style(?:\s|>)/i.test(worldSource), 'World Home must not retain the legacy inline dashboard stylesheet');
 check(/body::before[\s\S]{0,120}body::after[\s\S]{0,120}content:\s*none/.test(worldDeskStyles), 'World Desk must remove the scanline and cinematic dashboard overlays');
 check(/\.liveboard\s*\{[\s\S]{0,420}width:\s*410px[\s\S]{0,300}background:\s*var\(--board\)/.test(worldDeskStyles), 'World Desk must use one matte desktop schedule rail');
@@ -279,7 +279,7 @@ check(/['"]american-football['"]\s*:\s*\{[\s\S]{0,500}?arena\s*:\s*['"]football\
 check(/id=["']standings-shell["']/.test(atlasSource) && /class=["']standings-table["']/.test(atlasSource), 'League HQ is missing its standings table');
 check(/api\/league\?sport=/.test(atlasSource), 'League atlas does not load the shared league-state API');
 check(/id=["']roster-filters["']/.test(atlasSource), 'League atlas is missing football offense/defense roster filters');
-check(/class=["']athlete-links["']/.test(atlasSource) && /player\.html\?sport=/.test(atlasSource) && /social\.html\?sport=/.test(atlasSource), 'League HQ does not connect athletes to permanent profile and World Wire URLs');
+check(/class=["']athlete-links["']/.test(atlasSource) && /player\.html\?sport=/.test(atlasSource) && !/social\.html\?sport=/.test(atlasSource), 'League HQ must link permanent athlete profiles without returning to the retired World Wire');
 for (const arena of arenas) {
   check(worldSource.includes(arena.id), `World map does not expose ${arena.id}`);
   check(worldSource.includes(arena.file), `World map does not link the ${arena.id} arena`, arena.file);
@@ -387,7 +387,6 @@ check(/window\.advanceTime\s*=/.test(characterLabScript), 'Character Lab is miss
 check(/view.*match[\s\S]*portrait[\s\S]*clip/i.test(characterLabScript), 'Character Lab must cover match, portrait, and clip contexts');
 const foundingSurfaceSources = [
   ['Character Lab', characterLabSource, characterLabScript, 'founding-vector'],
-  ['Athlete Files', playerSource, playerScript, 'generic-css'],
   ['Clip Director', clipSource, clipSource, 'generic-procedural'],
   ['Moment Maker', momentSource, momentSource, 'generic-procedural']
 ];
@@ -403,7 +402,8 @@ check(/FoundingVisual|CyberligaFoundingVisual/.test(characterLabScript), 'Charac
 check(/drawGenericSilhouette/.test(momentSource), 'Moment Maker must retain its exact generic procedural fallback');
 check(/drawGenericAthlete/.test(clipSource), 'Clip Director must retain its exact generic procedural fallback');
 check(/sportProp\s*:\s*false/.test(clipSource), 'Clip Director must suppress duplicate authored props while retaining its moving game object');
-check(/founding-canvas/.test(playerSource) && /is-founding/.test(playerStyles), 'Athlete Files must switch Founding athletes onto the shared canvas without removing generic CSS portraits');
+check(/arcade-world\.js/.test(playerScript) && /drawArcadePortrait/.test(playerScript) && /authored-pixel-canvas/.test(playerScript), 'Athlete Files must use and report the same authored pixel portraits as the live world');
+check(playerSource.indexOf('worlddata.js') < playerSource.indexOf('characterdata.js') && playerSource.includes('characterdata.js'), 'Athlete Files must bind canonical world and athlete identities before rendering');
 const momentPrimaryNav = momentSource.match(/<nav\b[^>]*aria-label=["']Primary navigation["'][^>]*>([\s\S]*?)<\/nav>/i)?.[1] || '';
 const momentPrimaryTargets = [...momentPrimaryNav.matchAll(/href=["']([^"']+)["']/gi)].map((match) => match[1]);
 check(JSON.stringify(momentPrimaryTargets) === JSON.stringify(['world.html', 'league.html']), 'Moment Maker primary navigation must expose only Home and Leagues', momentPrimaryTargets.join(', '));
@@ -742,16 +742,16 @@ check(/data-fw-moment-id/.test(fanworldSource) && /dataset\.renderSignature/.tes
 check(/addEventListener\(['"]pagehide['"][\s\S]{0,300}refreshing\s*=\s*false[\s\S]{0,160}addEventListener\(['"]pageshow['"]/.test(fanworldSource), 'Live-moment polling must recover cleanly from BFCache pagehide/pageshow');
 check(/MATCHUP SIM/.test(fanworldSource), 'Moment arena links must visibly identify autonomous matchup simulations');
 check(/source\s*===\s*['"]supabase['"]/.test(athleteMomentSource), 'Canonical live-moment provenance must use the explicit trusted-source allowlist');
-check(/data-fw-action=["']share-story["']/.test(fanworldSource) && /OPEN 12-SECOND CLIP/.test(fanworldSource), 'Fixture stories must expose both share and 12-second clip actions');
-check(/function storyClipUrl\s*\([\s\S]{0,500}clip\.html\?/.test(fanworldSource), 'Shared fixture stories must preserve their context into Clip Director');
-check(/match:\s*story\.key[\s\S]{0,80}story:\s*story\.id[\s\S]{0,80}view:\s*['"]1['"]/.test(fanworldSource), 'Shared clip URLs must carry permanent match/story seeds into passive viewer mode');
+check(/data-fw-action=["']share-story["']/.test(fanworldSource) && /WATCH THE MATCHUP/.test(fanworldSource), 'Fixture stories must share and open current autonomous matchups');
+check(/function storyBroadcastUrl\s*\([\s\S]{0,600}home:home\.id,away:away\.id/.test(fanworldSource), 'Shared fixture stories must preserve the selected clubs in current arena URLs');
+check(!/clip\.html|OPEN 12-SECOND CLIP|12S CONCEPT/.test(fanworldSource), 'Supporter UI must never route back into retired concept clips');
 check(/navigator\.share/.test(fanworldSource) && /navigator\.clipboard/.test(fanworldSource) && /fallbackCopy/.test(fanworldSource), 'Story sharing must support native share, clipboard, and fallback copy paths');
-check(/\.fw-call-note\s*\{[^}]*rgba\(255,255,255,\.68\)[^}]*8px/.test(fanworldStyles), 'Free-call disclosure must remain legible at the point of action');
-check(/\.fw-drawer-foot\s*\{[^}]*rgba\(255,255,255,\.68\)[^}]*8px/.test(fanworldStyles), 'Supporter passport disclosure must remain legible');
+check(/\.fw-call-note\s*\{[^}]*rgba\(16,30,49,\.68\)[^}]*8px/.test(fanworldStyles), 'Free-call disclosure must remain legible at the point of action');
+check(/\.fw-drawer-foot\s*\{[^}]*rgba\(16,30,49,\.68\)[^}]*8px/.test(fanworldStyles), 'Supporter passport disclosure must remain legible');
 check(/@media \(max-width: 760px\)[\s\S]*\.fw-moment-actions a\s*\{[^}]*min-height:\s*44px/.test(fanworldStyles), 'Moment actions must retain 44px mobile touch targets');
 
 check(/MY NIGHT/.test(fanworldSource) && /DEVICE-LOCAL · NOT OFFICIAL/.test(fanworldSource), 'My Signal must expose My Night with an explicit non-official device-local boundary');
-check(/data-fw-action="keep-witness"/.test(fanworldSource) && /data-fw-action="remove-witness"/.test(fanworldSource) && /12S CONCEPT/.test(fanworldSource), 'Witness receipts must expose keep, remove, Athlete File, and non-official concept routes');
+check(/data-fw-action="keep-witness"/.test(fanworldSource) && /data-fw-action="remove-witness"/.test(fanworldSource) && /ATHLETE FILE/.test(fanworldSource), 'Witness receipts must expose keep, remove and current Athlete File routes');
 check(/WitnessStore\.markRead\(\)/.test(fanworldSource) && /witnessUnreadAtOpen/.test(fanworldSource), 'Opening My Signal must clear unread state without erasing the current-open NEW labels');
 check(/YOUR WITNESS CHRONICLE/.test(fanworldSource) && /fw-player-chronicle/.test(fanworldSource) && /teammates\.before\(section\)/.test(fanworldSource), 'Athlete Files must insert the device-local Witness Chronicle before teammates');
 check(/changesCareerStats:\s*false[\s\S]{0,80}scoresCalls:\s*false[\s\S]{0,80}wagerable:\s*false[\s\S]{0,80}settles:\s*false[\s\S]{0,80}money:\s*false[\s\S]{0,80}prizes:\s*false/.test(fanworldSource), 'Witness render state must reject career-stat, fan-call, wager, settlement, money, and prize effects');

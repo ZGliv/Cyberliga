@@ -1,4 +1,4 @@
-import { paintArcadePortraits } from './arcade-world.js';
+import { paintArcadePortraits, shareArcadeLink } from './arcade-world.js';
 
 (function bootstrapLeagueHQ(root) {
   'use strict';
@@ -79,10 +79,10 @@ import { paintArcadePortraits } from './arcade-world.js';
     document.title = 'CYBERLIGA — ' + league.name;
     byId('league-code').textContent = league.code;
     byId('league-name').textContent = sport.name + '.';
-    byId('league-thesis').textContent = 'Eight cities. A cast worth following. Choose a club and let the game find its own story.';
+    byId('league-thesis').textContent = 'Eight cities. Their own heroes and rivals. Choose your club, meet the roster and catch a game.';
     byId('league-architecture').textContent = league.name;
     byId('aw-league-athletes').textContent = teams.reduce(function (total,item) { return total + item.athletes.length; },0);
-    byId('broadcast-language').textContent = 'Autonomous games. View only.';
+    byId('broadcast-language').textContent = 'Pick a matchup. The athletes take it from here.';
     hero.classList.toggle('hero-fallback',!hasImage);
     image.hidden = !hasImage;
     if (hasImage) {
@@ -111,7 +111,7 @@ import { paintArcadePortraits } from './arcade-world.js';
     byId('club-grid').innerHTML = teams.map(function (item) {
       var identity = brand(item);
       return '<button class="club-card' + (item.id === selectedTeam.id ? ' selected' : '') + '" type="button" data-team="' + esc(item.id) + '" style="--team:' + esc(item.colors.primary) + '" aria-pressed="' + String(item.id === selectedTeam.id) + '">' +
-        '<div class="club-scene"><canvas class="aw-club-portrait" data-arcade-athlete="' + esc(item.athletes[0].id) + '" data-team-id="' + esc(item.id) + '" data-sport="' + esc(sportId) + '" aria-hidden="true"></canvas><span class="aw-club-code">' + esc(item.code) + '</span></div>' +
+        '<div class="club-scene"><canvas class="aw-club-portrait" data-arcade-athlete="' + esc(item.athletes[0].id) + '" data-team-id="' + esc(item.id) + '" data-sport="' + esc(sportId) + '" aria-hidden="true"></canvas><span class="aw-club-code">' + esc(item.code) + '</span><span class="aw-club-number">#' + esc(item.athletes[0].number) + '</span></div>' +
         '<div class="club-body"><div class="club-brand-row">' + B.crestSvg(item) + '<div class="club-city"><p>' + esc(displayCity(item).toUpperCase()) + ' / ' + esc(item.code) + '</p><h3>' + esc(displayName(item)) + '</h3></div>' + '</div>' +
         '<div class="club-venue"><span>' + esc(identity.venue) + '<br>' + esc(item.motif.toUpperCase()) + '</span><b>MEET THE CLUB ↗</b></div></div></button>';
     }).join('');
@@ -164,8 +164,7 @@ import { paintArcadePortraits } from './arcade-world.js';
     byId('roster-count').textContent = athletes.length + ' ACTIVE ATHLETES · SELECT ANY FILE';
     byId('roster-grid').innerHTML = athletes.map(function (athlete) {
       var playerUrl = 'player.html?sport=' + encodeURIComponent(sportId) + '&team=' + encodeURIComponent(item.id) + '&player=' + encodeURIComponent(athlete.id);
-      var wireUrl = 'social.html?sport=' + encodeURIComponent(sportId) + '&team=' + encodeURIComponent(item.id) + '&player=' + encodeURIComponent(athlete.id) + '#player-' + encodeURIComponent(athlete.id);
-      return '<article class="athlete-row"><canvas class="aw-roster-portrait" data-arcade-athlete="' + esc(athlete.id) + '" data-team-id="' + esc(item.id) + '" data-sport="' + esc(sportId) + '" aria-label="' + esc(athlete.name) + ' pixel portrait"></canvas><span class="athlete-number">' + esc(String(athlete.number).padStart(2,'0')) + '</span><p class="athlete-role">' + esc(athlete.role.toUpperCase()) + ' / ' + esc(item.code) + '</p><h4>' + esc(athlete.name) + '</h4><span class="athlete-archetype">' + esc(athlete.archetype) + '</span><span class="athlete-signature">' + esc(athlete.signature) + '</span><div class="athlete-links"><a href="' + esc(playerUrl) + '" aria-label="Open ' + esc(athlete.name) + ' athlete file">FILE</a><a href="' + esc(wireUrl) + '" aria-label="Follow ' + esc(athlete.name) + ' on the World Wire">WIRE</a></div></article>';
+      return '<article class="athlete-row"><canvas class="aw-roster-portrait" data-arcade-athlete="' + esc(athlete.id) + '" data-team-id="' + esc(item.id) + '" data-sport="' + esc(sportId) + '" aria-label="' + esc(athlete.name) + ' pixel portrait"></canvas><span class="athlete-number">' + esc(String(athlete.number).padStart(2,'0')) + '</span><p class="athlete-role">' + esc(athlete.role.toUpperCase()) + ' / ' + esc(item.code) + '</p><h4>' + esc(athlete.name) + '</h4><span class="athlete-archetype">' + esc(athlete.archetype) + '</span><span class="athlete-signature">' + esc(athlete.signature) + '</span><div class="athlete-links"><a href="' + esc(playerUrl) + '" aria-label="Meet ' + esc(athlete.name) + '">MEET THE ATHLETE ↗</a></div></article>';
     }).join('');
     paintArcadePortraits(byId('roster-grid'));
   }
@@ -178,6 +177,7 @@ import { paintArcadePortraits } from './arcade-world.js';
     portrait.dataset.arcadeTeam = item.id;portrait.dataset.sport = sportId;
     portrait.setAttribute('aria-label',displayName(item) + ' canonical pixel athletes');
     byId('aw-hero-team').textContent = displayName(item);
+    byId('aw-hero-city').textContent = displayCity(item);
     byId('arena-link').href = arenaUrl(item.id,rival.id);
     paintArcadePortraits(byId('league-hero'));
     setTeamColor(item);
@@ -255,12 +255,7 @@ import { paintArcadePortraits } from './arcade-world.js';
   }
 
   byId('copy-league').addEventListener('click', function () {
-    var button = this;
-    var restore = button.textContent;
-    Promise.resolve(root.navigator.clipboard && root.navigator.clipboard.writeText(root.location.href)).then(function () {
-      button.textContent = 'LEAGUE LINK COPIED';
-      root.setTimeout(function () { button.textContent = restore; },1200);
-    }).catch(function () {});
+    shareArcadeLink(this,{title:'Cyberliga · ' + league.name,text:'Meet ' + displayName(selectedTeam) + ' in Cyberliga.',url:root.location.href});
   });
 
   root.addEventListener('popstate', function () {

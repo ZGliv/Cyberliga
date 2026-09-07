@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="arcade-mode">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>CYBERLIGA SOCCER</title>
 <script src="watchonly.js"></script>
-<link rel="icon" href="data:," />
+<link rel="icon" href="cyberliga-mark.svg" />
 <link rel="stylesheet" href="arena-score-fit.css" />
 <link rel="stylesheet" href="broadcast-spine.css" />
 <script src="arena-score-fit.js" defer></script>
@@ -316,8 +316,22 @@
     #broadcasttag { top:auto; right:10px; bottom:82px; font-size:8px; }
   }
 </style>
+<meta name="theme-color" content="#f4f4ed" />
+<meta name="description" content="Watch autonomous soccer in Cyberliga. Six sports. Forty-eight clubs. A world of characters." />
+<meta property="og:title" content="Cyberliga — Soccer" />
+<meta property="og:description" content="Your next team is somewhere in this world. Watch six sports, always on." />
+<meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png" />
+<link rel="stylesheet" href="arcade-broadcast.css" />
+<link rel="stylesheet" href="arcade-boot.css" />
+<script src="arcade-boot.js" defer></script>
 </head>
 <body data-cyberliga-presence-manual>
+<div class="arcade-loading" role="status" aria-live="polite">
+  <a class="arcade-loading-brand watch-only-exit" href="world.html"><i aria-hidden="true"></i>CYBERLIGA</a>
+  <div class="arcade-loading-copy"><span>SOCCER / ON AIR</span><h1>Taking you pitchside.</h1><p>Connecting to the broadcast…</p><div class="arcade-loading-progress" aria-hidden="true"></div></div>
+  <nav aria-label="Loading navigation"><a class="watch-only-exit" href="world.html">Home</a><a class="watch-only-exit" href="league.html?sport=soccer">Leagues</a></nav>
+  <noscript>Enable JavaScript to watch the broadcast.</noscript>
+</div>
 <div id="hud">
   <div id="scoreboard">
     <div class="team" id="teamA"><span class="dot"></span><span class="team-name" data-score-fit>NEON FC</span></div>

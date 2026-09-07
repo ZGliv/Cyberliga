@@ -74,16 +74,20 @@ export function athleteSprite(entity={},sport='basketball',pose=0){
 export function createArenaPainter(canvas,sportId){
   const ctx=canvas.getContext('2d',{alpha:false}),tracking=new Map();
   const camera={x:0,z:0,zoom:null,ready:false};
-  let previousTime=null,lastFrame=null,paintCount=0,previousPaint=performance.now();
+  let previousTime=null,lastFrame=null,paintCount=0,previousPaint=performance.now(),lastViewport='';
   function paint(frame){
     lastFrame=frame;paintCount++;
     const box=canvas.getBoundingClientRect(),w=Math.max(1,box.width),h=Math.max(1,box.height),dpr=Math.min(window.devicePixelRatio||1,2);
+    const viewportKey=`${w}/${h}`;if(viewportKey!==lastViewport){camera.zoom=null;camera.ready=false;lastViewport=viewportKey;}
     if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}
     ctx.setTransform(dpr,0,0,dpr,0,0);ctx.imageSmoothingEnabled=false;
     const t=finite(frame.time),now=performance.now();
     const dt=previousTime===null?0:clamp(t-previousTime||((frame.presentation?.replay)?(now-previousPaint)/1000:0),0,.1);previousTime=t;previousPaint=now;
     const bounds=frame.bounds||{},hx=finite(bounds.halfX,15),hz=finite(bounds.halfZ,9);
+    const venueTeam=frame.teams?.find(team=>window.CyberligaBrand?.getTeam(team.id)?.venue===frame.venue?.name)||frame.teams?.[0];
+    const primary=color(venueTeam?.colors?.primary,'#65758d'),accent=color(venueTeam?.colors?.accent,'#d8fd63');
     const portrait=h>w*1.15,rotated=portrait&&sportId!=='combat'&&sportId!=='baseball',shortLandscape=h<280&&w>h*2;
+    const baseballClose=sportId==='baseball'&&/WINDUP|PITCH|READY|SETUP|PREPITCH|IDLE/.test(String(frame.phase));
     const baseSpan={soccer:82,'american-football':79,basketball:34,hockey:61,baseball:100,combat:13}[sportId];
     const availableW=w*(portrait?.91:.91),availableH=h*(sportId==='combat'?.72:.8);
     let scale=Math.min(availableW/(rotated?Math.min(hz*2+4,baseSpan*.68):baseSpan),availableH/((rotated?Math.min(hx*2+4,baseSpan)*.86:(hz*2+4)*.69)));
@@ -91,7 +95,7 @@ export function createArenaPainter(canvas,sportId){
     if(rotated){const zoneWidth={soccer:30,'american-football':33,basketball:19,hockey:26}[sportId];scale=availableW/zoneWidth;}
     if(shortLandscape&&sportId!=='baseball'&&sportId!=='combat')scale=Math.min(availableW/baseSpan,(h-18)/(hz+2.25));
     if(sportId==='baseball'){
-      const close=/WINDUP|PITCH|READY|SETUP|PREPITCH|IDLE/.test(String(frame.phase));
+      const close=baseballClose;
       const span=portrait?(close?26:42):(close?42:51),targetScale=Math.min(w*.88/span,h*.86/(close?18:30));
       camera.zoom??=targetScale;camera.zoom+=(targetScale-camera.zoom)*(1-Math.exp(-dt*2));scale=camera.zoom;
     }
@@ -101,7 +105,7 @@ export function createArenaPainter(canvas,sportId){
     const viewX=(rotated?h*.67/depth:w*.82)/(2*scale),viewZ=(rotated?w*.88:h*.67/depth)/(2*scale);
     let tx=clamp(finite(follow.x)*.72,-Math.max(0,hx-viewX+3),Math.max(0,hx-viewX+3));
     let tz=clamp(finite(follow.z)*.4,-Math.max(0,hz-viewZ+3),Math.max(0,hz-viewZ+3));
-    if(sportId==='baseball'){tx=clamp(finite(follow.x)*.5+5,7,finite(frame.presentation?.wallRadius,hz)*.53);tz=finite(follow.z)*.35;}
+    if(sportId==='baseball'){const radius=finite(frame.presentation?.wallRadius,hz);tx=clamp(finite(follow.x)*.5+5,baseballClose?7:radius*.46,radius*.53);tz=finite(follow.z)*.35;}
     if(sportId==='combat'){tx=0;tz=0;}
     if(!camera.ready){camera.x=tx;camera.z=tz;camera.ready=true;}
     const ease=1-Math.exp(-dt*2.8);camera.x+=(tx-camera.x)*ease;camera.z+=(tz-camera.z)*ease;
@@ -111,17 +115,33 @@ export function createArenaPainter(canvas,sportId){
     function line(points,stroke=WHITE,width=1.2){ctx.beginPath();points.forEach(([x,z,y],i)=>{const q=p(x,z,y||0);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);});ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.stroke();}
     function rect(x,z,x2,z2,fill,stroke,width){polygon([[x,z],[x2,z],[x2,z2],[x,z2]],fill,stroke,width);}
     function circle(x,z,r,stroke,fill,width=1.2){const pts=[];for(let i=0;i<=64;i++){let a=i*Math.PI/32;pts.push([x+Math.cos(a)*r,z+Math.sin(a)*r]);}polygon(pts,fill,stroke,width);}
-    function label(text,x,z,size=10,col=WHITE,angle=0){const q=p(x,z);ctx.save();ctx.translate(q.x,q.y);ctx.rotate(angle);ctx.fillStyle=col;ctx.font=`900 ${size}px Arial`;ctx.textAlign='center';ctx.fillText(String(text),0,0);ctx.restore();}
+    function label(text,x,z,size=10,col=WHITE,angle=0){
+      const q=p(x,z);ctx.save();ctx.font=`900 ${size}px Arial`;
+      const half=ctx.measureText(String(text)).width*.5,ca=Math.cos(angle),sa=Math.sin(angle);
+      const corners=[[-half,-size],[half,-size],[half,0],[-half,0]].map(([a,b])=>({x:q.x+a*ca-b*sa,y:q.y+a*sa+b*ca}));
+      // Material lettering never clips into the score/venue overlays as the camera follows play.
+      if(corners.some(v=>v.x<8||v.x>w-8||v.y<38||v.y>h-12)){ctx.restore();return;}
+      ctx.translate(q.x,q.y);ctx.rotate(angle);ctx.fillStyle=col;ctx.textAlign='center';ctx.fillText(String(text),0,0);ctx.restore();
+    }
     ctx.fillStyle='#101e31';ctx.fillRect(0,0,w,h);
     // Fine arena grid and drawn grandstands stay deterministic and off the field of play.
     ctx.strokeStyle='#b9d1e506';ctx.lineWidth=1;for(let x=0;x<w;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}for(let y=0;y<h;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
     const pad=sportId==='combat'?1.4:3.3;
-    if(sportId!=='baseball')rect(-hx-pad,-hz-pad,hx+pad,hz+pad,'#22344c');
+    if(sportId!=='baseball'){
+      rect(-hx-pad,-hz-pad,hx+pad,hz+pad,'#263b52');
+      rect(-hx-pad,-hz-pad,hx+pad,hz+pad,null,'#52667b',1);
+      // Home-club colors belong to the room; athlete side colors stay constant.
+      ctx.save();ctx.globalAlpha=.55;
+      rect(-hx-pad,-hz-pad,hx+pad,-hz-pad+.28,primary);
+      rect(-hx-pad,hz+pad-.28,hx+pad,hz+pad,primary);
+      for(const side of [-1,1])line([[side*(hx+pad-.5),-hz*.75],[side*(hx+pad-.5),hz*.75]],accent,2);
+      ctx.restore();
+    }
     const seats=Math.min(54,Math.round(hx*2.6));
     if(sportId!=='baseball')for(let side=-1;side<=1;side+=2)for(let row=0;row<3;row++)for(let i=0;i<seats;i++){
       const q=p(-hx+(i+.5)*2*hx/seats,side*(hz+pad+1.4+row*1.4));
       const n=hash(`${side}/${row}/${i}`),sw=Math.max(2,Math.min(5,scale*.42));
-      ctx.fillStyle=['#59647d','#977e8d','#3c7286','#8b9765','#516577'][n%5];ctx.fillRect(q.x-sw*.5,q.y-3,sw,3);ctx.fillStyle=['#c89573','#e9c5a1','#997959'][n%3];ctx.fillRect(q.x-sw*.25,q.y-5,sw*.5,2);
+      ctx.fillStyle=[primary,'#977e8d','#3c7286',accent,'#516577'][n%5];ctx.fillRect(q.x-sw*.5,q.y-3,sw,3);ctx.fillStyle=['#c89573','#e9c5a1','#997959'][n%3];ctx.fillRect(q.x-sw*.25,q.y-5,sw*.5,2);
     }
     const court=sportId==='basketball',ice=sportId==='hockey',combat=sportId==='combat',baseball=sportId==='baseball';
     const surface=court?'#d59b64':ice?'#d8e8e5':combat?'#587686':baseball?'#488363':'#477b5c';
@@ -133,12 +153,18 @@ export function createArenaPainter(canvas,sportId){
       rect(-hx,-hz,hx,hz,null,lc,1.5);line([[0,-hz],[0,hz]],lc,1.3);
     }
     if(court){
+      // Quiet wood joints give the floor material without competing with the play.
+      ctx.save();ctx.globalAlpha=.12;
+      for(let x=-hx+1;x<hx;x+=1)line([[x,-hz],[x,hz]],'#fff1cb',.6);
+      for(let z=-hz+2;z<hz;z+=2)for(let x=-hx+(Math.round(z)%2?2:0);x<hx;x+=4)line([[x,z],[Math.min(x+2,hx),z]],'#6f422b',.5);
+      ctx.restore();
       circle(0,0,1.8,lc,null,1.5);circle(0,0,.6,null,'#c08453');
       for(const s of [-1,1]){
         rect(s*hx,-2.5,s*(hx-5.8),2.5,'#bd784d',lc,1.4);circle(s*(hx-5.8),0,1.8,lc);
         const pts=[];for(let i=0;i<=40;i++){let a=-Math.PI/2+i*Math.PI/40;pts.push([s*(hx-1.2-Math.cos(a)*6.5),Math.sin(a)*6.5]);}line(pts,lc,1.5);
       }
       label('CYBERLIGA',0,0,Math.min(24,scale*.85),'#9a5e38',rotated?-Math.PI/2:0);
+      if(!shortLandscape){label(venueTeam?.code||'HOME',-hx-1.15,0,clamp(scale*.6,7,11),'#e0e4d9',rotated?0:Math.PI/2);label(venueTeam?.code||'HOME',hx+1.4,0,clamp(scale*.6,7,11),'#e0e4d9',rotated?0:-Math.PI/2);}
     }else if(ice){
       const blue=frame.presentation?.equipment?.blueLineX??8,goalLine=frame.presentation?.equipment?.goalX??24;
       line([[0,-hz],[0,hz]],'#c56a83',2);for(const s of [-1,1]){line([[s*blue,-hz],[s*blue,hz]],'#5b93bc',2.8);line([[s*goalLine,-hz],[s*goalLine,hz]],'#c56a83',1.2);for(const z of [-hz*.52,hz*.52]){circle(s*hx*.63,z,3.2,'#c56a83');circle(s*hx*.63,z,.25,null,'#c56a83');}}circle(0,0,4.2,'#5b93bc');circle(0,0,.3,null,'#5b93bc');label('CYBERLIGA',0,1,Math.min(22,scale*1.1),'#8fb4bd',rotated?-Math.PI/2:0);
@@ -149,12 +175,14 @@ export function createArenaPainter(canvas,sportId){
       for(let x=-end;x<=end+.01;x+=yard*10){line([[x,-hz],[x,hz]],lc,1.1);for(const z of [-hz*.62,hz*.7])label(Math.round((end-Math.abs(x))/yard),x,z,Math.min(14,scale*1.2),'#eff1d9');}
       for(let x=-hx+2;x<hx-2;x+=2){for(const z of [-hz*.19,hz*.19])line([[x,z-.25],[x,z+.25]],lc,1);}
       rect(-hx,-hz,-end,hz,'#00e5ff25');rect(end,-hz,hx,hz,'#ff45d625');
+      for(const side of [-1,1])label(frame.teams?.[side<0?0:1]?.code||'CYBERLIGA',side*(hx-yard*5),0,clamp(scale*1.6,9,21),'#f5edd694',rotated?0:Math.PI/2);
       const los=frame.presentation?.lineOfScrimmage??frame.presentation?.scrimmageX;
       if(Number.isFinite(los))line([[los,-hz],[los,hz]],'#75bfff',2);
     }else if(baseball){
       const b=frame.presentation||{},home=b.homePlate||{x:0,z:0},bases=b.basePositions||[],radius=b.wallRadius||hz;
       const fan=[[0,0]];for(let i=0;i<=64;i++){const a=-Math.PI/4+i*Math.PI/128;fan.push([Math.cos(a)*radius,Math.sin(a)*radius]);}polygon(fan,'#498266','#d8e2bf',2);
       for(let ring=0;ring<3;ring++){const fence=[];for(let i=0;i<=64;i++){const a=-Math.PI/4+i*Math.PI/128;fence.push([Math.cos(a)*(radius+ring*1.6),Math.sin(a)*(radius+ring*1.6),1.6]);}line(fence,ring?'#496079':'#d8fd63',ring?4:2);}
+      label(venueTeam?.code||'CYBERLIGA',radius+1.2,0,clamp(scale*1.25,9,17),accent);
       const arr=Array.isArray(bases)?bases:Object.values(bases);const coords=arr.map(v=>[v.x??v[0]??0,v.z??v[1]??0]);
       if(coords.length>=4){polygon(coords,'#bb9668','#ead9b3',1.7);polygon(coords.map(([x,z])=>[x*.76,z*.76]),'#4b8363');coords.forEach(([x,z])=>rect(x-.5,z-.5,x+.5,z+.5,WHITE));}
       circle(home.x,home.z,2.5,null,'#bb9668');const mound=b.mound||{x:hz*.2,z:0};circle(mound.x,mound.z,1.8,null,'#bb9668');line([[home.x,home.z],[radius*.707,-radius*.707]],lc);line([[home.x,home.z],[radius*.707,radius*.707]],lc);label('CYBERLIGA',radius*.68,0,Math.min(25,scale*3),'#bdd3a64a');
@@ -222,17 +250,20 @@ export function createArenaPainter(canvas,sportId){
 export function installArcadeBroadcast({sportId,renderer,readFrame}){
   if(window.__arcadeView)return window.__arcadeView;
   const sport=ARCADE_SPORTS.find(s=>s.id===sportId)||ARCADE_SPORTS[0];
-  const link=document.createElement('link');link.rel='stylesheet';link.href=new URL('./arcade-broadcast.css',import.meta.url).href;document.head.append(link);
+  const styleUrl=new URL('./arcade-broadcast.css',import.meta.url).href;
+  if(!Array.from(document.querySelectorAll('link[rel=stylesheet]')).some(link=>link.href===styleUrl)){const link=document.createElement('link');link.rel='stylesheet';link.href=styleUrl;document.head.append(link);}
+  const league=window.CyberligaBrand?.getLeague(sportId);
+  const lineups={soccer:'ON THE PITCH','american-football':'ON THE FIELD',basketball:'ON THE COURT',hockey:'ON THE ICE',baseball:'IN THE BALLPARK',combat:'IN THE RING'};
   document.documentElement.classList.add('arcade-mode');
   const root=document.createElement('div');root.id='arcade-root';
-  root.innerHTML=`<header class="ab-header"><a class="ab-brand" href="world.html"><i class="ab-brand-mark" aria-hidden="true"></i>CYBERLIGA</a><span class="ab-edition">THE WORLD NEVER STOPS PLAYING.</span><nav class="ab-nav" aria-label="Primary navigation"><a href="world.html">Home</a><a href="league.html?sport=${sportId}">Leagues</a></nav></header><main class="ab-layout"><section class="ab-broadcast" aria-label="${sport.name} autonomous broadcast"><nav class="ab-sport-strip" aria-label="Sports broadcasts">${ARCADE_SPORTS.map(s=>`<a href="${s.arena}" ${s.id===sportId?'aria-current="page"':''}>${s.short}</a>`).join('')}</nav><div class="ab-scoreboard"><div class="ab-team"><i class="ab-side"></i><div class="ab-team-copy"><span class="ab-team-name" data-team-name="0"></span><span class="ab-team-city" data-team-city="0"></span></div><b class="ab-score" data-score="0">0</b></div><div class="ab-clock"><strong id="ab-clock">—</strong><small id="ab-period">${sport.short}</small></div><div class="ab-team away"><i class="ab-side"></i><div class="ab-team-copy"><span class="ab-team-name" data-team-name="1"></span><span class="ab-team-city" data-team-city="1"></span></div><b class="ab-score" data-score="1">0</b></div></div><div class="ab-stage"><canvas id="arcade-canvas" aria-label="Live pixel ${sport.name.toLowerCase()} match"></canvas><div class="ab-channel"><b>AUTONOMOUS</b><span>${sport.short} / WORLD FEED</span></div><div class="ab-venue" id="ab-venue"></div><div class="ab-watermark">CL / ${String(ARCADE_SPORTS.indexOf(sport)+1).padStart(2,'0')}</div></div><div class="ab-playline"><span>THE PLAY</span><div><strong id="ab-event">${sport.name}</strong><small id="ab-detail">${sport.subtitle}</small></div></div></section><aside class="ab-rail"><p class="ab-kicker">WELCOME TO THE LEAGUE</p><h1>${sport.name}.<br>A world<br>of its own.</h1><p class="ab-rail-intro">${sport.subtitle}</p><div class="ab-section-title">ON THE FLOOR <span id="ab-roster-count"></span></div><div id="ab-cast"></div><a class="ab-club-link" id="ab-clubs" href="league.html?sport=${sportId}">Meet the clubs <span>↗</span></a><p class="ab-rail-note">48 clubs. 416 athletes.<br>Six sports sharing one world.</p></aside></main><footer class="ab-footer"><strong>● AUTONOMOUS SPORTS WORLD</strong><span class="ab-foot-detail">${sport.short} · ARCADE EDITION</span><span>LOCAL PREVIEW</span></footer>`;
+  root.innerHTML=`<header class="ab-header"><a class="ab-brand" href="world.html"><i class="ab-brand-mark" aria-hidden="true"></i>CYBERLIGA</a><span class="ab-edition">SIX SPORTS. ONE WORLD.</span><nav class="ab-nav" aria-label="Primary navigation"><a href="world.html">Home</a><a href="league.html?sport=${sportId}">Leagues</a></nav></header><main class="ab-layout"><section class="ab-broadcast" aria-label="${sport.name} autonomous broadcast"><nav class="ab-sport-strip" aria-label="Sports broadcasts">${ARCADE_SPORTS.map(s=>`<a href="${s.arena}" ${s.id===sportId?'aria-current="page"':''}>${s.short}</a>`).join('')}</nav><div class="ab-scoreboard"><div class="ab-team"><i class="ab-side"></i><div class="ab-team-copy"><span class="ab-team-name" data-team-name="0"></span><span class="ab-team-city" data-team-city="0"></span></div><b class="ab-score" data-score="0">0</b></div><div class="ab-clock"><strong id="ab-clock">—</strong><small id="ab-period">${sport.short}</small></div><div class="ab-team away"><i class="ab-side"></i><div class="ab-team-copy"><span class="ab-team-name" data-team-name="1"></span><span class="ab-team-city" data-team-city="1"></span></div><b class="ab-score" data-score="1">0</b></div></div><div class="ab-stage"><canvas id="arcade-canvas" aria-label="Live pixel ${sport.name.toLowerCase()} match"></canvas><div class="ab-channel"><b>AUTONOMOUS</b><span>${sport.short} / CYBERLIGA</span></div><div class="ab-venue" id="ab-venue"></div><div class="ab-watermark">CL / ${String(ARCADE_SPORTS.indexOf(sport)+1).padStart(2,'0')}</div></div><div class="ab-playline"><span>THE PLAY</span><div><strong id="ab-event">${sport.name}</strong><small id="ab-detail">${sport.subtitle}</small></div></div></section><aside class="ab-rail"><p class="ab-kicker">${esc(league?.code||sport.short)} / ${sport.name}</p><h1>${esc(league?.short||sport.name)}</h1><p class="ab-rail-intro">${sport.subtitle}</p><div class="ab-venue-card"><span>THE HOME GROUND</span><strong id="ab-home-venue"></strong><p id="ab-home-statement"></p></div><div class="ab-section-title">${lineups[sportId]} <span id="ab-roster-count"></span></div><div id="ab-cast"></div><a class="ab-club-link" id="ab-clubs" href="league.html?sport=${sportId}">Explore the league <span aria-hidden="true">↗</span></a><p class="ab-rail-note">Pick a club. Learn the names.<br>See who makes the next play.</p></aside></main><footer class="ab-footer"><strong><i aria-hidden="true"></i> AUTONOMOUS SPORTS</strong><span class="ab-foot-detail">48 CLUBS · 416 ATHLETES</span><span>SIX SPORTS. ONE WORLD.</span></footer>`;
   // Navigation exits the view-only game; it is explicitly exempt from its input guard.
   root.querySelectorAll('a').forEach(anchor=>anchor.classList.add('watch-only-exit'));
   root.querySelectorAll('.ab-rail,.ab-sport-strip').forEach(panel=>panel.classList.add('watch-only-exit'));
   document.body.append(root);
-  const canvas=root.querySelector('canvas'),painter=createArenaPainter(canvas,sportId),nodes={clock:root.querySelector('#ab-clock'),period:root.querySelector('#ab-period'),event:root.querySelector('#ab-event'),detail:root.querySelector('#ab-detail'),venue:root.querySelector('#ab-venue')};
+  const canvas=root.querySelector('canvas'),painter=createArenaPainter(canvas,sportId),nodes={clock:root.querySelector('#ab-clock'),period:root.querySelector('#ab-period'),event:root.querySelector('#ab-event'),detail:root.querySelector('#ab-detail'),venue:root.querySelector('#ab-venue'),homeVenue:root.querySelector('#ab-home-venue'),homeStatement:root.querySelector('#ab-home-statement')};
   const set=(el,text)=>{text=String(text??'');if(el.textContent!==text)el.textContent=text;};
-  let rosterKey='',lastHud=-Infinity,lastDrawKey='';
+  let rosterKey='',lastDrawKey='',venueKey='';
   const api={sportId,drawCount:0,renderer:'authored-pixel-canvas',autonomous:true,interaction:'view-only',metrics:null,draw};
   window.__arcadeFrame=readFrame;window.__arcadeView=api;
   function draw(){
@@ -246,15 +277,20 @@ export function installArcadeBroadcast({sportId,renderer,readFrame}){
     // objects mounted but keep capture clients and GPU allocation on the new stage.
     api.drawCount++;api.metrics=painter.paint(frame);
     // Every accepted engine frame updates the HUD, including deterministic QA steps.
-    lastHud=performance.now();
+    if(document.documentElement.dataset.arcadeReady!=='true')document.documentElement.dataset.arcadeReady='true';
     (frame.teams||[]).slice(0,2).forEach((team,i)=>{let name=team.name||team.code||'';if(team.city&&name.toLowerCase().startsWith(team.city.toLowerCase()+' '))name=name.slice(team.city.length+1);set(root.querySelector(`[data-team-name="${i}"]`),name);set(root.querySelector(`[data-team-city="${i}"]`),team.city||team.code);set(root.querySelector(`[data-score="${i}"]`),team.score??0);});
     const periodName=sportId==='combat'?'R':sportId==='baseball'?(frame.presentation?.battingTeam===0?'TOP ':'BOT '):sportId==='hockey'?'P':sportId==='soccer'?'HALF ':'Q';
     set(nodes.clock,sportId==='baseball'?`${frame.presentation?.balls||0}–${frame.presentation?.strikes||0}`:clockText(frame.clock));set(nodes.period,periodName+(frame.period||1)+(sportId==='combat'?' · LANDED':sportId==='baseball'?` · ${frame.presentation?.outs||0} OUT`:''));set(nodes.venue,[frame.venue?.name,frame.venue?.city].filter(Boolean).join(' / '));
     const phaseName={SET:'Finding the opening',BRINGUP:'Pushing up court',DRIVE:'Attacking the rim',WINDUP:'Shot on the way',MADE:'Buckets.',INBOUND:'Back in play',PASS:'Moving the ball',PLAY:'In play',FACEOFF:'At the faceoff',WALKON:'Entering the arena',OPEN_PLAY:'In play'};
     set(nodes.event,frame.event?.title||phaseName[String(frame.phase).toUpperCase()]||String(frame.phase||sport.name).replaceAll('_',' '));set(nodes.detail,frame.event?.detail||(sportId==='basketball'&&frame.presentation?.shotClock!=null?`${Math.ceil(frame.presentation.shotClock)} on the shot clock${frame.presentation.playCall?' · '+frame.presentation.playCall:''}`:sport.subtitle));
+    const home=frame.teams?.find(team=>window.CyberligaBrand?.getTeam(team.id)?.venue===frame.venue?.name)||frame.teams?.[0];
+    const brand=home&&window.CyberligaBrand?.getTeam(home.id);
+    const nextVenueKey=[home?.id,frame.venue?.name].join('|');
+    if(nextVenueKey!==venueKey){venueKey=nextVenueKey;set(nodes.homeVenue,frame.venue?.name||home?.city||'CYBERLIGA');set(nodes.homeStatement,brand?.statement||frame.venue?.city||sport.subtitle);root.style.setProperty('--ab-club-accent',color(home?.colors?.accent,'#2b4ef0'));}
     const entities=(frame.entities||[]).filter(e=>e.visible!==false);set(root.querySelector('#ab-roster-count'),String(entities.length).padStart(2,'0'));
-    const selected=[...entities.filter(e=>e.hasBall),...entities.filter(e=>e.team===0),...entities.filter(e=>e.team===1)].filter((e,i,a)=>a.findIndex(v=>v.id===e.id)===i).slice(0,4);
-    const key=selected.map(e=>e.id).join('|');if(key!==rosterKey){rosterKey=key;const cast=root.querySelector('#ab-cast');cast.innerHTML=selected.map((e,i)=>`<div class="ab-player"><canvas width="32" height="42" data-portrait="${i}"></canvas><div><b>${esc(e.name||'Athlete')}</b><small>${esc(e.number?'#'+e.number:'')} · ${esc(e.role||frame.teams?.[e.team]?.code||'')}</small></div></div>`).join('');selected.forEach((e,i)=>cast.querySelector(`[data-portrait="${i}"]`).getContext('2d').drawImage(athleteSprite({...e,colors:frame.teams?.[e.team]?.colors},sportId),0,0));}
+    // Keep two recognizable faces from each side steady while possessions change.
+    const selected=[...entities.filter(e=>e.team===0).slice(0,2),...entities.filter(e=>e.team===1).slice(0,2)];
+    const key=selected.map(e=>e.id).join('|');if(key!==rosterKey){rosterKey=key;const cast=root.querySelector('#ab-cast');cast.innerHTML=selected.map((e,i)=>`<div class="ab-player" data-side="${e.team===1?1:0}"><canvas width="32" height="42" data-portrait="${i}"></canvas><div><b>${esc(e.name||'Athlete')}</b><small>${esc(e.number!=null?'#'+e.number:'')} · ${esc(e.role||'ATHLETE')}</small><span>${esc(frame.teams?.[e.team]?.code||'')}</span></div></div>`).join('');selected.forEach((e,i)=>cast.querySelector(`[data-portrait="${i}"]`).getContext('2d').drawImage(athleteSprite({...e,action:'',progress:0,portrait:true,colors:frame.teams?.[e.team]?.colors},sportId),0,0));}
   }
   // No second requestAnimationFrame: the original engine remains the only time owner.
   renderer.render=draw;

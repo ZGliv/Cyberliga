@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs';
-import { realpath, stat } from 'node:fs/promises';
+import { readFile, realpath, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +10,9 @@ import tickHandler from './api/tick.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_REAL = await realpath(ROOT);
+// Mirror published route retirements locally so navigation never revives an old screen.
+const releaseConfig = JSON.parse(await readFile(path.join(ROOT, 'vercel.json'), 'utf8'));
+const retiredRoutes = new Map((releaseConfig.redirects || []).filter(route => route.source !== '/').map(route => [route.source, route.destination]));
 const HOST = (process.env.HOST || '127.0.0.1').trim();
 const rawPort = process.env.PORT || '4173';
 const PORT = Number(rawPort);
@@ -143,6 +146,14 @@ const server = createServer(async (request, response) => {
     requestPath = new URL(request.url || '/', 'http://localhost').pathname.replace(/\/+$/, '') || '/';
   } catch {
     sendText(response, 400, 'Malformed request path.');
+    return;
+  }
+  if (retiredRoutes.has(requestPath)) {
+    const destination = new URL(retiredRoutes.get(requestPath), 'http://localhost');
+    const incoming = new URL(request.url, 'http://localhost');
+    incoming.searchParams.forEach((value, key) => destination.searchParams.set(key, value));
+    response.writeHead(307, { Location: destination.pathname + destination.search, 'Cache-Control': 'no-store' });
+    response.end();
     return;
   }
   const apiHandler = API_HANDLERS.get(requestPath);

@@ -1,5 +1,13 @@
 Original prompt: Can you make boxing work way better? Make the actual fighting and animations and shit way better, you might need to make the characters better too /goal
 
+## Pixel public release — 2026-09-07
+
+- User authorized replacing the existing public Vercel version with the approved pixel direction, keeping the globe and removing old program screens. Work started in isolated `codex/arcade-public-release` from canonical `81da120`; approved feature `9902203` transplanted as `b694988`.
+- Static early arena shell prevents legacy first-paint flashes. Current Home, HQ and Athlete File use matching authored sprites, phone layouts and direct current navigation. Removed public supporter drama/pick/locker/follow injections. Retired legacy guide/wire/replay/concept/lab routes redirect to Home locally and on Vercel. Deployment excludes review output and retired pages.
+- Improved stable athlete identity rails, canonical venue accents, baseball camera framing during orientation changes, metadata, favicon and share card. Preserved all six engine outcomes and seeded state; new polish touches presentation only.
+- Worktree audit: canonical clean; rejected root contains 38 changes and home-kill-gate two untracked duplicate files, left untouched. Remaining historical feature worktrees clean. Only the approved pixel change and this release polish are selected for integration.
+- Targeted official clients and desktop/390×844/844×390 visual checks passed for Home/HQ, athlete profiles and representative broadcasts. Root gates first-paint isolation, real HUD score/event agreement, old route retirement, all-six responsive cameras and finite state before deployment. Release execution evidence is recorded in ignored output and the task.
+
 ## Six-sport arcade overhaul — 2026-09-07
 
 - Current user request: rebuild the entire sports world with more compelling characters, smoother motion, quicker viewing and all six sports; permitted the Matt Shumer Manager Loop approach. The subsequent Higgsfield pirate-video inquiry was withdrawn and was not investigated.
