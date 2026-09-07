@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>CYBERLIGA — League HQ</title>
   <meta name="description" content="Explore six Cyberliga leagues, 48 city clubs, 24 live channels, stadiums, uniforms, supporters, rosters, rivalries, and results." />
-  <meta name="theme-color" content="#050607" />
+  <meta name="theme-color" content="#f4f4ed" />
   <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="league.css" />
   <link rel="stylesheet" href="fanworld.css" />
+  <link rel="stylesheet" href="arcade-world.css" />
 </head>
-<body>
+<body class="arcade-leagues">
   <a class="skip-link" href="#clubs">Skip to clubs</a>
   <div class="site-grain" aria-hidden="true"></div>
 
@@ -29,34 +30,38 @@
 
   <main id="league-hq">
     <section class="league-hero" id="league-hero" aria-labelledby="league-name">
-      <img class="league-hero-image" id="league-hero-image" alt="" />
+      <img class="league-hero-image" id="league-hero-image" alt="" hidden />
       <div class="league-hero-shade" aria-hidden="true"></div>
 
       <nav class="sport-switcher" id="sport-switcher" aria-label="Cyberliga leagues"></nav>
 
       <div class="league-hero-copy">
-        <p class="network-kicker"><span id="league-code">SCL</span> / LEAGUE HQ / EPOCH 01</p>
-        <h1 id="league-name">THE COMMON GROUND</h1>
+        <p class="network-kicker"><span id="league-code">SCL</span> / MEET YOUR LEAGUE</p>
+        <h1 id="league-name">Soccer.</h1>
         <p class="league-thesis" id="league-thesis"></p>
         <p class="league-architecture" id="league-architecture"></p>
         <div class="hero-actions">
-          <a class="primary-action" id="arena-link" href="index.html">ENTER LIVE ARENA <span>↗</span></a>
-          <a href="#clubs">EXPLORE 8 CLUBS <span>↓</span></a>
+          <a class="primary-action" id="arena-link" href="index.html">WATCH A GAME <span>↗</span></a>
+          <a href="#clubs">FIND YOUR CLUB <span>↓</span></a>
           <button id="copy-league" type="button">COPY LEAGUE LINK</button>
         </div>
       </div>
 
+      <div class="aw-league-portrait">
+        <canvas id="league-pixel-lineup" aria-label="The selected club's pixel athletes"></canvas>
+        <div><span>ON THE TEAM SHEET</span><strong id="aw-hero-team"></strong><span>Same athletes. Every broadcast.</span></div>
+      </div>
       <div class="world-proof" aria-label="League network totals">
-        <div><strong>6</strong><span>CANON LEAGUES</span></div>
-        <div><strong>48</strong><span>CITY CLUBS</span></div>
-        <div><strong>24</strong><span>LIVE CHANNELS</span></div>
-        <div><strong>24/7</strong><span>SHARED WORLD</span></div>
+        <div><strong>08</strong><span>CITY CLUBS</span></div>
+        <div><strong id="aw-league-athletes">48</strong><span>ATHLETES</span></div>
+        <div><strong>04</strong><span>FIXTURES</span></div>
+        <div><strong>06</strong><span>SPORTS IN THE WORLD</span></div>
       </div>
     </section>
 
     <section class="live-slate" aria-labelledby="live-slate-title">
       <header class="section-heading compact-heading">
-        <div><p>NOW PLAYING</p><h2 id="live-slate-title">FOUR FIELDS. ONE LEAGUE.</h2></div>
+        <div><p>NOW PLAYING</p><h2 id="live-slate-title">Choose a broadcast.</h2></div>
         <span id="broadcast-language"></span>
       </header>
       <div class="channel-grid" id="channel-grid"></div>
@@ -64,8 +69,8 @@
 
     <section class="clubs-section" id="clubs" aria-labelledby="clubs-title">
       <header class="section-heading">
-        <div><p>THE MAP / 01</p><h2 id="clubs-title">CHOOSE A CITY.</h2></div>
-        <span>Each club carries one local motif through its crest, uniforms, venue, crowd and motion language.</span>
+        <div><p>THE MAP / 01</p><h2 id="clubs-title">Find your people.</h2></div>
+        <span>Eight cities. Eight personalities. Pick the one you want to follow.</span>
       </header>
       <div class="club-grid" id="club-grid"></div>
     </section>
@@ -84,10 +89,10 @@
       <div class="dossier-stage">
         <div class="venue-scene" id="venue-scene"></div>
         <div class="venue-caption">
-          <p>HOME VENUE</p>
+          <p>HOME VENUE / AUTHORED CONCEPT</p>
           <h3 id="venue-name"></h3>
           <span id="venue-line"></span>
-          <a id="club-arena-link" href="index.html">ENTER THIS CLUB'S ARENA <b>↗</b></a>
+          <a id="club-arena-link" href="index.html">WATCH THIS CLUB <b>↗</b></a>
         </div>
       </div>
 
@@ -111,8 +116,8 @@
 
       <section class="uniform-section" aria-labelledby="uniform-title">
         <header class="subsection-heading">
-          <div><p>CLUB SYSTEM / 02</p><h3 id="uniform-title">THREE UNIFORMS. ONE SIGNAL.</h3></div>
-          <span>Every panel, trim line and pattern is rendered from the same exact club identity.</span>
+          <div><p>CLUB SYSTEM / 02</p><h3 id="uniform-title">Club kit concepts.</h3></div>
+          <span>The club palette and patterns behind the broadcast identity.</span>
         </header>
         <div class="kit-grid" id="kit-grid"></div>
       </section>
@@ -129,8 +134,8 @@
 
     <section class="league-record" aria-labelledby="record-title">
       <header class="section-heading">
-        <div><p>THE RECORD / 04</p><h2 id="record-title">TABLE & FIXTURES.</h2></div>
-        <span id="record-source">CONNECTING TO SHARED LEAGUE STATE</span>
+        <div><p>THE RECORD / 04</p><h2 id="record-title">The league record.</h2></div>
+        <span id="record-source">LOADING LEAGUE RECORDS</span>
       </header>
       <div class="record-layout">
         <div class="standings-shell" id="standings-shell"></div>
@@ -153,7 +158,7 @@
   <script src="witness-chronicle.js"></script>
   <script src="witness-store.js"></script>
   <script src="branddata.js"></script>
-  <script src="league-page.js"></script>
+  <script type="module" src="league-page.js"></script>
   <script src="fanworld.js"></script>
 </body>
 </html>

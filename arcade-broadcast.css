@@ -1,0 +1,67 @@
+/* The engine DOM remains mounted for its existing timing/HUD dependencies. */
+html.arcade-mode,html.arcade-mode body{margin:0;width:100%;height:100%;min-width:0;overflow:hidden;background:#e8e9e1!important;color:#18202d;font-family:Arial,Helvetica,sans-serif}
+html.arcade-mode body> :not(#arcade-root):not(script):not(style):not(link){visibility:hidden!important;pointer-events:none!important}
+html.arcade-mode body::before,html.arcade-mode body::after{display:none!important}
+#arcade-root,#arcade-root *{box-sizing:border-box}
+#arcade-root{position:fixed;inset:0;z-index:2147483000;display:grid;grid-template-rows:60px 1fr 36px;color:#17212d;background:#e8e9e1;letter-spacing:normal;visibility:visible;pointer-events:auto;font-family:Arial,Helvetica,sans-serif;text-transform:none}
+#arcade-root a{color:inherit;text-decoration:none;pointer-events:auto!important}
+#arcade-root a:focus-visible{outline:3px solid #2f55e7;outline-offset:3px}
+.ab-header{display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid #17212d25;background:#f4f4ed;gap:20px}
+.ab-brand{font-size:21px;letter-spacing:-1.2px;font-weight:950;display:flex;align-items:center;gap:11px}
+.ab-brand-mark{width:23px;height:23px;background:#2b4ef0;clip-path:polygon(0 0,100% 0,100% 33%,33% 33%,33% 66%,100% 66%,100% 100%,0 100%)}
+.ab-nav{display:flex;align-items:center;gap:28px;font-size:13px;font-weight:700;height:100%}
+.ab-nav a{display:grid;place-items:center;height:100%;border-bottom:3px solid transparent;padding-top:3px}
+.ab-nav a:hover{border-color:#2b4ef0}
+.ab-edition{font-family:monospace;font-size:10px;letter-spacing:1px;color:#5c656d}
+.ab-layout{display:grid;grid-template-columns:minmax(0,1fr) 268px;min-height:0;gap:0}
+.ab-broadcast{min-width:0;min-height:0;display:grid;grid-template-rows:43px 76px minmax(0,1fr) 55px;background:#101e31}
+.ab-sport-strip{display:flex;gap:0;align-items:stretch;border-bottom:1px solid #ffffff20;padding:0 14px;background:#15243a;overflow:auto;scrollbar-width:none;color:#90a1b5}
+.ab-sport-strip a{display:flex;align-items:center;gap:7px;white-space:nowrap;padding:0 13px;font:700 10px/1 Arial;letter-spacing:.6px;border-bottom:3px solid transparent;border-top:3px solid transparent}
+.ab-sport-strip a[aria-current]{color:#fff;border-bottom-color:#d8fd63}
+.ab-sport-strip a:hover{color:#fff}
+.ab-scoreboard{display:grid;grid-template-columns:1fr 128px 1fr;align-items:center;gap:12px;background:#f4f4ed;color:#17212d;padding:10px 28px;border-bottom:4px solid #17212d}
+.ab-team{min-width:0;display:flex;align-items:center;gap:12px;position:relative}
+.ab-team.away{flex-direction:row-reverse;text-align:right}
+.ab-side{width:8px;align-self:stretch;background:#00e5ff;flex-shrink:0;min-height:35px;border:1px solid #17212d20}
+.ab-team.away .ab-side{background:#ff45d6}
+.ab-team-copy{min-width:0;width:0;flex:1}
+.ab-team-name{display:block;font-size:16px;font-weight:900;letter-spacing:-.35px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+.ab-team-city{display:block;font:10px/1.5 monospace;text-transform:uppercase;color:#5e6871;letter-spacing:.7px}
+.ab-score{font:900 39px/.95 Arial;letter-spacing:-2px;margin-left:auto;font-variant-numeric:tabular-nums;flex-shrink:0}
+.ab-team.away .ab-score{margin-left:0;margin-right:auto}
+.ab-clock{text-align:center;border-left:1px solid #17212d20;border-right:1px solid #17212d20;font-variant-numeric:tabular-nums}
+.ab-clock strong{display:block;font-size:19px;font-weight:900}
+.ab-clock small{font:9px/1.5 monospace;letter-spacing:.8px;text-transform:uppercase;color:#5e6871}
+.ab-stage{min-height:0;position:relative;overflow:hidden;isolation:isolate}
+#arcade-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;visibility:visible!important;pointer-events:none;image-rendering:auto}
+.ab-channel{position:absolute;left:19px;top:15px;color:#bec9d6;font:9px/1.4 monospace;letter-spacing:1.3px;pointer-events:none;display:flex;align-items:center;gap:8px}
+.ab-channel b{background:#d8fd63;color:#18232d;padding:4px 6px;font-size:9px;font-weight:700;letter-spacing:.5px}
+.ab-venue{position:absolute;bottom:14px;left:19px;color:#96a9bd;font:9px/1.4 monospace;letter-spacing:.7px;text-transform:uppercase;pointer-events:none}
+.ab-watermark{position:absolute;right:17px;bottom:14px;color:#95a7bb;font-size:10px;font-weight:900;letter-spacing:1px}
+.ab-playline{display:flex;align-items:center;gap:14px;background:#d8fd63;padding:9px 20px;color:#17212d;min-width:0}
+.ab-playline>span{font:900 10px/1 monospace;white-space:nowrap;border-right:1px solid #17212d35;padding-right:14px}
+.ab-playline strong{display:block;font-size:13px;letter-spacing:-.1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ab-playline small{font:10px/1.5 monospace;color:#34452d;display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ab-playline>div{min-width:0}
+.ab-rail{overflow:auto;border-left:1px solid #17212d20;background:#e8e9e1;padding:22px 20px}
+html.arcade-mode #arcade-root .ab-rail.watch-only-exit{display:block!important}
+html.arcade-mode #arcade-root .ab-sport-strip.watch-only-exit{display:flex!important}
+.ab-kicker{font:700 10px/1.5 monospace;letter-spacing:1.1px;text-transform:uppercase;color:#586471;margin:0 0 9px}
+.ab-rail h1{font-size:32px;line-height:.94;letter-spacing:-1.4px;margin:0 0 13px;font-weight:950}
+.ab-rail-intro{font-size:12px;line-height:1.55;color:#586471;margin:0 0 24px;max-width:25ch}
+.ab-section-title{display:flex;align-items:center;justify-content:space-between;border-top:2px solid #17212d;padding-top:12px;margin-bottom:9px;font-size:11px;font-weight:900}
+.ab-section-title span{font:10px monospace;color:#68717b}
+.ab-player{display:grid;grid-template-columns:47px minmax(0,1fr);gap:10px;padding:10px 0;border-bottom:1px solid #17212d20;align-items:center;min-height:68px}
+.ab-player canvas{width:42px;height:54px;image-rendering:pixelated}
+.ab-player b{font-size:12px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ab-player small{display:block;font:9px/1.7 monospace;color:#66717d;text-transform:uppercase}
+.ab-club-link{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;border:1px solid #17212d35;padding:12px 10px;margin-top:13px;background:#f4f4ed}
+.ab-club-link:hover{background:#d8fd63}
+.ab-rail-note{font:10px/1.6 monospace;color:#68717b;margin:18px 0}
+.ab-footer{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #17212d25;font:9px/1 monospace;letter-spacing:.65px;color:#68717b;padding:0 28px;background:#f4f4ed;gap:8px;text-transform:uppercase}
+.ab-footer strong{font-weight:700;color:#253c34}
+@media(min-width:1600px){.ab-layout{grid-template-columns:minmax(0,1fr) 310px}.ab-rail{padding:30px}.ab-rail h1{font-size:39px}}
+@media(max-width:740px),(max-height:520px) and (orientation:landscape){html.arcade-mode #arcade-root .ab-rail.watch-only-exit{display:none!important}}
+@media(max-width:1000px){.ab-layout{grid-template-columns:1fr 214px}.ab-rail{padding:20px 15px}.ab-team-name{font-size:13px}.ab-scoreboard{padding:10px 16px;grid-template-columns:1fr 94px 1fr}.ab-score{font-size:33px}.ab-rail h1{font-size:29px}.ab-edition{display:none}.ab-sport-strip a{padding:0 10px;font-size:9px}}
+@media(max-width:740px){#arcade-root{grid-template-rows:51px 1fr 30px}.ab-header{padding:0 15px}.ab-brand{font-size:19px}.ab-brand-mark{width:20px;height:20px}.ab-nav{gap:18px;font-size:12px}.ab-layout{grid-template-columns:1fr}.ab-rail{display:none}.ab-broadcast{grid-template-rows:41px 70px minmax(0,1fr) 59px}.ab-scoreboard{grid-template-columns:1fr 72px 1fr;padding:8px 10px;gap:6px}.ab-team{gap:6px}.ab-side{width:4px;min-height:32px}.ab-team-name{font-size:12px;max-width:110px}.ab-team-city{font-size:8px;letter-spacing:0;max-width:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ab-score{font-size:29px;letter-spacing:-1px}.ab-clock strong{font-size:16px}.ab-clock small{font-size:8px}.ab-sport-strip{padding:0 4px}.ab-sport-strip a{padding:0 9px;font-size:9px;letter-spacing:0}.ab-channel{left:12px;top:12px;font-size:8px;letter-spacing:.5px}.ab-venue{left:12px;bottom:10px;max-width:65%;font-size:8px}.ab-watermark{right:12px;font-size:9px;bottom:10px}.ab-playline{padding:9px 13px;gap:10px}.ab-playline>span{font-size:9px;padding-right:10px}.ab-playline strong{font-size:12px}.ab-playline small{font-size:9px}.ab-footer{font-size:8px;padding:0 13px;letter-spacing:.1px}.ab-footer .ab-foot-detail{display:none}}
+@media(max-height:520px) and (orientation:landscape){#arcade-root{grid-template-rows:36px 1fr 22px}.ab-header{padding:0 15px}.ab-brand{font-size:16px}.ab-brand-mark{width:17px;height:17px}.ab-nav{font-size:11px}.ab-layout{grid-template-columns:1fr}.ab-rail{display:none}.ab-broadcast{grid-template-rows:29px 49px minmax(0,1fr) 34px}.ab-scoreboard{grid-template-columns:1fr 100px 1fr;padding:3px max(14px,15vw);gap:10px;border-bottom-width:2px}.ab-score{font-size:30px}.ab-team-name{font-size:11px}.ab-side{min-height:26px}.ab-clock strong{font-size:14px}.ab-playline{padding:5px 15px}.ab-playline small{display:none}.ab-channel{top:8px;font-size:8px}.ab-venue,.ab-watermark{bottom:7px}.ab-footer{font-size:8px}}

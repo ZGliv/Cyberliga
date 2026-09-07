@@ -1,3 +1,5 @@
+import { paintArcadePortraits } from './arcade-world.js';
+
 (function bootstrapLeagueHQ(root) {
   'use strict';
 
@@ -17,12 +19,12 @@
   var teams = C.getTeams(sportId);
   var requestedTeam = C.getTeam(params.get('team'), sportId);
   var selectedTeam = requestedTeam || teams[0];
-  var rosterFilter = 'all';
+  var rosterFilter = sportId === 'american-football' ? 'offense' : 'all';
   var elapsedMs = 0;
   var slot = Math.floor(Date.now() / 900000);
   var season = C.createSeason(sportId, 'epoch-01-' + Math.floor(slot / 96));
   var round = season.rounds[Math.abs(slot) % season.rounds.length];
-  var stateSource = 'LOCAL SHARED FALLBACK';
+  var stateSource = 'ILLUSTRATIVE LOCAL TABLE';
 
   function byId(id) { return document.getElementById(id); }
   function esc(value) {
@@ -73,13 +75,14 @@
   function renderHero() {
     var hero = byId('league-hero');
     var image = byId('league-hero-image');
-    var hasImage = Boolean(league.hero);
+    var hasImage = false;
     document.title = 'CYBERLIGA — ' + league.name;
     byId('league-code').textContent = league.code;
-    byId('league-name').textContent = league.name;
-    byId('league-thesis').textContent = league.thesis;
-    byId('league-architecture').textContent = league.architecture;
-    byId('broadcast-language').textContent = league.broadcast;
+    byId('league-name').textContent = sport.name + '.';
+    byId('league-thesis').textContent = 'Eight cities. A cast worth following. Choose a club and let the game find its own story.';
+    byId('league-architecture').textContent = league.name;
+    byId('aw-league-athletes').textContent = teams.reduce(function (total,item) { return total + item.athletes.length; },0);
+    byId('broadcast-language').textContent = 'Autonomous games. View only.';
     hero.classList.toggle('hero-fallback',!hasImage);
     image.hidden = !hasImage;
     if (hasImage) {
@@ -89,8 +92,8 @@
       image.removeAttribute('src');
       image.alt = '';
     }
-    byId('arena-link').href = league.arena;
-    setLeagueColor(league.accent);
+    byId('arena-link').href = arenaUrl(selectedTeam.id,selectedTeam.rivalryId);
+    setLeagueColor('#2b4ef0');
   }
 
   function renderChannels() {
@@ -98,9 +101,9 @@
       var home = team(match.homeId);
       var away = team(match.awayId);
       return '<a class="channel-card" href="' + esc(arenaUrl(home.id,away.id)) + '" aria-label="Enter live channel ' + (index + 1) + ': ' + esc(displayName(home)) + ' against ' + esc(displayName(away)) + '">' +
-        '<div class="channel-top"><b>LIVE</b><span>CHANNEL ' + String(index + 1).padStart(2,'0') + ' · ROUND ' + esc(round.number) + '</span></div>' +
+        '<div class="channel-top"><b>WATCH</b><span>CHANNEL ' + String(index + 1).padStart(2,'0') + ' · ROUND ' + esc(round.number) + '</span></div>' +
         '<div class="channel-match"><div class="channel-club" style="--club-color:' + esc(home.colors.primary) + '"><strong>' + esc(home.code) + '</strong><span>' + esc(displayName(home)) + '</span></div><em>VS</em><div class="channel-club" style="--club-color:' + esc(away.colors.primary) + '"><strong>' + esc(away.code) + '</strong><span>' + esc(displayName(away)) + '</span></div></div>' +
-        '<p>' + esc(displayCity(home).toUpperCase()) + ' ↔ ' + esc(displayCity(away).toUpperCase()) + (match.rivalry ? ' · RIVALRY SIGNAL' : ' · SHARED WORLD CLOCK') + '</p></a>';
+        '<p>' + esc(displayCity(home).toUpperCase()) + ' ↔ ' + esc(displayCity(away).toUpperCase()) + (match.rivalry ? ' · RIVALRY SIGNAL' : ' · AUTONOMOUS BROADCAST') + '</p></a>';
     }).join('');
   }
 
@@ -108,10 +111,11 @@
     byId('club-grid').innerHTML = teams.map(function (item) {
       var identity = brand(item);
       return '<button class="club-card' + (item.id === selectedTeam.id ? ' selected' : '') + '" type="button" data-team="' + esc(item.id) + '" style="--team:' + esc(item.colors.primary) + '" aria-pressed="' + String(item.id === selectedTeam.id) + '">' +
-        '<div class="club-scene">' + B.sceneSvg(item) + '</div>' +
-        '<div class="club-body"><div class="club-brand-row">' + B.crestSvg(item) + '<div class="club-city"><p>' + esc(displayCity(item).toUpperCase()) + ' / ' + esc(item.code) + '</p><h3>' + esc(displayName(item)) + '</h3></div>' + B.kitSvg(item,'home') + '</div>' +
-        '<div class="club-venue"><span>' + esc(identity.venue) + '<br>' + esc(item.motif.toUpperCase()) + '</span><b>OPEN DOSSIER ↓</b></div></div></button>';
+        '<div class="club-scene"><canvas class="aw-club-portrait" data-arcade-athlete="' + esc(item.athletes[0].id) + '" data-team-id="' + esc(item.id) + '" data-sport="' + esc(sportId) + '" aria-hidden="true"></canvas><span class="aw-club-code">' + esc(item.code) + '</span></div>' +
+        '<div class="club-body"><div class="club-brand-row">' + B.crestSvg(item) + '<div class="club-city"><p>' + esc(displayCity(item).toUpperCase()) + ' / ' + esc(item.code) + '</p><h3>' + esc(displayName(item)) + '</h3></div>' + '</div>' +
+        '<div class="club-venue"><span>' + esc(identity.venue) + '<br>' + esc(item.motif.toUpperCase()) + '</span><b>MEET THE CLUB ↗</b></div></div></button>';
     }).join('');
+    paintArcadePortraits(byId('club-grid'));
     Array.prototype.forEach.call(document.querySelectorAll('[data-team]'), function (button) {
       button.addEventListener('click', function () {
         selectedTeam = team(button.dataset.team);
@@ -146,7 +150,6 @@
     var filterBar = byId('roster-filters');
     if (sportId === 'american-football') {
       filterBar.hidden = false;
-      if (rosterFilter === 'all') rosterFilter = 'offense';
       filterBar.innerHTML = [['offense','OFFENSE 11'],['defense','DEFENSE 11'],['all','FULL 22']].map(function (option) {
         return '<button type="button" data-roster-unit="' + option[0] + '" aria-pressed="' + String(rosterFilter === option[0]) + '">' + option[1] + '</button>';
       }).join('');
@@ -162,14 +165,21 @@
     byId('roster-grid').innerHTML = athletes.map(function (athlete) {
       var playerUrl = 'player.html?sport=' + encodeURIComponent(sportId) + '&team=' + encodeURIComponent(item.id) + '&player=' + encodeURIComponent(athlete.id);
       var wireUrl = 'social.html?sport=' + encodeURIComponent(sportId) + '&team=' + encodeURIComponent(item.id) + '&player=' + encodeURIComponent(athlete.id) + '#player-' + encodeURIComponent(athlete.id);
-      return '<article class="athlete-row"><span class="athlete-number">' + esc(String(athlete.number).padStart(2,'0')) + '</span><p class="athlete-role">' + esc(athlete.role.toUpperCase()) + ' / ' + esc(item.code) + '</p><h4>' + esc(athlete.name) + '</h4><span class="athlete-archetype">' + esc(athlete.archetype) + '</span><span class="athlete-signature">' + esc(athlete.signature) + '</span><div class="athlete-links"><a href="' + esc(playerUrl) + '" aria-label="Open ' + esc(athlete.name) + ' athlete file">FILE</a><a href="' + esc(wireUrl) + '" aria-label="Follow ' + esc(athlete.name) + ' on the World Wire">WIRE</a></div></article>';
+      return '<article class="athlete-row"><canvas class="aw-roster-portrait" data-arcade-athlete="' + esc(athlete.id) + '" data-team-id="' + esc(item.id) + '" data-sport="' + esc(sportId) + '" aria-label="' + esc(athlete.name) + ' pixel portrait"></canvas><span class="athlete-number">' + esc(String(athlete.number).padStart(2,'0')) + '</span><p class="athlete-role">' + esc(athlete.role.toUpperCase()) + ' / ' + esc(item.code) + '</p><h4>' + esc(athlete.name) + '</h4><span class="athlete-archetype">' + esc(athlete.archetype) + '</span><span class="athlete-signature">' + esc(athlete.signature) + '</span><div class="athlete-links"><a href="' + esc(playerUrl) + '" aria-label="Open ' + esc(athlete.name) + ' athlete file">FILE</a><a href="' + esc(wireUrl) + '" aria-label="Follow ' + esc(athlete.name) + ' on the World Wire">WIRE</a></div></article>';
     }).join('');
+    paintArcadePortraits(byId('roster-grid'));
   }
 
   function renderDossier() {
     var item = selectedTeam;
     var identity = brand(item);
     var rival = team(item.rivalryId);
+    var portrait = byId('league-pixel-lineup');
+    portrait.dataset.arcadeTeam = item.id;portrait.dataset.sport = sportId;
+    portrait.setAttribute('aria-label',displayName(item) + ' canonical pixel athletes');
+    byId('aw-hero-team').textContent = displayName(item);
+    byId('arena-link').href = arenaUrl(item.id,rival.id);
+    paintArcadePortraits(byId('league-hero'));
     setTeamColor(item);
     byId('dossier-crest').innerHTML = B.crestSvg(item);
     byId('club-location').textContent = displayCity(item).toUpperCase() + ' / ' + item.region.toUpperCase() + ' / ' + item.code;
@@ -229,31 +239,18 @@
     });
   }
 
-  function liveScore(match) {
-    if (sportId === 'combat') {
-      var outcomes = ['UD 10','SD 10','TKO 08','KO 05'];
-      return outcomes[B.hash(match.id + '|result') % outcomes.length];
-    }
-    var ranges = {soccer:4,'american-football':35,basketball:116,hockey:6,baseball:10};
-    var floor = sportId === 'basketball' ? 72 : 0;
-    var max = ranges[sportId] || 6;
-    var left = floor + B.hash(match.id + '|home') % (max - floor + 1);
-    var right = floor + B.hash(match.id + '|away') % (max - floor + 1);
-    return left + '–' + right;
-  }
-
   function renderFixtureList() {
     byId('fixture-list').innerHTML = round.matches.map(function (match,index) {
       var home = team(match.homeId), away = team(match.awayId);
-      return '<a class="record-fixture" href="' + esc(arenaUrl(home.id,away.id)) + '"><span>CH ' + String(index + 1).padStart(2,'0') + '</span><div><b>' + esc(home.code) + ' ' + esc(displayName(home)) + '</b><b>' + esc(away.code) + ' ' + esc(displayName(away)) + '</b><small>' + (match.rivalry ? 'RIVALRY · ' : '') + 'LIVE WORLD FIXTURE</small></div><em>' + esc(liveScore(match)) + ' ↗</em></a>';
+      return '<a class="record-fixture" href="' + esc(arenaUrl(home.id,away.id)) + '"><span>CH ' + String(index + 1).padStart(2,'0') + '</span><div><b>' + esc(home.code) + ' ' + esc(displayName(home)) + '</b><b>' + esc(away.code) + ' ' + esc(displayName(away)) + '</b><small>' + (match.rivalry ? 'RIVALRY · ' : '') + 'LIVE WORLD FIXTURE</small></div><em>' + 'WATCH ↗</em></a>';
     }).join('');
   }
 
   function loadStandings() {
-    renderStandings(fallbackStandings(),'LOCAL SHARED FALLBACK');
+    renderStandings(fallbackStandings(),'ILLUSTRATIVE LOCAL TABLE');
     fetch('api/league?sport=' + encodeURIComponent(sportId),{headers:{accept:'application/json'}})
       .then(function (response) { if (!response.ok) throw new Error('HTTP ' + response.status); return response.json(); })
-      .then(function (data) { var rows = normalizeStandings(data); renderStandings(rows,rows === data.standings ? (data.canonical ? 'CANONICAL LEAGUE DATABASE' : 'SHARED SERVER FALLBACK') : 'LOCAL IDENTITY-SAFE FALLBACK'); })
+      .then(function (data) { var rows = normalizeStandings(data); renderStandings(rows,rows === data.standings ? (data.canonical ? 'CANONICAL LEAGUE DATABASE' : 'SIMULATED SERVER TABLE') : 'ILLUSTRATIVE LOCAL TABLE'); })
       .catch(function () {});
   }
 
@@ -289,7 +286,7 @@
       sport:{id:sport.id,name:sport.name,league:league.name},
       publicWorld:{sports:6,clubs:48,simultaneousGames:24,combatPublic:true},
       selectedClub:{id:selectedTeam.id,name:displayName(selectedTeam),city:displayCity(selectedTeam),venue:identity.venue,statement:identity.statement,rival:selectedTeam.rivalryId,colors:selectedTeam.colors},
-      identity:{crest:'native-svg',uniforms:['home','away','night'],cityScene:'native-svg',venueHero:league.hero || 'procedural-fallback',crowdRitual:identity.ritual},
+      identity:{crest:'native-svg',uniforms:['home','away','night'],cityScene:'native-svg',venueHero:'authored-pixel-lineup',crowdRitual:identity.ritual},
       liveChannels:round.matches.map(function (match,index) { return {channel:index + 1,home:match.homeId,away:match.awayId,rivalry:match.rivalry}; }),
       roster:{filter:rosterFilter,count:selectedTeam.athletes.length},
       standingsSource:stateSource,
