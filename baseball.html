@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="arcade-mode">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="icon" href="data:," />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<link rel="icon" href="cyberliga-mark.svg" />
 <link rel="stylesheet" href="arena-score-fit.css" />
 <link rel="stylesheet" href="broadcast-spine.css" />
 <title>CYBERLIGA DIAMOND — LIVE BASEBALL</title>
@@ -261,8 +261,22 @@
     #tickertext { font-size:12px; }
   }
 </style>
+<meta name="theme-color" content="#f4f4ed" />
+<meta name="description" content="Watch autonomous baseball in Cyberliga. Six sports. Forty-eight clubs. A world of characters." />
+<meta property="og:title" content="Cyberliga — Baseball" />
+<meta property="og:description" content="Your next team is somewhere in this world. Watch six sports, always on." />
+<meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png" />
+<link rel="stylesheet" href="arcade-broadcast.css" />
+<link rel="stylesheet" href="arcade-boot.css" />
+<script src="arcade-boot.js" defer></script>
 </head>
 <body>
+<div class="arcade-loading" role="status" aria-live="polite">
+  <a class="arcade-loading-brand watch-only-exit" href="world.html"><i aria-hidden="true"></i>CYBERLIGA</a>
+  <div class="arcade-loading-copy"><span>BASEBALL / ON AIR</span><h1>Taking you to the ballpark.</h1><p>Connecting to the broadcast…</p><div class="arcade-loading-progress" aria-hidden="true"></div></div>
+  <nav aria-label="Loading navigation"><a class="watch-only-exit" href="world.html">Home</a><a class="watch-only-exit" href="league.html?sport=baseball">Leagues</a></nav>
+  <noscript>Enable JavaScript to watch the broadcast.</noscript>
+</div>
 <div id="hud">
   <div id="badge"><a id="leaguepill" class="watch-only-exit" href="world.html" aria-label="Back to the Cyberliga globe">← GLOBE</a></div>
   <div id="scoreboard">
@@ -305,6 +319,7 @@
 </script>
 <script type="module">
 import * as THREE from 'three';
+import { installArcadeBroadcast, prepareArcadeRenderer } from './arcade-broadcast.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -366,6 +381,19 @@ const entryBucket=Number.isFinite(requestedEntryBucket)?requestedEntryBucket:Mat
 let fixtureIdx = (Number.isFinite(requestedFixture) && requestedFixture >= 0
   ? requestedFixture
   : (parseInt(localStorage.getItem('cl_dia_fx'), 10) || 0)) % FIXTURES.length;
+// Canonical club links take precedence when both IDs are valid for this sport.
+// Numeric match/fixture routes retain their existing meaning otherwise.
+const requestedHomeIndex=BASEBALL_TEAMS.findIndex(team=>team.id===fixtureQuery.get('home'));
+const requestedAwayIndex=BASEBALL_TEAMS.findIndex(team=>team.id===fixtureQuery.get('away'));
+if(requestedHomeIndex>=0&&requestedAwayIndex>=0&&requestedHomeIndex!==requestedAwayIndex){
+  const exact=FIXTURES.findIndex(([home,away])=>home===requestedHomeIndex&&away===requestedAwayIndex);
+  const reverse=FIXTURES.findIndex(([home,away])=>home===requestedAwayIndex&&away===requestedHomeIndex);
+  fixtureIdx=exact>=0?exact:reverse>=0?reverse:fixtureIdx;
+  // This local fixture slot keeps the advertised home venue even if this
+  // season contains only the reverse leg. Canonical season data is untouched.
+  FIXTURES[fixtureIdx]=[requestedHomeIndex,requestedAwayIndex];
+}
+
 
 // fielding spots: P C 1B 2B SS 3B LF CF RF
 const SPOTS = [
@@ -386,6 +414,7 @@ const weightedPitch=()=>{ let r=simRandom(),acc=0; for(const p of PITCH_TYPES){ 
 
 // ---------- renderer / scene ----------
 const renderer = new THREE.WebGLRenderer({ antialias:true });
+prepareArcadeRenderer(renderer);
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -943,6 +972,7 @@ const S={ state:'SETUP', t:0, inning:1, half:0, outs:0, balls:0, strikes:0,
   transition:null, strikeoutHold:null, matchupRead:null, broadcastBeat:'OPENING PITCH', resultActor:null, crowdReaction:null,
   pendingSpotlight:null,spotlightShown:false,
   entryMode:'fresh', tuneInSeconds:0, entryTargetSeconds:0, entryBucket:null, entryRecued:false, entryPhase:null };
+let arcadeBaseballContact=null;
 let baseballMomentDirector=null,baseballBroadcastSpine=null,activeBaseballFixtureIndex=0,baseballMomentFixtureId='';
 let baseballMomentSequence=0,baseballMomentCounters={grand_slam:0,home_run:0,wall_robbery:0,double_play:0,triple:0,run:0,strikeout:0};
 let suppressBaseballSpinePresentation=false;
@@ -1113,6 +1143,7 @@ function hudStep(){
 }
 
 function setupMatch(){
+  arcadeBaseballContact=null;
   destroyBaseballBroadcastMemory();
   disposeClubs();
   const [homeIdx,awayIdx]=FIXTURES[fixtureIdx%FIXTURES.length];
@@ -1646,6 +1677,7 @@ function planPitch() {
     recognition,timingError,barrel,location:`${vertical} ${horizontal}`,foulP:S.strikes===2?.34:.25,forcedResult:forced&&forced.result||null };
 }
 function throwPitch() {
+  arcadeBaseballContact=null;
   const plan = S.pitchPlan;
   fldTeam().pitches++;
   fldTeam().staff.pitches++;
@@ -1701,13 +1733,29 @@ function walk() {
   ball.mode = 'IDLE'; S.play = { type:'WALK', resolved:true };
   setState('RESOLVE'); cut('plate');
 }
+// Retain the chosen landing point and flight duration while launching from the
+// incoming pitch, instead of teleporting contact to the old generic plate anchor.
+// This consumes no random numbers and leaves fielding/outcome selection intact.
+function launchFromPitchContact(incoming,kind){
+  const vy=ball.vel.y,flightTime=(vy+Math.sqrt(vy*vy+2*GRAV*ball.pos.y))/GRAV;
+  const target={x:ball.pos.x+ball.vel.x*flightTime,y:0,z:ball.pos.z+ball.vel.z*flightTime};
+  ball.pos.copy(incoming);
+  ball.vel.set((target.x-incoming.x)/flightTime,
+    (.5*GRAV*flightTime*flightTime-incoming.y)/flightTime,
+    (target.z-incoming.z)/flightTime);
+  arcadeBaseballContact={time:tGlobal,kind,point:{x:incoming.x,y:incoming.y,z:incoming.z},target,flightTime,
+    batter:S.batter,stance:{x:S.batter.x,z:S.batter.z}};
+  return {flightTime,target};
+}
 function foulBall() {
+  const incoming=ball.pos.clone();
   crack(); swellCrowd(0.16); impactBurst(0.45);
   if (S.strikes < 2) S.strikes++;
   showPitchCall('FOUL BALL',`${S.batter.name} STAYS ALIVE · ${S.balls}-${S.strikes}`,'foul',1.45);
   // dead ball sprayed backward into the netting
   ball.pos.set(0.1, 1.1, 0);
   ball.vel.set(-(3 + simRandom()*5), 7 + simRandom()*5, (simRandom() < 0.5 ? -1 : 1)*(5 + simRandom()*8));
+  launchFromPitchContact(incoming,'FOUL');
   ball.mode = 'LIVE';
   S.play = { type:'FOUL', resolved:true };
   commitPitch('FOUL','strike');
@@ -1715,6 +1763,7 @@ function foulBall() {
   setState('RESOLVE'); cut('plate');
 }
 function inPlay(plan) {
+  const incoming=ball.pos.clone();
   crack(); swellCrowd(0.36);
   const bt = batTeam();
   // Contact is authored from what the hitter actually saw: recognition controls timing,
@@ -1749,10 +1798,10 @@ function inPlay(plan) {
   if(forced==='sac_fly'){ v=23.5; e=.72; }
   ball.pos.set(0.1, 1.05, 0);
   ball.vel.set(Math.cos(ang)*Math.cos(e)*v, Math.sin(e)*v, Math.sin(ang)*Math.cos(e)*v);
+  const contactFlight=launchFromPitchContact(incoming,type);
   ball.mode = 'LIVE';
   // predicted landing point drives the chase
-  const vy = ball.vel.y, tl = (vy + Math.sqrt(vy*vy + 2*GRAV*ball.pos.y))/GRAV;
-  const lx = ball.pos.x + ball.vel.x*tl, lz = ball.pos.z + ball.vel.z*tl;
+  const tl=contactFlight.flightTime,lx=contactFlight.target.x,lz=contactFlight.target.z;
   let chaser = null, best = 1e9;
   for (const p of fldTeam().players) {
     if (p.fieldPos === 1) continue;                 // catcher holds the plate
@@ -3008,6 +3057,88 @@ function applyBroadcastTuneIn(){
   tick(0,false);
 }
 applyBroadcastTuneIn();
+
+// Raw adapter: legacy rigs remain active because their updates participate in
+// heading/pose timing. The shared layer replaces only the visible draw path.
+function arcadeBaseballBatPose(){
+  if(!bat.visible||!S.batter)return null;
+  const p=S.batter,contact=arcadeBaseballContact?.batter===p?arcadeBaseballContact:null;
+  const plan=S.pitchPlan,age=contact?tGlobal-contact.time:0;
+  const contactSwing=plan?.swing&&(plan.contactMade||plan.forcedResult==='foul');
+  const point=v=>({x:v.x,y:v.y,z:v.z});
+  if(!contact&&!(ball.mode==='PITCH'&&contactSwing))return {handle:point(batKnob.position),barrel:point(batBarrel.position)};
+  const stance=contact?.stance||p;
+  const readyHandle={x:stance.x-.32,y:1.45,z:stance.z+.20};
+  const readyBarrel={x:stance.x-.92,y:2.32,z:stance.z+.48};
+  const eta=ball.mode==='PITCH'?Math.max(0,(ball.pos.x-.02)/Math.max(.01,-ball.vel.x)):0;
+  const hit=contact?.point||{x:ball.pos.x+ball.vel.x*eta,
+    y:ball.pos.y+ball.vel.y*eta-.5*GRAV*.12*eta*eta,
+    z:ball.pos.z+ball.vel.z*eta+.5*ball.curve*eta*eta};
+  const reach=Math.hypot(readyHandle.x-hit.x,readyHandle.y-hit.y,readyHandle.z-hit.z)||1;
+  const hitHandle={x:hit.x+(readyHandle.x-hit.x)*1.12/reach,
+    y:hit.y+(readyHandle.y-hit.y)*1.12/reach,z:hit.z+(readyHandle.z-hit.z)*1.12/reach};
+  const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
+  const mix=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t});
+  if(!contact){
+    const delivery=smooth(1-eta/.18);
+    return {handle:mix(readyHandle,hitHandle,delivery),barrel:mix(readyBarrel,hit,delivery),contactProgress:delivery*.5};
+  }
+  const finish=smooth(age/.38);
+  return {handle:mix(hitHandle,{x:stance.x+.15,y:1.40,z:stance.z-.22},finish),
+    barrel:mix(hit,{x:stance.x+.90,y:2.05,z:stance.z+.05},finish),contactProgress:.5+finish*.5};
+}
+function readBaseballArcadeFrame(){
+  const playerId=p=>p?(p.athlete?.id||`${teams[p.side].def.id}-depth-${p.role+1}`):null;
+  const point=p=>({x:p.x,y:p.y??0,z:p.z});
+  const pitcher=teams.length?pitcherP():null,play=S.play;
+  const owner=ball.mode==='CARRY'?play?.carrier:ball.mode==='IDLE'?pitcher:null;
+  const activeThrow=play?.activeThrow;
+  const entities=teams.flatMap(team=>team.players.map(p=>{
+    const batting=p===S.batter&&(p.duty==='batter'||(p.path?.delay>0&&S.swingT>=0));
+    const swinging=batting&&S.swingT>=0;
+    const pitching=p===pitcher&&S.state==='WINDUP';
+    const throwing=S.state==='THROW'&&p===(activeThrow?.from||play?.fielder);
+    const moving=Math.hypot(p.vx,p.vz)>.15;
+    const swingDuration=.82*(p.baseballProfile?.batting?.finish||1);
+    const action=swinging?'swing':pitching?'pitch':throwing?'throw':p.air?'catch':
+      p.duty==='fielder'&&p.fieldPos===1&&!moving?'crouch':
+      p.duty==='runner'?'run':batting?'bat':p.duty==='fielder'?(moving?'run':'field'):moving?'walk':'idle';
+    const progress=swinging?clamp(S.swingT/swingDuration,0,1):pitching?clamp(S.t/BASEBALL_PACING.windup,0,1):
+      throwing?clamp((S.t-.15)/.32,0,1):0;
+    return {id:playerId(p),name:p.name,number:p.number,team:p.side,role:p.position,duty:p.duty,
+      x:p.x,y:p.jumpY,z:p.z,vx:p.vx,vz:p.vz,facing:p.heading,action,progress,
+      visible:p.duty!=='dugout',hasBall:p===owner,profile:p.athlete||p.baseballProfile,
+      fieldPosition:p.fieldPos??null,baseIndex:p.baseIdx,airborne:p.air,
+      swingSeconds:swinging?S.swingT:null,swingStyle:swinging?S.pitchPlan?.swingStyle:null,
+      path:p.path?{waypointIndex:p.pathI,delay:p.path.delay||0,target:p.path[p.pathI]||null}:null};
+  }));
+  const callLive=S.callT>0;
+  const title=callLive?S.callLabel:S.state==='POSTPLAY'?(play?.finalResult||'PLAY COMPLETE'):
+    S.state==='HOMER'&&!play?.resultFinalized?'DEEP DRIVE':S.broadcastBeat;
+  return {sportId:'baseball',fixtureId:baseballMomentFixtureId,time:tGlobal,phase:S.state,
+    clock:baseballMomentClock(),period:S.inning,
+    teams:teams.map(team=>({id:team.def.id,name:team.def.name,code:team.def.code,city:team.def.city,
+      colors:team.def.team.colors,score:team.runs,isHome:team.side===1,hits:team.hits,errors:team.errors})),
+    venue:{name:TEAM_B.brand?.venue||TEAM_B.city,city:TEAM_B.city},
+    bounds:{halfX:WALL_R+8,halfZ:WALL_R},entities,
+    projectile:{...point(ball.pos),vx:ball.vel.x,vy:ball.vel.y,vz:ball.vel.z,ownerId:playerId(owner),mode:ball.mode},
+    event:{title:title||S.state,detail:callLive?S.callDetail:S.intent,type:callLive?S.callTone:S.state},
+    presentation:{attackSign:1,fieldAxis:'+x',homeTeam:1,awayTeam:0,battingTeam:S.half,
+      homePlate:{x:0,y:0,z:0},mound:{x:MOUND_X,y:0,z:0},basePositions:BASES.map(base=>({...base,y:0})),
+      wallRadius:WALL_R,foulAngle:FOUL,outs:S.outs,balls:S.balls,strikes:S.strikes,
+      bases:S.bases.map(playerId),batterId:playerId(S.batter),pitcherId:playerId(pitcher),
+      pitch:S.pitchPlan?{name:S.pitchPlan.name,speed:S.pitchPlan.speed,contactMade:!!S.pitchPlan.contactMade}:null,
+      bat:bat.visible?{ownerId:playerId(S.batter),...arcadeBaseballBatPose()}:null,
+      contact:arcadeBaseballContact?{time:arcadeBaseballContact.time,kind:arcadeBaseballContact.kind,
+        point:arcadeBaseballContact.point,target:arcadeBaseballContact.target,flightTime:arcadeBaseballContact.flightTime}:null,
+      play:play?{type:play.type==='HOMER'&&!play.resultFinalized?'DEEP DRIVE':play.type,
+        resolved:!!play.resolved,resultFinalized:!!play.resultFinalized,result:play.finalResult||null,
+        carrierId:playerId(play.carrier),chaserId:playerId(play.chaser),fielderId:playerId(play.fielder),
+        throw:activeThrow?{fromId:playerId(activeThrow.from),receiverId:playerId(activeThrow.receiver),
+          elapsed:activeThrow.elapsed,duration:activeThrow.time,base:activeThrow.base}:null}:null}
+  };
+}
+installArcadeBroadcast({sportId:'baseball',renderer,readFrame:readBaseballArcadeFrame});
 // ---------- tick driver (hidden-tab resilience, same pattern as the other arenas) ----------
 // rAF stops entirely in hidden tabs, so when hidden we drive tick() from setInterval:
 // each fire replays elapsed real time as fixed 0.05s sim steps (capped at 1s of

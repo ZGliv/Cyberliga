@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="arcade-mode">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="icon" href="data:," />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<link rel="icon" href="cyberliga-mark.svg" />
 <link rel="stylesheet" href="arena-score-fit.css" />
 <link rel="stylesheet" href="broadcast-spine.css" />
 <title>CYBERLIGA ICE — AUTONOMOUS AI HOCKEY</title>
@@ -188,8 +188,22 @@
     #tickertext { font-size:12px; }
   }
 </style>
+<meta name="theme-color" content="#f4f4ed" />
+<meta name="description" content="Watch autonomous hockey in Cyberliga. Six sports. Forty-eight clubs. A world of characters." />
+<meta property="og:title" content="Cyberliga — Hockey" />
+<meta property="og:description" content="Your next team is somewhere in this world. Watch six sports, always on." />
+<meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png" />
+<link rel="stylesheet" href="arcade-broadcast.css" />
+<link rel="stylesheet" href="arcade-boot.css" />
+<script src="arcade-boot.js" defer></script>
 </head>
 <body>
+<div class="arcade-loading" role="status" aria-live="polite">
+  <a class="arcade-loading-brand watch-only-exit" href="world.html"><i aria-hidden="true"></i>CYBERLIGA</a>
+  <div class="arcade-loading-copy"><span>HOCKEY / ON AIR</span><h1>Taking you to the rink.</h1><p>Connecting to the broadcast…</p><div class="arcade-loading-progress" aria-hidden="true"></div></div>
+  <nav aria-label="Loading navigation"><a class="watch-only-exit" href="world.html">Home</a><a class="watch-only-exit" href="league.html?sport=hockey">Leagues</a></nav>
+  <noscript>Enable JavaScript to watch the broadcast.</noscript>
+</div>
 <div id="hud">
   <div id="badge"><a id="leaguepill" class="watch-only-exit" href="world.html" aria-label="Back to the Cyberliga globe">← GLOBE</a></div>
   <div id="scoreboard">
@@ -231,6 +245,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildBlobRig, CLASSIC_PLAYER_COLORS, classicPlayerColor } from './blobrig.js';
 import { decideHockeyGoalLine } from './hockey-goal-line.js';
+import { installArcadeBroadcast, prepareArcadeRenderer } from './arcade-broadcast.js';
 
 const classicSideVisual = side => classicPlayerColor(Number(side) % CLASSIC_PLAYER_COLORS.length);
 
@@ -257,13 +272,17 @@ const FIXTURES=HOCKEY_CONTENT.createSeason('hockey','arena').rounds.flatMap(roun
 const ROSTERS=Object.fromEntries(HOCKEY_TEAMS.map(team=>[team.name,team.athletes.map(a=>a.name)])); // [goalie, C, W, W, D, D]
 const fixtureQuery = new URLSearchParams(location.search);
 const requestedFixture = parseInt(fixtureQuery.get('match') ?? fixtureQuery.get('fixture'), 10);
+const requestedHomeIndex=HOCKEY_TEAMS.findIndex(team=>team.id===fixtureQuery.get('home'));
+const requestedAwayIndex=HOCKEY_TEAMS.findIndex(team=>team.id===fixtureQuery.get('away'));
+const requestedPairFixture=requestedHomeIndex>=0&&requestedAwayIndex>=0&&requestedHomeIndex!==requestedAwayIndex
+  ? FIXTURES.findIndex(([home,away])=>home===requestedHomeIndex&&away===requestedAwayIndex) : -1;
 const freshEntryRequested=fixtureQuery.get('fresh')==='1'||fixtureQuery.get('test')==='1';
 const requestedEntryBucket=parseInt(fixtureQuery.get('bucket'),10);
 const requestedTuneInParam=fixtureQuery.get('at');
 const requestedTuneInSeconds=requestedTuneInParam===null?NaN:Number(requestedTuneInParam);
 const entryBucket=Number.isFinite(requestedEntryBucket)?requestedEntryBucket:Math.floor(Date.now()/45000);
 function entryHash(value){let h=2166136261;for(const c of String(value)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
-let fixtureIdx = (Number.isFinite(requestedFixture) && requestedFixture >= 0
+let fixtureIdx = (requestedPairFixture>=0 ? requestedPairFixture : Number.isFinite(requestedFixture) && requestedFixture >= 0
   ? requestedFixture
   : (parseInt(localStorage.getItem('cl_ice_fx'), 10) || 0)) % FIXTURES.length;
 let TEAM_A, TEAM_B;
@@ -282,6 +301,7 @@ const SYSTEMS = [
 
 // ============ RENDERER / SCENE ============
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+prepareArcadeRenderer(renderer);
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -993,7 +1013,7 @@ const S = { state: 'FACEOFF', t: 0, period: 1, clock: PERIOD_LEN, score: [0, 0],
   entryMode:'fresh', tuneInSeconds:0, entryTargetSeconds:0, entryBucket:null, entryRecued:false, entryPhase:null };
 let completedGames = 0, lastFinal = null;
 let establishingHold=false,establishingTimer=0;
-function holdForEstablishing(){clearTimeout(establishingTimer);establishingHold=true;establishingTimer=setTimeout(()=>{establishingHold=false;},3050);}
+function holdForEstablishing(){if(window.__arcadeView){releaseEstablishingHold(true);return;}clearTimeout(establishingTimer);establishingHold=true;establishingTimer=setTimeout(()=>{establishingHold=false;},3050);}
 function releaseEstablishingHold(removeOverlay=false){clearTimeout(establishingTimer);establishingTimer=0;establishingHold=false;if(removeOverlay)window.CyberligaEstablishing?.remove();}
 let hockeyMomentDirector=null,hockeyBroadcastSpine=null,activeHockeyFixtureIndex=0,hockeyMomentFixtureId='';
 let hockeyMomentSequence=0,hockeyMomentCounters={goal:0,save:0,check:0};
@@ -1665,6 +1685,12 @@ function integratePuck(dt) {
     puck.x = c.x + fx*0.8 - fz*wob; puck.z = c.z + fz*0.8 + fx*wob;
     puck.y = PY; puck.vx = c.vx; puck.vz = c.vz;
     boardResolve(puck, 0.3, 0.4, 0.9);
+    // Goalies own the puck during a cover, so their release timer must run
+    // before this branch returns, including catches made by goalChecks().
+    if(c.isGK){
+      c.holdT-=dt;
+      if(c.holdT<=0)releasePuck(c,ATT[c.team]*BLX,(rnd()-.5)*16,17);
+    }
     return;
   }
   if (puck.y > PY || puck.vy !== 0) {
@@ -1712,13 +1738,6 @@ function integratePuck(dt) {
         if (!oneTime) puck.passTarget = null;
         break;
       }
-    }
-  }
-  if (puck.carrier && puck.carrier.isGK) {
-    const g = puck.carrier;
-    g.holdT -= dt;
-    if (g.holdT <= 0) { // clear it up ice
-      releasePuck(g, ATT[g.team]*BLX, (rnd()-0.5)*16, 17);
     }
   }
 }
@@ -2261,6 +2280,53 @@ function hudStep() {
 
 // ============ MAIN LOOP ============
 setupMatch(true);
+// Keep updateRigs in the original tick: its heading feeds carried-puck physics.
+// Only the submitted picture changes; every adapter value comes from live state.
+installArcadeBroadcast({sportId:'hockey',renderer,readFrame:()=>({
+  sportId:'hockey',fixtureId:hockeyMomentFixtureId,time:simClockTotal,
+  phase:S.state,clock:Math.max(0,S.clock),period:S.period,
+  teams:[TEAM_A,TEAM_B].map((team,side)=>({
+    id:team.id,name:team.name,code:team.code,city:team.source.city,
+    score:S.score[side],colors:team.source.colors
+  })),
+  venue:{name:TEAM_A.brand.venue,city:TEAM_A.source.city},bounds:{halfX:BX,halfZ:BZ},
+  entities:players.map(player=>{
+    const hasBall=puck.carrier===player;
+    let action=player.isGK?'goalie-set':hasBall?'stickhandle':Math.hypot(player.vx,player.vz)>.15?'skate':'idle';
+    let progress=0;
+    if(player.fallT>0){
+      const elapsed=player.fallDuration-player.fallT;
+      action=player.fallT<.68?'get-up':elapsed<.56?'fall':'down';
+      progress=clamp(elapsed/player.fallDuration,0,1);
+    }else if(S.state==='GOAL_SEQ'&&S.scorer===player){action='celebrate';progress=clamp(S.t/4,0,1);}
+    else if(player.action){action=player.action.type;progress=clamp(player.action.t/player.action.duration,0,1);}
+    else if(player.isGK&&player.saveT>0){
+      action=`save-${player.saveKind}`;progress=clamp(1-player.saveT/(player.saveKind==='cover'?.88:.72),0,1);
+    }else if(player.isGK&&player.butterT>.3){action='butterfly';progress=clamp(1-player.butterT/.9,0,1);}
+    else if(player.hitT>0){action='check-contact';progress=clamp(1-player.hitT/.72,0,1);}
+    else if(player.checkReady>0){action='brace';progress=clamp(player.checkReady,0,1);}
+    else if(player.recvT>0&&puck.passTarget===player){action='receive';progress=clamp(1-player.recvT/1.2,0,1);}
+    return {
+      id:player.athlete.id,name:player.name,number:player.athlete.number,team:player.team,role:player.role,
+      x:player.x,y:0,z:player.z,vx:player.vx,vz:player.vz,facing:player.heading,
+      action,progress,visible:player.penaltyT<=0&&!player.otBench,hasBall,profile:player.athlete
+    };
+  }),
+  projectile:{
+    x:puck.x,y:puck.y,z:puck.z,vx:puck.vx,vy:puck.vy,vz:puck.vz,
+    ownerId:puck.carrier?.athlete.id||null,
+    mode:puck.carrier?'HELD':puck.held?'FACEOFF_HELD':puck.passTarget?'PASS':
+      puck.lastTouch?.action?.released&&['shot','slapShot','oneTimer'].includes(puck.lastTouch.action.type)?'SHOT':'LOOSE'
+  },
+  event:S.state==='GOAL_SEQ'?{title:'GOAL',detail:elGoalSub.textContent,type:'goal'}:
+    S.eventTTL>0?{title:S.eventText,detail:S.lastDecision,type:S.eventKind}:null,
+  presentation:{
+    attackSign:ATT[puck.carrier?.team??S.possessionTeam??puck.lastTouch?.team??0],
+    possessionTeam:S.possessionTeam,strength:[strengthLabel(0),strengthLabel(1)],
+    equipment:{goalX:GLX,goalHeight:1.25,goalHalfWidth:NW/2,goalDepth:1.1,blueLineX:BLX}
+  }
+})});
+releaseEstablishingHold(true);
 window._dbg = () => ({ state: S.state, t: S.t, dropped: S.dropped, clock: S.clock, held: puck.held,
   py: puck.y, px: puck.x, pz: puck.z, carrier: puck.carrier && puck.carrier.name,
   ref: [refP.x, refP.z, refP.tx, refP.tz], c0: players.filter(p => p.idx === 1).map(c => [c.x, c.z, c.fox, c.foz]) });
@@ -2372,6 +2438,12 @@ function forceIceMoment(kind,athleteId='') {
     shooter.x=GLX-1; shooter.z=1.65; shooter.vx=shooter.vz=0;
     puck.x=kind==='slowGoal'?GLX-.03:GLX-.22; puck.z=1.65; puck.vx=kind==='slowGoal'?4:28;
     puck.lastTouch=kind==='unattributedGoal'?null:shooter; puck.saveChecked=true;
+  } else if (kind === 'goalieClear') {
+    // Isolate an existing cover from nearby attackers so a steal cannot hide a
+    // failure of the goalie's own timed release. Test hook only; no live trigger.
+    players.filter(p=>!p.isGK).forEach((p,i)=>{p.x=-12;p.z=-8+(i%5)*4;p.vx=p.vz=0;});
+    const gk=gkOfSide(1);gk.x=GLX-.9;gk.z=0;gk.vx=gk.vz=0;gk.heading=-Math.PI/2;gk.holdT=.72;
+    puck.carrier=gk;puck.lastTouch=gk;puck.x=gk.x-.8;puck.z=0;puck.y=PY;
   } else if (kind === 'save' || kind === 'cover') {
     const gk=gkOfSide(1); gk.x=GLX-.9; gk.z=0; gk.vx=gk.vz=0;
     shooter.x=GLX-6; shooter.z=kind==='cover' ? .2 : 1.45;

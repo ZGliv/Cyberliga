@@ -1,5 +1,25 @@
 Original prompt: Can you make boxing work way better? Make the actual fighting and animations and shit way better, you might need to make the characters better too /goal
 
+## Pixel public release — 2026-09-07
+
+- User authorized replacing the existing public Vercel version with the approved pixel direction, keeping the globe and removing old program screens. Work started in isolated `codex/arcade-public-release` from canonical `81da120`; approved feature `9902203` transplanted as `b694988`.
+- Static early arena shell prevents legacy first-paint flashes. Current Home, HQ and Athlete File use matching authored sprites, phone layouts and direct current navigation. Removed public supporter drama/pick/locker/follow injections. Retired legacy guide/wire/replay/concept/lab routes redirect to Home locally and on Vercel. Deployment excludes review output and retired pages.
+- Improved stable athlete identity rails, canonical venue accents, baseball camera framing during orientation changes, metadata, favicon and share card. Preserved all six engine outcomes and seeded state; new polish touches presentation only.
+- Worktree audit: canonical clean; rejected root contains 38 changes and home-kill-gate two untracked duplicate files, left untouched. Remaining historical feature worktrees clean. Only the approved pixel change and this release polish are selected for integration.
+- Targeted official clients and desktop/390×844/844×390 visual checks passed for Home/HQ, athlete profiles and representative broadcasts. Root gates first-paint isolation, real HUD score/event agreement, old route retirement, all-six responsive cameras and finite state before deployment. Release execution evidence is recorded in ignored output and the task.
+
+## Six-sport arcade overhaul — 2026-09-07
+
+- Current user request: rebuild the entire sports world with more compelling characters, smoother motion, quicker viewing and all six sports; permitted the Matt Shumer Manager Loop approach. The subsequent Higgsfield pirate-video inquiry was withdrawn and was not investigated.
+- Feature worktree `arcade-sports-world`, branch `codex/arcade-sports-world`, from canonical `81da1208210027f03e0e3580526748874509df0a`. Preview port 4188. Root/rejected lineage and canonical/production remain untouched.
+- Manager contract: `ARCADE_WORLD_BRIEF.md`. Three implementers connected six real engines to a shared authored pixel renderer, with independent visual review and corrections. No generated footage or replacement scripted game loops.
+- Added continuous-position pixel athletes, actual projectile/strike/bat transforms, responsive cameras, shared score/event/nav presentation, and canonical club/athlete identity. Original engine timing and compatibility rigs remain internally mounted. Repeated composer draw calls are deduplicated without a second simulation clock.
+- Rebuilt World/HQ presentation around the same actual athlete sprites while retaining globe interaction, six sport filters, 48 clubs, 416 athletes, 24 fixture slots, club dossiers and canonical fixture links. Pair URLs now select advertised clubs instead of silently ignoring them. Standings/scores derived from samples are labeled accordingly.
+- Removed obsolete hidden basketball/hockey entry holds. Fixed hockey goalie cover release timer running after an unreachable carrier return; observed release in 0.70 seconds after the prior indefinite hold.
+- QA: official web-game clients, independent live motion captures, desktop/390x844/844x390 checks, raw state/HUD alignment, canonical pair/numeric routes. Added `scripts/verify-arcade.mjs` with shared integration assertions and goalie regression. Browser artifacts under ignored `arcade-review/` and `output/`; final review/handoff records the completed checks and remaining product limits.
+- This branch intentionally proposes pixel characters in place of the previous visible capsule art contract. It is a reviewable local design proposal, not a production release or a certified wagering product.
+- Final corrections: continuous baseball contact preserves the seven seeded outcome/target families; bat contact and catcher crouch are visible. Legacy GPU draws are suppressed at construction while world matrices remain available. Initial paint and pre-dedup backing-store cleanup fix official-client selection of a hidden legacy canvas. Final all-six integration gate passes ordered clubs, HUD/events, navigation, finite state, overflow and goalie clear. `ARCADE_WORLD_REVIEW.md` records evidence and practical limits. No deployment.
+
 ## Arena navigation consistency pass — 2026-07-15
 - Scope is task 4 only: soccer, American football, basketball, hockey, baseball, and combat arena top-left navigation.
 - Replaced every arena's top-left treatment with one rounded, safe-area-aware, watch-only `← GLOBE` link to `world.html`, retaining only each sport's accent color.

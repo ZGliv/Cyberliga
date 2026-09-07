@@ -377,12 +377,11 @@
     var eventTitle = cleanString(entry && (entry.eventTitle || entry.kindLabel),180) || cleanString(entry && entry.kind,100).replace(/[-_]/g,' ').toUpperCase() || 'NAMED MATCH MOMENT';
     var title = cleanString(entry && (entry.title || entry.headline),240) || athlete + ' · ' + eventTitle;
     var playerHref = witnessHref(entry && entry.playerHref,'player.html','player.html');
-    var clipHref = witnessHref(entry && entry.clipHref,'clip.html','clip.html');
     var witnessedAt = Number(entry && entry.witnessedAt) || 0;
     var unread = Boolean(entry && entry.unread) || Boolean(witnessUnreadAtOpen && witnessedAt > witnessReadBoundaryAtOpen);
     var kept = Boolean(entry && entry.kept);
     var cardContext = context === 'player' ? ' fw-witness-card-player' : '';
-    return '<article class="fw-witness-card' + cardContext + (unread ? ' is-unread' : '') + '" data-fw-witness-card="' + esc(id) + '" style="--witness-color:' + esc(witnessColor(entry)) + '"><div class="fw-witness-main"><div class="fw-witness-top"><span>DEVICE WITNESS · ' + esc(sport.toUpperCase()) + '</span><em>' + (kept ? 'KEPT' : unread ? 'NEW' : 'SEEN') + '</em></div><h4>' + esc(title) + '</h4><div class="fw-witness-identity"><strong>' + esc(athlete) + '</strong><span>' + esc(teamCode) + ' · ' + esc(eventTitle) + '</span></div><p>' + esc(team) + ' against ' + esc(opponent) + '</p><small>WITNESSED ' + esc(witnessTime(witnessedAt)) + ' · DEVICE-LOCAL</small></div><nav class="fw-witness-actions" aria-label="Witness receipt actions"><button type="button" data-fw-action="keep-witness" data-fw-witness-id="' + esc(id) + '" aria-pressed="' + String(kept) + '">' + (kept ? 'KEPT ✓' : 'KEEP') + '</button><a href="' + esc(playerHref) + '">ATHLETE FILE</a><a href="' + esc(clipHref) + '" title="Open a non-official animated concept linked to this witnessed moment">12S CONCEPT</a><button type="button" data-fw-action="remove-witness" data-fw-witness-id="' + esc(id) + '">REMOVE</button></nav></article>';
+    return '<article class="fw-witness-card' + cardContext + (unread ? ' is-unread' : '') + '" data-fw-witness-card="' + esc(id) + '" style="--witness-color:' + esc(witnessColor(entry)) + '"><div class="fw-witness-main"><div class="fw-witness-top"><span>DEVICE WITNESS · ' + esc(sport.toUpperCase()) + '</span><em>' + (kept ? 'KEPT' : unread ? 'NEW' : 'SEEN') + '</em></div><h4>' + esc(title) + '</h4><div class="fw-witness-identity"><strong>' + esc(athlete) + '</strong><span>' + esc(teamCode) + ' · ' + esc(eventTitle) + '</span></div><p>' + esc(team) + ' against ' + esc(opponent) + '</p><small>WITNESSED ' + esc(witnessTime(witnessedAt)) + ' · DEVICE-LOCAL</small></div><nav class="fw-witness-actions" aria-label="Witness receipt actions"><button type="button" data-fw-action="keep-witness" data-fw-witness-id="' + esc(id) + '" aria-pressed="' + String(kept) + '">' + (kept ? 'KEPT ✓' : 'KEEP') + '</button><a href="' + esc(playerHref) + '">ATHLETE FILE</a><button type="button" data-fw-action="remove-witness" data-fw-witness-id="' + esc(id) + '">REMOVE</button></nav></article>';
   }
   function witnessSectionShell() {
     var state = witnessState();
@@ -455,9 +454,15 @@
     }
     var state = witnessState({athleteId:currentPlayerProfile.id});
     var entries = state.entries.filter(function (entry) { return witnessEntityId(entry,'athlete') === currentPlayerProfile.id; });
+    if (!entries.length) {
+      section.remove();
+      var label=teammates.querySelector('.section-number');
+      if(label)label.textContent='06 / SAME CLUB';
+      return;
+    }
     var chapter = witnessChapter(currentPlayerProfile.id);
     var chapterCopy = cleanString(chapter && (chapter.summary || chapter.copy || chapter.line || chapter.headline),420);
-    var chronology = entries.length ? entries.map(function (entry) { return witnessCard(entry,'player'); }).join('') : '<div class="fw-player-chronicle-empty"><b>YOU HAVE NOT WITNESSED THIS ATHLETE YET.</b><span>Open their autonomous arena. A certified named moment only enters this chronology after its broadcast card is visibly presented on this device.</span></div>';
+    var chronology = entries.length ? entries.map(function (entry) { return witnessCard(entry,'player'); }).join('') : '<div class="fw-player-chronicle-empty"><b>YOUR FIRST MOMENT IS STILL AHEAD.</b><span>Watch the matchup. Named moments you see in the broadcast collect here on this device.</span></div>';
     section.innerHTML = '<header class="fw-player-chronicle-head"><div><p class="section-number">06 / YOUR WITNESS CHRONICLE</p><h2 id="fw-player-chronicle-title">The moments you were there for.</h2></div><strong>' + entries.length + ' DEVICE RECEIPT' + (entries.length === 1 ? '' : 'S') + '</strong></header><div class="fw-player-chronicle-boundary"><b>LOCAL WITNESS LAYER</b><span>' + esc(witnessContractCopy()) + '</span></div>' + (entries.length && chapterCopy ? '<p class="fw-player-chapter"><b>YOUR LOCAL CHAPTER</b>' + esc(chapterCopy) + '</p>' : '') + '<div class="fw-player-chronicle-list" role="feed" aria-label="Witnessed moments for ' + esc(currentPlayerProfile.name) + '">' + chronology + '</div>';
     var teammateNumber = teammates.querySelector('.section-number');
     if (teammateNumber) teammateNumber.textContent = '07 / SAME COLORS';
@@ -475,10 +480,9 @@
     var sourceLabel = momentSourceLabel(moment);
     var arenaUrl = cleanString(moment.arenaUrl || moment.links && moment.links.arena,500) || ('world.html?sport=' + encodeURIComponent(moment.sportId));
     var profileUrl = cleanString(moment.profileUrl || moment.links && moment.links.profile,500) || 'world.html';
-    var clipUrl = cleanString(moment.clipUrl || moment.links && moment.links.clip,900) || 'world.html';
     var arenaLabel = /^world\.html(?:\?|$)/.test(arenaUrl) ? 'OPEN WORLD' : 'MATCHUP SIM';
     var momentId = esc(moment.id || moment.eventKey);
-    return '<article class="fw-moment-card" data-fw-moment-card="' + momentId + '" style="--moment-color:' + esc(moment.team.color || '#00e5ff') + '" aria-label="' + esc(moment.athlete.name + ' ' + moment.kindLabel) + '"><div class="fw-moment-main"><div class="fw-moment-top"><span>' + esc(entry.relevance + ' · ' + moment.sportName.toUpperCase()) + '</span><em>' + esc(pressure) + '</em></div><h4>' + esc(moment.headline) + '</h4><div class="fw-moment-identity"><strong>' + esc(moment.athlete.name) + '</strong><span>#' + esc(moment.athlete.number == null ? '—' : moment.athlete.number) + ' · ' + esc(moment.team.code) + ' · ' + esc(moment.kindLabel) + '</span></div><div class="fw-moment-score" aria-label="' + esc(moment.home.code + ' ' + score.home + ', ' + moment.away.code + ' ' + score.away) + '"><span>' + esc(moment.home.code) + '</span><b>' + esc(score.home) + '–' + esc(score.away) + '</b><span>' + esc(moment.away.code) + '</span><em>' + esc(moment.phaseLabel) + '</em></div><small class="fw-moment-proof">EVENT ' + esc(moment.eventKey) + ' · ' + esc(sourceLabel) + '</small></div><nav class="fw-moment-actions" aria-label="Moment destinations"><a href="' + esc(arenaUrl) + '" data-fw-moment-id="' + momentId + '" data-fw-moment-action="arena" aria-label="' + esc(arenaLabel === 'MATCHUP SIM' ? 'Open autonomous matchup simulation, not this event' : 'Open this sport in World') + '">' + arenaLabel + '</a><a href="' + esc(profileUrl) + '" data-fw-moment-id="' + momentId + '" data-fw-moment-action="athlete">ATHLETE FILE</a><a href="' + esc(clipUrl) + '" data-fw-moment-id="' + momentId + '" data-fw-moment-action="clip" title="Open an unverified animated interpretation of the shared event reference">12S CONCEPT</a></nav></article>';
+    return '<article class="fw-moment-card" data-fw-moment-card="' + momentId + '" style="--moment-color:' + esc(moment.team.color || '#00e5ff') + '" aria-label="' + esc(moment.athlete.name + ' ' + moment.kindLabel) + '"><div class="fw-moment-main"><div class="fw-moment-top"><span>' + esc(entry.relevance + ' · ' + moment.sportName.toUpperCase()) + '</span><em>' + esc(pressure) + '</em></div><h4>' + esc(moment.headline) + '</h4><div class="fw-moment-identity"><strong>' + esc(moment.athlete.name) + '</strong><span>#' + esc(moment.athlete.number == null ? '—' : moment.athlete.number) + ' · ' + esc(moment.team.code) + ' · ' + esc(moment.kindLabel) + '</span></div><div class="fw-moment-score" aria-label="' + esc(moment.home.code + ' ' + score.home + ', ' + moment.away.code + ' ' + score.away) + '"><span>' + esc(moment.home.code) + '</span><b>' + esc(score.home) + '–' + esc(score.away) + '</b><span>' + esc(moment.away.code) + '</span><em>' + esc(moment.phaseLabel) + '</em></div><small class="fw-moment-proof">EVENT ' + esc(moment.eventKey) + ' · ' + esc(sourceLabel) + '</small></div><nav class="fw-moment-actions" aria-label="Moment destinations"><a href="' + esc(arenaUrl) + '" data-fw-moment-id="' + momentId + '" data-fw-moment-action="arena" aria-label="' + esc(arenaLabel === 'MATCHUP SIM' ? 'Open autonomous matchup simulation, not this event' : 'Open this sport in World') + '">' + arenaLabel + '</a><a href="' + esc(profileUrl) + '" data-fw-moment-id="' + momentId + '" data-fw-moment-action="athlete">ATHLETE FILE</a></nav></article>';
   }
   function liveStackMarkup() {
     if (liveMomentState.items.length) return liveMomentState.items.map(momentCard).join('');
@@ -736,19 +740,12 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { element.classList.remove('show'); }, 2200);
   }
-  function storyClipUrl(story) {
-    if (!story || !story.home || !story.away || !story.featured || !story.featured[0]) return 'world.html';
-    var query = new URLSearchParams({
-      sport: story.sportId,
-      home: story.home.id,
-      away: story.away.id,
-      athlete: story.featured[0].id,
-      headline: story.headline,
-      match: story.key,
-      story: story.id,
-      view: '1'
-    });
-    return 'clip.html?' + query.toString();
+  function storyBroadcastUrl(story) {
+    if (!story || !story.home || !story.away) return 'world.html';
+    var sport=C.getSport(story.sportId),home=sport&&C.getTeam(story.home.id,sport.id),away=sport&&C.getTeam(story.away.id,sport.id);
+    var arenas={soccer:'index.html',basketball:'hoops.html',hockey:'hockey.html',baseball:'baseball.html',combat:'fight.html','american-football':'football.html'};
+    if(!home||!away||home.id===away.id)return 'world.html';
+    return arenas[sport.id]+'?'+new URLSearchParams({home:home.id,away:away.id}).toString();
   }
   function fallbackCopy(value) {
     var field = document.createElement('textarea');
@@ -775,8 +772,8 @@
   function shareStory(story) {
     if (!story) return;
     var text = story.shareLine || (story.headline + ' — ' + story.home.code + ' vs ' + story.away.code + '. #Cyberliga');
-    var url = new URL(storyClipUrl(story),location.href).href;
-    var copied = function (ok) { toast(ok ? 'STORY + 12-SECOND CLIP LINK COPIED' : 'COPY FAILED · CLIP LINK UNAVAILABLE IN THIS BROWSER'); };
+    var url = new URL(storyBroadcastUrl(story),location.href).href;
+    var copied = function (ok) { toast(ok ? 'MATCHUP LINK COPIED' : 'COPY UNAVAILABLE · USE THE ADDRESS BAR'); };
     if (typeof navigator.share === 'function') {
       navigator.share({title:'CYBERLIGA / THE SIGNAL',text:text,url:url}).then(function () {
         toast('THE SIGNAL WAS SHARED');
@@ -845,7 +842,7 @@
     drawer.setAttribute('aria-labelledby','fw-drawer-title');
     drawer.setAttribute('aria-hidden','true');
     drawer.inert = true;
-    drawer.innerHTML = '<header class="fw-drawer-head"><div><p id="fw-passport-id">SUPPORTER PASSPORT / ' + esc(fan.signalId) + '</p><h2 id="fw-drawer-title">MY SIGNAL</h2></div><button class="fw-close" type="button" data-fw-action="close">CLOSE ×</button></header><section class="fw-rank" id="fw-rank"></section><div class="fw-drawer-scroll" id="fw-drawer-scroll" tabindex="0"></div><footer class="fw-drawer-foot">WITNESS RECEIPTS, FOLLOWS, CALLS, AND LOCKER ITEMS STAY ON THIS DEVICE. NOT OFFICIAL · NO MONEY · NO PRIZE · NEVER USED TO SETTLE A WAGER.</footer>';
+    drawer.innerHTML = '<header class="fw-drawer-head"><div><p id="fw-passport-id">SUPPORTER PASSPORT / ' + esc(fan.signalId) + '</p><h2 id="fw-drawer-title">MY SIGNAL</h2></div><button class="fw-close" type="button" data-fw-action="close">CLOSE ×</button></header><section class="fw-rank" id="fw-rank"></section><div class="fw-drawer-scroll" id="fw-drawer-scroll" tabindex="0"></div><footer class="fw-drawer-foot">YOUR FOLLOWS, PICKS, AND WATCHED MOMENTS STAY ON THIS DEVICE. NOT OFFICIAL · NO MONEY · NO PRIZE · NEVER USED TO SETTLE A WAGER.</footer>';
     document.body.appendChild(drawer);
     renderDrawer();
   }
@@ -948,7 +945,6 @@
       liveSectionShell() +
       section('FOLLOWED WORLD', followRows.length + ' SAVED', followRows, 'Follow a club or athlete and their live moments will collect above.') +
       section('MY FAN CALLS', calls.length + ' OPEN', callRows, 'Call a side from a fixture story. Calls are local, free, and deliberately unresolved until Cyberliga has one authoritative event stream.') +
-      section('CONCEPT LOCKER', fan.savedDrops.length + ' OBJECTS', dropRows, 'Save an athlete or club drop concept. No checkout is connected.') +
       section('WHY THIS EXISTS', 'ONE WORLD', ['<div class="fw-empty">Watch → recognize someone → understand the pressure → call your side → save the memory → come back because the story changed.</div>'], '');
     renderLiveSection();
     var trigger = document.getElementById('fw-trigger');
@@ -1092,7 +1088,7 @@
       var team = story[side];
       return '<button type="button" data-fw-action="pick" data-story-key="' + esc(story.key) + '" data-side="' + side + '" style="--pick-color:' + esc(team.color) + '" aria-pressed="' + String(Boolean(existing && existing.side === side)) + '">' + esc(team.code) + ' · ' + esc(team.name) + '</button>';
     }
-    return '<div class="fw-call"><div class="fw-call-label"><span>CALL IT · FREE FAN PICK</span><b>' + esc(story.question) + '</b></div><div class="fw-call-options">' + option('home') + option('away') + '</div><div class="fw-call-note">FOR FUN · NO MONEY · NO PRIZE · LOCAL ONLY · NOT SETTLED AGAINST THIS CLIENT SIMULATION</div><div class="fw-story-actions"><button type="button" data-fw-action="share-story" data-story-key="' + esc(story.key) + '">SHARE THE SIGNAL</button><a href="' + esc(storyClipUrl(story)) + '">OPEN 12-SECOND CLIP ↗</a></div></div>';
+    return '<div class="fw-call"><div class="fw-call-label"><span>CALL IT · FREE FAN PICK</span><b>' + esc(story.question) + '</b></div><div class="fw-call-options">' + option('home') + option('away') + '</div><div class="fw-call-note">FOR FUN · NO MONEY · NO PRIZE · LOCAL ONLY · NOT SETTLED AGAINST THIS CLIENT SIMULATION</div><div class="fw-story-actions"><button type="button" data-fw-action="share-story" data-story-key="' + esc(story.key) + '">SHARE THE SIGNAL</button><a href="' + esc(storyBroadcastUrl(story)) + '">WATCH THE MATCHUP ↗</a></div></div>';
   }
   function renderPreviewStory() {
     var preview = document.getElementById('game-preview');
@@ -1167,7 +1163,7 @@
     if (!section) return;
     var stories = leagueStoriesFromState();
     pulseStories = stories;
-    section.innerHTML = '<header class="fw-narrative-head"><div><p>THE SIGNAL / CHARACTER INTELLIGENCE</p><h2>FOUR GAMES. FOUR REASONS TO CARE.</h2></div><span>Every broadcast now carries a human-sized pressure: a desire, a weakness, a rival who knows it, and one free supporter call. The arena stays autonomous.</span></header><div class="fw-story-grid">' + stories.map(function (story) {
+    section.innerHTML = '<header class="fw-narrative-head"><div><p>AROUND THE LEAGUE</p><h2>TONIGHT’S RIVALRIES.</h2></div><span>Meet the players on each side, follow a club, and watch the next matchup unfold.</span></header><div class="fw-story-grid">' + stories.map(function (story) {
       return '<article class="fw-story-card" style="--story:' + esc(story.home.color) + '"><div class="fw-story-meta"><span>CHANNEL ' + String(story.channel).padStart(2,'0') + ' · ' + esc(story.stakes.label) + '</span><span>DRAMA ' + esc(story.heat) + '/99</span></div><h3>' + esc(story.headline) + '</h3><p>' + esc(story.reason) + '</p><div class="fw-story-stars"><div style="--star:' + esc(story.home.color) + '"><a href="' + esc(story.featured[0].canonicalUrl) + '">' + esc(story.featured[0].name) + '</a><span>' + esc(story.featured[0].status) + ' · ' + esc(story.featured[0].arc.label) + '</span></div><i>VERSUS</i><div style="--star:' + esc(story.away.color) + '"><a href="' + esc(story.featured[1].canonicalUrl) + '">' + esc(story.featured[1].name) + '</a><span>' + esc(story.featured[1].status) + ' · ' + esc(story.featured[1].arc.label) + '</span></div></div>' + callMarkup(story) + '</article>';
     }).join('') + '</div>';
     refreshInteractiveStates();
@@ -1189,7 +1185,7 @@
     var header = document.querySelector('.dossier-header');
     var tools = document.querySelector('.fw-club-tools');
     if (!tools) { tools = document.createElement('div'); tools.className = 'fw-club-tools'; if (header) header.after(tools); }
-    tools.innerHTML = '<button type="button" data-fw-action="follow-team" data-team-id="' + esc(team.id) + '" data-label="' + esc(team.name) + '" aria-pressed="' + String(hasFollow('teams',team.id)) + '">' + (hasFollow('teams',team.id) ? 'FOLLOWING CLUB ✓' : 'FOLLOW CLUB') + '</button>' + (profile ? '<button type="button" data-fw-action="save-drop" data-sport-id="' + esc(sportId) + '" data-team-id="' + esc(team.id) + '" data-athlete-id="' + esc(profile.id) + '">SAVE ' + esc(profile.name.toUpperCase()) + ' DROP</button>' : '') + '<button type="button" data-fw-action="open">OPEN MY SIGNAL</button>';
+    tools.innerHTML = '<button type="button" data-fw-action="follow-team" data-team-id="' + esc(team.id) + '" data-label="' + esc(team.name) + '" aria-pressed="' + String(hasFollow('teams',team.id)) + '">' + (hasFollow('teams',team.id) ? 'FOLLOWING CLUB ✓' : 'FOLLOW CLUB') + '</button>' + '<button type="button" data-fw-action="open">OPEN MY SIGNAL</button>';
     enrichRoster();
   }
   function enrichRoster() {
@@ -1244,25 +1240,15 @@
     if (!state || !state.athlete || !state.team || !state.sport) return false;
     currentPlayerProfile = M.athleteProfile(state.sport.id,state.team.id,state.athlete.id,{now:Date.now()});
     if (!currentPlayerProfile) return false;
-    var actions = document.querySelector('.hero-actions');
-    if (!actions) return false;
-    if (!document.querySelector('.fw-player-tools')) {
-      var tools = document.createElement('div');
-      tools.className = 'fw-player-tools';
-      tools.innerHTML = '<button type="button" data-fw-action="follow-athlete" data-athlete-id="' + esc(currentPlayerProfile.id) + '" data-label="' + esc(currentPlayerProfile.name) + '" aria-pressed="' + String(hasFollow('athletes',currentPlayerProfile.id)) + '">' + (hasFollow('athletes',currentPlayerProfile.id) ? 'FOLLOWING ✓' : 'FOLLOW ATHLETE') + '</button><button type="button" data-fw-action="follow-team" data-team-id="' + esc(currentPlayerProfile.teamId) + '" data-label="' + esc(currentPlayerProfile.team) + '" aria-pressed="' + String(hasFollow('teams',currentPlayerProfile.teamId)) + '">' + (hasFollow('teams',currentPlayerProfile.teamId) ? 'FOLLOWING CLUB ✓' : 'FOLLOW CLUB') + '</button><button type="button" data-fw-action="save-drop" data-sport-id="' + esc(currentPlayerProfile.sportId) + '" data-team-id="' + esc(currentPlayerProfile.teamId) + '" data-athlete-id="' + esc(currentPlayerProfile.id) + '">SAVE CONCEPT DROP</button>';
-      actions.after(tools);
-    }
     renderPlayerChronicle();
     refreshInteractiveStates();
     return true;
   }
   function initialize() {
-    var quietWorldDesk = pageKind === 'world' && document.documentElement.dataset.homeEdition === 'world-desk';
-    if (!quietWorldDesk) ensureShell();
+    // Public pages expose the sports world and actual device-witness history.
+    // The former synthetic drama, fan picks, XP, and concept shop are retired.
     decorateRenderHook();
-    if (pageKind === 'world' && !quietWorldDesk) initWorld();
-    else if (pageKind === 'league') initLeague();
-    else if (pageKind === 'player' && !initPlayer()) {
+    if (pageKind === 'player' && !initPlayer()) {
       var attempts = 0;
       var playerWait = setInterval(function () {
         decorateRenderHook();
@@ -1270,8 +1256,6 @@
         if (initPlayer() || attempts > 80) clearInterval(playerWait);
       },100);
     }
-    persist();
-    setTimeout(function () { refreshLiveMoments(false); },80);
   }
 
   document.addEventListener('click',handleAction);

@@ -1,22 +1,36 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="arcade-mode">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="cyberliga-mark.svg">
   <link rel="stylesheet" href="football.css">
   <link rel="stylesheet" href="arena-score-fit.css">
   <link rel="stylesheet" href="broadcast-spine.css">
   <title>CYBERLIGA GRIDIRON — AMERICAN FOOTBALL</title>
   <script src="watchonly.js"></script>
   <script src="arena-score-fit.js" defer></script>
+<meta name="theme-color" content="#f4f4ed" />
+<meta name="description" content="Watch autonomous football in Cyberliga. Six sports. Forty-eight clubs. A world of characters." />
+<meta property="og:title" content="Cyberliga — Football" />
+<meta property="og:description" content="Your next team is somewhere in this world. Watch six sports, always on." />
+<meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png" />
+<link rel="stylesheet" href="arcade-broadcast.css" />
+<link rel="stylesheet" href="arcade-boot.css" />
+<script src="arcade-boot.js" defer></script>
 </head>
 <body>
-  <main id="stadium" aria-label="Three-dimensional live American football broadcast"></main>
+<div class="arcade-loading" role="status" aria-live="polite">
+  <a class="arcade-loading-brand watch-only-exit" href="world.html"><i aria-hidden="true"></i>CYBERLIGA</a>
+  <div class="arcade-loading-copy"><span>FOOTBALL / ON AIR</span><h1>Taking you to the field.</h1><p>Connecting to the broadcast…</p><div class="arcade-loading-progress" aria-hidden="true"></div></div>
+  <nav aria-label="Loading navigation"><a class="watch-only-exit" href="world.html">Home</a><a class="watch-only-exit" href="league.html?sport=american-football">Leagues</a></nav>
+  <noscript>Enable JavaScript to watch the broadcast.</noscript>
+</div>
+  <main id="stadium" aria-label="Autonomous American football broadcast"></main>
   <div id="loading" role="status"><span></span><strong>LIGHTING THE STADIUM</strong><small>Building the live 11-on-11 broadcast</small></div>
   <div id="renderError" role="alert" hidden>
-    <strong>THE 3D BROADCAST COULD NOT START</strong>
-    <span>Reload the arena to try again. There is no overhead fallback.</span>
+    <strong>THE BROADCAST COULD NOT START</strong>
+    <span>Reload the arena to try again.</span>
   </div>
 
   <div id="hud">
@@ -97,7 +111,7 @@
     <div id="vignette"></div>
   </div>
 
-  <noscript>This arena requires JavaScript for its 3D broadcast.</noscript>
+  <noscript>This arena requires JavaScript for its autonomous broadcast.</noscript>
   <script src="worlddata.js"></script>
   <script src="characterdata.js"></script>
   <script src="foundingvisual.js"></script>
@@ -110,7 +124,7 @@
   <script src="mythos.js"></script>
   <script>
     window.render_game_to_text = window.render_game_to_text || function () {
-      return JSON.stringify({ screen: 'american-football', phase: 'loading-3d-broadcast' });
+      return JSON.stringify({ screen: 'american-football', phase: 'loading-broadcast' });
     };
     window.advanceTime = window.advanceTime || function () { return window.render_game_to_text(); };
   </script>

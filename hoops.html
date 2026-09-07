@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="arcade-mode">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="icon" href="data:," />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<link rel="icon" href="cyberliga-mark.svg" />
 <link rel="stylesheet" href="arena-score-fit.css" />
 <link rel="stylesheet" href="broadcast-spine.css" />
 <title>CYBERLIGA HOOPS — AUTONOMOUS AI BASKETBALL</title>
@@ -219,8 +219,22 @@
     #tickertext { font-size:12px; }
   }
 </style>
+<meta name="theme-color" content="#f4f4ed" />
+<meta name="description" content="Watch autonomous basketball in Cyberliga. Six sports. Forty-eight clubs. A world of characters." />
+<meta property="og:title" content="Cyberliga — Basketball" />
+<meta property="og:description" content="Your next team is somewhere in this world. Watch six sports, always on." />
+<meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png" />
+<link rel="stylesheet" href="arcade-broadcast.css" />
+<link rel="stylesheet" href="arcade-boot.css" />
+<script src="arcade-boot.js" defer></script>
 </head>
 <body>
+<div class="arcade-loading" role="status" aria-live="polite">
+  <a class="arcade-loading-brand watch-only-exit" href="world.html"><i aria-hidden="true"></i>CYBERLIGA</a>
+  <div class="arcade-loading-copy"><span>BASKETBALL / ON AIR</span><h1>Taking you courtside.</h1><p>Connecting to the broadcast…</p><div class="arcade-loading-progress" aria-hidden="true"></div></div>
+  <nav aria-label="Loading navigation"><a class="watch-only-exit" href="world.html">Home</a><a class="watch-only-exit" href="league.html?sport=basketball">Leagues</a></nav>
+  <noscript>Enable JavaScript to watch the broadcast.</noscript>
+</div>
 <div id="hud">
   <div id="badge"><a id="leaguepill" class="watch-only-exit" href="world.html" aria-label="Back to the Cyberliga globe">← GLOBE</a></div>
   <div id="scoreboard">
@@ -266,6 +280,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { buildBlobRig, CLASSIC_PLAYER_COLORS, classicPlayerColor } from './blobrig.js';
+import { installArcadeBroadcast, prepareArcadeRenderer } from './arcade-broadcast.js';
 
 const classicSideVisual = side => classicPlayerColor(Number(side) % CLASSIC_PLAYER_COLORS.length);
 
@@ -305,7 +320,12 @@ const TEAMS=HOOPS_TEAMS.map(team=>{const hex=Number.parseInt(team.colors.primary
 const FIXTURES=HOOPS_CONTENT.createSeason('basketball','arena').rounds.flatMap(round=>round.matches.map(match=>[HOOPS_TEAMS.findIndex(t=>t.id===match.homeId),HOOPS_TEAMS.findIndex(t=>t.id===match.awayId)]));
 const query=new URLSearchParams(location.search);
 const sessionKey=query.get('seed')||new Date().toISOString().slice(0,10);
-let matchNo=Number.isFinite(Number(query.get('match'))) ? Math.abs(Math.trunc(Number(query.get('match')))) : hash32(sessionKey)%FIXTURES.length;
+const requestedHomeIndex=HOOPS_TEAMS.findIndex(team=>team.id===query.get('home'));
+const requestedAwayIndex=HOOPS_TEAMS.findIndex(team=>team.id===query.get('away'));
+const requestedPairFixture=requestedHomeIndex>=0&&requestedAwayIndex>=0&&requestedHomeIndex!==requestedAwayIndex
+  ? FIXTURES.findIndex(([home,away])=>home===requestedHomeIndex&&away===requestedAwayIndex) : -1;
+let matchNo=requestedPairFixture>=0 ? requestedPairFixture :
+  Number.isFinite(Number(query.get('match'))) ? Math.abs(Math.trunc(Number(query.get('match')))) : hash32(sessionKey)%FIXTURES.length;
 const hoopsTuneSlot=Math.floor(Date.now()/(8*60*1000));
 const hoopsFresh=query.get('fresh')==='1';
 const requestedTuneRaw=query.get('at');
@@ -343,6 +363,7 @@ const COVERAGE_BY_ID=Object.fromEntries(COVERAGES.map(p=>[p.id,p]));
 
 // ---------- renderer / scene ----------
 const renderer = new THREE.WebGLRenderer({ antialias:true });
+prepareArcadeRenderer(renderer);
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -788,7 +809,7 @@ const carrier=()=>ball.holder;
 let quarterPending=false;
 let completedGames=0, lastFinal=null;
 let establishingHold=false,establishingTimer=0;
-function holdForEstablishing(){clearTimeout(establishingTimer);establishingHold=true;establishingTimer=setTimeout(()=>{establishingHold=false;},3050);}
+function holdForEstablishing(){if(window.__arcadeView){releaseEstablishingHold(true);return;}clearTimeout(establishingTimer);establishingHold=true;establishingTimer=setTimeout(()=>{establishingHold=false;},3050);}
 function releaseEstablishingHold(removeOverlay=false){clearTimeout(establishingTimer);establishingTimer=0;establishingHold=false;if(removeOverlay)window.CyberligaEstablishing?.remove();}
 let hoopsMomentDirector=null,hoopsBroadcastSpine=null,activeHoopsFixtureIndex=0,hoopsMomentFixtureId='';
 let hoopsMomentSequence=0,hoopsMomentCounters={steal:0,block:0,dunk:0,three_pointer:0};
@@ -2111,6 +2132,48 @@ function tuneIntoHoopsBroadcast(){
   say(`JOINING LIVE — Q${q} ${fmtGameClock(Math.max(0,qClock))} — ${PLAYBOOK_BY_ID[play.schemeId]?.label||'LIVE POSSESSION'}`,true);
 }
 tuneIntoHoopsBroadcast();
+// The arcade layer only replaces GPU submission. The existing player/rig updates
+// remain authoritative for movement, heading, jump height and ball attachment.
+installArcadeBroadcast({sportId:'basketball',renderer,readFrame:()=>({
+  sportId:'basketball',fixtureId:hoopsMomentFixtureId,time:tGlobal,
+  phase:phase==='PLAY'?play.state:phase,clock:Math.max(0,qClock),period:q,
+  teams:teams.map(team=>({
+    id:team.def.id,name:team.def.name,code:team.def.code,city:team.def.source.city,
+    score:team.score,colors:team.def.source.colors
+  })),
+  venue:{name:teams[0].def.brand.venue,city:teams[0].def.source.city},
+  bounds:{halfX:HL,halfZ:HW},
+  entities:allPlayers().map(player=>{
+    const hasBall=ball.holder===player;
+    let action=hasBall?'dribble':Math.hypot(player.vel.x,player.vel.z)>.15?'run':'idle';
+    let progress=0;
+    if(play.dunk?.p===player){action='dunk';progress=clamp(play.dunk.t/play.dunk.dur,0,1);}
+    else if(play.shooter===player&&play.state==='WINDUP'){
+      action='shoot';progress=clamp(play.t/play.windDur,0,1);
+    }else if(ball.passer===player&&ball.state==='PASS'){
+      action='pass';progress=ball.T>0?clamp(ball.t/ball.T,0,1):0;
+    }else if(play.state==='MADE'&&play.scorer===player){action='celebrate';progress=clamp(play.t/1.25,0,1);}
+    else if(player.air){action=player.side!==play.offense?'contest':'jump';}
+    else if(player.screened>0){action='screened';}
+    else if(currentAction()[0]==='screen'&&player.side===play.offense&&player.role===currentAction()[1]){action='screen';}
+    return {
+      id:player.athlete.id,name:player.name,number:player.athlete.number,team:player.side,role:player.roleName,
+      x:player.pos.x,y:player.jumpY,z:player.pos.z,vx:player.vel.x,vz:player.vel.z,
+      facing:player.heading,action,progress,visible:true,hasBall,profile:player.athlete
+    };
+  }),
+  projectile:{
+    x:ball.pos.x,y:ball.pos.y,z:ball.pos.z,vx:ball.vel.x,
+    vy:ball.state==='HELD'?ball.vy:ball.vel.y,vz:ball.vel.z,
+    ownerId:ball.holder?.athlete.id||null,mode:ball.state
+  },
+  event:flashTimer>0?{title:elFT.textContent,detail:elFS.textContent,type:play.lastOutcome}:null,
+  presentation:{
+    attackSign:teams[play.offense].dir,possessionTeam:play.offense,shotClock:Math.max(0,shotClock),playCall:PLAYBOOK_BY_ID[play.schemeId]?.label||null,
+    equipment:{rimX:RIM_X,rimY:RIM_Y,rimRadius:RIM_R,boardX:BB_X,boardY:3.45,boardHalfWidth:.9,boardHeight:1.05,netDepth:.5,poleX:HL+1.3,poleHeight:3.9}
+  }
+})});
+releaseEstablishingHold(true);
 function tick(dt, skipRender=false, bypassEstablishing=false){
   if(!(skipRender&&bypassEstablishing))hoopsBroadcastSpine?.tick(dt*1000);
   if(establishingHold&&!bypassEstablishing){
