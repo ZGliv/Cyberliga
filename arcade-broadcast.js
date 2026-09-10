@@ -253,17 +253,57 @@ export function installArcadeBroadcast({sportId,renderer,readFrame}){
   const styleUrl=new URL('./arcade-broadcast.css',import.meta.url).href;
   if(!Array.from(document.querySelectorAll('link[rel=stylesheet]')).some(link=>link.href===styleUrl)){const link=document.createElement('link');link.rel='stylesheet';link.href=styleUrl;document.head.append(link);}
   const league=window.CyberligaBrand?.getLeague(sportId);
-  const lineups={soccer:'ON THE PITCH','american-football':'ON THE FIELD',basketball:'ON THE COURT',hockey:'ON THE ICE',baseball:'IN THE BALLPARK',combat:'IN THE RING'};
+  const lineups={soccer:'On the pitch','american-football':'On the field',basketball:'On the court',hockey:'On the ice',baseball:'In the ballpark',combat:'In the ring'};
+  const channel=String(ARCADE_SPORTS.indexOf(sport)+1).padStart(2,'0');
   document.documentElement.classList.add('arcade-mode');
-  const root=document.createElement('div');root.id='arcade-root';
-  root.innerHTML=`<header class="ab-header"><a class="ab-brand" href="world.html"><i class="ab-brand-mark" aria-hidden="true"></i>CYBERLIGA</a><span class="ab-edition">SIX SPORTS. ONE WORLD.</span><nav class="ab-nav" aria-label="Primary navigation"><a href="world.html">Home</a><a href="league.html?sport=${sportId}">Leagues</a></nav></header><main class="ab-layout"><section class="ab-broadcast" aria-label="${sport.name} autonomous broadcast"><nav class="ab-sport-strip" aria-label="Sports broadcasts">${ARCADE_SPORTS.map(s=>`<a href="${s.arena}" ${s.id===sportId?'aria-current="page"':''}>${s.short}</a>`).join('')}</nav><div class="ab-scoreboard"><div class="ab-team"><i class="ab-side"></i><div class="ab-team-copy"><span class="ab-team-name" data-team-name="0"></span><span class="ab-team-city" data-team-city="0"></span></div><b class="ab-score" data-score="0">0</b></div><div class="ab-clock"><strong id="ab-clock">—</strong><small id="ab-period">${sport.short}</small></div><div class="ab-team away"><i class="ab-side"></i><div class="ab-team-copy"><span class="ab-team-name" data-team-name="1"></span><span class="ab-team-city" data-team-city="1"></span></div><b class="ab-score" data-score="1">0</b></div></div><div class="ab-stage"><canvas id="arcade-canvas" aria-label="Live pixel ${sport.name.toLowerCase()} match"></canvas><div class="ab-channel"><b>AUTONOMOUS</b><span>${sport.short} / CYBERLIGA</span></div><div class="ab-venue" id="ab-venue"></div><div class="ab-watermark">CL / ${String(ARCADE_SPORTS.indexOf(sport)+1).padStart(2,'0')}</div></div><div class="ab-playline"><span>THE PLAY</span><div><strong id="ab-event">${sport.name}</strong><small id="ab-detail">${sport.subtitle}</small></div></div></section><aside class="ab-rail"><p class="ab-kicker">${esc(league?.code||sport.short)} / ${sport.name}</p><h1>${esc(league?.short||sport.name)}</h1><p class="ab-rail-intro">${sport.subtitle}</p><div class="ab-venue-card"><span>THE HOME GROUND</span><strong id="ab-home-venue"></strong><p id="ab-home-statement"></p></div><div class="ab-section-title">${lineups[sportId]} <span id="ab-roster-count"></span></div><div id="ab-cast"></div><a class="ab-club-link" id="ab-clubs" href="league.html?sport=${sportId}">Explore the league <span aria-hidden="true">↗</span></a><p class="ab-rail-note">Pick a club. Learn the names.<br>See who makes the next play.</p></aside></main><footer class="ab-footer"><strong><i aria-hidden="true"></i> AUTONOMOUS SPORTS</strong><span class="ab-foot-detail">48 CLUBS · 416 ATHLETES</span><span>SIX SPORTS. ONE WORLD.</span></footer>`;
+  const root=document.createElement('div');root.id='arcade-root';root.dataset.sport=sportId;
+  root.innerHTML=`
+    <header class="ab-header">
+      <a class="ab-brand cl-brand" href="world.html" aria-label="Cyberliga Home"><i class="ab-brand-mark cl-brand-mark" aria-hidden="true"></i><span class="cl-brand-name">CYBERLIGA</span></a>
+      <nav class="ab-sport-strip watch-only-exit" aria-label="Sports broadcasts">${ARCADE_SPORTS.map(s=>`<a href="${s.arena}" ${s.id===sportId?'aria-current="page"':''}>${s.short}</a>`).join('')}</nav>
+      <nav class="ab-nav cl-primary-nav" aria-label="Primary navigation"><a href="world.html">Home</a><a href="league.html?sport=${sportId}">Leagues</a></nav>
+    </header>
+    <main class="ab-layout">
+      <section class="ab-broadcast" aria-label="${sport.name} autonomous broadcast">
+        <div class="ab-scoreboard" aria-label="Current score">
+          <a class="ab-team" data-team-link="0" href="league.html?sport=${sportId}"><span class="ab-team-crest" data-team-crest="0" aria-hidden="true"></span><span class="ab-team-copy"><span class="ab-team-city" data-team-city="0"></span><span class="ab-team-name" data-team-name="0"></span><span class="ab-side-label"><i class="ab-side"></i>Cyan</span></span><b class="ab-score" data-score="0">0</b></a>
+          <div class="ab-clock"><span class="ab-score-label">${sportId==='combat'?'LANDED':sportId==='baseball'?'COUNT':'GAME CLOCK'}</span><strong id="ab-clock">—</strong><small id="ab-period">${sport.short}</small></div>
+          <a class="ab-team away" data-team-link="1" href="league.html?sport=${sportId}"><span class="ab-team-crest" data-team-crest="1" aria-hidden="true"></span><span class="ab-team-copy"><span class="ab-team-city" data-team-city="1"></span><span class="ab-team-name" data-team-name="1"></span><span class="ab-side-label"><i class="ab-side"></i>Pink</span></span><b class="ab-score" data-score="1">0</b></a>
+        </div>
+        <div class="ab-stage">
+          <canvas id="arcade-canvas" aria-label="Live pixel ${sport.name.toLowerCase()} match"></canvas>
+          <div class="ab-channel"><span class="ab-on-air"><i aria-hidden="true"></i>ON AIR</span><span>${sport.name}</span></div>
+          <div class="ab-venue" id="ab-venue"></div>
+          <div class="ab-playline"><span class="ab-play-mark" aria-hidden="true"></span><div><strong id="ab-event">${sport.name}</strong><small id="ab-detail">${sport.subtitle}</small></div></div>
+          <div class="ab-watermark" aria-hidden="true"><i class="cl-brand-mark"></i><span>${channel}</span></div>
+        </div>
+      </section>
+      <aside class="ab-rail watch-only-exit" aria-label="Match context">
+        <div class="ab-rail-heading"><p class="ab-kicker">${esc(league?.code||sport.short)} / ${sport.name}</p><h1>${esc(league?.short||sport.name)}</h1><a href="league.html?sport=${sportId}" class="ab-league-link">League HQ <span aria-hidden="true">↗</span></a></div>
+        <section class="ab-spotlight" aria-label="Player spotlight">
+          <div class="ab-section-title">Player spotlight <span id="ab-spotlight-side"></span></div>
+          <a id="ab-spotlight-link" class="ab-spotlight-card" href="league.html?sport=${sportId}">
+            <div class="ab-spotlight-art"><span id="ab-spotlight-number" aria-hidden="true"></span><canvas id="ab-spotlight-portrait" width="32" height="42" aria-label="Featured athlete"></canvas></div>
+            <div class="ab-spotlight-copy"><span id="ab-spotlight-role"></span><strong id="ab-spotlight-name"></strong><small id="ab-spotlight-club"></small></div>
+          </a>
+          <p class="ab-signature"><span>Signature</span><strong id="ab-spotlight-signature"></strong></p>
+        </section>
+        <section class="ab-cast-section" aria-label="Athletes in this match"><div class="ab-section-title">${lineups[sportId]} <span id="ab-roster-count"></span></div><div id="ab-cast"></div></section>
+        <div class="ab-venue-card"><span>Home ground</span><strong id="ab-home-venue"></strong><p id="ab-home-statement"></p><a id="ab-clubs" href="league.html?sport=${sportId}">Meet the home club <span aria-hidden="true">↗</span></a></div>
+      </aside>
+    </main>`;
   // Navigation exits the view-only game; it is explicitly exempt from its input guard.
   root.querySelectorAll('a').forEach(anchor=>anchor.classList.add('watch-only-exit'));
-  root.querySelectorAll('.ab-rail,.ab-sport-strip').forEach(panel=>panel.classList.add('watch-only-exit'));
   document.body.append(root);
-  const canvas=root.querySelector('canvas'),painter=createArenaPainter(canvas,sportId),nodes={clock:root.querySelector('#ab-clock'),period:root.querySelector('#ab-period'),event:root.querySelector('#ab-event'),detail:root.querySelector('#ab-detail'),venue:root.querySelector('#ab-venue'),homeVenue:root.querySelector('#ab-home-venue'),homeStatement:root.querySelector('#ab-home-statement')};
+  const canvas=root.querySelector('#arcade-canvas'),painter=createArenaPainter(canvas,sportId);
+  const get=id=>root.querySelector('#ab-'+id);
+  const nodes={clock:get('clock'),period:get('period'),event:get('event'),detail:get('detail'),venue:get('venue'),homeVenue:get('home-venue'),homeStatement:get('home-statement'),clubs:get('clubs'),cast:get('cast'),rosterCount:get('roster-count'),spotlightLink:get('spotlight-link'),spotlightPortrait:get('spotlight-portrait'),spotlightNumber:get('spotlight-number'),spotlightRole:get('spotlight-role'),spotlightName:get('spotlight-name'),spotlightClub:get('spotlight-club'),spotlightSignature:get('spotlight-signature'),spotlightSide:get('spotlight-side')};
+  const teamNodes=[0,1].map(i=>({link:root.querySelector(`[data-team-link="${i}"]`),crest:root.querySelector(`[data-team-crest="${i}"]`),name:root.querySelector(`[data-team-name="${i}"]`),city:root.querySelector(`[data-team-city="${i}"]`),score:root.querySelector(`[data-score="${i}"]`)}));
   const set=(el,text)=>{text=String(text??'');if(el.textContent!==text)el.textContent=text;};
-  let rosterKey='',lastDrawKey='',venueKey='';
+  const clubHref=team=>`league.html?sport=${encodeURIComponent(sportId)}&team=${encodeURIComponent(team.id)}`;
+  const canonicalAthlete=(entity,teams)=>{const team=teams?.[entity.team];return team&&window.CYBERLIGA_CONTENT?.getAthlete(team.id,entity.id);};
+  const athleteHref=(entity,teams)=>{const team=teams?.[entity.team],athlete=canonicalAthlete(entity,teams);return athlete?`player.html?sport=${encodeURIComponent(sportId)}&team=${encodeURIComponent(team.id)}&player=${encodeURIComponent(athlete.id)}`:team?clubHref(team):`league.html?sport=${sportId}`;};
+  let rosterKey='',lastDrawKey='',venueKey='',teamsKey='',spotlightKey='',spotlightAt=-Infinity;
   const api={sportId,drawCount:0,renderer:'authored-pixel-canvas',autonomous:true,interaction:'view-only',metrics:null,draw};
   window.__arcadeFrame=readFrame;window.__arcadeView=api;
   function draw(){
@@ -276,21 +316,40 @@ export function installArcadeBroadcast({sportId,renderer,readFrame}){
     // Legacy WebGL backing stores no longer present pixels; leave their engine
     // objects mounted but keep capture clients and GPU allocation on the new stage.
     api.drawCount++;api.metrics=painter.paint(frame);
-    // Every accepted engine frame updates the HUD, including deterministic QA steps.
     if(document.documentElement.dataset.arcadeReady!=='true')document.documentElement.dataset.arcadeReady='true';
-    (frame.teams||[]).slice(0,2).forEach((team,i)=>{let name=team.name||team.code||'';if(team.city&&name.toLowerCase().startsWith(team.city.toLowerCase()+' '))name=name.slice(team.city.length+1);set(root.querySelector(`[data-team-name="${i}"]`),name);set(root.querySelector(`[data-team-city="${i}"]`),team.city||team.code);set(root.querySelector(`[data-score="${i}"]`),team.score??0);});
-    const periodName=sportId==='combat'?'R':sportId==='baseball'?(frame.presentation?.battingTeam===0?'TOP ':'BOT '):sportId==='hockey'?'P':sportId==='soccer'?'HALF ':'Q';
-    set(nodes.clock,sportId==='baseball'?`${frame.presentation?.balls||0}–${frame.presentation?.strikes||0}`:clockText(frame.clock));set(nodes.period,periodName+(frame.period||1)+(sportId==='combat'?' · LANDED':sportId==='baseball'?` · ${frame.presentation?.outs||0} OUT`:''));set(nodes.venue,[frame.venue?.name,frame.venue?.city].filter(Boolean).join(' / '));
-    const phaseName={SET:'Finding the opening',BRINGUP:'Pushing up court',DRIVE:'Attacking the rim',WINDUP:'Shot on the way',MADE:'Buckets.',INBOUND:'Back in play',PASS:'Moving the ball',PLAY:'In play',FACEOFF:'At the faceoff',WALKON:'Entering the arena',OPEN_PLAY:'In play'};
-    set(nodes.event,frame.event?.title||phaseName[String(frame.phase).toUpperCase()]||String(frame.phase||sport.name).replaceAll('_',' '));set(nodes.detail,frame.event?.detail||(sportId==='basketball'&&frame.presentation?.shotClock!=null?`${Math.ceil(frame.presentation.shotClock)} on the shot clock${frame.presentation.playCall?' · '+frame.presentation.playCall:''}`:sport.subtitle));
+    (frame.teams||[]).slice(0,2).forEach((team,i)=>{let name=team.name||team.code||'';if(team.city&&name.toLowerCase().startsWith(team.city.toLowerCase()+' '))name=name.slice(team.city.length+1);set(teamNodes[i].name,name);set(teamNodes[i].city,team.city||team.code);set(teamNodes[i].score,team.score??0);const unit=sportId==='combat'?'punches landed':sportId==='baseball'?'runs':sportId==='soccer'||sportId==='hockey'?'goals':'points';const label=`${team.name}, ${team.score??0} ${unit}. Open club`;if(teamNodes[i].link.getAttribute('aria-label')!==label)teamNodes[i].link.setAttribute('aria-label',label);});
+    const nextTeamsKey=(frame.teams||[]).map(t=>t.id).join('|');
+    if(nextTeamsKey!==teamsKey){teamsKey=nextTeamsKey;(frame.teams||[]).slice(0,2).forEach((team,i)=>{teamNodes[i].link.href=clubHref(team);teamNodes[i].name.dataset.long=String(teamNodes[i].name.textContent.length>11);teamNodes[i].crest.innerHTML=window.CyberligaBrand?.crestSvg(team)?.replaceAll('cg-','ab-score-')||`<span>${esc(team.code)}</span>`;});}
+    const periodName=sportId==='combat'?'ROUND ':sportId==='baseball'?(frame.presentation?.battingTeam===0?'TOP ':'BOT '):sportId==='hockey'?'PERIOD ':sportId==='soccer'?'HALF ':'Q';
+    set(nodes.clock,sportId==='baseball'?`${frame.presentation?.balls||0}–${frame.presentation?.strikes||0}`:clockText(frame.clock));
+    const downRead=sportId==='american-football'&&Number.isFinite(frame.presentation?.down)&&Number.isFinite(frame.presentation?.toGo)?` · ${frame.presentation.down} & ${Math.ceil(frame.presentation.toGo)}`:'';
+    set(nodes.period,periodName+(frame.period||1)+(sportId==='baseball'?` · ${frame.presentation?.outs||0} OUT`:downRead));
+    set(nodes.venue,[frame.venue?.name,frame.venue?.city].filter(Boolean).join(' / '));
+    const phaseName={SET:'Finding the opening',BRINGUP:'Pushing up court',DRIVE:'Attacking the rim',WINDUP:sportId==='baseball'?'Into the windup':'Shot on the way',MADE:'Buckets.',INBOUND:'Back in play',PASS:'Moving the ball',PLAY:'In play',FACEOFF:'At the faceoff',WALKON:'Entering the arena',OPEN_PLAY:'In play'};
+    set(nodes.event,frame.event?.title||phaseName[String(frame.phase).toUpperCase()]||String(frame.phase||sport.name).replaceAll('_',' '));
+    const playContext=sportId==='basketball'&&frame.presentation?.shotClock!=null?`${Math.ceil(frame.presentation.shotClock)} on the shot clock${frame.presentation.playCall?' · '+frame.presentation.playCall:''}`:frame.venue?.name||sport.subtitle;
+    set(nodes.detail,frame.event?.detail||playContext);
     const home=frame.teams?.find(team=>window.CyberligaBrand?.getTeam(team.id)?.venue===frame.venue?.name)||frame.teams?.[0];
     const brand=home&&window.CyberligaBrand?.getTeam(home.id);
     const nextVenueKey=[home?.id,frame.venue?.name].join('|');
-    if(nextVenueKey!==venueKey){venueKey=nextVenueKey;set(nodes.homeVenue,frame.venue?.name||home?.city||'CYBERLIGA');set(nodes.homeStatement,brand?.statement||frame.venue?.city||sport.subtitle);root.style.setProperty('--ab-club-accent',color(home?.colors?.accent,'#2b4ef0'));}
-    const entities=(frame.entities||[]).filter(e=>e.visible!==false);set(root.querySelector('#ab-roster-count'),String(entities.length).padStart(2,'0'));
-    // Keep two recognizable faces from each side steady while possessions change.
-    const selected=[...entities.filter(e=>e.team===0).slice(0,2),...entities.filter(e=>e.team===1).slice(0,2)];
-    const key=selected.map(e=>e.id).join('|');if(key!==rosterKey){rosterKey=key;const cast=root.querySelector('#ab-cast');cast.innerHTML=selected.map((e,i)=>`<div class="ab-player" data-side="${e.team===1?1:0}"><canvas width="32" height="42" data-portrait="${i}"></canvas><div><b>${esc(e.name||'Athlete')}</b><small>${esc(e.number!=null?'#'+e.number:'')} · ${esc(e.role||'ATHLETE')}</small><span>${esc(frame.teams?.[e.team]?.code||'')}</span></div></div>`).join('');selected.forEach((e,i)=>cast.querySelector(`[data-portrait="${i}"]`).getContext('2d').drawImage(athleteSprite({...e,action:'',progress:0,portrait:true,colors:frame.teams?.[e.team]?.colors},sportId),0,0));}
+    if(nextVenueKey!==venueKey){venueKey=nextVenueKey;set(nodes.homeVenue,frame.venue?.name||home?.city||'CYBERLIGA');set(nodes.homeStatement,brand?.statement||frame.venue?.city||sport.subtitle);root.style.setProperty('--ab-club-accent',color(home?.colors?.accent,'#4264ff'));if(home)nodes.clubs.href=clubHref(home);}
+    const entities=(frame.entities||[]).filter(e=>e.visible!==false);set(nodes.rosterCount,`${entities.length} athletes`);
+    // Engine depth stand-ins remain on the field but are not canonical athlete files.
+    const profileEntities=entities.filter(e=>canonicalAthlete(e,frame.teams));
+    // The rail follows genuine engine participants, but a spotlight holds long
+    // enough to read. It never claims the featured athlete still owns the ball.
+    const candidate=profileEntities.find(e=>e.hasBall||e.id===frame.projectile?.ownerId)||profileEntities.find(e=>/shoot|dunk|punch|strike|bat|pitch|celebrate/.test(String(e.action)))||profileEntities.find(e=>e.id===spotlightKey)||profileEntities[0];
+    if(candidate&&(candidate.id!==spotlightKey&&(finite(frame.time)-spotlightAt>2.4||!entities.some(e=>e.id===spotlightKey))||!spotlightKey)){
+      spotlightKey=candidate.id;spotlightAt=finite(frame.time);
+      const team=frame.teams?.[candidate.team],profile=candidate.profile||{},canonical=window.CYBERLIGA_CONTENT?.getAthlete(team?.id,candidate.id),character=window.CyberligaCharacters?.get(candidate.id);
+      nodes.spotlightLink.href=athleteHref(candidate,frame.teams);nodes.spotlightLink.dataset.side=candidate.team===1?'1':'0';
+      set(nodes.spotlightNumber,candidate.number!=null?String(candidate.number).padStart(2,'0'):'');set(nodes.spotlightRole,candidate.role||canonical?.role||'Athlete');set(nodes.spotlightName,candidate.name||canonical?.name||'Athlete');set(nodes.spotlightClub,team?.name||team?.code||'');set(nodes.spotlightSide,team?.code||'');set(nodes.spotlightSignature,character?.motionName||canonical?.signature||profile.signature||candidate.role||'Athlete');
+      const portrait=nodes.spotlightPortrait.getContext('2d');portrait.clearRect(0,0,32,42);portrait.drawImage(athleteSprite({...candidate,action:'',progress:0,portrait:true,colors:team?.colors},sportId),0,0);
+    }
+    // Two stable, named participants from each side lead to their canonical files.
+    const selected=[...profileEntities.filter(e=>e.team===0).slice(0,2),...profileEntities.filter(e=>e.team===1).slice(0,2)];
+    const key=selected.map(e=>e.id).join('|');
+    if(key!==rosterKey){rosterKey=key;nodes.cast.innerHTML=selected.map((e,i)=>`<a class="ab-player watch-only-exit" data-side="${e.team===1?1:0}" href="${athleteHref(e,frame.teams)}"><canvas width="32" height="42" data-portrait="${i}" aria-hidden="true"></canvas><span><b>${esc(e.name||'Athlete')}</b><small>${esc(e.role||'Athlete')}<span>${esc(frame.teams?.[e.team]?.code||'')}</span></small></span><span class="ab-player-number">${esc(e.number!=null?'#'+e.number:'')}</span></a>`).join('');selected.forEach((e,i)=>nodes.cast.querySelector(`[data-portrait="${i}"]`).getContext('2d').drawImage(athleteSprite({...e,action:'',progress:0,portrait:true,colors:frame.teams?.[e.team]?.colors},sportId),0,0));}
   }
   // No second requestAnimationFrame: the original engine remains the only time owner.
   renderer.render=draw;

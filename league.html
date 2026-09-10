@@ -4,156 +4,68 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>CYBERLIGA — League HQ</title>
-  <meta name="description" content="Explore six Cyberliga leagues, 48 city clubs, 24 live channels, stadiums, uniforms, supporters, rosters, rivalries, and results." />
-  <meta name="theme-color" content="#f4f4ed" />
+  <meta name="description" content="Find a broadcast, choose your city club and meet the athletes across all six Cyberliga leagues." />
+  <meta name="theme-color" content="#101114" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="CYBERLIGA — Find Your League" />
   <meta property="og:description" content="Six sports. 48 city clubs. Meet the athletes, choose a team and catch a game." />
-  <meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png" />
+  <meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png?v=20260910" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="cyberliga-mark.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="league.css" />
   <link rel="stylesheet" href="fanworld.css" />
-  <link rel="stylesheet" href="arcade-world.css" />
+  <link rel="preload" href="assets/fonts/manrope-400-800-latin.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="assets/fonts/barlow-condensed-800-latin.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="stylesheet" href="network-ui.css" />
+  <link rel="stylesheet" href="network-league.css" />
 </head>
-<body class="arcade-leagues">
+<body class="arcade-leagues network-league">
   <a class="skip-link" href="#clubs">Skip to clubs</a>
-  <div class="site-grain" aria-hidden="true"></div>
-
   <header class="league-masthead">
-    <a class="league-brand" href="world.html" aria-label="Cyberliga world home">
-      <strong>CYBERLIGA</strong><i aria-hidden="true"></i><span>WORLD SPORTS, ALWAYS ON</span>
-    </a>
-    <nav class="league-nav" aria-label="Primary navigation">
-      <a href="world.html">HOME</a>
-      <a class="active" href="league.html?sport=soccer" aria-current="page">LEAGUES</a>
-    </nav>
+    <a class="cl-brand" href="world.html" aria-label="Cyberliga home"><i class="cl-brand-mark" aria-hidden="true"></i><span class="cl-brand-name">CYBERLIGA</span></a>
+    <nav class="league-nav cl-primary-nav" aria-label="Primary navigation"><a href="world.html">Home</a><a class="active" href="league.html" aria-current="page">Leagues</a></nav>
   </header>
 
   <main id="league-hq">
+    <nav class="sport-switcher" id="sport-switcher" aria-label="Cyberliga leagues"></nav>
     <section class="league-hero" id="league-hero" aria-labelledby="league-name">
-      <img class="league-hero-image" id="league-hero-image" alt="" hidden />
-      <div class="league-hero-shade" aria-hidden="true"></div>
-
-      <nav class="sport-switcher" id="sport-switcher" aria-label="Cyberliga leagues"></nav>
-
       <div class="league-hero-copy">
-        <p class="network-kicker"><span id="league-code">SCL</span> / MEET YOUR LEAGUE</p>
-        <h1 id="league-name">Soccer.</h1>
+        <div class="league-labels"><p class="network-kicker"><span id="league-code">SCL</span><span id="league-architecture"></span></p><button class="league-share" id="copy-league" type="button">Share league <span aria-hidden="true">↗</span></button></div>
+        <h1 id="league-name">Soccer</h1>
         <p class="league-thesis" id="league-thesis"></p>
-        <p class="league-architecture" id="league-architecture"></p>
-        <div class="hero-actions">
-          <a class="primary-action" id="arena-link" href="index.html">WATCH A GAME <span>↗</span></a>
-          <a href="#clubs">FIND YOUR CLUB <span>↓</span></a>
-          <button id="copy-league" type="button" aria-label="Share this league">SHARE LEAGUE <span aria-hidden="true">↗</span></button>
-        </div>
+        <div class="world-proof" aria-label="League network totals"><span><strong>08</strong> Clubs</span><span><strong id="aw-league-athletes">48</strong> Athletes</span><span><strong>04</strong> Broadcasts</span></div>
       </div>
-
-      <div class="aw-league-portrait">
-        <canvas id="league-pixel-lineup" aria-label="The selected club's pixel athletes"></canvas>
-        <div><span>ON THE TEAM SHEET</span><strong id="aw-hero-team"></strong><span id="aw-hero-city"></span></div>
-      </div>
-      <div class="world-proof" aria-label="League network totals">
-        <div><strong>08</strong><span>CITY CLUBS</span></div>
-        <div><strong id="aw-league-athletes">48</strong><span>ATHLETES</span></div>
-        <div><strong>04</strong><span>GAMES TO WATCH</span></div>
-        <div><strong>06</strong><span>SPORTS IN THE WORLD</span></div>
-      </div>
+      <div class="aw-league-portrait"><canvas id="league-pixel-lineup" aria-label="The selected club's pixel athletes"></canvas><div><strong id="aw-hero-team"></strong><span id="aw-hero-city"></span></div></div>
     </section>
 
     <section class="live-slate" aria-labelledby="live-slate-title">
-      <header class="section-heading compact-heading">
-        <div><p>NOW PLAYING</p><h2 id="live-slate-title">Choose a broadcast.</h2></div>
-        <span id="broadcast-language"></span>
-      </header>
+      <header class="section-heading"><div><span class="section-indicator" aria-hidden="true"></span><h2 id="live-slate-title">On air</h2><span class="section-count">04</span></div><a id="arena-link" href="index.html">Watch a game <span aria-hidden="true">↗</span></a></header>
       <div class="channel-grid" id="channel-grid"></div>
     </section>
 
     <section class="clubs-section" id="clubs" aria-labelledby="clubs-title">
-      <header class="section-heading">
-        <div><p>THE CLUBS</p><h2 id="clubs-title">Find your people.</h2></div>
-        <span>Eight cities. Eight personalities. Pick the one you want to follow.</span>
-      </header>
+      <header class="section-heading"><div><h2 id="clubs-title">Choose your club</h2><span class="section-count">08</span></div><span>Find your city. Know your side.</span></header>
       <div class="club-grid" id="club-grid"></div>
     </section>
 
     <section class="club-dossier" id="club-dossier" aria-labelledby="club-name">
-      <header class="dossier-header">
-        <div class="dossier-crest" id="dossier-crest"></div>
-        <div class="dossier-title">
-          <p id="club-location"></p>
-          <h2 id="club-name"></h2>
-          <span id="club-statement"></span>
-        </div>
-        <div class="color-system" id="color-system" aria-label="Club colors"></div>
-      </header>
-
-      <div class="dossier-stage">
-        <div class="venue-scene" id="venue-scene"></div>
-        <div class="venue-caption">
-          <p>HOME VENUE / AUTHORED CONCEPT</p>
-          <h3 id="venue-name"></h3>
-          <span id="venue-line"></span>
-          <a id="club-arena-link" href="index.html">WATCH THIS CLUB <b>↗</b></a>
-        </div>
-      </div>
-
-      <div class="club-world-grid">
-        <article>
-          <p>IN THE STANDS</p>
-          <h3>The home ritual.</h3>
-          <span id="crowd-ritual"></span>
-        </article>
-        <article>
-          <p>PLAYING IDENTITY</p>
-          <h3 id="motion-title"></h3>
-          <span id="motion-line"></span>
-        </article>
-        <article>
-          <p>THE RIVAL</p>
-          <h3 id="rival-name"></h3>
-          <span id="rival-line"></span>
-        </article>
-      </div>
-
-      <section class="uniform-section" aria-labelledby="uniform-title">
-        <header class="subsection-heading">
-          <div><p>THE COLORS</p><h3 id="uniform-title">Wear your city.</h3></div>
-          <span>The club palette and patterns behind the broadcast identity.</span>
-        </header>
-        <div class="kit-grid" id="kit-grid"></div>
-      </section>
-
-      <section class="roster-section" aria-labelledby="roster-title">
-        <header class="subsection-heading">
-          <div><p>THE CHARACTERS</p><h3 id="roster-title">Meet the roster.</h3></div>
-          <span id="roster-count"></span>
-        </header>
+      <header class="dossier-header"><div class="dossier-crest" id="dossier-crest"></div><div class="dossier-title"><p id="club-location"></p><h2 id="club-name"></h2><span id="club-statement"></span></div><a id="club-arena-link" href="index.html">Watch this club <span aria-hidden="true">↗</span></a></header>
+      <nav class="dossier-tabs" aria-label="Club information" role="tablist"><button id="roster-tab" role="tab" aria-selected="true" aria-controls="roster-panel" tabindex="0" data-dossier-tab="roster">Roster <span id="dossier-roster-count"></span></button><button id="profile-tab" role="tab" aria-selected="false" aria-controls="club-profile" tabindex="-1" data-dossier-tab="profile">Club &amp; rivalry</button></nav>
+      <section class="roster-section" id="roster-panel" role="tabpanel" aria-labelledby="roster-tab" tabindex="0">
+        <div class="roster-heading"><h3 id="roster-title">Meet the athletes</h3><span id="roster-count"></span></div>
         <nav class="roster-filters" id="roster-filters" aria-label="Filter roster" hidden></nav>
         <div class="roster-grid" id="roster-grid"></div>
       </section>
-    </section>
-
-    <section class="league-record" aria-labelledby="record-title">
-      <header class="section-heading">
-        <div><p>AROUND THE LEAGUE</p><h2 id="record-title">The league record.</h2></div>
-        <span id="record-source">LOADING LEAGUE RECORDS</span>
-      </header>
-      <div class="record-layout">
-        <div class="standings-shell" id="standings-shell"></div>
-        <div class="fixture-list" id="fixture-list"></div>
-      </div>
+      <section class="club-profile" id="club-profile" role="tabpanel" aria-labelledby="profile-tab" tabindex="0" hidden>
+        <div class="club-profile-grid">
+          <article class="venue-card"><div class="venue-scene" id="venue-scene"></div><div class="venue-caption"><p>Home ground</p><h3 id="venue-name"></h3><span id="venue-line"></span><small>Illustrated venue concept</small></div></article>
+          <div class="club-world-grid"><article><p>In the stands</p><h3>The home ritual</h3><span id="crowd-ritual"></span></article><article><p>Club identity</p><h3 id="motion-title"></h3><span id="motion-line"></span></article><a class="rival-card" id="rival-club-link" href="league.html"><p>The rivalry</p><h3 id="rival-name"></h3><span id="rival-line"></span><b>Meet the rival <span aria-hidden="true">↗</span></b></a></div>
+        </div>
+        <details class="uniform-section"><summary><span>Club colors &amp; kits</span><span aria-hidden="true">+</span></summary><div class="kit-grid" id="kit-grid"></div><p class="kit-note">Illustrated club kit concepts.</p></details>
+      </section>
     </section>
   </main>
 
-  <footer class="league-footer">
-    <div><b>CYBERLIGA</b><span>ONE WORLD / SIX LEAGUES / FORTY-EIGHT CITIES</span></div>
-    <p>Every club has a city. Every athlete has a story. Find the one you want to follow.</p>
-    <a href="world.html">RETURN TO THE WORLD <span>↑</span></a>
-  </footer>
+  <footer class="league-footer"><span>Six sports. One world.</span><a href="world.html">Explore the world <span aria-hidden="true">↗</span></a><span>48 clubs · 416 athletes</span></footer>
 
   <script src="worlddata.js"></script>
   <script src="characterdata.js"></script>

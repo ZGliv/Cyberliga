@@ -3,123 +3,65 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#f4f4ed" />
+  <meta name="theme-color" content="#101114" />
   <title>Athlete File / Cyberliga</title>
-  <meta name="description" content="Meet a Cyberliga athlete: form, folklore, rivalries, and the moments that made the world watch." />
+  <meta name="description" content="Meet a Cyberliga athlete: characters, signature moves, rivalries, and the clubs they represent." />
   <meta property="og:type" content="profile" />
   <meta property="og:site_name" content="Cyberliga" />
   <meta property="og:url" content="https://cyberliga-ten.vercel.app/player.html" />
   <meta property="og:title" content="Cyberliga Athlete File" />
   <meta property="og:description" content="A permanent character destination from the living Cyberliga sports world." />
-  <meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png" />
+  <meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png?v=20260910" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Cyberliga Athlete File" />
-  <meta name="twitter:description" content="Form, folklore, rivalries, and the moments that made the world watch." />
+  <meta name="twitter:description" content="Characters, signature moves, rivalries, and the clubs they represent." />
   <link rel="canonical" href="https://cyberliga-ten.vercel.app/player.html" />
-  <link rel="stylesheet" href="player.css" />
+  <link rel="preload" href="assets/fonts/manrope-400-800-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/barlow-condensed-800-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="network-ui.css" />
   <link rel="stylesheet" href="fanworld.css" />
+  <link rel="stylesheet" href="player.css" />
 <link rel="icon" href="cyberliga-mark.svg" type="image/svg+xml" />
 </head>
-<body>
-  <a class="skip-link" href="#athlete-main">Skip to athlete file</a>
-  <header class="masthead">
-    <a class="brand" href="world.html" aria-label="Cyberliga world home"><i class="brand-mark" aria-hidden="true">C</i><b>CYBERLIGA</b><span>ATHLETE FILE</span></a>
-    <div class="issue"><span id="issue-sport">WORLD SPORT</span><b id="issue-code">FILE 000</b></div>
-    <nav aria-label="Primary navigation">
-      <a href="world.html">Home</a><a href="league.html" id="top-league">Leagues</a>
-    </nav>
+<body class="athlete-file">
+  <a class="cl-skip" href="#athlete-main">Skip to athlete</a>
+  <header class="player-masthead">
+    <a class="cl-brand" href="world.html" aria-label="Cyberliga Home"><i class="cl-brand-mark" aria-hidden="true"></i><span class="cl-brand-name">CYBERLIGA</span></a>
+    <span class="masthead-context">The roster</span>
+    <nav class="cl-primary-nav" aria-label="Primary navigation"><a href="world.html">Home</a><a href="league.html" id="top-league">Leagues</a></nav>
   </header>
-
   <main id="athlete-main" tabindex="-1">
-    <section class="hero" id="hero" aria-labelledby="player-name">
-      <div class="hero-copy">
-        <p class="kicker"><span id="league-name">CYBERLIGA</span><i></i><span id="team-city">WORLD</span></p>
-        <h1 id="player-name">Loading athlete…</h1>
-        <p class="dek" id="player-dek">Opening a permanent file from the living league.</p>
-        <div class="identity-line" aria-label="Athlete identity">
-          <strong id="player-number">#00</strong>
-          <span><b id="player-role">ATHLETE</b><small id="player-archetype">WORLD-BUILDER</small></span>
-        </div>
-        <div class="hero-actions">
-          <a class="primary-action" id="arena-link" href="index.html">WATCH THE ARENA <span>↗</span></a>
-          <button id="share-button" type="button">COPY THIS FILE <span aria-hidden="true">⎘</span></button>
-        </div>
-        <p class="share-status" id="share-status" role="status" aria-live="polite"></p>
-      </div>
-
+    <nav class="player-breadcrumb" aria-label="Breadcrumb"><a id="club-breadcrumb" href="league.html">The clubs</a><span aria-hidden="true">/</span><span>Athlete profile</span></nav>
+    <section class="player-hero" aria-labelledby="player-name">
       <figure class="portrait" id="portrait" aria-labelledby="portrait-caption">
-        <span class="portrait-label">THE ROSTER / CYBERLIGA</span>
+        <div class="portrait-top"><span id="portrait-crest" aria-hidden="true"></span><span id="portrait-league">CYBERLIGA</span></div>
         <span class="portrait-number" id="portrait-number" aria-hidden="true">00</span>
         <canvas class="athlete-portrait" id="athlete-portrait" role="img"></canvas>
-        <figcaption id="portrait-caption"><b id="portrait-team">CLUB</b><span id="portrait-motion">A body built for its own strange physics.</span></figcaption>
+        <figcaption id="portrait-caption"><span id="portrait-team">CLUB</span><strong id="portrait-name">THE ROSTER</strong><span id="portrait-motion">Opening athlete profile</span></figcaption>
       </figure>
-
-      <aside class="hero-index" aria-label="File index">
-        <span>EST.</span><b id="debut-year">2024</b><span>CLUB</span><b id="team-code">CLG</b><span>FORM</span><b id="form-grade">A</b>
-      </aside>
-    </section>
-
-    <section class="ticker" aria-label="Athlete bulletin"><div><b id="ticker-name">ATHLETE</b><span id="ticker-copy">THE WORLD IS STILL WRITING THIS FILE</span><b aria-hidden="true">✦</b><span id="ticker-rivalry">A NEW RIVALRY WAITS</span></div></section>
-
-    <section class="story-grid" aria-label="Athlete story">
-      <article class="manifesto">
-        <p class="section-number">01 / THE PERSON</p>
-        <h2 id="temperament-title">Pressure reveals the silhouette.</h2>
-        <p class="big-copy" id="temperament-copy"></p>
-        <dl class="traits">
-          <div><dt>Signature</dt><dd id="signature"></dd></div>
-          <div><dt>Complication</dt><dd id="flaw"></dd></div>
-          <div><dt>Built like</dt><dd id="silhouette"></dd></div>
-          <div><dt>Club language</dt><dd id="club-motion"></dd></div>
-        </dl>
-      </article>
-
-      <article class="form-card">
-        <div class="section-head"><p class="section-number">02 / FORM SNAPSHOT</p><span id="form-label">SAMPLE DATA</span></div>
-        <div class="form-score"><strong id="rating">00</strong><span>FORM<br />INDEX</span><i id="trend-arrow">↗</i></div>
-        <div class="form-chart" id="form-chart" role="img" aria-label="Five-match form chart"></div>
-        <div class="stat-grid" id="season-stats" aria-label="Illustrative season statistics"></div><p class="data-note">Illustrative player profile. These numbers are not a live season record.</p>
-      </article>
-    </section>
-
-    <section class="career" aria-labelledby="career-title">
-      <div class="career-lead">
-        <p class="section-number">03 / CHARACTER BACKSTORY</p>
-        <h2 id="career-title">The story so far.</h2>
-        <p id="career-copy"></p>
-      </div>
-      <div class="career-numbers" id="career-numbers"></div>
-      <blockquote><p id="quote"></p><footer id="quote-credit"></footer></blockquote>
-    </section>
-
-    <section class="pressure" aria-labelledby="pressure-title">
-      <div class="pressure-art" aria-hidden="true"><span id="pressure-home">HOME</span><i>×</i><span id="pressure-away">AWAY</span></div>
-      <div class="pressure-copy">
-        <p class="section-number">04 / RIVALRY PRESSURE</p>
-        <h2 id="pressure-title">The old argument has a new face.</h2>
-        <p id="pressure-text"></p>
-        <a id="rivalry-link" href="league.html">MEET THE RIVALS <span>↗</span></a>
+      <div class="player-intro">
+        <p class="player-club"><span id="team-crest" aria-hidden="true"></span><a id="club-link" href="league.html"><span id="team-name">Cyberliga</span><small id="team-city">The world of sport</small></a></p>
+        <h1 id="player-name">Opening<br>the roster.</h1>
+        <p class="identity-line"><strong id="player-number">#00</strong><span id="player-role">ATHLETE</span><span id="player-archetype"></span></p>
+        <p class="player-dek" id="player-dek">Meeting the characters who make the league.</p>
+        <div class="hero-actions"><a class="cl-button" id="arena-link" href="index.html">Watch the matchup <span aria-hidden="true">↗</span></a><button class="cl-button cl-button--secondary" id="share-button" type="button">Share athlete <span aria-hidden="true">↗</span></button></div>
+        <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
+        <dl class="athlete-traits"><div class="signature-trait"><dt>Signature move</dt><dd id="signature"></dd></div><div><dt>Personality</dt><dd id="temperament"></dd></div><div><dt id="flaw-label">Club style</dt><dd id="flaw"></dd></div></dl>
       </div>
     </section>
-
-    <section class="headlines" aria-labelledby="headlines-title">
-      <div class="section-head"><div><p class="section-number">05 / CLUB NOTEBOOK</p><h2 id="headlines-title">Around the club.</h2></div><a id="wire-link" href="league.html">EXPLORE THE CLUB ↗</a></div>
-      <ol id="headline-list"></ol>
+    <section class="rivalry" aria-labelledby="rivalry-title">
+      <div class="rivalry-clubs" aria-hidden="true"><span id="rivalry-home-crest"></span><b>VS</b><span id="rivalry-away-crest"></span></div>
+      <div class="rivalry-copy"><p id="rivalry-name">A city rivalry</p><h2 id="rivalry-title">Every badge has a rival.</h2><span id="rivalry-venue"></span></div>
+      <a id="rivalry-link" class="cl-button cl-button--secondary" href="league.html">Meet the rivals <span aria-hidden="true">↗</span></a>
     </section>
-
     <section class="teammates" aria-labelledby="teammates-title">
-      <div class="section-head"><div><p class="section-number">06 / SAME COLORS</p><h2 id="teammates-title">Same badge. Same side.</h2></div><a id="team-link" href="league.html">FULL CLUB FILE ↗</a></div>
+      <div class="section-head"><div><p id="teammates-club">The rest of the club</p><h2 id="teammates-title">Same side.</h2></div><a id="team-link" href="league.html">Full roster <span aria-hidden="true">↗</span></a></div>
       <div class="teammate-rail" id="teammate-rail"></div>
     </section>
-
-    <section class="destinations" aria-labelledby="destinations-title">
-      <p class="section-number">KEEP MOVING</p><h2 id="destinations-title">Follow the league.</h2>
-      <nav id="destination-grid" aria-label="Athlete story destinations"></nav>
-    </section>
   </main>
-
-  <footer class="page-footer"><a href="world.html"><b>CYBERLIGA</b><span>SIX SPORTS. ONE STRANGE WORLD.</span></a><p id="footer-file">PERMANENT ATHLETE FILE</p></footer>
+  <footer class="player-footer"><a class="cl-brand" href="world.html"><i class="cl-brand-mark" aria-hidden="true"></i><span class="cl-brand-name">CYBERLIGA</span></a><p>Six sports. A world of characters.</p><a href="league.html">Explore the leagues ↗</a></footer>
   <script src="worlddata.js"></script>
+  <script src="branddata.js"></script>
   <script src="characterdata.js"></script>
   <script src="mythos.js"></script>
   <script src="athlete-moments.js"></script>

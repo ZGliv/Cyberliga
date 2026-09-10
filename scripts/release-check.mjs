@@ -44,8 +44,8 @@ const world = await readFile(path.join(root, 'world.html'), 'utf8');
 if (!/24\s+GAMES/i.test(world) || !/48\s+CLUBS/i.test(world)) {
   fail('world.html is not the accepted 24-game / 48-club release homepage');
 }
-if (!/data-home-edition=["']world-desk["']/i.test(world) || !/arcade-world\.css/i.test(world) || !/class=["'][^"']*liveboard/i.test(world)) {
-  fail('world.html is missing the accepted pixel World Desk schedule');
+if (!/data-home-edition=["']world-desk["']/i.test(world) || !/network-world\.css/i.test(world) || !/class=["'][^"']*liveboard/i.test(world)) {
+  fail('world.html is missing the current sports network schedule');
 }
 
 const commit = git('rev-parse', 'HEAD');

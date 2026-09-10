@@ -23,7 +23,7 @@ try {
     await page.goto(`${origin}/${route}`,{waitUntil:'commit'});
     await page.waitForFunction(() => {
       const loading = document.querySelector('.arcade-loading');
-      return loading && getComputedStyle(loading).visibility==='visible' && getComputedStyle(loading).backgroundColor==='rgb(244, 244, 237)';
+      return loading && getComputedStyle(loading).visibility==='visible' && getComputedStyle(loading).backgroundColor==='rgb(16, 17, 20)';
     });
     const boot = await page.evaluate(() => ({
       ready:document.documentElement.dataset.arcadeReady,

@@ -92,6 +92,7 @@ for (const arena of arenas) {
   const globeExits = htmlSource.match(/<a\b[^>]*class=["'][^"']*\bwatch-only-exit\b[^"']*["'][^>]*>[\s\S]*?<\/a>/gi) || [];
   const globeExitText = globeExits[0]?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   check(globeExits.length >= 3 && /class=["']arcade-loading["']/.test(htmlSource), `${arena.file} must expose a current loading shell with safe navigation`);
+  check(/network-ui\.css/.test(htmlSource), `${arena.file} must load shared fonts and design tokens before first paint`);
   check(/<html[^>]*class=["'][^"']*arcade-mode/.test(htmlSource) && /href=["']arcade-boot\.css["']/.test(htmlSource) && /href=["']arcade-broadcast\.css["']/.test(htmlSource), `${arena.file} must suppress retired arena UI before the engine initializes`);
   check(!/id=["'](?:wordmark|erapill)["']/i.test(htmlSource), `${arena.file} must not restore the obsolete top-left mode wordmark or era pill`);
   check(/(?:href\s*=\s*["']world\.html|location\.href\s*=\s*["']world\.html)/i.test(source), `${arena.file} has no route back to world.html`);
@@ -138,7 +139,9 @@ for (const page of supportingPages) {
 }
 
 const worldSource = await text('world.html');
-const worldDeskStyles = await text('world-desk.css');
+const worldDeskStyles = await text('network-world.css');
+const networkStyles = await text('network-ui.css');
+const networkLeagueStyles = await text('network-league.css');
 const worldShareUrl = worldSource.match(/property=["']og:image["']\s+content=["']([^"']+)["']/)?.[1] || '';
 const worldShareName = worldShareUrl ? new URL(worldShareUrl).pathname.split('/').pop() : '';
 const worldShareImage = worldShareName ? await readFile(path.join(ROOT, worldShareName)) : Buffer.alloc(0);
@@ -188,8 +191,8 @@ check(/root\.CyberligaEstablishing\s*=/.test(establishingSource) && /HOME RITUAL
 check(/brand\.sceneSvg\(home\)/.test(establishingSource) && /league\.hero/.test(establishingSource), 'Shared establishing package must combine league hero art with the selected club concept');
 check(/pointer-events:none/.test(establishingSource), 'Establishing shot must remain a non-interactive broadcast layer');
 
-const worldPrimaryNav = worldSource.match(/<nav class=["']nav["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
-const leaguePrimaryNav = leagueMarkupSource.match(/<nav class=["']league-nav["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
+const worldPrimaryNav = worldSource.match(/<nav[^>]*aria-label=["']Primary navigation["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
+const leaguePrimaryNav = leagueMarkupSource.match(/<nav[^>]*aria-label=["']Primary navigation["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
 const playerPrimaryNav = playerSource.match(/<nav[^>]*aria-label=["']Primary navigation["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
 const clipPrimaryNav = clipSource.match(/<nav[^>]*aria-label=["']Primary navigation["'][^>]*>[\s\S]*?<\/nav>/i)?.[0] || '';
 for (const [label, nav] of [['World', worldPrimaryNav], ['League HQ', leaguePrimaryNav], ['Athlete Files', playerPrimaryNav], ['Clip Viewer', clipPrimaryNav]]) {
@@ -241,22 +244,30 @@ for (const [sportId, source] of classicArenaSources) {
 check(!/buildAthleteRig/.test(footballScript) && /from\s+['"]\.\/blobrig\.js['"]/.test(footballScript), 'Football must render the accepted classic capsule athletes');
 
 check(/football\.html/.test(worldSource), 'World map does not route to American football');
-check(/data-home-edition=["']world-desk["']/.test(worldSource) && /world-desk\.css/.test(worldSource), 'World Home must load the restrained World Desk edition');
+check(/data-home-edition=["']world-desk["']/.test(worldSource) && /network-world\.css/.test(worldSource), 'World Home must load the current network edition with the accepted world hooks');
 check(/<title>CYBERLIGA — A Whole World of Sport<\/title>/.test(worldSource) && /<meta name=["']description["'][^>]*Six sports\. 48 city clubs\. 416 characters/i.test(worldSource) && !/(?:five leagues|5 leagues)/i.test(worldSource), 'World Home metadata must describe the canonical six-sport schedule and 48-club slate');
 check(worldShareImage.subarray(1, 4).toString('ascii') === 'PNG' && worldShareImage.readUInt32BE(16) === 1200 && worldShareImage.readUInt32BE(20) === 630, 'World Home social card must remain an exact 1200×630 PNG');
 check(/^cyberliga-share\.png$/.test(worldShareName), 'World Home must share the approved pixel release card rather than the retired edition');
 check(/property=["']og:image:alt["'][^>]*pixel/i.test(worldSource) && /name=["']twitter:image:alt["'][^>]*pixel/i.test(worldSource), 'World Home social image must describe the current pixel world accessibly');
-check(/>\s*Pick a game\.\s*</.test(worldSource) && /24 games · 48 clubs/i.test(worldSource) && /id=["']tonight-date["']/.test(worldSource) && /id=["']game-list["']/.test(worldSource), 'Arcade World must retain a dated, browsable sports schedule and the canonical slate');
+check(/>\s*Find your game\.\s*</.test(worldSource) && /24 games · 48 clubs/i.test(worldSource) && /id=["']tonight-date["']/.test(worldSource) && /id=["']game-list["']/.test(worldSource), 'Arcade World must retain a dated, browsable sports schedule and the canonical slate');
 check(!/(?:CHOOSE A GAME|ENTER THE ACTION|LIVE GAME NETWORK|ACQUIRING THE WORLD SIGNAL)/i.test(worldSource), 'World Home restored synthetic dashboard language');
 check(!/!quietWorldDesk\) ensureShell\(\)/.test(fanworldSource), 'Public world must not restore the retired supporter shell and synthetic story pulse');
 check(!/<style(?:\s|>)/i.test(worldSource), 'World Home must not retain the legacy inline dashboard stylesheet');
-check(/body::before[\s\S]{0,120}body::after[\s\S]{0,120}content:\s*none/.test(worldDeskStyles), 'World Desk must remove the scanline and cinematic dashboard overlays');
-check(/\.liveboard\s*\{[\s\S]{0,420}width:\s*410px[\s\S]{0,300}background:\s*var\(--board\)/.test(worldDeskStyles), 'World Desk must use one matte desktop schedule rail');
-check(/grid-template-columns:\s*repeat\(12,\s*minmax\(0,\s*1fr\)\)[\s\S]{0,120}grid-auto-rows:\s*46px/.test(worldDeskStyles) && /\.filter-tab:nth-child\(-n \+ 3\)[\s\S]{0,100}grid-column:\s*span 4/.test(worldDeskStyles) && /\.filter-tab:nth-child\(n \+ 4\)[\s\S]{0,100}border-bottom:\s*0/.test(worldDeskStyles), 'World Desk must expose all seven sports in a deliberate two-row grid');
-check(/@media \(max-width:\s*900px\)[\s\S]{0,1300}\.filter-tabs,[\s\S]{0,180}min-height:\s*88px[\s\S]{0,100}grid-auto-rows:\s*44px/.test(worldDeskStyles) && !/tabs\.scrollTo/.test(worldSource), 'World Desk phone filters must remain all-visible 44px touch targets rather than a clipped carousel');
-check(/@media \(max-width:\s*900px\)[\s\S]{0,900}\.liveboard\s*\{[\s\S]{0,260}height:\s*53dvh/.test(worldDeskStyles), 'World Desk must preserve a globe-first phone composition with room for the editorial lead');
-check(/\.game-drawer\s*\{[\s\S]{0,500}overflow-y:\s*auto[\s\S]{0,220}touch-action:\s*pan-y/.test(worldDeskStyles) && !/scroll-snap-type:\s*x/.test(worldDeskStyles), 'World Desk schedule must retain vertical touch panning rather than nested swipe rails');
-check(/\.fixture-team-name\s*\{[\s\S]{0,260}font:\s*700 15px/.test(worldDeskStyles) && /\.filter-tab \.sport-label\s*\{[\s\S]{0,180}font-size:\s*12px/.test(worldDeskStyles), 'World Desk club and sport labels must remain ordinary readable sports typography');
+check(/\.liveboard\s*\{[\s\S]{0,360}background:\s*var\(--cl-surface\)/.test(worldDeskStyles), 'Home must use the shared dark surface for its schedule');
+check(/grid-template-columns:\s*repeat\(12,\s*minmax\(0,\s*1fr\)\)[\s\S]{0,100}grid-auto-rows:\s*44px/.test(worldDeskStyles) && /\.filter-tab:nth-child\(-n \+ 3\)[\s\S]{0,100}grid-column:\s*span 4/.test(worldDeskStyles), 'Home must expose all seven sport filters in a readable grid');
+check(/\.filter-tab\s*\{[^}]*min-height:\s*44px/.test(worldDeskStyles) && !/tabs\.scrollTo/.test(worldSource), 'Home filters must preserve 44px targets without a clipped carousel');
+check(/@media \(max-width:\s*900px\)[\s\S]*\.world-layout\s*\{[^}]*height:\s*auto/.test(worldDeskStyles) && /\.game-drawer\s*\{\s*overflow:\s*visible/.test(worldDeskStyles), 'Phone Home must allow native page scrolling through the whole schedule');
+check(/\.game-drawer\s*\{[^}]*overflow-y:\s*auto[^}]*touch-action:\s*pan-y/.test(worldDeskStyles), 'Desktop schedule must preserve vertical touch panning');
+check(/\.fixture-team-name\s*\{[^}]*var\(--font-display\)/.test(worldDeskStyles), 'Club names must use the shared sports display typography');
+for (const [surface, markup] of [['Home',worldSource], ['League HQ',leagueMarkupSource], ['Athlete Files',playerSource]]) {
+  check(/network-ui\.css/.test(markup), surface+' must load the shared network design system');
+  check(!/href=["'](?:world-desk|arcade-world|league)\.css/.test(markup), surface+' must not mix in the retired public visual layers');
+}
+check(/font-display:\s*swap/.test(networkStyles) && /assets\/fonts\//.test(networkStyles) && /--font-display:\s*'Barlow Condensed'/.test(networkStyles) && /--font-body:\s*'Manrope'/.test(networkStyles), 'Network typography must be self-hosted with stable fallback fonts');
+check(/prefers-reduced-motion/.test(networkStyles) && /:focus-visible/.test(networkStyles), 'Shared navigation must retain keyboard focus and reduced-motion behavior');
+check(/role=["']tablist["']/.test(leagueMarkupSource) && /aria-controls=["']roster-panel["']/.test(leagueMarkupSource) && /aria-controls=["']club-profile["']/.test(leagueMarkupSource), 'Club dossier must use real accessible roster and profile panels');
+check(/\[hidden\]\s*\{\s*display:\s*none/.test(networkLeagueStyles), 'Inactive club information panels must remain hidden');
+check(/statisticsSource:'not-displayed'/.test(playerScript) && !/id=["'](?:form-chart|season-stats|career-numbers)["']/.test(playerSource), 'Athlete profiles must not expose fabricated season or career statistics');
 check(/section\.className=['"]league-group['"]/.test(worldSource) && /league-group-head/.test(worldSource) && /leagueBrand\?\.name/.test(worldSource) && !/fixtureStatus\(card\)/.test(worldSource), 'World Desk must group fixtures by named league and state the shared broadcast status once');
 check(!/function refreshRenderedSoccerCards\(soccerCards\)[\s\S]{0,620}\.lead-kicker/.test(worldSource), 'World Desk live ticks must not overwrite the featured rivalry or athlete kicker');
 check(/fixture-card-lead/.test(worldSource) && /Who to watch/.test(worldSource) && /rivalAthlete/.test(worldSource) && /clubNickname\(featuredTeam\)/.test(worldSource), 'World Desk must make one real athlete rivalry the editorial lead instead of repeating database telemetry');
@@ -276,8 +287,8 @@ check(/clubEmblemMarkup\(card\.home,card\.league\)/.test(worldSource) && /clubEm
 check(/const SPORT_ICONS = Object\.freeze/.test(worldSource) && ['soccer','american-football','basketball','hockey','baseball','combat'].every(sportId => worldSource.includes(`${sportId}:\``) || worldSource.includes(`'${sportId}':\``)), 'World sport selector must expose a distinct visual symbol for every sport');
 check(/class=["']sport-label["']/.test(worldSource) && /displaySport\(filter\.id\)/.test(worldSource), 'World sport selector must render readable full sport labels');
 check(/['"]american-football['"]\s*:\s*\{[\s\S]{0,500}?arena\s*:\s*['"]football\.html['"]/.test(atlasSource), 'League HQ does not route American football to football.html');
-check(/id=["']standings-shell["']/.test(atlasSource) && /class=["']standings-table["']/.test(atlasSource), 'League HQ is missing its standings table');
-check(/api\/league\?sport=/.test(atlasSource), 'League atlas does not load the shared league-state API');
+check(!/id=["']standings-shell["']/.test(atlasSource) && /standingsSource:\s*'not-displayed'/.test(atlasSource), 'League HQ must not present sample standings as a league record');
+check(/roster-panel/.test(atlasSource) && /club-profile/.test(atlasSource) && /club-arena-link/.test(atlasSource), 'League HQ must connect its club roster and profile to the selected broadcast');
 check(/id=["']roster-filters["']/.test(atlasSource), 'League atlas is missing football offense/defense roster filters');
 check(/class=["']athlete-links["']/.test(atlasSource) && /player\.html\?sport=/.test(atlasSource) && !/social\.html\?sport=/.test(atlasSource), 'League HQ must link permanent athlete profiles without returning to the retired World Wire');
 for (const arena of arenas) {

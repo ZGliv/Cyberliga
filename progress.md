@@ -1189,3 +1189,19 @@ Original prompt: Can you make boxing work way better? Make the actual fighting a
 - The merged verifier retains the World Desk release guards and adds permanent contracts for both adjudication
   repairs. Canonical World Desk markup, styling and evergreen social-image bytes remain unchanged from the prior
   production release.
+
+
+## 2026-09-10: sports network UI overhaul
+- User requested a dramatic aesthetic improvement before noon while preserving the games.
+- Feature branch `codex/noon-ui-overhaul` starts from canonical `41fc71e6205a2fc63abdfd47bbd428515a89229d`.
+- Unified Home, League HQ, Athlete Files and all six broadcasts around self-hosted Manrope / Barlow Condensed, charcoal surfaces, cobalt branding and canonical club crests.
+- Broadcast chrome now prioritizes readable scores and the game. Portrait play descriptions occupy a reserved footer below the canvas; actual game painting, sprites, simulation and seeded decisions are unchanged.
+- Home preserves the globe and 24-fixture network, adds a first-fold phone watch action and native vertical schedule browsing.
+- League HQ uses compact match and club grids, accessible roster/profile tabs, full football roster filters and honest venue/kit concepts in secondary detail. Removed illustrative standings from the public UI.
+- Athlete Files use genuine canonical identity, real pixel portraits, named signatures, club rivalries and teammate links. Removed generated form/career statistics and fictional news presented as a feed.
+- Sharing supports native share, clipboard, useful fallback copy and repeated taps without permanently changing button labels.
+- Baseball synthetic depth entities keep rendering but are excluded from canonical athlete-profile recommendations; unresolved links fall back to club HQ.
+- Browser evidence: `output/noon-broadcast`, `output/noon-home`, `output/noon-player-audit`, `output/noon-audit`, `output/network-ui`; League evidence additionally in `/tmp/noon-ui-audit`.
+- Targeted QA: all six broadcasts × desktop/phone/landscape; 48 club identities; football offense11/defense11/full22; player long names and twelve founding characters; native/copy/unavailable/repeated sharing; six complete page journeys. No page/console/request errors or horizontal overflow.
+- Release worktree inventory records all28 heads. Canonical clean; rejected root has38 pre-existing changes. Nine historical worktrees did not answer bounded filesystem status queries and are explicitly excluded from integration.
+- Release Manager must integrate only this feature and run the complete canonical gate before deploying.

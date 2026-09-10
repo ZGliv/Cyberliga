@@ -5,51 +5,53 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>CYBERLIGA — A Whole World of Sport</title>
 <meta name="description" content="Six sports. 48 city clubs. 416 characters. Explore the globe, find your team and watch the games unfold in Cyberliga." />
-<meta name="theme-color" content="#f4f4ed" />
+<meta name="theme-color" content="#101114" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="CYBERLIGA — A Whole World of Sport" />
 <meta property="og:description" content="Six sports. 48 city clubs. 416 characters. Find your team and watch what happens." />
-<meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png" />
+<meta property="og:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png?v=20260910" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="Cyberliga’s interactive world globe and six sports with an original cast of pixel athletes." />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="CYBERLIGA — A Whole World of Sport" />
 <meta name="twitter:description" content="Six sports. 48 city clubs. 416 characters. Find your team and watch what happens." />
-<meta name="twitter:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png" />
+<meta name="twitter:image" content="https://cyberliga-ten.vercel.app/cyberliga-share.png?v=20260910" />
 <meta name="twitter:image:alt" content="Cyberliga’s interactive world globe and six sports with an original cast of pixel athletes." />
 <link rel="icon" href="cyberliga-mark.svg" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="fanworld.css" />
-<link rel="stylesheet" href="world-desk.css" />
-<link rel="stylesheet" href="arcade-world.css" />
+<link rel="preload" href="assets/fonts/manrope-400-800-latin.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="assets/fonts/barlow-condensed-800-latin.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="stylesheet" href="network-ui.css" />
+<link rel="stylesheet" href="network-world.css" />
 </head>
 <body class="arcade-home">
-<div class="loading" id="loading"><div><b class="aw-loading-mark" aria-hidden="true"></b><strong>CYBERLIGA</strong><p>Bringing the world together…</p></div></div>
+<a class="cl-skip" href="#network">Skip to games</a>
+<div class="loading" id="loading"><div><i class="cl-brand-mark" aria-hidden="true"></i><strong>CYBERLIGA</strong><p>Opening the world…</p></div></div>
+<header class="topbar cl-masthead">
+  <a class="brand cl-brand" href="world.html" aria-label="Cyberliga Home"><i class="cl-brand-mark" aria-hidden="true"></i><span class="cl-brand-name">CYBERLIGA</span></a>
+  <span class="world-masthead-note">THE WORLD PLAYS HERE</span>
+  <nav class="nav cl-primary-nav" aria-label="Primary navigation"><a class="active" href="world.html" aria-current="page">Home</a><a href="league.html?sport=soccer">Leagues</a></nav>
+</header>
+<main class="world-layout">
+<section class="world-stage" aria-label="The Cyberliga world">
+<section class="aw-world-intro" aria-labelledby="aw-home-title">
+  <div><p>48 CITIES. SIX SPORTS.</p><h1 id="aw-home-title">A world in play.</h1></div>
+  <span>Find your city.<br>Follow your club.</span>
+</section>
 <canvas id="globe" aria-label="Interactive globe showing six Cyberliga sports leagues"></canvas>
 <div id="labels"></div>
-
-<header class="topbar">
-  <a class="brand" href="world.html"><strong>CYBERLIGA</strong><i></i><span>World sports, always on</span></a>
-  <nav class="nav" aria-label="Primary navigation"><a class="active" href="world.html" aria-current="page">Home</a><a class="secondary" href="league.html?sport=soccer">Leagues</a></nav>
-</header>
-<section class="aw-world-intro" aria-labelledby="aw-home-title">
-  <p><i aria-hidden="true"></i> AN AUTONOMOUS SPORTS WORLD</p>
-  <h1 id="aw-home-title">A whole world.<br>Every sport.</h1>
-  <span>Find a city. Meet your team. Watch what happens.</span>
-</section>
-<div class="aw-globe-caption"><span>DRAG TO EXPLORE THE WORLD</span><button class="aw-share" id="share-world" type="button" aria-label="Share Cyberliga">Share <span aria-hidden="true">↗</span></button></div>
+<div class="aw-globe-caption"><span><i aria-hidden="true"></i> Drag the globe to explore</span><a class="aw-featured-watch cl-button" id="watch-featured" href="hoops.html?match=1"><span id="featured-watch-label">Watch Hoops</span><span aria-hidden="true">↗</span></a><button class="aw-share" id="share-world" type="button" aria-label="Share Cyberliga">Share world <span aria-hidden="true">↗</span></button></div>
 <section class="aw-world-cast" aria-label="Explore the six sports">
-  <div class="aw-cast-heading"><strong>SIX SPORTS. YOUR NEXT OBSESSION.</strong><span>48 clubs / 416 athletes</span></div>
+  <div class="aw-cast-heading"><strong>ONE WORLD. EVERY ARENA.</strong><span>416 original athletes</span></div>
   <div id="aw-sport-cast"></div>
 </section>
+</section>
 
-<aside class="liveboard" id="network" aria-label="Tonight’s Cyberliga schedule">
+<aside class="liveboard" id="network" aria-label="Cyberliga matchups" tabindex="-1">
   <div class="panel-label">
-    <span class="desk-title"><strong>Pick a game.</strong><span id="tonight-date">Around the world</span></span>
-    <span id="round-label">24 games · 48 clubs</span>
+    <span class="desk-title"><span class="desk-eyebrow">NOW ON CYBERLIGA</span><strong>Find your game.</strong></span>
+    <span class="desk-date"><span id="tonight-date">Around the world</span><span id="round-label">24 games · 48 clubs</span></span>
     <span class="presence-quiet" data-cyberliga-presence data-presence-mode="quiet">Schedule updates automatically</span>
   </div>
   <div class="sport-stage">
@@ -57,6 +59,7 @@
   </div>
   <div class="game-drawer" id="game-drawer"><div class="game-list" id="game-list"></div></div>
 </aside>
+</main>
 
 <script src="worlddata.js"></script>
 <script src="branddata.js"></script>
@@ -216,14 +219,14 @@ function makeFixtureCard(card,isLead=false){
     const homeVenue=BRAND?.getTeam?.(homeIdentity.id)?.venue;
     const reciprocal=homeIdentity.rivalryId===awayIdentity.id&&awayIdentity.rivalryId===homeIdentity.id;
     const status=card.league.live?`Live · ${U.clock(card.liveMatch.elapsedMs)}`:'On air';
-    const rivalryLabel=rivalAthlete?`vs #${rivalAthlete.number} ${rivalAthlete.name}`:reciprocal?'Rivalry':'Featured';
+    const rivalryLabel=rivalAthlete?`vs #${rivalAthlete.number} ${rivalAthlete.name}`:reciprocal?'City rivalry':'Featured matchup';
     link.style.setProperty('--c',featuredTeam.colors?.primary||card.league.color);
     link.setAttribute('aria-label',`${displaySport(card.league.id)} ${reciprocal?'featured rivalry':'featured match'}: ${card.home.name} versus ${card.away.name}. Who to watch: number ${featuredAthlete?.number}, ${featuredAthlete?.name}, ${featuredAthlete?.role} for ${featuredTeam.name}.${record?.motionName?` Signature move: ${record.motionName}.`:''}${rivalAthlete?` Opposing them: number ${rivalAthlete.number}, ${rivalAthlete.name}, ${rivalAthlete.role} for ${rivalTeam.name}.`:''}${homeVenue?` At ${homeVenue}, ${card.home.city}.`:''} ${status}.`);
-    link.innerHTML=`<canvas class="lead-portrait" aria-hidden="true"></canvas><span class="lead-copy"><span class="lead-kicker"><span>Who to watch</span><span>${escapeHtml(rivalryLabel)}</span></span><span class="lead-athlete">#${escapeHtml(featuredAthlete?.number||'–')} ${escapeHtml(featuredAthlete?.name||displayClubName(featuredTeam.name))}</span><span class="lead-role">${escapeHtml(featuredAthlete?.role||'Featured athlete')} · ${escapeHtml(clubNickname(featuredTeam))}</span>${record?.motionName?`<span class="lead-motion">${escapeHtml(record.motionName)}</span>`:''}<span class="lead-matchline">${clubEmblemMarkup(card.home,card.league)}<span>${escapeHtml(card.home.city)}</span><span aria-hidden="true">vs</span>${clubEmblemMarkup(card.away,card.league)}<span>${escapeHtml(card.away.city)}</span></span><span class="lead-ground">${homeVenue?`${escapeHtml(titleCaseCanon(homeVenue))} · `:''}${escapeHtml(card.home.city)}</span></span><span class="fixture-enter" aria-hidden="true"><b>›</b></span>`;
+    link.innerHTML=`<span class="lead-feature"><span class="lead-art"><span class="lead-number" aria-hidden="true">${escapeHtml(featuredAthlete?.number||'')}</span><canvas class="lead-portrait" aria-hidden="true"></canvas></span><span class="lead-copy"><span class="lead-kicker">Who to watch</span><span class="lead-athlete">${escapeHtml(featuredAthlete?.name||clubNickname(featuredTeam))}</span><span class="lead-role">#${escapeHtml(featuredAthlete?.number||'–')} · ${escapeHtml(featuredAthlete?.role||'Featured athlete')}</span>${record?.motionName?`<span class="lead-motion">${escapeHtml(record.motionName)}</span>`:''}<span class="lead-rival">${escapeHtml(rivalryLabel)}</span></span></span><span class="lead-matchline"><span class="lead-club">${clubEmblemMarkup(card.home,card.league)}<span><small>${escapeHtml(card.home.city)}</small><strong>${escapeHtml(clubNickname(homeIdentity))}</strong></span></span><span class="lead-versus">VS</span><span class="lead-club">${clubEmblemMarkup(card.away,card.league)}<span><small>${escapeHtml(card.away.city)}</small><strong>${escapeHtml(clubNickname(awayIdentity))}</strong></span></span></span><span class="lead-footer"><span class="lead-ground">${homeVenue?`${escapeHtml(titleCaseCanon(homeVenue))}`:escapeHtml(card.home.city)}</span><span class="fixture-enter">Watch matchup <b aria-hidden="true">↗</b></span></span>`;
     link._leadVisual={record,team:featuredTeam,athlete:featuredAthlete};
   }else{
     link.setAttribute('aria-label',`${card.league.sport}: ${card.home.name} versus ${card.away.name}`);
-    link.innerHTML=`<span class="fixture-teams"><span class="fixture-team">${clubEmblemMarkup(card.home,card.league)}<span class="fixture-team-copy"><span class="fixture-team-name">${escapeHtml(displayClubName(card.home.name))}</span></span></span><span class="fixture-team">${clubEmblemMarkup(card.away,card.league)}<span class="fixture-team-copy"><span class="fixture-team-name">${escapeHtml(displayClubName(card.away.name))}</span></span></span></span><span class="fixture-enter" aria-hidden="true"><b>›</b></span>`;
+    link.innerHTML=`<span class="fixture-teams"><span class="fixture-team">${clubEmblemMarkup(card.home,card.league)}<span class="fixture-team-copy"><span class="fixture-team-city">${escapeHtml(card.home.city)}</span><span class="fixture-team-name">${escapeHtml(clubNickname(homeIdentity))}</span></span></span><span class="fixture-team">${clubEmblemMarkup(card.away,card.league)}<span class="fixture-team-copy"><span class="fixture-team-city">${escapeHtml(card.away.city)}</span><span class="fixture-team-name">${escapeHtml(clubNickname(awayIdentity))}</span></span></span></span><span class="fixture-enter" aria-hidden="true"><span>Watch</span><b>↗</b></span>`;
   }
   link.addEventListener('pointerenter',()=>highlightFixture(card));
   link.addEventListener('pointerleave',()=>highlightFixture(previewCard));
@@ -259,13 +262,21 @@ function renderGames(){
     section.className='league-group';
     section.dataset.sport=league.id;
     const leagueBrand=BRAND?.getLeague?.(league.contentId);
-    const status=league.live?`Live · ${U.clock(leagueCards[0].liveMatch.elapsedMs)}`:'On air';
-    section.innerHTML=`<header class="league-group-head"><span><strong>${escapeHtml(displaySport(league.id))}</strong>${leagueBrand?.name?`<small> · ${escapeHtml(titleCaseCanon(leagueBrand.name))}</small>`:''}</span><span class="${league.live?'is-live':''}">${escapeHtml(status)}</span></header>`;
+    const status=league.live?`Live · ${U.clock(leagueCards[0].liveMatch.elapsedMs)}`:'4 matchups';
+    section.innerHTML=`<header class="league-group-head"><span><strong>${escapeHtml(displaySport(league.id))}</strong>${leagueBrand?.name?`<small>${escapeHtml(titleCaseCanon(leagueBrand.name))}</small>`:''}</span><span class="${league.live?'is-live':''}">${escapeHtml(status)}</span></header>`;
     const orderedCards=leagueCards.slice().sort((a,b)=>(a===leadCard?-1:0)-(b===leadCard?-1:0)||a.index-b.index);
     section.append(...orderedCards.map(card=>makeFixtureCard(card,card===leadCard)));
     return section;
   }));
   paintLeadPortrait();
+}
+function syncFeaturedWatch(){
+  const card=previewCard||leadCard;if(!card)return;
+  const link=document.getElementById('watch-featured');
+  const sport=card.league.id==='american-football'?'Football':card.league.id==='basketball'?'Hoops':displaySport(card.league.id);
+  link.href=card.href;
+  link.setAttribute('aria-label',`Watch ${displaySport(card.league.id)}: ${card.home.name} versus ${card.away.name}`);
+  document.getElementById('featured-watch-label').textContent=`Watch ${sport}`;
 }
 function highlightFixture(card){
   const focusCard=card||previewCard||leadCard;
@@ -273,6 +284,7 @@ function highlightFixture(card){
   document.querySelectorAll('.marker').forEach(label=>label.classList.toggle('selected',selectedIds.includes(label.dataset.team)));
   document.querySelectorAll('.fixture-card').forEach(link=>link.classList.toggle('is-selected',Boolean(focusCard)&&link.dataset.sport===focusCard.league.id&&Number(link.dataset.index)===focusCard.index));
   if(typeof routes!=='undefined')routes.forEach(route=>{route.mesh.material.opacity=route.card===focusCard?0.42:0;});
+  syncFeaturedWatch();
 }
 function setFilter(next,{push=false}={}){
   const valid=FILTERS.some(filter=>filter.id===next)?next:'all';previewCard=null;previewHost=null;activeFilter=valid;leadCard=leadCardForFilter(valid);
@@ -318,7 +330,8 @@ function refreshRenderedSoccerCards(soccerCards){
     if(!link.classList.contains('fixture-card-lead')){
       link.setAttribute('aria-label',`${card.league.sport}: ${card.home.name} versus ${card.away.name}`);
       const teams=link.querySelectorAll('.fixture-team-name');
-      [[teams[0],card.home],[teams[1],card.away]].forEach(([label,team])=>{if(label)label.textContent=displayClubName(team.name);});
+      const cities=link.querySelectorAll('.fixture-team-city');
+      [[teams[0],card.home,cities[0]],[teams[1],card.away,cities[1]]].forEach(([label,team,city])=>{if(label)label.textContent=clubNickname(canonicalTeam(team,card.league));if(city)city.textContent=team.city;});
     }
   });
 }
@@ -341,8 +354,8 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = .92;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x020304);
-scene.fog = new THREE.FogExp2(0x020304, .027);
+scene.background = new THREE.Color(0x101114);
+scene.fog = new THREE.FogExp2(0x101114, .027);
 const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, .1, 80);
 let mobileGlobeView=innerWidth<700&&innerHeight>520;
 camera.position.set(0, .1, mobileGlobeView?9.25:8.1);
@@ -393,7 +406,7 @@ fixtureCards.forEach(card => [card.home,card.away].forEach((team,hostIndex) => {
   const halo=new THREE.Mesh(new THREE.RingGeometry(.047,.064,28),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.2,depthTest:true,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.008;halo.renderOrder=19;group.add(halo);
   const beacon=new THREE.Mesh(new THREE.RingGeometry(.071,.083,30),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.05,depthTest:true,depthWrite:false}));beacon.rotation.x=-Math.PI/2;beacon.position.y=.009;beacon.renderOrder=18;group.add(beacon);
   planet.add(group);
-  const label=document.createElement('button');label.type='button';label.className='marker';label.dataset.league=league.id;label.dataset.team=team.id;label.style.setProperty('--c',markerColor);label.textContent=displayClubName(team.name);label.setAttribute('aria-label',`Focus ${team.name} in ${card.home.name} versus ${card.away.name}`);
+  const label=document.createElement('button');label.type='button';label.className='marker';label.dataset.league=league.id;label.dataset.team=team.id;label.style.setProperty('--c',markerColor);label.textContent=displayClubName(team.city);label.setAttribute('aria-label',`Focus ${team.name} in ${card.home.name} versus ${card.away.name}`);
   const marker={league,card,team,host,hostIndex,group,core:beaconMaterial,halo,beacon,label,filtered:false};
   label.addEventListener('pointerenter',()=>highlightFixture(marker.card));
   label.addEventListener('pointerleave',()=>highlightFixture(previewCard));
@@ -429,6 +442,11 @@ function syncSoccerFixtureBindings(soccerCards) {
 }
 
 let targetRotation = null,targetCameraZ=null,globeFocusMode='opening';
+function fittedGlobeDistance(){
+  const vertical=THREE.MathUtils.degToRad(camera.fov/2);
+  const horizontal=Math.atan(Math.tan(vertical)*camera.aspect);
+  return R/Math.sin(Math.min(vertical,horizontal))*1.06;
+}
 function flyToVector(vector){
   const p=vector.clone().normalize();
   targetRotation={x:THREE.MathUtils.clamp(Math.asin(p.y),-1,1),y:-Math.atan2(p.x,p.z)};
@@ -442,13 +460,13 @@ function flyToMatch(card){
     const founding=foundingMatchup(card),record=founding?.home||founding?.away;
     const featuredTeam=record?.teamId===card.away.id?card.away:card.home;
     flyToVector(point(placeFor(featuredTeam)));
-    targetCameraZ=mobileGlobeView?9.55:8.05;
+    targetCameraZ=Math.max(fittedGlobeDistance(),mobileGlobeView?9.55:8.05);
     globeFocusMode='featured-city';
     return;
   }
   const midpoint=home.clone().add(away);
   flyToVector(midpoint.lengthSq()<.04?home:midpoint);
-  targetCameraZ=THREE.MathUtils.clamp((mobileGlobeView?9.4:7.7)+separation*1.15,mobileGlobeView?9.35:7.7,10.4);
+  targetCameraZ=Math.max(fittedGlobeDistance(),THREE.MathUtils.clamp((mobileGlobeView?9.4:7.7)+separation*1.15,mobileGlobeView?9.35:7.7,10.4));
   globeFocusMode='match';
 }
 let down=null,dragging=false,canvasHoverMarker=null;
@@ -478,9 +496,8 @@ function updateLabels(now) {
   const globeRect=canvas.getBoundingClientRect();
   const introRect=document.querySelector('.aw-world-intro').getBoundingClientRect();
   const view = new THREE.Vector3().subVectors(camera.position,planet.position).normalize();
-  const compact=innerWidth<=900;
-  const boardRect=networkPanel.getBoundingClientRect();
-  const bottomBoard=compact&&boardRect.width>=innerWidth-2&&boardRect.top>68;
+  const safeLeft=Math.max(12,globeRect.left+12),safeRight=Math.min(innerWidth-12,globeRect.right-12);
+  const safeTop=Math.max(document.querySelector('.topbar').getBoundingClientRect().bottom+12,globeRect.top+12),safeBottom=Math.min(innerHeight-12,globeRect.bottom-8);
   const placedLabels=[];
   markers.forEach(marker => {
     if(marker.filtered){marker.group.visible=false;marker.label.classList.remove('visible');return;}
@@ -491,26 +508,20 @@ function updateLabels(now) {
     const projected = world.clone().project(camera);
     const sx=globeRect.left+(projected.x*.5+.5)*globeRect.width,sy=globeRect.top+(-projected.y*.5+.5)*globeRect.height;
     const behindIntro=sx>introRect.left-40&&sx<introRect.right+70&&sy>introRect.top-5&&sy<introRect.bottom+38;
-    const labelProtectedUI=behindIntro || (bottomBoard
-      ? sy<68 || sy>boardRect.top-14
-      : sy<72 || sx>boardRect.left-14 || sy>innerHeight-24);
+    const labelProtectedUI=behindIntro || sy<safeTop+32 || sy>safeBottom;
     const projectedOnScreen=Math.abs(projected.x)<1.08&&Math.abs(projected.y)<1.08;
-    const labelMargin=bottomBoard?72:88;
-    const labelRight=bottomBoard?innerWidth-labelMargin:boardRect.left-labelMargin;
     const active=marker.label.classList.contains('selected'),hovered=marker===canvasHoverMarker;
-    const labelVisible = active && front && projectedOnScreen && !labelProtectedUI && sx>labelMargin && sx<labelRight;
+    const labelVisible = active && front && projectedOnScreen && !labelProtectedUI && sx>safeLeft+32 && sx<safeRight-32;
     marker.frontFacing=front;marker.screenX=sx;marker.screenY=sy;
     marker.label.classList.toggle('visible',labelVisible);
     marker.label.tabIndex=labelVisible?0:-1;marker.label.setAttribute('aria-hidden',String(!labelVisible));
     if(labelVisible){
       const width=marker.label.offsetWidth,height=marker.label.offsetHeight;
-      const maxRight=bottomBoard?innerWidth-12:boardRect.left-12;
-      const maxBottom=bottomBoard?boardRect.top-36:innerHeight-28;
-      const labelX=THREE.MathUtils.clamp(sx,width/2+12,maxRight-width/2);
+      const labelX=THREE.MathUtils.clamp(sx,safeLeft+width/2,safeRight-width/2);
       let labelY=sy;
       const overlaps=(y)=>placedLabels.some(box=>labelX+width/2+6>box.left&&labelX-width/2-6<box.right&&y+6>box.top&&y-height-6<box.bottom);
       for(let step=0;step<6&&overlaps(labelY);step++)labelY=sy+(step%2===0?-1:1)*Math.ceil((step+1)/2)*(height+7);
-      labelY=THREE.MathUtils.clamp(labelY,globeRect.top+height+12,maxBottom);
+      labelY=THREE.MathUtils.clamp(labelY,safeTop+height,safeBottom);
       marker.label.style.left=`${labelX}px`;marker.label.style.top=`${labelY}px`;
       placedLabels.push({left:labelX-width/2,right:labelX+width/2,top:labelY-height,bottom:labelY});
     }
@@ -529,9 +540,10 @@ function resize(){
   const shortLandscape=innerWidth<=900&&innerHeight<=520,nextMobile=innerWidth<=900&&!shortLandscape;
   mobileGlobeView=nextMobile;
   const rect=canvas.getBoundingClientRect();
-  planet.position.x=0;planet.position.y=mobileGlobeView?-.28:-.38;
-  camera.position.z=mobileGlobeView?9.8:9.1;
+  planet.position.x=0;planet.position.y=0;
   camera.aspect=Math.max(1,rect.width)/Math.max(1,rect.height);camera.updateProjectionMatrix();
+  camera.position.z=fittedGlobeDistance();
+  if(targetCameraZ!==null)targetCameraZ=Math.max(targetCameraZ,camera.position.z);
   renderer.setPixelRatio(Math.min(devicePixelRatio,mobileGlobeView?1.35:1.75));
   renderer.setSize(Math.max(1,rect.width),Math.max(1,rect.height),false);paintLeadPortrait();
 }
@@ -548,7 +560,8 @@ resize();
 document.getElementById('aw-sport-cast').innerHTML=LEAGUES.map(league=>{
   const team=CONTENT.getTeams(league.contentId)[0],athlete=team.athletes[0];
   const query=new URLSearchParams({home:team.id,away:team.rivalryId,league:league.contentId});
-  return `<a class="aw-sport-character" href="${league.arena}?${query}" aria-label="Watch ${escapeHtml(league.sport)} with ${escapeHtml(athlete.name)}"><canvas data-arcade-athlete="${athlete.id}" data-team-id="${team.id}" data-sport="${league.contentId}" aria-hidden="true"></canvas><strong>${escapeHtml(displaySport(league.id))}</strong></a>`;
+  const label=league.id==='american-football'?'Football':displaySport(league.id);
+  return `<a class="aw-sport-character" href="${league.arena}?${query}" aria-label="Watch ${escapeHtml(league.sport)} with ${escapeHtml(athlete.name)}"><canvas data-arcade-athlete="${athlete.id}" data-team-id="${team.id}" data-sport="${league.contentId}" aria-hidden="true"></canvas><strong>${escapeHtml(label)}</strong></a>`;
 }).join('');
 paintArcadePortraits(document.getElementById('aw-sport-cast'));
 document.getElementById('tonight-date').textContent=new Intl.DateTimeFormat(undefined,{weekday:'long',month:'long',day:'numeric'}).format(new Date());
