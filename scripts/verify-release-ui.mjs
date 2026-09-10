@@ -1,6 +1,12 @@
 // Public release gate: first-paint isolation, current routes, and real mobile broadcasts.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
+// A late join can show the completed UTC soccer fixture until the next slot.
+// Active games must advance; a verified fulltime score needs only its final paint.
+const broadcastReady=()=>{
+  const view=window.__arcadeView,frame=window.__arcadeFrame?.();
+  return view?.drawCount>2||(view?.drawCount>0&&frame?.sportId==='soccer'&&frame.phase==='fulltime');
+};
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const origin = process.env.ARCADE_PREVIEW_URL || 'http://127.0.0.1:4173';
 const out = 'output/public-release';
@@ -35,7 +41,8 @@ try {
     assert.equal(boot.nav.length,2);
     if(route==='hoops.html') await page.screenshot({path:`${out}/first-paint.png`});
     release();
-    await page.waitForFunction(() => document.documentElement.dataset.arcadeReady==='true' && window.__arcadeView?.drawCount>2);
+    await page.waitForFunction(broadcastReady);
+    assert.equal(await page.evaluate(()=>document.documentElement.dataset.arcadeReady),'true');
     await page.waitForLoadState('networkidle');
     await page.evaluate(()=>document.fonts.ready);
     const mobile = await page.evaluate(() => {

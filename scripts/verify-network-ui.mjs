@@ -1,6 +1,12 @@
 // The public journey must stay coherent across the discovery and broadcast surfaces.
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
+// A late join can show the completed UTC soccer fixture until the next slot.
+// Active games must advance; a verified fulltime score needs only its final paint.
+const broadcastReady=()=>{
+  const view=window.__arcadeView,frame=window.__arcadeFrame?.();
+  return view?.drawCount>2||(view?.drawCount>0&&frame?.sportId==='soccer'&&frame.phase==='fulltime');
+};
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
 const origin=process.env.ARCADE_PREVIEW_URL||'http://127.0.0.1:4173';
 const output='output/network-ui';await mkdir(output,{recursive:true});
@@ -27,7 +33,7 @@ try {
     const filterLabel='Show '+sport.replaceAll('-',' ')+' games';await page.getByRole('button',{name:filterLabel,exact:true}).click();
     assert.equal(await page.locator('.fixture-card').count(),4,sport+' fixture filter');
     const watch=page.locator('#watch-featured');const box=await watch.boundingBox();assert(box&&box.height>=44&&box.y+box.height<=844,sport+' first-fold watch action');
-    const fixture=await watch.getAttribute('href');await watch.click();await page.waitForFunction(()=>window.__arcadeView?.drawCount>2);
+    const fixture=await watch.getAttribute('href');await watch.click();await page.waitForFunction(broadcastReady);
     const arena=await inspect(page,sport+' arena');const frame=await page.evaluate(()=>window.__arcadeFrame());assert.equal(frame.sportId,sport);
     await page.locator('.ab-nav').getByRole('link',{name:'Leagues',exact:true}).click();await page.waitForSelector('.club-card');
     assert.equal(await page.locator('.club-card').count(),8);assert.equal(await page.locator('#channel-grid>a').count(),4);
@@ -37,7 +43,7 @@ try {
     const identity=await page.evaluate(()=>JSON.parse(render_game_to_text()));assert.equal(identity.athlete.id,athleteId);assert.equal(identity.team.id,clubId);assert.equal(identity.sport.id,sport);
     assert.equal(await page.locator('#season-stats,#career-numbers,#form-chart').count(),0);
     const matchup=await page.locator('#arena-link').getAttribute('href');assert.equal(new URL(matchup,origin).searchParams.get('home'),clubId);
-    await page.locator('#arena-link').click();await page.waitForFunction(()=>window.__arcadeView?.drawCount>2);const returnFrame=await page.evaluate(()=>window.__arcadeFrame());assert(returnFrame.teams.some(t=>t.id===clubId));
+    await page.locator('#arena-link').click();await page.waitForFunction(broadcastReady);const returnFrame=await page.evaluate(()=>window.__arcadeFrame());assert(returnFrame.teams.some(t=>t.id===clubId));
     await page.locator('.ab-nav').getByRole('link',{name:'Home',exact:true}).click();await page.waitForSelector('#watch-featured');await inspect(page,sport+' return Home');
     assert.deepEqual(errors,[],sport+' browser errors');reports.push({sport,fixture,clubId,athleteId,matchup,arena,profile,errors});await context.close();console.log(`${sport}: Home → match → HQ → athlete → match → Home PASS`);
   }
