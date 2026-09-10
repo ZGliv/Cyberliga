@@ -41,3 +41,8 @@ ops.html
 
 api/*.test.mjs
 cyberliga-world-og.png
+
+# Superseded visual layers are retained only as local history.
+world-desk.css
+arcade-world.css
+league.css

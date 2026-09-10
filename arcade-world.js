@@ -3,22 +3,44 @@ import { athleteSprite } from './arcade-broadcast.js';
 const C = window.CYBERLIGA_CONTENT;
 const INK = '#101e31', PAPER = '#f4f4ed', BLUE = '#2b4ef0', ACID = '#d8fd63';
 
+const shareFeedback = new WeakMap();
+
 /** A user gesture opens the phone share sheet, with an honest copy fallback. */
 export async function shareArcadeLink(button, data) {
-  const original=button.innerHTML;
+  const previous=shareFeedback.get(button);
+  const original=previous?previous.html:button.innerHTML;
+  const originalLabel=previous?previous.label:button.getAttribute('aria-label');
+  if(previous)window.clearTimeout(previous.timer);
+  const restore=()=>{
+    button.innerHTML=original;
+    if(originalLabel==null)button.removeAttribute('aria-label');
+    else button.setAttribute('aria-label',originalLabel);
+    shareFeedback.delete(button);
+  };
+  const status=document.getElementById('share-status');
+  let feedback='';
+  button.disabled=true;
   try {
     if (navigator.share) {
-      await navigator.share(data);
-      return;
+      try { await navigator.share(data); return; }
+      catch(error) { if(error?.name==='AbortError') return; }
     }
     if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
     await navigator.clipboard.writeText(data.url);
-    button.textContent='LINK COPIED';
+    feedback='Link copied';
+    if(status) status.textContent='Link copied. Ready to share.';
   } catch(error) {
-    if (error?.name==='AbortError') return;
-    button.textContent='USE ADDRESS BAR TO SHARE';
+    feedback='Use address bar';
+    if(status) status.textContent='Copy the link from your address bar to share this athlete.';
+  } finally {
+    button.disabled=false;
+    if(!feedback)restore();
   }
-  window.setTimeout(()=>{button.innerHTML=original;},2400);
+  if(!feedback) return;
+  button.textContent=feedback;
+  button.setAttribute('aria-label',feedback);
+  const timer=window.setTimeout(restore,2400);
+  shareFeedback.set(button,{html:original,label:originalLabel,timer});
 }
 
 function entityFor(team, athlete, side = 0) {

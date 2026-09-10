@@ -1,0 +1,170 @@
+/* The league directory shares the network masthead and leaves the sport engines untouched. */
+html{background:#101114;scroll-behavior:smooth;scroll-padding-top:96px}
+body.network-league{margin:0;min-width:320px;color:#f5f5f4;background:#101114;font-family:var(--font-body,'Manrope',sans-serif);-webkit-font-smoothing:antialiased}
+.network-league *{box-sizing:border-box}
+.network-league [hidden]{display:none!important}
+.network-league h1,.network-league h2,.network-league h3,.network-league h4,.network-league p{margin:0}
+.network-league a{color:inherit;text-decoration:none}
+.network-league button{font:inherit;color:inherit;cursor:pointer}
+.network-league a:focus-visible,.network-league button:focus-visible,.network-league summary:focus-visible,.network-league [tabindex]:focus-visible{outline:2px solid #8da2ff;outline-offset:4px}
+.network-league .fw-trigger,.network-league .fw-world-pulse{display:none!important}
+.skip-link{position:fixed;top:8px;left:8px;z-index:200;transform:translateY(-160%);background:#f5f5f4;color:#101114!important;padding:12px 18px;font-weight:700;font-size:13px}
+.skip-link:focus{transform:none}
+.league-masthead{height:76px;padding:0 clamp(20px,3.3vw,52px);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2f3238;background:#101114;position:sticky;top:0;z-index:90}
+#league-hq{max-width:1440px;margin:auto;padding:0 clamp(20px,3.3vw,52px) 48px}
+.sport-switcher{display:flex;align-items:stretch;gap:32px;min-height:66px;border-bottom:1px solid #2f3238;overflow-x:auto;scrollbar-width:none}
+.sport-switcher::-webkit-scrollbar{display:none}
+.sport-tab{display:flex;align-items:center;white-space:nowrap;border-bottom:2px solid transparent;font-size:13px;font-weight:650;color:#9b9da7!important;padding:4px 0 0;transition:color .16s,border-color .16s}
+.sport-tab.active{color:#f5f5f4!important;border-color:#4264ff}
+.sport-tab:hover{color:#f5f5f4!important}
+.sport-tab b{font-weight:650}
+.sport-tab em,.sport-tab>span{display:none}
+.league-hero{display:grid;grid-template-columns:minmax(0,1fr) 330px;align-items:center;gap:38px;padding:34px 0 36px}
+.network-kicker{display:flex;align-items:center;gap:12px;font-size:11px;font-weight:650;color:#9b9da7;letter-spacing:.08em;text-transform:uppercase}
+#league-code{color:#8298ff;border:1px solid #3b466d;padding:3px 5px;font-size:10px;letter-spacing:.04em}
+.league-hero h1{font-family:var(--font-display,'Barlow Condensed',sans-serif);font-size:clamp(62px,6.5vw,92px);font-weight:800;line-height:1;text-transform:uppercase;letter-spacing:-.025em;margin:10px 0}
+.league-thesis{font-size:13px;line-height:1.6;color:#9b9da7;max-width:47ch}
+.world-proof{display:flex;gap:22px;margin-top:22px;font-size:11px;color:#9b9da7}
+.world-proof>span{display:flex;gap:6px;align-items:baseline;white-space:nowrap}
+.world-proof strong{font-size:15px;color:#f5f5f4;font-weight:750;font-variant-numeric:tabular-nums}
+.aw-league-portrait{border:1px solid #333944;background:#1b1d22;min-width:0;overflow:hidden;transform:rotate(-2deg)}
+.aw-league-portrait canvas{width:100%;height:160px;display:block;image-rendering:pixelated;object-fit:cover;object-position:50% 48%}
+.aw-league-portrait>div{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border-top:1px solid #333944;font-size:9px;color:#9b9da7}
+.aw-league-portrait strong{color:#f5f5f4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px}
+.aw-league-portrait>div>span{white-space:nowrap}
+.league-share{display:flex;align-items:center;gap:14px;align-self:start;border:0;background:none;padding:5px 0;font-size:11px!important;font-weight:700!important;color:#b6b7bf!important;min-height:44px}
+.league-share:hover{color:#f5f5f4!important}
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:18px}
+.section-heading>div{display:flex;align-items:center;gap:12px;min-width:0}
+.section-heading h2{font-family:var(--font-display,'Barlow Condensed',sans-serif);font-size:30px;line-height:1.1;font-weight:700;letter-spacing:.015em;text-transform:uppercase}
+.section-count{font-size:11px;color:#9b9da7;background:#24262d;border:1px solid #343741;padding:3px 6px;border-radius:4px;font-variant-numeric:tabular-nums}
+.section-indicator{width:6px;height:6px;border-radius:50%;background:#4bda91;box-shadow:0 0 0 4px #4bda9112}
+.section-heading>a,.section-heading>span{font-size:11px;color:#9b9da7;white-space:nowrap}
+.section-heading>a{color:#bcc8ff;font-weight:650;display:flex;gap:10px;align-items:center;min-height:40px}
+.channel-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.channel-card{position:relative;border:1px solid #343740;border-radius:7px;overflow:hidden;display:block;background:#1b1d22;transition:border-color .16s,background .16s,transform .16s}
+.channel-card:hover{border-color:#626f9f;background:#22252e;transform:translateY(-2px)}
+.channel-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px;gap:12px;color:#9b9da7;font-size:9px;font-weight:600}
+.channel-top b{font-weight:700;display:flex;align-items:center;gap:5px;color:#e0e1e6}
+.channel-top b:before{content:'';width:4px;height:4px;border-radius:50%;background:#4bda91}
+.channel-top>span{font-variant-numeric:tabular-nums}
+.channel-match{padding:0 14px 10px;display:flex;flex-direction:column;gap:11px}
+.channel-club{display:grid;grid-template-columns:29px minmax(0,1fr) auto;align-items:center;gap:9px;min-width:0}
+.channel-club .brand-crest{width:28px;height:28px;display:block}
+.channel-club>div{min-width:0}
+.channel-club strong{font-size:12px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.channel-club small{color:#9b9da7;font-size:10px;display:block;margin-top:2px}
+.channel-club>span{font-family:var(--font-display,'Barlow Condensed',sans-serif);font-size:20px;line-height:1;font-weight:700;color:#b8bbc5}
+.channel-bottom{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid #2f3238;padding:10px 14px;color:#9b9da7;font-size:9px}
+.channel-bottom>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.channel-bottom b{color:#bcc8ff;font-size:10px;font-weight:700;white-space:nowrap}
+.clubs-section{margin-top:40px;scroll-margin-top:100px}
+.club-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.club-card{min-width:0;position:relative;text-align:left;border:1px solid #2f3238;background:#16181d;padding:17px 14px;border-radius:7px;display:grid;grid-template-columns:39px minmax(0,1fr) 35px;gap:11px;align-items:center;transition:background .16s,border-color .16s}
+.club-card:hover{background:#20232c;border-color:#596077}
+.club-card.selected{background:#222b49;border-color:#5776ed}
+.club-card.selected:after{content:'';width:4px;height:calc(100% - 26px);position:absolute;left:-1px;top:13px;background:#7992ff;border-radius:0 3px 3px 0}
+.club-card>.brand-crest{width:39px;height:43px;display:block}
+.club-city{min-width:0}
+.club-city p{font-size:10px;color:#9b9da7;margin:0 0 4px}
+.club-city h3{font-size:13px;font-weight:700;line-height:1.35;letter-spacing:-.025em}
+.club-city>span{color:#aeb7d5;font-size:9px;display:block;margin-top:5px;text-transform:uppercase;letter-spacing:.06em}
+.aw-club-portrait{width:35px;height:40px;image-rendering:pixelated;display:block;opacity:.9}
+.club-dossier{margin-top:38px;border:1px solid #343740;border-radius:9px;background:#17191e;overflow:hidden;scroll-margin-top:96px}
+.dossier-header{padding:26px 26px 25px;display:flex;align-items:center;gap:18px;border-bottom:1px solid #2f3238;background:#1b1d22;position:relative}
+.dossier-header:before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:var(--team,#4264ff)}
+.dossier-crest{width:66px;flex:0 0 66px}
+.dossier-crest svg{width:66px;height:70px;display:block}
+.dossier-title{flex:1;min-width:0}
+.dossier-title>p{color:#9b9da7;font-size:10px;margin-bottom:5px;letter-spacing:.08em;text-transform:uppercase}
+.dossier-title h2{font-family:var(--font-display,'Barlow Condensed',sans-serif);font-size:40px;line-height:1.02;text-transform:uppercase;font-weight:700;letter-spacing:-.01em}
+.dossier-title>span{display:block;color:#b4b6bf;font-size:12px;line-height:1.4;margin-top:8px}
+#club-arena-link{background:#4264ff;border:1px solid #5373ff;display:flex;gap:24px;align-items:center;padding:14px 17px;flex-shrink:0;border-radius:5px;font-size:12px;font-weight:750;transition:background .16s}
+#club-arena-link:hover{background:#5878ff}
+.dossier-tabs{display:flex;align-items:stretch;padding:0 26px;gap:28px;border-bottom:1px solid #2f3238}
+.dossier-tabs button{border:0;border-bottom:2px solid transparent;background:none;color:#9b9da7;font-size:12px;font-weight:650;min-height:53px;display:flex;align-items:center;gap:8px;padding:0 2px}
+.dossier-tabs button[aria-selected=true]{color:#f5f5f4;border-color:#6e89ff}
+.dossier-tabs button>span{font-size:10px;color:#aeb7d5}
+.roster-section{padding:23px 26px 26px;outline-offset:-5px!important}
+.roster-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:17px}
+.roster-heading h3{font-size:13px;font-weight:650;color:#d7d9df}
+.roster-heading>span{font-size:10px;color:#9b9da7}
+.roster-filters{display:flex;gap:8px;margin:0 0 16px}
+.roster-filters button{border:1px solid #3d424e;border-radius:4px;background:#20232a;padding:11px 14px;font-size:10px;font-weight:650;color:#b4b7c2;min-height:40px}
+.roster-filters button[aria-pressed=true]{color:#f5f5f4;border-color:#5d78d8;background:#263457}
+.roster-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.athlete-row{display:grid;grid-template-columns:63px minmax(0,1fr);align-items:center;gap:14px;min-width:0;position:relative;border:1px solid #2f333d;border-radius:5px;background:#1e2128;padding:15px;min-height:115px;transition:border-color .16s,background .16s}
+.athlete-row:hover{background:#252a35;border-color:#586789}
+.aw-roster-portrait{width:61px;height:70px;image-rendering:pixelated;display:block}
+.athlete-info{min-width:0;padding-right:16px}
+.athlete-role{font-size:9px;color:#9b9da7;margin-bottom:5px!important;text-transform:uppercase;letter-spacing:.035em}
+.athlete-info h4{font-family:var(--font-display,'Barlow Condensed',sans-serif);font-size:25px;text-transform:uppercase;font-weight:700;line-height:1.05}
+.athlete-signature{font-size:10px;line-height:1.5;color:#a7aab5;margin-top:5px;display:block}
+.athlete-number{position:absolute;right:13px;top:12px;font-size:10px;color:#9297a8;font-variant-numeric:tabular-nums}
+.athlete-links{position:absolute;right:13px;bottom:12px;color:#a9baff;font-size:14px}
+.club-profile{padding:24px 26px 26px;outline-offset:-5px!important}
+.club-profile-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px}
+.venue-card{border:1px solid #2f333d;border-radius:5px;overflow:hidden;background:#1e2128}
+.venue-scene{height:200px;background:#11151a;overflow:hidden}
+.venue-scene svg{display:block;width:100%;height:100%;object-fit:cover}
+.venue-caption{padding:19px}
+.venue-caption p,.club-world-grid article>p,.rival-card>p{font-size:10px;font-weight:650;color:#9b9da7;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em}
+.venue-caption h3,.club-world-grid h3{font-family:var(--font-display,'Barlow Condensed',sans-serif);font-size:28px;line-height:1.05;font-weight:700;text-transform:uppercase}
+.venue-caption>span{font-size:12px;color:#b4b6bf;line-height:1.65;display:block;margin-top:10px}
+.venue-caption>small{font-size:9px;color:#868b9a;display:block;margin-top:16px}
+.club-world-grid{display:grid;gap:20px;align-content:start}
+.club-world-grid article>span,.rival-card>span{font-size:12px;line-height:1.65;color:#b4b6bf;display:block;margin-top:8px}
+.club-world-grid article{padding-bottom:18px;border-bottom:1px solid #2f333d}
+.rival-card{display:block}
+.rival-card>b{display:flex;gap:12px;align-items:center;margin-top:11px;color:#aebfff;font-size:11px;font-weight:650;min-height:30px}
+.rival-card:hover h3{color:#bcc8ff}
+.uniform-section{border-top:1px solid #2f333d;margin-top:26px}
+.uniform-section summary{display:flex;justify-content:space-between;align-items:center;list-style:none;cursor:pointer;min-height:65px;font-size:13px;font-weight:650}
+.uniform-section summary::-webkit-details-marker{display:none}
+.uniform-section summary>span:last-child{font-size:22px;color:#9b9da7;transition:transform .16s}
+.uniform-section[open] summary>span:last-child{transform:rotate(45deg)}
+.kit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.kit-card{min-width:0;background:#1e2128;border:1px solid #30353f;border-radius:5px;overflow:hidden}
+.kit-card svg{height:180px;width:100%;display:block}
+.kit-caption{padding:13px 15px;border-top:1px solid #30353f}
+.kit-caption h4{font-size:12px;font-weight:700}
+.kit-caption span{font-size:10px;color:#9b9da7;display:block;margin-top:5px;line-height:1.5}
+.kit-note{color:#868b9a;font-size:10px;margin-top:14px!important}
+.league-footer{border-top:1px solid #2f3238;min-height:84px;padding:24px clamp(20px,3.3vw,52px);display:flex;align-items:center;justify-content:space-between;gap:20px;font-size:11px;color:#8f929e}
+.league-footer>a{color:#c3c8d7;font-size:12px;display:flex;gap:18px;align-items:center;min-height:40px}
+@media(min-width:1450px){.league-masthead{padding-inline:max(52px,calc((100vw - 1336px)/2))}}
+@media(max-width:1100px){.league-hero{grid-template-columns:minmax(0,1fr) 285px;gap:28px}.league-share{grid-column:1;grid-row:1;align-self:start;justify-self:end;font-size:10px!important}.network-kicker{padding-right:115px}.league-hero h1{font-size:74px}.club-card{grid-template-columns:32px minmax(0,1fr);gap:9px;padding:14px 11px}.club-card>.brand-crest{width:32px;height:37px}.aw-club-portrait{display:none}.club-city h3{font-size:12px}.channel-club{gap:6px;grid-template-columns:24px minmax(0,1fr)}.channel-club>.brand-crest{width:24px;height:24px}.channel-club>span{display:none}.channel-club strong{font-size:11px}.channel-top,.channel-bottom{padding-inline:11px}.channel-match{padding-inline:11px}.roster-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dossier-title h2{font-size:34px}}
+@media(max-width:760px){html{scroll-padding-top:78px}.league-masthead{height:62px;padding:0 18px}#league-hq{padding:0 18px 28px}.sport-switcher{min-height:53px;gap:25px;margin:0 -18px;padding:0 18px}.sport-tab{font-size:12px;min-height:53px}.league-hero{padding:28px 0;grid-template-columns:1fr;gap:0;position:relative}.network-kicker{font-size:10px;gap:9px;padding:0 55px 0 0;letter-spacing:.025em}.league-hero h1{font-size:65px;max-width:100%;line-height:.96;margin:13px 0 11px}.league-thesis{font-size:12px;line-height:1.6;max-width:32ch}.world-proof{gap:19px;margin-top:18px;font-size:10px}.world-proof strong{font-size:14px}.aw-league-portrait{display:none}.league-share{position:absolute;right:0;top:20px;font-size:0!important;gap:0;padding:10px;width:38px;min-height:38px;border:1px solid #3c414e;border-radius:5px;justify-content:center}.league-share>span{font-size:16px}.section-heading{margin-bottom:14px;gap:10px}.section-heading h2{font-size:26px}.section-heading>div{gap:9px}.section-heading>a{font-size:10px;min-height:32px}.section-heading>span{display:none}.channel-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.channel-top{font-size:8px;gap:6px;padding:10px 10px 11px}.channel-top b{font-size:8px}.channel-match{padding:0 10px 12px;gap:10px}.channel-club{grid-template-columns:22px minmax(0,1fr);gap:7px}.channel-club>.brand-crest{width:22px;height:25px}.channel-club strong{font-size:10px;letter-spacing:-.01em}.channel-club small{font-size:9px}.channel-bottom{padding:9px 10px;font-size:8px;gap:7px}.channel-bottom b{font-size:9px}.channel-bottom>span{max-width:83px}.clubs-section{margin-top:29px}.club-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.club-card{min-height:84px;padding:13px 10px;grid-template-columns:30px minmax(0,1fr);gap:8px}.club-card>.brand-crest{width:30px;height:36px}.club-city p{font-size:9px;margin-bottom:3px}.club-city h3{font-size:11px;line-height:1.4}.club-city>span{font-size:8px;margin-top:4px}.club-dossier{margin-top:26px;scroll-margin-top:76px}.dossier-header{padding:20px 16px;gap:12px;flex-wrap:wrap}.dossier-crest{width:47px;flex-basis:47px}.dossier-crest svg{width:47px;height:54px}.dossier-title>p{font-size:8px;letter-spacing:.04em}.dossier-title h2{font-size:29px;line-height:1}.dossier-title>span{font-size:10px;line-height:1.5;margin-top:6px}#club-arena-link{margin-top:4px;min-height:42px;width:100%;justify-content:space-between;padding:10px 13px;font-size:11px}.dossier-tabs{padding:0 16px;gap:26px}.dossier-tabs button{min-height:49px;font-size:11px}.roster-section,.club-profile{padding:18px 14px}.roster-heading{margin-bottom:13px;gap:8px}.roster-heading h3{font-size:11px}.roster-heading>span{font-size:9px}.roster-filters{gap:6px}.roster-filters button{font-size:9px;padding:10px 9px;flex:1;white-space:nowrap}.roster-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.athlete-row{grid-template-columns:1fr;gap:8px;padding:13px 10px 12px;min-height:163px;align-content:start;align-items:start}.aw-roster-portrait{width:50px;height:56px}.athlete-info{padding-right:8px}.athlete-role{font-size:8px;margin-bottom:4px!important;line-height:1.4}.athlete-info h4{font-size:23px}.athlete-signature{font-size:9px;line-height:1.45;margin-top:4px}.athlete-number{right:10px;top:12px;font-size:9px}.athlete-links{right:9px;bottom:10px;font-size:12px}.club-profile-grid{grid-template-columns:1fr;gap:22px}.venue-scene{height:175px}.venue-caption{padding:16px}.venue-caption h3,.club-world-grid h3{font-size:25px}.venue-caption>span,.club-world-grid article>span,.rival-card>span{font-size:11px}.venue-caption>small{font-size:9px}.club-world-grid{gap:17px}.uniform-section{margin-top:21px}.uniform-section summary{min-height:58px;font-size:12px}.kit-grid{gap:7px}.kit-card svg{height:108px}.kit-caption{padding:10px}.kit-caption h4{font-size:10px}.kit-caption span{font-size:9px}.league-footer{padding:18px;min-height:92px;flex-wrap:wrap;gap:8px;font-size:9px}.league-footer>a{font-size:10px;order:2;width:100%;min-height:24px;justify-content:space-between}.league-footer>span:last-child{margin-left:auto}}
+@media(max-width:360px){#league-hq{padding-inline:14px}.league-hero h1{font-size:58px}.world-proof{gap:12px}.section-heading h2{font-size:24px}.channel-club strong{font-size:9px}.channel-club{gap:5px}.club-card{gap:6px;padding-inline:8px}.club-city h3{font-size:10px}.dossier-title h2{font-size:25px}.roster-grid{gap:7px}.athlete-row{padding-inline:9px}}
+/* Keep compact phone cards legible, including the share confirmation text. */
+@media(min-width:761px) and (max-width:1100px){
+  .league-hero-copy{grid-column:1;grid-row:1;min-width:0}
+  .aw-league-portrait{grid-column:2;grid-row:1}
+}
+@media(max-width:760px){
+  .network-kicker{padding-right:88px}
+  .league-share{grid-area:auto;top:18px;font-size:10px!important;width:auto;max-width:120px;gap:8px;line-height:1.3;text-align:left;padding:9px 10px}
+  .league-share>span{font-size:13px}
+  .league-share:not(:has(span)){font-size:9px!important;background:#1b1d22;max-width:150px}
+  .channel-club strong{font-size:12px;white-space:normal;line-height:1.25}
+  .channel-club small{font-size:10px}
+  .channel-top,.channel-top b,.channel-bottom{font-size:10px}
+  .channel-top>span{font-size:9px}
+  .channel-bottom b{font-size:10px}
+  .channel-bottom>span{max-width:76px}
+  .club-city p{font-size:10px}
+  .club-city h3{font-size:12px}
+  .club-city>span{font-size:9px}
+  .athlete-role{font-size:10px}
+  .athlete-signature{font-size:10px}
+  .athlete-number{font-size:10px}
+  .roster-heading>span{font-size:10px}
+  .roster-filters button{font-size:10px}
+}
+.league-labels{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.network-league .league-share{position:static;grid-area:auto;align-self:center;flex-shrink:0}
+.network-league .network-kicker{padding:0;min-width:0}
+.league-unavailable{padding:64px 0;font-size:16px;color:#a2a5af;line-height:1.7}
+.league-unavailable a{color:#bcc8ff;text-decoration:underline}
+@media(max-width:360px){.sport-switcher{margin-inline:-14px;padding-inline:14px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.network-league *{transition:none!important}}

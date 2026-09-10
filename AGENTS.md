@@ -7,6 +7,7 @@
 - Production is `https://cyberliga-ten.vercel.app`; the canonical local preview is `http://127.0.0.1:4173/world.html`.
 - `world.html` is Home and `league.html` is Leagues. Global primary navigation exposes only those two destinations.
 - The September 2026 public edition uses the pixel World, League HQ, Athlete Files and six pixel broadcasts. Retired guide, wire, replay, concept-clip, operations and laboratory URLs redirect to Home and stay excluded from deployment.
+- The public UI uses the dark sports network design in `network-ui.css`, `network-world.css`, `network-league.css`, `player.css` and `arcade-broadcast.css`. Keep shared branding, self-hosted fonts, canonical club links and mobile first-fold watch access. The old `world-desk.css`, `arcade-world.css` and `league.css` layers stay excluded from deployment.
 - Arena HTML loads the current shell CSS before first paint; hidden compatibility DOM must never flash during navigation.
 
 ## Quarantined lineage
@@ -44,6 +45,7 @@
 - Confirm browser console/page/request errors are empty, state is finite, mobile has no horizontal overflow, and the authored pixel cyan/pink athlete contract is visible in every sport.
 - Confirm each arena resolves the selected home club's authored venue/ritual and displays club identity on the pixel athletes without changing their cyan/pink side signal.
 - Run deterministic/long-soak sport checks appropriate to the changed arena; static verification is never sufficient evidence of spectator quality.
+- Run `scripts/verify-network-ui.mjs` with the configured Playwright module against the canonical preview; all six Home → match → club → athlete journeys and share fallbacks must pass.
 - Confirm port 4173's process cwd is the canonical worktree.
 - Commit the exact release snapshot, then run `npm run release:check`; it refuses the stale branch, wrong worktree, dirty tree, wrong Vercel project, or alternate homepage.
 - Deploy to Vercel production only after all checks pass.
