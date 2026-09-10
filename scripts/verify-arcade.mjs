@@ -2,6 +2,12 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+// A late join can show the completed UTC soccer fixture until the next slot.
+// Active games must advance; a verified fulltime score needs only its final paint.
+const broadcastReady=()=>{
+  const view=window.__arcadeView,frame=window.__arcadeFrame?.();
+  return view?.drawCount>2||(view?.drawCount>0&&frame?.sportId==='soccer'&&frame.phase==='fulltime');
+};
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const origin=process.env.ARCADE_PREVIEW_URL||'http://127.0.0.1:4188';
 const output=path.resolve('output/arcade-integration');await mkdir(output,{recursive:true});
@@ -14,9 +20,9 @@ try{
     const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),errors=[];
     page.setDefaultTimeout(60000);page.setDefaultNavigationTimeout(60000);
     page.on('pageerror',e=>errors.push(String(e)));page.on('console',e=>{if(e.type()==='error')errors.push(e.text());});page.on('requestfailed',r=>errors.push(r.url()+': '+r.failure()?.errorText));page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+': '+r.url());});
-    await page.goto(`${origin}/${route}`,{waitUntil:'networkidle'});await page.waitForFunction(()=>window.__arcadeView?.drawCount>2);
+    await page.goto(`${origin}/${route}`,{waitUntil:'networkidle'});await page.waitForFunction(broadcastReady);
     const pair=await page.evaluate(sport=>{const teams=CYBERLIGA_CONTENT.getTeams(sport);return [teams[5].id,teams[2].id];},sport);
-    await page.goto(`${origin}/${route}?home=${pair[0]}&away=${pair[1]}&league=${sport}`,{waitUntil:'networkidle'});await page.waitForFunction(()=>window.__arcadeView?.drawCount>2);
+    await page.goto(`${origin}/${route}?home=${pair[0]}&away=${pair[1]}&league=${sport}`,{waitUntil:'networkidle'});await page.waitForFunction(broadcastReady);
     const result=await page.evaluate(()=>{
       window.dispatchEvent(new Event('resize'));
       const captureCanvas=[...document.querySelectorAll('canvas')].sort((a,b)=>b.width*b.height-a.width*a.height)[0]?.id;
