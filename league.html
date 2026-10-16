@@ -42,6 +42,16 @@
       <div class="channel-grid" id="channel-grid"></div>
     </section>
 
+    <section class="season-section" id="season-history" aria-labelledby="season-title">
+      <header class="section-heading"><div><h2 id="season-title">The season</h2><span class="section-count" id="season-status">Connecting</span></div><label class="season-picker">Season <select id="season-picker" aria-label="Choose saved season" disabled><option>Current</option></select></label></header>
+      <p class="season-note" id="season-note" role="status">Loading saved league history…</p>
+      <div id="season-content" hidden>
+        <div class="season-columns"><div><h3>League table</h3><div class="season-table-wrap"><table class="season-table"><caption id="season-table-caption">Saved league standings</caption><thead><tr><th scope="col">#</th><th scope="col">Club</th><th scope="col">P</th><th scope="col">W</th><th scope="col">D</th><th scope="col">L</th><th scope="col">+/−</th><th scope="col">Pts</th></tr></thead><tbody id="season-standings"></tbody></table></div><p class="season-rules" id="season-rules"></p></div><aside><h3>Scoring leaders</h3><div id="season-leaders"></div></aside></div>
+        <header class="season-results-heading"><h3>Results &amp; schedule</h3><span id="season-updated"></span></header><div class="season-results" id="season-results"></div>
+      </div>
+    </section>
+    <dialog id="fixture-dialog" class="fixture-dialog" aria-labelledby="fixture-title"><header><span class="network-kicker">Saved match report</span><button id="fixture-close" type="button" aria-label="Close match report">Close ×</button></header><h2 id="fixture-title"></h2><p class="season-note" id="fixture-note"></p><ol id="fixture-events"></ol></dialog>
+
     <section class="clubs-section" id="clubs" aria-labelledby="clubs-title">
       <header class="section-heading"><div><h2 id="clubs-title">Choose your club</h2><span class="section-count">08</span></div><span>Find your city. Know your side.</span></header>
       <div class="club-grid" id="club-grid"></div>

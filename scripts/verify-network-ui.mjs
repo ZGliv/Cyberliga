@@ -36,6 +36,7 @@ try {
     const fixture=await watch.getAttribute('href');await watch.click();await page.waitForFunction(broadcastReady);
     const arena=await inspect(page,sport+' arena');const frame=await page.evaluate(()=>window.__arcadeFrame());assert.equal(frame.sportId,sport);
     await page.locator('.ab-nav').getByRole('link',{name:'Leagues',exact:true}).click();await page.waitForSelector('.club-card');
+    await page.waitForFunction(()=>window.CyberligaLeagueHQ?.getState().standingsSource!=='loading');
     assert.equal(await page.locator('.club-card').count(),8);assert.equal(await page.locator('#channel-grid>a').count(),4);
     const clubs=page.locator('.club-card');const clubId=await clubs.nth(5).getAttribute('data-team');await clubs.nth(5).click();
     const athlete=page.locator('.athlete-row').first();const athleteHref=await athlete.getAttribute('href');const athleteId=new URL(athleteHref,origin).searchParams.get('player');await athlete.click();

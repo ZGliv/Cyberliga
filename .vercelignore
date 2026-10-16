@@ -26,6 +26,10 @@ arcade-review/
 .claude/
 .git/
 node_modules/
+.env*
+.league-data/
+.agents/
+skills-lock.json
 menu.html
 menu.js
 menu.css

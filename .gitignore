@@ -3,6 +3,11 @@
 .playwright-cli/
 football-artifacts/
 output/
+node_modules/
+.env*
+.league-data/
+.agents/
+skills-lock.json
 arcade-review/
 football 2.css
 football 2.html

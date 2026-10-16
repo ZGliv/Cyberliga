@@ -16,10 +16,16 @@
     "test:visuals": "node --test foundingvisual.test.mjs foundinglive.test.mjs",
     "test:characters": "node --test classic-character.test.mjs",
     "test:broadcast-polish": "node --test soccer-football-broadcast-polish.test.mjs hoops-hockey-broadcast-polish.test.mjs baseball-broadcast-polish.test.mjs fight-broadcast-grammar.test.mjs",
-    "verify": "npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:chronicle && npm run test:football-replay-memory && npm run test:visuals && npm run test:characters && npm run test:broadcast-polish && node scripts/verify.mjs",
-    "release:check": "npm run verify && node scripts/release-check.mjs"
+    "verify": "npm run test:league && npm run test:api && npm run test:moments && npm run test:named-moments && npm run test:broadcast && npm run test:chronicle && npm run test:football-replay-memory && npm run test:visuals && npm run test:characters && npm run test:broadcast-polish && node scripts/verify.mjs",
+    "release:check": "npm run verify && node scripts/release-check.mjs",
+    "dev:league": "node scripts/league-dev.mjs",
+    "league:worker": "node scripts/league-worker.mjs",
+    "test:league": "node --test league-store.test.mjs league-api.test.mjs"
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@libsql/client": "0.17.0"
   }
 }

@@ -1,4 +1,5 @@
 import { paintArcadePortraits, shareArcadeLink } from './arcade-world.js';
+import { mountSeason } from './season-view.js';
 
 (function bootstrapLeagueHQ(root) {
   'use strict';
@@ -218,6 +219,7 @@ import { paintArcadePortraits, shareArcadeLink } from './arcade-world.js';
   renderClubGrid();
   renderDossier();
   updateUrl(true);
+  var seasonView = mountSeason({ sportId:sportId, content:C, brand:B });
 
   window.render_game_to_text = function () {
     var identity = brand(selectedTeam);
@@ -230,7 +232,8 @@ import { paintArcadePortraits, shareArcadeLink } from './arcade-world.js';
       liveChannels:round.matches.map(function (match,index) { return {channel:index + 1,home:match.homeId,away:match.awayId,rivalry:match.rivalry}; }),
       roster:{filter:rosterFilter,count:selectedTeam.athletes.length,visibleCount:byId('roster-grid').children.length},
       dossierTab:dossierTab,
-      standingsSource:'not-displayed',
+      standingsSource:seasonView.state.source,
+      season:seasonView.state,
       elapsedMs:elapsedMs
     });
   };

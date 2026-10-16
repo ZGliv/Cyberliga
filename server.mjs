@@ -7,6 +7,8 @@ import configHandler from './api/config.js';
 import leagueHandler from './api/league.js';
 import liveHandler from './api/live.js';
 import tickHandler from './api/tick.js';
+import seasonsHandler from './api/seasons.js';
+import seasonCronHandler from './api/season-cron.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_REAL = await realpath(ROOT);
@@ -63,7 +65,9 @@ const API_HANDLERS = new Map([
   ['/api/config', configHandler],
   ['/api/league', leagueHandler],
   ['/api/live', liveHandler],
-  ['/api/tick', tickHandler]
+  ['/api/tick', tickHandler],
+  ['/api/seasons', seasonsHandler],
+  ['/api/season-cron', seasonCronHandler]
 ]);
 
 function sendText(response, status, message, extraHeaders = {}) {
