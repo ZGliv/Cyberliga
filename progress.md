@@ -1,5 +1,12 @@
 Original prompt: Can you make boxing work way better? Make the actual fighting and animations and shit way better, you might need to make the characters better too /goal
 
+## Approved iPhone home-screen icon — 2026-10-20
+
+- User approved concept 02 World and explicitly requested publication. Feature d4a9284 started from canonical c34318c in an isolated worktree; only icon files, manifest and head metadata changed. Integrated by fast-forward onto the canonical release branch.
+- Added opaque square PNGs at 32/180/192/512/1024 px and Safari home-screen metadata on Home, League HQ, Athlete Files and all six arenas. The operating system applies the rounded mask.
+- Release QA: npm run verify passed 1,654 checks; football brain/rules passed 28 tests. Official game client ran Home, HQ and six arenas at 1280x720 and 390x844: 16 finite states, zero error artifacts, visually inspected cyan/pink authored athletes. The six mobile Home → match → HQ → athlete → match → Home journeys and share fallbacks passed. Full shell screenshots confirm no overflow and the new Apple icon metadata on both sizes.
+- Port 4173 is served from the canonical worktree (process cwd verified). Approved source, extraction prompts and QA images are retained in Project Room/output/app-icons/approved-v2. No engine, data, navigation or gameplay changes. Run release:check on this clean release snapshot before deploying.
+
 ## Pixel public release — 2026-09-07
 
 - User authorized replacing the existing public Vercel version with the approved pixel direction, keeping the globe and removing old program screens. Work started in isolated `codex/arcade-public-release` from canonical `81da120`; approved feature `9902203` transplanted as `b694988`.
