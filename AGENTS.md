@@ -21,6 +21,7 @@
 
 - All six sports remain autonomous, view-only broadcasts with no gameplay, pause, resume, restart, or fullscreen input.
 - Live athletes use the approved authored pixel renderer in `arcade-broadcast.js`, with cyan/hot-pink side signals. Club colors and authored kit motifs remain in athlete trim/equipment/identity, HUDs, venues, crowds, and league identity.
+- Hockey is the broadcast-revamp vertical slice (pending Zack's approval): `hockey-broadcast.js` draws an overhead, vertically scrolling rink with skeletal pixel athletes in real club kits (home in club colour, away in white with club trim) instead of the cyan/pink sprites. Its skating model, goal replay and TV graphics are the template for the other five sports once approved.
 - The public world remains six sports, 48 clubs, 24 simultaneous games, and 416 athletes.
 - Preserve the accepted world globe/game network, League HQ, fixture deep links, deterministic hooks, and mobile broadcast cameras.
 - `branddata.js` is the 48-club venue, ritual, mark, environment and kit-pattern source of truth. Arena work must consume those identities rather than inventing a second club canon.

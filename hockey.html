@@ -254,6 +254,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildBlobRig, CLASSIC_PLAYER_COLORS, classicPlayerColor } from './blobrig.js';
 import { decideHockeyGoalLine } from './hockey-goal-line.js';
 import { installArcadeBroadcast, prepareArcadeRenderer } from './arcade-broadcast.js';
+import { createHockeyPainter } from './hockey-broadcast.js';
 
 const classicSideVisual = side => classicPlayerColor(Number(side) % CLASSIC_PLAYER_COLORS.length);
 
@@ -992,6 +993,7 @@ function mkPlayer(team, idx, name, teamDef) {
     fox: 0, foz: 0, holdT: 0, carryT:0, butterT: 0, breakaway: false, wasBreakaway:false,
     action:null, gear, checkReady:0, hitT:0, saveT:0, saveKind:'', saveSide:1, edge:0, motionAccel:0,
     energy:1, shiftT:0, penaltyT:0, penaltyReason:'', zoneRole:'', entryPlan:null, otBench:false, tracking:1,
+    effort:0, lean:0, stopT:0, backward:false,
     decT:1+rnd() };
 }
 function buildSquads() {
@@ -1027,6 +1029,8 @@ let hockeyMomentDirector=null,hockeyBroadcastSpine=null,activeHockeyFixtureIndex
 let hockeyMomentSequence=0,hockeyMomentCounters={goal:0,save:0,check:0};
 let suppressHockeySpinePresentation=false;
 const MATCH_MEMORY_FINAL_HOLD=10;
+// Long enough for the live goal reaction plus the broadcast's slowed replay.
+const GOAL_SEQ_SECONDS=8.4;
 function hockeyMomentClock(){return `${S.period===4?'OT':`P${S.period}`} ${fmtClock(Math.max(0,S.clock))}`;}
 function hockeyMomentLeverage(kind){
   const close=1-clamp(Math.abs(S.score[0]-S.score[1])/5,0,1);
@@ -1540,6 +1544,60 @@ function resolvePuckBattle(carrier,challenger,nearBoards,forced=false){
   S.cameraBeat=.56;S.cameraKind=nearBoards?'board-battle':'stick-lift';S.cameraX=carrier.x;S.cameraZ=carrier.z;
   S.forceBattle=false;clack();return true;
 }
+// Skating is not free 2D acceleration. A skater pushes along their line of travel,
+// turns on edges (tighter when slow, wider at speed), hockey-stops to reverse,
+// and defencemen skate backwards to keep the puck carrier in front of them.
+const STRIDE_ACCEL = 7.4, EDGE_GRIP = 12.5, STOP_DECEL = 16, BACKWARD_MAX = .74;
+function skate(p, dt, maxs) {
+  if (!(dt > 0)) return; // paused/establishing steps carry no motion
+  const dx = p.tx - p.x, dz = p.tz - p.z, dist = Math.hypot(dx, dz);
+  const sp = Math.hypot(p.vx, p.vz);
+  p.stopT = Math.max(0, p.stopT - dt);
+  const carrier = puck.carrier;
+  const toCx = carrier ? carrier.x - p.x : 0, toCz = carrier ? carrier.z - p.z : 0, toC = Math.hypot(toCx, toCz) || 1;
+  const retreating = carrier && carrier.team !== p.team && p.idx >= 4 && toC > 2.4 && toC < 16 && dist > .4 &&
+    (dx*toCx + dz*toCz)/(dist*toC) < -.2;
+  p.backward = !!retreating;
+  const limit = maxs*(p.backward ? BACKWARD_MAX : 1);
+  const want = dist > .25 ? limit*clamp(dist/2.6, 0, 1) : 0;
+  let effort = 0, lean = 0;
+  if (want < .05 || sp < .55) {
+    if (want < .05) {
+      // Coast down with a snowplow; a hard stop throws spray.
+      const dec = Math.min(sp, (sp > 4 ? STOP_DECEL*.6 : 5)*dt);
+      if (sp > 1e-4) { p.vx -= p.vx/sp*dec; p.vz -= p.vz/sp*dec; }
+      if (sp > 4) p.stopT = .22;
+    } else {
+      // Push off from a standstill straight toward the target.
+      p.vx += dx/dist*STRIDE_ACCEL*1.15*dt; p.vz += dz/dist*STRIDE_ACCEL*1.15*dt; effort = 1;
+    }
+  } else {
+    const hx = p.vx/sp, hz = p.vz/sp, ux = dx/dist, uz = dz/dist;
+    const cos = hx*ux + hz*uz, cross = hx*uz - hz*ux;
+    if (cos < -.35 && sp > 3.2) {
+      // Hockey stop: blades sideways, hard deceleration before re-launching.
+      const dec = Math.min(sp, STOP_DECEL*dt);
+      p.vx -= hx*dec; p.vz -= hz*dec; p.stopT = .26;
+      if (p.puffCd <= 0) { spawnPuff(p.x, p.z, 7, 3.5); p.puffCd = .72; scrape(clamp(sp/MAXS, 0, 1)); }
+    } else {
+      // Edge turn: lateral grip caps angular rate at a_lat / v.
+      const angle = Math.atan2(cross, cos), maxTurn = EDGE_GRIP/Math.max(sp, 2.2)*dt;
+      const turn = clamp(angle, -maxTurn, maxTurn), c = Math.cos(turn), s = Math.sin(turn);
+      const nx = hx*c - hz*s, nz = hx*s + hz*c;
+      let speed = sp;
+      if (speed < want) { effort = (1 - .55*speed/MAXS)*(.35 + .65*Math.max(0, cos)); speed += STRIDE_ACCEL*effort*dt; }
+      else speed -= Math.min(speed - want, (speed - want > 2 ? 6 : 3)*dt);
+      // Deep edges scrub a little speed; gliding keeps almost all of it.
+      speed *= Math.exp(-(.12 + Math.abs(turn)/dt*.05)*dt);
+      p.vx = nx*speed; p.vz = nz*speed;
+      lean = clamp(turn/dt*speed/EDGE_GRIP, -1, 1);
+    }
+  }
+  const sp2 = Math.hypot(p.vx, p.vz);
+  if (sp2 > limit && sp2 > 1e-4) { p.vx *= limit/sp2; p.vz *= limit/sp2; }
+  p.effort += (effort - p.effort)*dampK(8, dt);
+  p.lean += (lean - p.lean)*dampK(7, dt);
+}
 function integratePlayers(dt) {
   for (const p of players) {
     p.checkCd -= dt; p.pokeCd-=dt;p.battleCd-=dt;p.touchCd -= dt; p.puffCd -= dt;
@@ -1561,21 +1619,19 @@ function integratePlayers(dt) {
         p.rejoinT=1.25; p.touchCd=Math.max(p.touchCd,.25); p.zoneRole='RECOVERING';
         spawnPuff(p.x,p.z,4,1.8);
       }
-    } else {
+    } else if (p.isGK) {
+      // Goalies shuffle and T-push inside the crease rather than skate.
       const dx = p.tx - p.x, dz = p.tz - p.z, dist = Math.hypot(dx, dz);
       if (dist > 0.25) {
         const arr = clamp(dist/1.6, 0.25, 1);
-        const ax = dx/dist*11*arr, az = dz/dist*11*arr;
-        // hockey stop: hard reversal at speed → snow spray
-        const sp = Math.hypot(p.vx, p.vz);
-        if (sp > 5.2 && (p.vx*dx + p.vz*dz)/(sp*dist) < -0.25 && p.puffCd <= 0) {
-          spawnPuff(p.x, p.z, 7, 3.5); p.puffCd = 0.72; scrape(clamp(sp/MAXS, 0, 1));
-        }
-        p.vx += ax*dt; p.vz += az*dt;
+        p.vx += dx/dist*11*arr*dt; p.vz += dz/dist*11*arr*dt;
       }
-      p.vx *= Math.exp(-0.55*dt); p.vz *= Math.exp(-0.55*dt); // glide — low friction
+      p.vx *= Math.exp(-0.55*dt); p.vz *= Math.exp(-0.55*dt);
       const sp2 = Math.hypot(p.vx, p.vz);
       if (sp2 > maxs) { p.vx *= maxs/sp2; p.vz *= maxs/sp2; }
+      p.effort=0; p.lean=0; p.stopT=Math.max(0,p.stopT-dt); p.backward=false;
+    } else {
+      skate(p, dt, maxs);
     }
     const newSp = Math.hypot(p.vx, p.vz);
     const instantAccel = clamp((newSp-oldSp)/Math.max(dt, 1/120)/(MAXS*2.2), -1, 1);
@@ -2240,7 +2296,7 @@ function stateStep(dt) {
       steerFaceoff(); // drift toward next faceoff while celebrating
       integratePlayers(dt);
       integratePuck(dt);
-      if (S.t > 4.0) {
+      if (S.t > GOAL_SEQ_SECONDS) {
         elFlash.classList.remove('show');
         if (S.period === 4) { showFinalCard(); setState('FINAL'); }
         else { setFaceoff(0, 0); setState('FACEOFF'); lastCamMode = 'cut'; } // cut hides puck snap to center
@@ -2290,7 +2346,7 @@ function hudStep() {
 setupMatch(true);
 // Keep updateRigs in the original tick: its heading feeds carried-puck physics.
 // Only the submitted picture changes; every adapter value comes from live state.
-installArcadeBroadcast({sportId:'hockey',renderer,readFrame:()=>({
+installArcadeBroadcast({sportId:'hockey',renderer,createPainter:createHockeyPainter,readFrame:()=>({
   sportId:'hockey',fixtureId:hockeyMomentFixtureId,time:simClockTotal,
   phase:S.state,clock:Math.max(0,S.clock),period:S.period,
   teams:[TEAM_A,TEAM_B].map((team,side)=>({
@@ -2317,7 +2373,9 @@ installArcadeBroadcast({sportId:'hockey',renderer,readFrame:()=>({
     return {
       id:player.athlete.id,name:player.name,number:player.athlete.number,team:player.team,role:player.role,
       x:player.x,y:0,z:player.z,vx:player.vx,vz:player.vz,facing:player.heading,
-      action,progress,visible:player.penaltyT<=0&&!player.otBench,hasBall,profile:player.athlete
+      action,progress,visible:player.penaltyT<=0&&!player.otBench,hasBall,profile:player.athlete,
+      effort:+player.effort.toFixed(3),lean:+player.lean.toFixed(3),stopping:player.stopT>0,backward:!!player.backward,
+      shoots:hashSeed(player.athlete.id)%3===0?'R':'L',penalty:player.penaltyT>0
     };
   }),
   projectile:{
@@ -2330,7 +2388,8 @@ installArcadeBroadcast({sportId:'hockey',renderer,readFrame:()=>({
     S.eventTTL>0?{title:S.eventText,detail:S.lastDecision,type:S.eventKind}:null,
   presentation:{
     attackSign:ATT[puck.carrier?.team??S.possessionTeam??puck.lastTouch?.team??0],
-    possessionTeam:S.possessionTeam,strength:[strengthLabel(0),strengthLabel(1)],
+    possessionTeam:S.possessionTeam,strength:[strengthLabel(0),strengthLabel(1)],shots:[S.shots[0],S.shots[1]],
+    referee:{x:refP.x,z:refP.z,vx:refP.vx,vz:refP.vz},
     equipment:{goalX:GLX,goalHeight:1.25,goalHalfWidth:NW/2,goalDepth:1.1,blueLineX:BLX}
   }
 })});

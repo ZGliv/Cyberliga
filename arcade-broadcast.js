@@ -247,7 +247,7 @@ export function createArenaPainter(canvas,sportId){
   return {paint,get frame(){return lastFrame;}};
 }
 
-export function installArcadeBroadcast({sportId,renderer,readFrame}){
+export function installArcadeBroadcast({sportId,renderer,readFrame,createPainter=createArenaPainter}){
   if(window.__arcadeView)return window.__arcadeView;
   const sport=ARCADE_SPORTS.find(s=>s.id===sportId)||ARCADE_SPORTS[0];
   const styleUrl=new URL('./arcade-broadcast.css',import.meta.url).href;
@@ -295,7 +295,7 @@ export function installArcadeBroadcast({sportId,renderer,readFrame}){
   // Navigation exits the view-only game; it is explicitly exempt from its input guard.
   root.querySelectorAll('a').forEach(anchor=>anchor.classList.add('watch-only-exit'));
   document.body.append(root);
-  const canvas=root.querySelector('#arcade-canvas'),painter=createArenaPainter(canvas,sportId);
+  const canvas=root.querySelector('#arcade-canvas'),painter=createPainter(canvas,sportId);
   const get=id=>root.querySelector('#ab-'+id);
   const nodes={clock:get('clock'),period:get('period'),event:get('event'),detail:get('detail'),venue:get('venue'),homeVenue:get('home-venue'),homeStatement:get('home-statement'),clubs:get('clubs'),cast:get('cast'),rosterCount:get('roster-count'),spotlightLink:get('spotlight-link'),spotlightPortrait:get('spotlight-portrait'),spotlightNumber:get('spotlight-number'),spotlightRole:get('spotlight-role'),spotlightName:get('spotlight-name'),spotlightClub:get('spotlight-club'),spotlightSignature:get('spotlight-signature'),spotlightSide:get('spotlight-side')};
   const teamNodes=[0,1].map(i=>({link:root.querySelector(`[data-team-link="${i}"]`),crest:root.querySelector(`[data-team-crest="${i}"]`),name:root.querySelector(`[data-team-name="${i}"]`),city:root.querySelector(`[data-team-city="${i}"]`),score:root.querySelector(`[data-score="${i}"]`)}));
